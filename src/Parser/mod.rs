@@ -1627,12 +1627,335 @@ fn is_basic_type(basic_type: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-
     use super::nom::error::ErrorKind;
-    use crate::Parser::{parse_caller_binding, parse_return_statement, parse_type};
-    use crate::AST::{Identifier, ReturnStatement, Statement, Type};
+    use crate::Parser::*;
+    use crate::AST::{*, Literal::*, BinOp::*};
     use nom_locate::{position, LocatedSpan};
     use sha3::Digest;
+
+    #[test]
+    fn test_parse_identifier() {
+        let input = LocatedSpan::new("id");
+        let (rest, result) = parse_identifier(input).expect("Error with parsing identifier");
+        assert_eq!(
+            result,
+            Identifier {
+                token: String::from("id"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset: 0 }
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_identifier_list() {
+        let input = LocatedSpan::new("first, second, third");
+        let (rest, result) =
+            parse_identifier_list(input).expect("Error with parsing identifier list");
+        assert_eq!(
+            result,
+            vec![
+                Identifier {
+                    token: String::from("first"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+                Identifier {
+                    token: String::from("second"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+                Identifier {
+                    token: String::from("third"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_identifier_group() {
+        let input = LocatedSpan::new("(first, second, third)");
+        let (rest, result) =
+            parse_identifier_group(input).expect("Error with parsing identifier group");
+        assert_eq!(
+            result,
+            vec![
+                Identifier {
+                    token: String::from("first"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+                Identifier {
+                    token: String::from("second"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+                Identifier {
+                    token: String::from("third"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_docatch_statement () {
+        let input = LocatedSpan::new("do {return id} catch is error_type {return error}");
+        let (rest, result) = parse_docatch_statement(input).expect("Error with docatch statement");
+        assert_eq!(result, Statement::DoCatchStatement (
+            DoCatchStatement {
+                error: Expression::Identifier (
+                    Identifier {
+                        token: String::from("error_type"),
+                        enclosing_type: None,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 24
+                        }
+                    },
+                ),
+                
+                do_body: vec![Statement::ReturnStatement (
+                    ReturnStatement {
+                        expression: Some(
+                            Expression::Identifier(
+                                Identifier {
+                                    token: String::from("id"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 11
+                                    }
+                                })),
+
+                        cleanup: vec![],
+                        line_info: LineInfo {
+                                line: 1,
+                                offset: 4
+                        }
+
+                    }
+                )],
+                
+                catch_body: vec![Statement::ReturnStatement (
+                    ReturnStatement {
+                        expression: Some(
+                            Expression::Identifier(
+                                Identifier {
+                                    token: String::from("error"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 43
+                                    }
+                                })),
+
+                        cleanup: vec![],
+                        line_info: LineInfo {
+                                line: 1,
+                                offset: 36
+                      }
+                    }
+                )],
+            }
+        ));
+    }
+    
+    #[test] 
+    fn test_if_statement() {
+        let input = LocatedSpan::new("if x<5 {return x}");
+        let (rest, result) = parse_if_statement(input).expect("Error with if statement");
+        assert_eq!(result, Statement::IfStatement (
+            IfStatement {
+                condition: Expression::BinaryExpression(
+                    BinaryExpression {
+                        lhs_expression: Box::new(
+                            Expression::Identifier(
+                                Identifier {
+                                    token: String::from("x"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 3
+                                    }
+                                }
+                            )
+                        ),
+                        rhs_expression: Box::new(
+                            Expression::Literal(IntLiteral(5))
+                        ),
+                        op: LessThan,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 3
+                        }
+                    }
+                ),
+
+                body: vec![Statement::ReturnStatement (
+                    ReturnStatement {
+                        expression: Some(
+                            Expression::Identifier(
+                                Identifier {
+                                    token: String::from("x"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 15
+                                    }
+                                })),
+
+                        cleanup: vec![],
+                        line_info: LineInfo {
+                                line: 1,
+                                offset: 8
+                        }
+                    }
+                )],
+
+                else_body: vec![],
+                IfBodyScopeContext: None,
+                ElseBodyScopeContext: None
+            }
+        ));
+    }
+
+    #[test]
+    fn test_parse_emit_statement() {
+        let input = LocatedSpan::new("emit foo()");
+        let (rest, result) = parse_emit_statement(input).expect("Error parsing emit statement");
+        assert_eq!(result, Statement::EmitStatement (
+            EmitStatement {
+                function_call: FunctionCall {
+                    identifier: Identifier {
+                                token: String::from("foo"),
+                                enclosing_type: None,
+                                line_info: LineInfo {
+                                    line: 1,
+                                    offset: 5
+                                }
+                        },
+
+                    arguments: vec![],
+                    mangled_identifier: None
+                }
+            }
+        ));
+    }
+
+    #[test]
+    fn test_become_statement() {
+        let input = LocatedSpan::new("become example");
+        let (rest, result) = parse_become_statement(input).expect("Error parsing become statement");
+        assert_eq!(result, Statement::BecomeStatement (
+            BecomeStatement {
+                expression: Expression::Identifier(
+                    Identifier {
+                        token: String::from("example"),
+                        enclosing_type: None,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 0
+                        }
+                    }),
+
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 0
+                }
+            }
+        ));
+    }
+
+    #[test]
+    fn test_for_statement() {
+        //TODO: does it need double curly brackets?
+        let input = LocatedSpan::new("for let i: Int in (1...5) {{5}}");
+        let (rest, result) = parse_for_statement(input).expect("Error with for statement");
+        assert_eq!(result, Statement::ForStatement (
+            ForStatement {
+                variable: VariableDeclaration {
+                    declaration_token: Some(String::from("let")),
+                    identifier: Identifier {
+                        token: String::from("i"),
+                        enclosing_type: None,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 8
+                        }
+                    },
+                   
+                    variable_type: Type::Int,
+                    expression: None,
+                },
+            
+                iterable: Expression::RangeExpression(
+                    RangeExpression {
+                        start_expression: Box::new(Expression::Literal(IntLiteral(1))),
+                        end_expression: Box::new(Expression::Literal(IntLiteral(5))),
+                        op: String::from("...")
+                    }
+                ),
+
+                body: vec![Statement::Expression(Expression::Literal(IntLiteral(5)))],
+                ForBodyScopeContext: None,
+
+            }
+        ));
+    }
+
+    #[test]
+    fn test_parse_return_statement() {
+        let input = LocatedSpan::new("return");
+        let (rest, result) = parse_return_statement(input).expect("Error with return statement");
+        assert_eq!(result, Statement::ReturnStatement (
+            ReturnStatement {
+                expression: None,
+                cleanup: vec![],
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 0
+                }
+            }
+        ));
+
+        let input = LocatedSpan::new("return id");
+        let (rest, result) = parse_return_statement(input).expect("Error with statement returning identifier");
+        assert_eq!(result, Statement::ReturnStatement (
+            ReturnStatement {
+                expression: Some(
+                    Expression::Identifier(
+                            Identifier {
+                                token: String::from("id"),
+                                enclosing_type: None,
+                                line_info: LineInfo {
+                                    line: 1,
+                                    offset: 0
+                                }
+                        })),
+
+                        cleanup: vec![],
+                        line_info: LineInfo {
+                                line: 1,
+                                offset: 0
+                      }
+            }
+        ));
+    }
+
+    #[test]
+    fn test_parse_whitespace() {
+        let input = "";
+        let input = LocatedSpan::new(input);
+        let result = whitespace(input);
+        match result {
+            Ok((c, b)) => assert_eq!(c, LocatedSpan::new("")),
+            Err(_) => assert_eq!(1, 0),
+        }
+    }
 
     #[test]
     fn test_parse_int_type() {

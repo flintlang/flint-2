@@ -1,4 +1,3 @@
-
 use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
@@ -209,7 +208,6 @@ impl Visitor for MovePreProcessor {
                 line_info: Default::default(),
             });
 
-
             let rhs = Expression::FunctionCall(FunctionCall {
                 identifier: Identifier {
                     token: "Quartz_Self_Create_Libra".to_string(),
@@ -353,12 +351,10 @@ impl Visitor for MovePreProcessor {
         let body = function_declaration.body.clone();
         let mut statements = get_declaration(_ctx);
 
-
         let mut deletions = delete_declarations(function_declaration.body.clone());
 
         statements.append(&mut deletions);
         function_declaration.body = statements;
-
 
         if function_declaration.is_void() {
             let statement = function_declaration.body.last();
@@ -381,7 +377,6 @@ impl Visitor for MovePreProcessor {
                     }));
             }
         } else {
-
             let variable_declaration = VariableDeclaration {
                 declaration_token: None,
                 identifier: Identifier {
@@ -619,7 +614,6 @@ impl Visitor for MovePreProcessor {
 
     fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
         let mut receiver_trail = _ctx.FunctionCallReceiverTrail.clone();
-
 
         if Environment::is_runtime_function_call(_t) {
             return Ok(());
@@ -896,7 +890,6 @@ pub fn convert_default_parameter_functions(
 
             processed.push(removed);
 
-
             let arguments: Vec<FunctionArgument> = f
                 .head
                 .parameters
@@ -1000,7 +993,7 @@ pub fn generate_contract_wrapper(
     function: FunctionDeclaration,
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     context: &mut Context,
-) -> FunctionDeclaration{
+) -> FunctionDeclaration {
     let mut wrapper = function.clone();
     let name = function.head.identifier.token.clone();
     wrapper.mangledIdentifier = Option::from(mangle_function_move(name, &"".to_string(), true));
@@ -1462,7 +1455,6 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
             enclosing.token.clone()
         };
 
-
         let call = function_call.clone();
 
         let caller_protections = if ctx.ContractBehaviourDeclarationContext.is_some() {
@@ -1523,14 +1515,11 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     panic!("Non-function CallableInformation where function expected")
                 }
             }
-            FunctionCallMatchResult::MatchedInitializer(i) => {
-
-                Some(mangle_function_move(
-                    "init".to_string(),
-                    &function_call.identifier.token,
-                    false,
-                ))
-            }
+            FunctionCallMatchResult::MatchedInitializer(i) => Some(mangle_function_move(
+                "init".to_string(),
+                &function_call.identifier.token,
+                false,
+            )),
             FunctionCallMatchResult::MatchedFallback(_) => unimplemented!(),
             FunctionCallMatchResult::MatchedGlobalFunction(fi) => {
                 let declaration = fi.declaration;

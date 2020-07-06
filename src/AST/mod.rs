@@ -1424,7 +1424,7 @@ impl Visitable for SpecialSignatureDeclaration {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     ReturnStatement(ReturnStatement),
     Expression(Expression),
@@ -1473,7 +1473,7 @@ impl Visitable for Statement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DoCatchStatement {
     pub error: Expression,
     pub do_body: Vec<Statement>,
@@ -1486,7 +1486,7 @@ impl Visitable for DoCatchStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IfStatement {
     pub condition: Expression,
     pub body: Vec<Statement>,
@@ -1642,7 +1642,7 @@ impl Visitable for IfStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ForStatement {
     pub variable: VariableDeclaration,
     pub iterable: Expression,
@@ -1709,7 +1709,7 @@ impl Visitable for ForStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EmitStatement {
     pub function_call: FunctionCall,
 }
@@ -1739,7 +1739,7 @@ impl Visitable for EmitStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BecomeStatement {
     pub expression: Expression,
     pub line_info: LineInfo,
@@ -1754,7 +1754,7 @@ impl Visitable for BecomeStatement {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct ReturnStatement {
     pub expression: Option<Expression>,
     pub cleanup: Vec<Statement>,

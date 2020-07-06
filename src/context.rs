@@ -151,7 +151,7 @@ pub struct BlockContext {
     pub ScopeContext: ScopeContext,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct ScopeContext {
     pub parameters: Vec<Parameter>,
     pub local_variables: Vec<VariableDeclaration>,
