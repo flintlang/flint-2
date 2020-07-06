@@ -2,6 +2,6 @@ language: rust
 before_script:
   - rustup component add clippy
 script:
-  - cargo clippy -- -D warnings
+  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::correctness --verbose
   - cargo test --verbose
 cache: cargo    

@@ -1,10 +1,8 @@
-
+use crate::AST::*;
 use crate::context::*;
 use crate::environment::*;
+use crate::MoveCodeGen::{FunctionContext, MoveExpression, MoveIRBlock};
 use crate::visitor::Visitor;
-use crate::MoveCodeGen::{FunctionContext, MoveExpression, MoveIRBlock, MoveStatement};
-use crate::AST::*;
-use std::env::var;
 
 pub(crate) struct MovePreProcessor {}
 
@@ -116,17 +114,17 @@ impl Visitor for MovePreProcessor {
     ) -> VResult {
         if _ctx.in_function_or_special() {
             if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.ScopeContext.as_mut().unwrap();
+                let context_ref = _ctx.scope_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.FunctionDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.SpecialDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
         }
@@ -203,7 +201,7 @@ impl Visitor for MovePreProcessor {
 
             let lhs_expression = Expression::VariableDeclaration(lhs.clone());
 
-            let lhs = Expression::Identifier(Identifier {
+            let _lhs = Expression::Identifier(Identifier {
                 token: "amount".to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
@@ -234,74 +232,71 @@ impl Visitor for MovePreProcessor {
             );
         }
 
-        if _ctx.AssetContext.is_some() {
-            if enclosing_identifier != format!("Quartz$Global") {
-                let asset_ctx = _ctx.AssetContext.clone();
-                let asset_ctx = asset_ctx.unwrap();
-                let asset_ctx_identifier = asset_ctx.identifier.clone();
-                let param_type = Type::UserDefinedType(asset_ctx_identifier);
-                let param_type = Type::InoutType(InoutType {
-                    key_type: Box::new(param_type),
-                });
-                let param_self_identifier = Identifier {
-                    token: "self".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                };
+        if _ctx.asset_context.is_some() && enclosing_identifier != format!("Quartz$Global") {
+            let asset_ctx = _ctx.asset_context.clone();
+            let asset_ctx = asset_ctx.unwrap();
+            let asset_ctx_identifier = asset_ctx.identifier.clone();
+            let param_type = Type::UserDefinedType(asset_ctx_identifier);
+            let param_type = Type::InoutType(InoutType {
+                key_type: Box::new(param_type),
+            });
+            let param_self_identifier = Identifier {
+                token: "self".to_string(),
+                enclosing_type: None,
+                line_info: Default::default(),
+            };
 
-                let parameter = Parameter {
-                    identifier: param_self_identifier,
-                    type_assignment: param_type,
-                    expression: None,
-                    line_info: Default::default(),
-                };
+            let parameter = Parameter {
+                identifier: param_self_identifier,
+                type_assignment: param_type,
+                expression: None,
+                line_info: Default::default(),
+            };
 
-                _t.head.parameters.insert(0, parameter.clone());
-                if _ctx.ScopeContext.is_some() {
-                    let scope = _ctx.ScopeContext.clone();
-                    let mut scope = scope.unwrap();
-                    scope.parameters.insert(0, parameter);
+            _t.head.parameters.insert(0, parameter.clone());
+            if _ctx.scope_context.is_some() {
+                let scope = _ctx.scope_context.clone();
+                let mut scope = scope.unwrap();
+                scope.parameters.insert(0, parameter);
 
-                    _ctx.ScopeContext = Some(scope);
-                }
+                _ctx.scope_context = Some(scope);
             }
         }
 
-        if _ctx.StructDeclarationContext.is_some() {
-            if enclosing_identifier != format!("Quartz_Global") {
-                let struct_ctx = _ctx.StructDeclarationContext.clone();
-                let struct_ctx = struct_ctx.unwrap();
-                let struct_ctx_identifier = struct_ctx.identifier.clone();
-                let param_type = Type::UserDefinedType(struct_ctx_identifier);
-                let param_type = Type::InoutType(InoutType {
-                    key_type: Box::new(param_type),
-                });
-                let param_self_identifier = Identifier {
-                    token: "self".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                };
+        if _ctx.struct_declaration_context.is_some() && enclosing_identifier != format!("Quartz_Global") {
+            let struct_ctx = _ctx.struct_declaration_context.clone();
+            let struct_ctx = struct_ctx.unwrap();
+            let struct_ctx_identifier = struct_ctx.identifier.clone();
+            let param_type = Type::UserDefinedType(struct_ctx_identifier);
+            let param_type = Type::InoutType(InoutType {
+                key_type: Box::new(param_type),
+            });
+            let param_self_identifier = Identifier {
+                token: "self".to_string(),
+                enclosing_type: None,
+                line_info: Default::default(),
+            };
 
-                let parameter = Parameter {
-                    identifier: param_self_identifier,
-                    type_assignment: param_type,
-                    expression: None,
-                    line_info: Default::default(),
-                };
+            let parameter = Parameter {
+                identifier: param_self_identifier,
+                type_assignment: param_type,
+                expression: None,
+                line_info: Default::default(),
+            };
 
-                _t.head.parameters.insert(0, parameter.clone());
-                if _ctx.ScopeContext.is_some() {
-                    let scope = _ctx.ScopeContext.clone();
-                    let mut scope = scope.unwrap();
-                    scope.parameters.insert(0, parameter);
+            _t.head.parameters.insert(0, parameter.clone());
+            if _ctx.scope_context.is_some() {
+                let scope = _ctx.scope_context.clone();
+                let mut scope = scope.unwrap();
+                scope.parameters.insert(0, parameter);
 
-                    _ctx.ScopeContext = Some(scope);
-                }
+                _ctx.scope_context = Some(scope);
             }
         }
+
 
         if _ctx.is_contract_behaviour_declaration_context() {
-            let contract = _ctx.ContractBehaviourDeclarationContext.clone();
+            let contract = _ctx.contract_behaviour_declaration_context.clone();
             let contract = contract.unwrap();
             let identifier = contract.identifier.clone();
             let parameter_type = Type::UserDefinedType(identifier);
@@ -322,10 +317,10 @@ impl Visitor for MovePreProcessor {
             _t.head.parameters.insert(0, parameter.clone());
 
             if _ctx.scope_context().is_some() {
-                let scope = _ctx.ScopeContext.clone();
+                let scope = _ctx.scope_context.clone();
                 let mut scope = scope.unwrap();
                 scope.parameters.insert(0, parameter.clone());
-                _ctx.ScopeContext = Some(scope);
+                _ctx.scope_context = Some(scope);
             }
 
             if contract.caller.is_some() {
@@ -350,9 +345,7 @@ impl Visitor for MovePreProcessor {
         _ctx: &mut Context,
     ) -> VResult {
         let function_declaration = _t;
-        let body = function_declaration.body.clone();
         let mut statements = get_declaration(_ctx);
-
 
         let mut deletions = delete_declarations(function_declaration.body.clone());
 
@@ -363,8 +356,7 @@ impl Visitor for MovePreProcessor {
         if function_declaration.is_void() {
             let statement = function_declaration.body.last();
             if !function_declaration.body.is_empty() {
-                if let Statement::ReturnStatement(r) = statement.unwrap() {
-                } else {
+                if let Statement::ReturnStatement(_) = statement.unwrap() {} else {
                     function_declaration
                         .body
                         .push(Statement::ReturnStatement(ReturnStatement {
@@ -381,7 +373,6 @@ impl Visitor for MovePreProcessor {
                     }));
             }
         } else {
-
             let variable_declaration = VariableDeclaration {
                 declaration_token: None,
                 identifier: Identifier {
@@ -437,8 +428,8 @@ impl Visitor for MovePreProcessor {
             .collect();
 
         _t.body = members;
-        if _ctx.ContractBehaviourDeclarationContext.is_some() {
-            let b_ctx = _ctx.ContractBehaviourDeclarationContext.clone();
+        if _ctx.contract_behaviour_declaration_context.is_some() {
+            let b_ctx = _ctx.contract_behaviour_declaration_context.clone();
             let b_ctx = b_ctx.unwrap();
             let caller_binding = b_ctx.caller.clone();
             if caller_binding.is_some() {
@@ -503,7 +494,7 @@ impl Visitor for MovePreProcessor {
                     });
                     *_t = expression.clone();
                     if _ctx.is_function_declaration_context() {
-                        let context = _ctx.FunctionDeclarationContext.clone();
+                        let context = _ctx.function_declaration_context.clone();
                         let mut context = context.unwrap();
                         context.local_variables.push(variable.clone());
 
@@ -512,11 +503,11 @@ impl Visitor for MovePreProcessor {
                         scope.local_variables.push(variable.clone());
 
                         context.declaration.ScopeContext = Some(scope);
-                        _ctx.FunctionDeclarationContext = Some(context)
+                        _ctx.function_declaration_context = Some(context)
                     }
 
                     if _ctx.is_special_declaration_context() {
-                        let context = _ctx.SpecialDeclarationContext.clone();
+                        let context = _ctx.special_declaration_context.clone();
                         let mut context = context.unwrap();
                         context.local_variables.push(variable.clone());
 
@@ -525,15 +516,15 @@ impl Visitor for MovePreProcessor {
                         scope.local_variables.push(variable.clone());
 
                         context.declaration.ScopeContext = scope;
-                        _ctx.SpecialDeclarationContext = Some(context);
+                        _ctx.special_declaration_context = Some(context);
                     }
 
                     if _ctx.has_scope_context() {
-                        let scope = _ctx.ScopeContext.clone();
+                        let scope = _ctx.scope_context.clone();
                         let mut scope = scope.unwrap();
                         scope.local_variables.push(variable.clone());
 
-                        _ctx.ScopeContext = Some(scope)
+                        _ctx.scope_context = Some(scope)
                     }
                 }
             }
@@ -546,7 +537,6 @@ impl Visitor for MovePreProcessor {
         _t: &mut BinaryExpression,
         _ctx: &mut Context,
     ) -> VResult {
-        let f = _t.clone();
         if _t.op.is_assignment_shorthand() {
             let op = _t.op.clone();
             let op = op.get_assignment_shorthand();
@@ -560,14 +550,13 @@ impl Visitor for MovePreProcessor {
             };
             _t.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         } else if let BinOp::Dot = _t.op {
-            let mut trail = _ctx.FunctionCallReceiverTrail.clone();
+            let mut trail = _ctx.function_call_receiver_trail.clone();
             trail.push(*_t.lhs_expression.clone());
 
-            _ctx.FunctionCallReceiverTrail = trail;
+            _ctx.function_call_receiver_trail = trail;
             match *_t.lhs_expression.clone() {
-                Expression::Identifier(i) => {
-                    if let Expression::FunctionCall(_) = *_t.rhs_expression {
-                    } else {
+                Expression::Identifier(_) => {
+                    if let Expression::FunctionCall(_) = *_t.rhs_expression {} else {
                         let lhs = _t.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, _ctx, false);
@@ -582,7 +571,7 @@ impl Visitor for MovePreProcessor {
                         _t.lhs_expression = Box::from(lhs);
                     }
                 }
-                (_) => {}
+                _ => {}
             }
         }
 
@@ -590,20 +579,20 @@ impl Visitor for MovePreProcessor {
     }
 
     fn finish_return_statement(&mut self, _t: &mut ReturnStatement, _ctx: &mut Context) -> VResult {
-        _t.cleanup = _ctx.PostStatements.clone();
-        _ctx.PostStatements = vec![];
+        _t.cleanup = _ctx.post_statements.clone();
+        _ctx.post_statements = vec![];
         Ok(())
     }
 
     fn start_external_call(&mut self, _t: &mut ExternalCall, _ctx: &mut Context) -> VResult {
-        if _ctx.ScopeContext.is_none() {
+        if _ctx.scope_context.is_none() {
             panic!("Not Enough Information To Workout External Trait name")
         }
 
         if _ctx.enclosing_type_identifier().is_none() {
             panic!("Not Enough Information To Workout External Trait name")
         }
-        let scope = _ctx.ScopeContext.clone();
+        let scope = _ctx.scope_context.clone();
         let scope = scope.unwrap();
         let enclosing = _ctx.enclosing_type_identifier().clone();
         let enclosing = enclosing.unwrap();
@@ -618,7 +607,7 @@ impl Visitor for MovePreProcessor {
     }
 
     fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
-        let mut receiver_trail = _ctx.FunctionCallReceiverTrail.clone();
+        let mut receiver_trail = _ctx.function_call_receiver_trail.clone();
 
 
         if Environment::is_runtime_function_call(_t) {
@@ -642,8 +631,8 @@ impl Visitor for MovePreProcessor {
         let function_call = _t.clone();
         if !_ctx.environment.is_initiliase_call(function_call.clone())
             && !_ctx
-                .environment
-                .is_trait_declared(&function_call.identifier.token)
+            .environment
+            .is_trait_declared(&function_call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(function_call, _ctx);
 
@@ -651,15 +640,15 @@ impl Visitor for MovePreProcessor {
             let enclosing_type = enclosing_type.unwrap_or_default();
             let enclosing_type = enclosing_type.token;
 
-            let caller_protections = if _ctx.ContractBehaviourDeclarationContext.is_some() {
-                let behaviour = _ctx.ContractBehaviourDeclarationContext.clone();
+            let caller_protections = if _ctx.contract_behaviour_declaration_context.is_some() {
+                let behaviour = _ctx.contract_behaviour_declaration_context.clone();
                 let behaviour = behaviour.unwrap();
                 behaviour.caller_protections
             } else {
                 vec![]
             };
 
-            let scope = _ctx.ScopeContext.clone();
+            let scope = _ctx.scope_context.clone();
             let scope = scope.unwrap_or_default();
 
             let declared_enclosing = if is_global_function_call {
@@ -683,69 +672,68 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_contract_declared(&declared_enclosing)
                 || _ctx.environment.is_trait_declared(&declared_enclosing)
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
-            {
-                if !is_global_function_call {
-                    let mut expresssions = receiver_trail.clone();
 
-                    let mut expression = construct_expression(expresssions);
+                && !is_global_function_call {
+                let expresssions = receiver_trail.clone();
 
-                    if expression.enclosing_type().is_some() {
-                        expression = expand_properties(expression, _ctx, false);
-                    } else if let Expression::BinaryExpression(b) = expression.clone() {
-                        expression = expand_properties(expression, _ctx, false);
-                    }
+                let mut expression = construct_expression(expresssions);
 
-                    let enclosing_type = _ctx.enclosing_type_identifier();
-                    let enclosing_type = enclosing_type.unwrap_or_default();
-                    let enclosing_type = enclosing_type.token;
-
-                    let result_type = match expression.clone() {
-                        Expression::Identifier(i) => {
-                            if scope.type_for(i.token.clone()).is_some() {
-                                let result = scope.type_for(i.token).clone();
-                                result.unwrap()
-                            } else {
-                                _ctx.environment.get_expression_type(
-                                    expression.clone(),
-                                    &enclosing_type,
-                                    vec![],
-                                    vec![],
-                                    scope.clone(),
-                                )
-                            }
-                        }
-                        _ => _ctx.environment.get_expression_type(
-                            expression.clone(),
-                            &enclosing_type,
-                            vec![],
-                            vec![],
-                            scope.clone(),
-                        ),
-                    };
-
-                    if !result_type.is_inout_type() {
-                        let inout = InoutExpression {
-                            ampersand_token: "".to_string(),
-                            expression: Box::new(expression.clone()),
-                        };
-                        expression = Expression::InoutExpression(inout)
-                    }
-
-                    let mut arguments = _t.arguments.clone();
-                    arguments.insert(
-                        0,
-                        FunctionArgument {
-                            identifier: None,
-                            expression,
-                        },
-                    );
-
-                    _t.arguments = arguments;
+                if expression.enclosing_type().is_some() {
+                    expression = expand_properties(expression, _ctx, false);
+                } else if let Expression::BinaryExpression(_) = expression.clone() {
+                    expression = expand_properties(expression, _ctx, false);
                 }
+
+                let enclosing_type = _ctx.enclosing_type_identifier();
+                let enclosing_type = enclosing_type.unwrap_or_default();
+                let enclosing_type = enclosing_type.token;
+
+                let result_type = match expression.clone() {
+                    Expression::Identifier(i) => {
+                        if scope.type_for(i.token.clone()).is_some() {
+                            let result = scope.type_for(i.token).clone();
+                            result.unwrap()
+                        } else {
+                            _ctx.environment.get_expression_type(
+                                expression.clone(),
+                                &enclosing_type,
+                                vec![],
+                                vec![],
+                                scope.clone(),
+                            )
+                        }
+                    }
+                    _ => _ctx.environment.get_expression_type(
+                        expression.clone(),
+                        &enclosing_type,
+                        vec![],
+                        vec![],
+                        scope.clone(),
+                    ),
+                };
+
+                if !result_type.is_inout_type() {
+                    let inout = InoutExpression {
+                        ampersand_token: "".to_string(),
+                        expression: Box::new(expression.clone()),
+                    };
+                    expression = Expression::InoutExpression(inout)
+                }
+
+                let mut arguments = _t.arguments.clone();
+                arguments.insert(
+                    0,
+                    FunctionArgument {
+                        identifier: None,
+                        expression,
+                    },
+                );
+
+                _t.arguments = arguments;
             }
         }
 
-        _ctx.FunctionCallReceiverTrail = vec![];
+        _ctx.function_call_receiver_trail = vec![];
 
         Ok(())
     }
@@ -757,20 +745,20 @@ impl Visitor for MovePreProcessor {
     ) -> VResult {
         let mut borrow_local = false;
         let function_argument = _t.clone();
-        let mut expression = function_argument.expression.clone();
+        let mut expression;
         if let Expression::InoutExpression(i) = function_argument.expression.clone() {
             expression = *i.expression.clone();
 
-            if _ctx.ScopeContext.is_some() {
-                let scope = _ctx.ScopeContext.clone();
+            if _ctx.scope_context.is_some() {
+                let scope = _ctx.scope_context.clone();
                 let scope = scope.unwrap();
 
                 if _ctx.enclosing_type_identifier().is_some() {
                     let enclosing = _ctx.enclosing_type_identifier().clone();
                     let enclosing = enclosing.unwrap();
                     let enclosing = enclosing.token;
-                    let caller_protections = if _ctx.ContractBehaviourDeclarationContext.is_some() {
-                        let behaviour = _ctx.ContractBehaviourDeclarationContext.clone();
+                    let caller_protections = if _ctx.contract_behaviour_declaration_context.is_some() {
+                        let behaviour = _ctx.contract_behaviour_declaration_context.clone();
                         let behaviour = behaviour.unwrap();
                         behaviour.caller_protections
                     } else {
@@ -802,7 +790,7 @@ impl Visitor for MovePreProcessor {
         match expression.clone() {
             Expression::Identifier(ident) => {
                 if ident.enclosing_type.is_some() {
-                    let ident_enclosing = ident.enclosing_type.clone();
+                    let _ident_enclosing = ident.enclosing_type.clone();
                     expression = pre_assign(expression, _ctx, borrow_local, true);
                 }
             }
@@ -812,7 +800,7 @@ impl Visitor for MovePreProcessor {
                 }
             }
             _ => {
-                if let Expression::InoutExpression(i) = function_argument.expression.clone() {
+                if let Expression::InoutExpression(_) = function_argument.expression.clone() {
                     expression = function_argument.expression.clone()
                 }
             }
@@ -884,8 +872,8 @@ pub fn convert_default_parameter_functions(
 
             _ctx.environment.remove_function(f, t);
 
-            let protections = if _ctx.ContractBehaviourDeclarationContext.is_some() {
-                let temp = _ctx.ContractBehaviourDeclarationContext.clone();
+            let protections = if _ctx.contract_behaviour_declaration_context.is_some() {
+                let temp = _ctx.contract_behaviour_declaration_context.clone();
                 let temp = temp.unwrap();
                 temp.caller_protections.clone()
             } else {
@@ -949,11 +937,11 @@ pub fn convert_default_parameter_functions(
         }
         functions = processed.clone();
     }
-    return functions;
+    functions
 }
 
 pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
-    let scope = ctx.ScopeContext.clone();
+    let scope = ctx.scope_context.clone();
     if scope.is_some() {
         let declarations = scope
             .unwrap()
@@ -969,7 +957,7 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
                         line_info: Default::default(),
                     };
                 }
-                return Statement::Expression(Expression::VariableDeclaration(declaration));
+                Statement::Expression(Expression::VariableDeclaration(declaration))
             })
             .collect();
         return declarations;
@@ -978,12 +966,12 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
 }
 
 pub fn delete_declarations(statements: Vec<Statement>) -> Vec<Statement> {
-    let statements = statements
+    statements
         .clone()
         .into_iter()
         .filter_map(|s| {
             if let Statement::Expression(e) = s.clone() {
-                if let Expression::VariableDeclaration(v) = e {
+                if let Expression::VariableDeclaration(_) = e {
                     None
                 } else {
                     Some(s)
@@ -992,15 +980,14 @@ pub fn delete_declarations(statements: Vec<Statement>) -> Vec<Statement> {
                 Some(s)
             }
         })
-        .collect();
-    return statements;
+        .collect()
 }
 
 pub fn generate_contract_wrapper(
     function: FunctionDeclaration,
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     context: &mut Context,
-) -> FunctionDeclaration{
+) -> FunctionDeclaration {
     let mut wrapper = function.clone();
     let name = function.head.identifier.token.clone();
     wrapper.mangledIdentifier = Option::from(mangle_function_move(name, &"".to_string(), true));
@@ -1008,7 +995,7 @@ pub fn generate_contract_wrapper(
     wrapper.body = vec![];
     wrapper.tags.push("acquires T".to_string());
 
-    if !function.is_void() && !function.body.is_empty() {
+    if !function.is_void() & &!function.body.is_empty() {
         let mut func = function.clone();
         wrapper.body.push(func.body.remove(0));
     }
@@ -1073,7 +1060,7 @@ pub fn generate_contract_wrapper(
         .filter(|c| c.is_any())
         .collect();
     if !contract_behaviour_declaration.caller_protections.is_empty()
-        && caller_protections.is_empty()
+        & &caller_protections.is_empty()
     {
         let caller = Identifier {
             token: "_caller".to_string(),
@@ -1186,14 +1173,14 @@ pub fn generate_contract_wrapper(
             ..Default::default()
         }));
 
-    return wrapper;
+    wrapper
 }
 
 pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool) -> Expression {
     match expression.clone() {
         Expression::Identifier(i) => {
             if ctx.has_scope_context() {
-                let scope = ctx.ScopeContext.clone();
+                let scope = ctx.scope_context.clone();
                 let scope = scope.unwrap();
                 let identifier_type = scope.type_for(i.token);
                 if identifier_type.is_some() {
@@ -1224,11 +1211,11 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
                 let rhs = expand_properties(*rhs, ctx, borrow);
                 binary.lhs_expression = Box::from(rhs);
                 pre_assign(Expression::BinaryExpression(binary), ctx, borrow, true)
-            }
+            };
         }
-        (_) => return expression,
+        _ => return expression,
     };
-    return expression;
+    expression
 }
 
 pub fn pre_assign(
@@ -1238,7 +1225,7 @@ pub fn pre_assign(
     is_reference: bool,
 ) -> Expression {
     let enclosing_type = ctx.enclosing_type_identifier().unwrap();
-    let scope = ctx.ScopeContext.clone();
+    let scope = ctx.scope_context.clone();
     let mut scope = scope.unwrap();
     let mut expression_type = ctx.environment.get_expression_type(
         expression.clone(),
@@ -1267,19 +1254,19 @@ pub fn pre_assign(
         line_info: Default::default(),
     };
 
-    let statements = ctx.PreStatements.clone();
+    let statements = ctx.pre_statements.clone();
     let statements: Vec<Expression> = statements
         .into_iter()
         .filter_map(|s| match s {
             Statement::Expression(e) => Some(e),
-            (_) => None,
+            _ => None,
         })
         .collect();
     let statements: Vec<BinaryExpression> = statements
         .into_iter()
         .filter_map(|s| match s {
             Expression::BinaryExpression(e) => Some(e),
-            (_) => None,
+            _ => None,
         })
         .collect();
     let statements: Vec<BinaryExpression> = statements
@@ -1290,15 +1277,10 @@ pub fn pre_assign(
                     return expression == *b.rhs_expression;
                 }
             }
-            return false;
+            false
         })
         .collect();
-    let mut declaration = VariableDeclaration {
-        declaration_token: None,
-        identifier: Default::default(),
-        variable_type: Type::Bool,
-        expression: None,
-    };
+    let declaration;
     if statements.is_empty() {
         temp_identifier = scope.fresh_identifier(expression.clone().get_line_info());
         declaration = if expression_type.is_built_in_type() || borrow {
@@ -1317,18 +1299,18 @@ pub fn pre_assign(
                 }),
                 expression: None,
             };
-            let mut post_statement = ctx.PostStatements.clone();
+            let mut post_statement = ctx.post_statements.clone();
             post_statement.push(release(
                 Expression::Identifier(temp_identifier.clone()),
                 Type::InoutType(InoutType {
                     key_type: Box::new(expression_type),
                 }),
             ));
-            ctx.PostStatements = post_statement;
+            ctx.post_statements = post_statement;
             var
         };
 
-        let mut pre_statement = ctx.PreStatements.clone();
+        let mut pre_statement = ctx.pre_statements.clone();
         pre_statement.push(Statement::Expression(Expression::BinaryExpression(
             BinaryExpression {
                 lhs_expression: Box::new(Expression::Identifier(temp_identifier.clone())),
@@ -1337,10 +1319,10 @@ pub fn pre_assign(
                 line_info: temp_identifier.line_info.clone(),
             },
         )));
-        ctx.PreStatements = pre_statement;
+        ctx.pre_statements = pre_statement;
 
         if ctx.is_function_declaration_context() {
-            let context = ctx.FunctionDeclarationContext.clone();
+            let context = ctx.function_declaration_context.clone();
             let mut context = context.unwrap();
             context.local_variables.push(declaration.clone());
 
@@ -1352,11 +1334,11 @@ pub fn pre_assign(
                 context.declaration.ScopeContext = Some(scope_ctx);
             }
 
-            ctx.FunctionDeclarationContext = Option::from(context);
+            ctx.function_declaration_context = Option::from(context);
         }
 
         if ctx.is_special_declaration_context() {
-            let context = ctx.SpecialDeclarationContext.clone();
+            let context = ctx.special_declaration_context.clone();
             let mut context = context.unwrap();
             context.local_variables.push(declaration.clone());
 
@@ -1366,7 +1348,7 @@ pub fn pre_assign(
 
             context.declaration.ScopeContext = scope_ctx;
 
-            ctx.SpecialDeclarationContext = Option::from(context);
+            ctx.special_declaration_context = Option::from(context);
         }
         scope.local_variables.push(declaration);
     } else {
@@ -1377,14 +1359,14 @@ pub fn pre_assign(
         }
     }
 
-    ctx.ScopeContext = Option::from(scope);
+    ctx.scope_context = Option::from(scope);
     if borrow {
         return Expression::InoutExpression(InoutExpression {
             ampersand_token: "&".to_string(),
             expression: Box::new(Expression::Identifier(temp_identifier)),
         });
     }
-    return Expression::Identifier(temp_identifier);
+    Expression::Identifier(temp_identifier)
 }
 
 pub fn generate_caller_statement(caller: Identifier) -> Statement {
@@ -1398,7 +1380,7 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
         line_info: caller.line_info.clone(),
     };
 
-    return Statement::Expression(Expression::BinaryExpression(assignment));
+    Statement::Expression(Expression::BinaryExpression(assignment))
 }
 
 pub fn generate_assertion(
@@ -1420,7 +1402,7 @@ pub fn generate_assertion(
             expression: or_expression,
             position: Default::default(),
         }
-        .generate(&function_context);
+            .generate(&function_context);
         let string = format!("assert({ex}, 1)", ex = expression);
         return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
     }
@@ -1433,13 +1415,13 @@ pub fn generate_assertion(
         expression,
         position: Default::default(),
     }
-    .generate(&function_context);
+        .generate(&function_context);
     let string = format!("assert({ex}, 1)", ex = expression);
-    return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
+    Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }
 
 pub fn release(expression: Expression, expression_type: Type) -> Statement {
-    return Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+    Statement::Expression(Expression::BinaryExpression(BinaryExpression {
         lhs_expression: Box::new(Expression::RawAssembly(
             "_".to_string(),
             Option::from(expression_type),
@@ -1447,15 +1429,14 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
         rhs_expression: Box::new(expression.clone()),
         op: BinOp::Equal,
         line_info: expression.get_line_info().clone(),
-    }));
+    }))
 }
 
 pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) -> Option<String> {
-    if !Environment::is_runtime_function_call(function_call) && !ctx.IsExternalFunctionCall {
+    if !Environment::is_runtime_function_call(function_call) & &!ctx.is_external_function_call {
         let enclosing_type = if function_call.identifier.enclosing_type.is_some() {
             let enclosing = function_call.identifier.enclosing_type.clone();
-            let enclosing = enclosing.unwrap();
-            enclosing
+            enclosing.unwrap()
         } else {
             let enclosing = ctx.enclosing_type_identifier().clone();
             let enclosing = enclosing.unwrap();
@@ -1465,15 +1446,15 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
         let call = function_call.clone();
 
-        let caller_protections = if ctx.ContractBehaviourDeclarationContext.is_some() {
-            let behaviour = ctx.ContractBehaviourDeclarationContext.clone();
+        let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
+            let behaviour = ctx.contract_behaviour_declaration_context.clone();
             let behaviour = behaviour.unwrap();
             behaviour.caller_protections
         } else {
             vec![]
         };
 
-        let scope = ctx.ScopeContext.clone();
+        let scope = ctx.scope_context.clone();
         let scope = scope.unwrap_or_default();
 
         let match_result = ctx.environment.match_function_call(
@@ -1487,7 +1468,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
             FunctionCallMatchResult::MatchedFunction(fi) => {
                 let declaration = fi.declaration;
                 let param_types = declaration.head.parameters;
-                let param_types: Vec<Type> = param_types
+                let _param_types: Vec<Type> = param_types
                     .clone()
                     .into_iter()
                     .map(|p| p.type_assignment)
@@ -1508,23 +1489,22 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = fi.declaration;
                     let param_types = declaration.head.parameters;
-                    let param_types: Vec<Type> = param_types
+                    let _param_types: Vec<Type> = param_types
                         .clone()
                         .into_iter()
                         .map(|p| p.type_assignment)
                         .collect();
 
-                    return Some(mangle_function_move(
+                    Some(mangle_function_move(
                         declaration.head.identifier.token,
                         &enclosing_type,
                         false,
-                    ));
+                    ))
                 } else {
                     panic!("Non-function CallableInformation where function expected")
                 }
             }
-            FunctionCallMatchResult::MatchedInitializer(i) => {
-
+            FunctionCallMatchResult::MatchedInitializer(_) => {
                 Some(mangle_function_move(
                     "init".to_string(),
                     &function_call.identifier.token,
@@ -1541,11 +1521,11 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     false,
                 ))
             }
-            FunctionCallMatchResult::Failure(lol) => None,
+            FunctionCallMatchResult::Failure(_) => None,
         }
     } else {
-        let lol = !Environment::is_runtime_function_call(function_call);
-        let lol2 = !ctx.IsExternalFunctionCall;
+        let _lol = !Environment::is_runtime_function_call(function_call);
+        let _lol2 = !ctx.is_external_function_call;
         Some(function_call.identifier.token.clone())
     }
 }
@@ -1554,15 +1534,15 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
     let enclosing = ctx.enclosing_type_identifier().clone();
     let enclosing = enclosing.unwrap();
     let enclosing = enclosing.token.clone();
-    let caller_protections = if ctx.ContractBehaviourDeclarationContext.is_some() {
-        let behaviour = ctx.ContractBehaviourDeclarationContext.clone();
+    let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
+        let behaviour = ctx.contract_behaviour_declaration_context.clone();
         let behaviour = behaviour.unwrap();
         behaviour.caller_protections
     } else {
         vec![]
     };
 
-    let scope = ctx.ScopeContext.clone();
+    let scope = ctx.scope_context.clone();
     let scope = scope.unwrap_or_default();
 
     let result =
@@ -1573,20 +1553,20 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
         return true;
     }
 
-    return false;
+    false
 }
 
 pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
     let mut expression = expressions.clone();
     if expression.len() > 1 {
         let first = expression.remove(0);
-        return Expression::BinaryExpression(BinaryExpression {
+        Expression::BinaryExpression(BinaryExpression {
             lhs_expression: Box::new(first),
             rhs_expression: Box::new(construct_expression(expression)),
             op: BinOp::Dot,
             line_info: Default::default(),
-        });
+        })
     } else {
-        return expression.remove(0);
-    };
+        expression.remove(0)
+    }
 }

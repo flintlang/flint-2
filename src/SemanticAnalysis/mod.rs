@@ -1,8 +1,6 @@
-use super::context::*;
-use super::environment::*;
-use super::visitor::*;
 use super::AST::*;
-use std::env::var;
+use super::context::*;
+use super::visitor::*;
 
 pub struct SemanticAnalysis {}
 
@@ -152,7 +150,7 @@ impl Visitor for SemanticAnalysis {
 
         if _ctx.in_function_or_special() {
             if _ctx.has_scope_context() {
-                let scope_context = _ctx.ScopeContext.as_mut().unwrap();
+                let scope_context = _ctx.scope_context.as_mut().unwrap();
 
                 let redeclaration = scope_context.declaration(_t.identifier.token.clone());
                 if redeclaration.is_some() {
@@ -223,13 +221,11 @@ impl Visitor for SemanticAnalysis {
                 println!("Payable parameter is ambiguous");
                 return Err(Box::from("".to_owned()));
             }
-        } else {
-            if !remaining_parameters.is_empty() {
-                let params = remaining_parameters.clone();
-                println!("{:?}", params);
-                println!("Function not marked payable but has payable parameter");
-                return Err(Box::from("".to_owned()));
-            }
+        } else if !remaining_parameters.is_empty() {
+            let params = remaining_parameters.clone();
+            println!("{:?}", params);
+            println!("Function not marked payable but has payable parameter");
+            return Err(Box::from("".to_owned()));
         }
 
         if _t.is_public() {
@@ -279,13 +275,11 @@ impl Visitor for SemanticAnalysis {
             return Err(Box::from("".to_owned()));
         }
 
-        if _t.head.result_type.is_some() {
-            if return_statements.is_empty() {
-                let err = _t.head.identifier.token.clone();
-                let err = format!("Missing Return in Function {}", err);
-                println!("{}", err);
-                return Err(Box::from("".to_owned()));
-            }
+        if _t.head.result_type.is_some() && return_statements.is_empty() {
+            let err = _t.head.identifier.token.clone();
+            let err = format!("Missing Return in Function {}", err);
+            println!("{}", err);
+            return Err(Box::from("".to_owned()));
         }
 
         if return_statements.len() > 1 {
@@ -315,7 +309,7 @@ impl Visitor for SemanticAnalysis {
         _t: &mut FunctionDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        _t.ScopeContext = _ctx.ScopeContext.clone();
+        _t.ScopeContext = _ctx.scope_context.clone();
         Ok(())
     }
 
@@ -324,13 +318,10 @@ impl Visitor for SemanticAnalysis {
         _t: &mut SpecialDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        if _t.is_fallback() {
-            if _t.head.has_parameters() {
-                println!("fallback declared with arguments");
-                return Err(Box::from("".to_owned()));
-            }
-
-            //TODO check body only has simple statements bit long
+        if _t.is_fallback() && _t.head.has_parameters() {
+            println!("fallback declared with arguments");
+            return Err(Box::from("".to_owned()));
+            // TODO check body only has simple statements bit long
         }
 
         Ok(())
@@ -343,29 +334,27 @@ impl Visitor for SemanticAnalysis {
             return Err(Box::from("".to_owned()));
         }
 
-        if _ctx.IsPropertyDefaultAssignment
+        if _ctx.is_property_default_assignment
             && !_ctx.environment.is_struct_declared(&_t.token)
             && !_ctx.environment.is_asset_declared(&_t.token)
-        {
-            if _ctx.enclosing_type_identifier().is_some() {
-                if _ctx.environment.is_property_defined(
-                    _t.token.clone(),
-                    &_ctx.enclosing_type_identifier().unwrap().token,
-                ) {
-                    println!("State property used withing property initiliaser");
-                    return Err(Box::from("".to_owned()));
-                } else {
-                    println!("Use of undeclared identifier");
-                    return Err(Box::from("".to_owned()));
-                }
-            }
+            && _ctx.enclosing_type_identifier().is_some() {
+            return if _ctx.environment.is_property_defined(
+                _t.token.clone(),
+                &_ctx.enclosing_type_identifier().unwrap().token,
+            ) {
+                println!("State property used withing property initiliaser");
+                Err(Box::from("".to_owned()))
+            } else {
+                println!("Use of undeclared identifier");
+                Err(Box::from("".to_owned()))
+            };
         }
 
-        if _ctx.IsFunctionCallContext || _ctx.IsFunctionCallArgumentLabel {
-        } else if _ctx.in_function_or_special() && !_ctx.InBecome && !_ctx.InEmit {
-            let is_l_value = _ctx.IsLValue;
+
+        if _ctx.is_function_call_context || _ctx.is_function_call_argument_label {} else if _ctx.in_function_or_special() && !_ctx.in_become && !_ctx.in_emit {
+            let is_l_value = _ctx.is_lvalue;
             if _t.enclosing_type.is_none() {
-                let scope = _ctx.ScopeContext.is_some();
+                let scope = _ctx.scope_context.is_some();
                 if scope {
                     let variable_declaration =
                         _ctx.scope_context().unwrap().declaration(_t.token.clone());
@@ -378,7 +367,7 @@ impl Visitor for SemanticAnalysis {
                         if variable_declaration.is_constant()
                             && !variable_declaration.variable_type.is_inout_type()
                             && is_l_value
-                            && _ctx.InSubscript
+                            && _ctx.in_subscript
                         {
                             println!("Reassignment to constant");
                         }
@@ -386,7 +375,7 @@ impl Visitor for SemanticAnalysis {
                         let enclosing = _ctx.enclosing_type_identifier();
                         let enclosing = enclosing.unwrap();
                         _t.enclosing_type = Option::from(enclosing.token);
-                    } else if !_ctx.IsEnclosing {
+                    } else if !_ctx.is_enclosing {
                         println!("Invalid Reference");
                     }
                 }
@@ -408,8 +397,8 @@ impl Visitor for SemanticAnalysis {
                     let error = format!("Use of Undeclared Identifier {ident}", ident = identifier);
                     println!("{}", error);
                     return Err(Box::from("".to_owned()));
-                //TODO add add used undefined variable to env
-                } else if is_l_value && !_ctx.InSubscript {
+                    //TODO add add used undefined variable to env
+                } else if is_l_value && !_ctx.in_subscript {
                     if _ctx.environment.is_property_constant(
                         _t.token.clone(),
                         &_t.enclosing_type.as_ref().unwrap(),
@@ -419,7 +408,7 @@ impl Visitor for SemanticAnalysis {
 
                     if _ctx.is_function_declaration_context() {
                         let mutated = _ctx
-                            .FunctionDeclarationContext
+                            .function_declaration_context
                             .as_ref()
                             .unwrap()
                             .mutates()
@@ -435,7 +424,7 @@ impl Visitor for SemanticAnalysis {
                             println!("{}", i);
                             println!(
                                 "{}",
-                                _ctx.FunctionDeclarationContext
+                                _ctx.function_declaration_context
                                     .as_ref()
                                     .unwrap()
                                     .declaration
@@ -449,8 +438,7 @@ impl Visitor for SemanticAnalysis {
                     }
                 }
             }
-        } else if _ctx.InBecome {
-        }
+        } else if _ctx.in_become {}
 
         Ok(())
     }
@@ -459,8 +447,7 @@ impl Visitor for SemanticAnalysis {
         let start = _t.start_expression.clone();
         let end = _t.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
-        } else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
             println!("Invalid Range Declaration");
             return Err(Box::from("".to_owned()));
         }
@@ -473,17 +460,17 @@ impl Visitor for SemanticAnalysis {
         _t: &mut CallerProtection,
         _ctx: &mut Context,
     ) -> VResult {
-        if _ctx.enclosing_type_identifier().is_some() {
-            if !_t.is_any()
-                && !_ctx.environment.contains_caller_protection(
-                    _t,
-                    &_ctx.enclosing_type_identifier().unwrap().token,
-                )
-            {
-                println!("Undeclared Caller Protection");
-                return Err(Box::from("".to_owned()));
-            }
+        if _ctx.enclosing_type_identifier().is_some()
+            && !_t.is_any()
+            && !_ctx.environment.contains_caller_protection(
+            _t,
+            &_ctx.enclosing_type_identifier().unwrap().token,
+        )
+        {
+            println!("Undeclared Caller Protection");
+            return Err(Box::from("".to_owned()));
         }
+
 
         Ok(())
     }
@@ -567,5 +554,5 @@ fn is_conformance_repeated(conformances: Vec<Conformance>) -> bool {
         .into_iter()
         .map(|c| c.identifier.token)
         .collect();
-    return (1..slice.len()).any(|i| slice[i..].contains(&slice[i - 1]));
+    (1..slice.len()).any(|i| slice[i..].contains(&slice[i - 1]))
 }

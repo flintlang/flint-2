@@ -1,12 +1,14 @@
-use super::context::*;
-use super::environment::*;
-use super::AST::*;
-use hex::encode;
-use sha3::{Digest, Keccak256};
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+
+use hex::encode;
+use sha3::{Digest, Keccak256};
+
+use super::AST::*;
+use super::context::*;
+use super::environment::*;
 
 pub mod SolidityPreProcessor;
 
@@ -21,7 +23,7 @@ pub fn generate(module: Module, context: &mut Context) {
                 .into_iter()
                 .filter_map(|d| match d {
                     TopLevelDeclaration::ContractBehaviourDeclaration(cbd) => Some(cbd),
-                    (_) => None,
+                    _ => None,
                 })
                 .filter(|cbd| cbd.identifier.token == c.identifier.token)
                 .collect();
@@ -32,7 +34,7 @@ pub fn generate(module: Module, context: &mut Context) {
                 .into_iter()
                 .filter_map(|d| match d {
                     TopLevelDeclaration::StructDeclaration(s) => Some(s),
-                    (_) => None,
+                    _ => None,
                 })
                 .collect();
 
@@ -52,7 +54,7 @@ pub fn generate(module: Module, context: &mut Context) {
             contract: contract.clone(),
             environment: context.environment.clone(),
         }
-        .generate();
+            .generate();
 
         let mut code = CodeGen {
             code: "".to_string(),
@@ -128,7 +130,7 @@ impl SolidityContract {
             })
             .collect();
 
-        let wrapper_functions = wrapper_functions.join("\n\n");
+        let _wrapper_functions = wrapper_functions.join("\n\n");
 
         let public_function: Vec<SolidityFunction> = functions
             .clone()
@@ -152,7 +154,7 @@ impl SolidityContract {
                     declaration: s.clone(),
                     environment: self.environment.clone(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
 
@@ -238,7 +240,7 @@ impl SolidityContract {
                     identifier: p.identifier.clone(),
                     IsLValue: false,
                 }
-                .generate(&mut function_context)
+                    .generate(&mut function_context)
             })
             .collect();
         let parameter_names: Vec<String> = parameter_names
@@ -287,9 +289,9 @@ impl SolidityContract {
             let yul_statement = SolidityStatement {
                 statement: statement.clone(),
             }
-            .generate(&mut function_context);
+                .generate(&mut function_context);
             function_context.emit(yul_statement);
-            if let Statement::IfStatement(i) = statement {}
+            if let Statement::IfStatement(_) = statement {}
         }
         let body = function_context.generate();
         let body = format!("{binding} {body}", binding = caller_binding, body = body);
@@ -305,7 +307,7 @@ impl SolidityContract {
             .parameters
             .clone()
             .into_iter()
-            .map(|p| format!(""))
+            .map(|_| format!(""))
             .collect();
         let parameters = parameters.join(", ");
         let contract_initialiser = format!(
@@ -430,15 +432,15 @@ impl SolidityInterface {
             } else {
                 format!("")
             };
-            return Option::from(format!(
+            Option::from(format!(
                 "function {name}({params}) {attribute}external{return_string};",
                 name = function_declaration.head.identifier.token.clone(),
                 params = params.clone(),
                 attribute = attribute,
                 return_string = return_string
-            ));
+            ))
         } else {
-            return None;
+            None
         }
     }
 }
@@ -474,12 +476,11 @@ impl SolidityStruct {
                     caller_protections: vec![],
                     IsContractFunction: false,
                 }
-                .generate(true)
+                    .generate(true)
             })
             .collect();
 
-        let functions = functions.join("\n\n");
-        return functions;
+        functions.join("\n\n")
     }
 }
 
@@ -503,7 +504,7 @@ impl FunctionContext {
                 .collect();
             return statements.join("\n");
         }
-        return String::from("");
+        String::from("")
     }
 
     pub fn emit(&mut self, statement: YulStatement) {
@@ -526,20 +527,20 @@ impl FunctionContext {
             let block = YulStatement::Block(self.pop_block());
             self.emit(block);
         }
-        return self.pop_block();
+        self.pop_block()
     }
 
     pub fn fresh_variable(&mut self) -> String {
         let name = format!("$temp{}", self.counter);
         self.counter += 1;
-        return name;
+        name
     }
 }
 
 pub enum SolidityIRType {
-    uint256,
-    address,
-    bytes32,
+    Uint256,
+    Address,
+    Bytes32,
 }
 
 impl SolidityIRType {
@@ -551,11 +552,11 @@ impl SolidityIRType {
             Type::RangeType(_) => panic!("Can not convert this type to Solidity Type"),
             Type::FixedSizedArrayType(_) => panic!("Can not convert this type to Solidity Type"),
             Type::DictionaryType(_) => panic!("Can not convert this type to Solidity Type"),
-            Type::UserDefinedType(_) => SolidityIRType::uint256,
-            Type::Bool => SolidityIRType::uint256,
-            Type::Int => SolidityIRType::uint256,
-            Type::String => SolidityIRType::bytes32,
-            Type::Address => SolidityIRType::address,
+            Type::UserDefinedType(_) => SolidityIRType::Uint256,
+            Type::Bool => SolidityIRType::Uint256,
+            Type::Int => SolidityIRType::Uint256,
+            Type::String => SolidityIRType::Bytes32,
+            Type::Address => SolidityIRType::Address,
             Type::Error => panic!("Can not convert Error type to Solidity Type"),
             Type::SelfType => panic!("Can not convert this type to Solidity Type"),
             Type::Solidity(_) => panic!("Can not convert this type to Solidity Type"),
@@ -576,9 +577,9 @@ impl SolidityIRType {
 
     pub fn generate(&self) -> String {
         match self {
-            SolidityIRType::uint256 => format!("uint256"),
-            SolidityIRType::address => format!("address"),
-            SolidityIRType::bytes32 => format!("bytes32"),
+            SolidityIRType::Uint256 => format!("uint256"),
+            SolidityIRType::Address => format!("address"),
+            SolidityIRType::Bytes32 => format!("bytes32"),
         }
     }
 }
@@ -601,7 +602,7 @@ impl SolidityFunction {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn generate(&self, returns: bool) -> String {
@@ -625,7 +626,7 @@ impl SolidityFunction {
                     identifier: p.identifier.clone(),
                     IsLValue: false,
                 }
-                .generate(&mut function_context)
+                    .generate(&mut function_context)
             })
             .map(|p| format!("{}", p))
             .collect();
@@ -672,7 +673,7 @@ impl SolidityFunction {
             let yul_statement = SolidityStatement {
                 statement: statement.clone(),
             }
-            .generate(&mut function_context);
+                .generate(&mut function_context);
             function_context.emit(yul_statement);
             if let Statement::IfStatement(i) = statement {
                 if i.endsWithReturn() {
@@ -723,7 +724,7 @@ impl SolidityWrapperFunction {
             variable: format!("_QuartzCallerCheck"),
         };
 
-        let caller_code = caller_check.generate(t, self.function.environment.clone());
+        let _caller_code = caller_check.generate(t, self.function.environment.clone());
 
         unimplemented!()
     }
@@ -759,7 +760,7 @@ impl SolidityCallerProtectionCheck {
 
                     let offset = environment.property_offset(c.name(), t);
 
-                    let function_context = FunctionContext {
+                    let _function_context = FunctionContext {
                         environment: environment.clone(),
                         scope_context: Default::default(),
                         InStructFunction: false,
@@ -773,15 +774,14 @@ impl SolidityCallerProtectionCheck {
                             let address = format!("sload({offset})", offset = offset);
                             let check =
                                 SolidityRuntimeFunction::is_valid_caller_protection(address);
-                            return Option::from(format!(
+                            Option::from(format!(
                                 "{variable} := add({variable}, {check})",
                                 variable = self.variable,
                                 check = check
-                            ));
+                            ))
                         }
                         _ => unimplemented!(),
                     }
-                    Some(format!(""))
                 } else {
                     None
                 }
@@ -826,7 +826,7 @@ impl SolidityStatement {
                     expression: e,
                     IsLValue: false,
                 }
-                .generate(function_context),
+                    .generate(function_context),
             ),
             Statement::BecomeStatement(_) => panic!("Become Statement Not Currently Supported"),
             Statement::EmitStatement(_) => unimplemented!(),
@@ -854,9 +854,9 @@ impl SolidityReturnStatement {
             expression,
             IsLValue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
         let string = format!("ret := {expression}", expression = expression);
-        return YulStatement::Inline(string);
+        YulStatement::Inline(string)
     }
 }
 
@@ -870,7 +870,7 @@ impl SolidityIfStatement {
             expression: self.statement.condition.clone(),
             IsLValue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         println!("With new block");
         let count = function_context.push_block();
@@ -900,17 +900,17 @@ impl SolidityExpression {
                 identifier: i,
                 IsLValue: self.IsLValue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::BinaryExpression(b) => SolidityBinaryExpression {
                 expression: b,
                 IsLValue: self.IsLValue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::InoutExpression(i) => SolidityExpression {
                 expression: *i.expression.clone(),
                 IsLValue: true,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::ExternalCall(e) => {
                 SolidityExternalCall { call: e }.generate(function_context)
             }
@@ -924,7 +924,7 @@ impl SolidityExpression {
                 expression: *e.expression,
                 IsLValue: false,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::AttemptExpression(_) => {
                 panic!("Attempt Expression Not Currently Supported")
             }
@@ -933,8 +933,7 @@ impl SolidityExpression {
             }
             Expression::ArrayLiteral(a) => {
                 for e in a.elements {
-                    if let Expression::ArrayLiteral(_) = e {
-                    } else {
+                    if let Expression::ArrayLiteral(_) = e {} else {
                         panic!("Does not support Non-empty array literals")
                     }
                 }
@@ -944,12 +943,12 @@ impl SolidityExpression {
             Expression::SelfExpression => SoliditySelfExpression {
                 IsLValue: self.IsLValue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::SubscriptExpression(s) => SoliditySubscriptExpression {
                 expression: s,
                 IsLValue: self.IsLValue.clone(),
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::RangeExpression(_) => unimplemented!(),
             Expression::RawAssembly(a, _) => YulExpression::Inline(a),
             Expression::CastExpression(c) => {
@@ -962,7 +961,7 @@ impl SolidityExpression {
                         expression,
                         IsLValue: self.IsLValue,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
                     sequence.push(result);
                 }
 
@@ -1006,7 +1005,7 @@ impl SolidityCastExpression {
             expression: *self.expression.expression.clone(),
             IsLValue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         if original_type_info.0 <= target_type_info.0 {
             return expression_ir;
@@ -1064,73 +1063,73 @@ impl SolidityCastExpression {
             Type::String => (256, false),
             Type::Address => (256, false),
             Type::Solidity(s) => match s.clone() {
-                SolidityType::address => return (256, false),
-                SolidityType::string => return (256, false),
-                SolidityType::bool => return (256, false),
-                SolidityType::int8 => return (8, true),
-                SolidityType::int16 => return (16, true),
-                SolidityType::int24 => return (24, true),
-                SolidityType::int32 => return (32, true),
-                SolidityType::int40 => return (40, true),
-                SolidityType::int48 => return (48, true),
-                SolidityType::int56 => return (56, true),
-                SolidityType::int64 => return (64, true),
-                SolidityType::int72 => return (72, true),
-                SolidityType::int80 => return (80, true),
-                SolidityType::int88 => return (88, true),
-                SolidityType::int96 => return (96, true),
-                SolidityType::int104 => return (104, true),
-                SolidityType::int112 => return (112, true),
-                SolidityType::int120 => return (120, true),
-                SolidityType::int128 => return (128, true),
-                SolidityType::int136 => return (136, true),
-                SolidityType::int144 => return (152, true),
-                SolidityType::int152 => return (152, true),
-                SolidityType::int160 => return (160, true),
-                SolidityType::int168 => return (168, true),
-                SolidityType::int176 => return (176, true),
-                SolidityType::int184 => return (184, true),
-                SolidityType::int192 => return (192, true),
-                SolidityType::int200 => return (200, true),
-                SolidityType::int208 => return (208, true),
-                SolidityType::int216 => return (216, true),
-                SolidityType::int224 => return (224, true),
-                SolidityType::int232 => return (232, true),
-                SolidityType::int240 => return (240, true),
-                SolidityType::int248 => return (248, true),
-                SolidityType::int256 => return (256, true),
-                SolidityType::uint8 => return (8, false),
-                SolidityType::uint16 => return (16, false),
-                SolidityType::uint24 => return (24, false),
-                SolidityType::uint32 => return (32, false),
-                SolidityType::uint40 => return (40, false),
-                SolidityType::uint48 => return (48, false),
-                SolidityType::uint56 => return (56, false),
-                SolidityType::uint64 => return (64, false),
-                SolidityType::uint72 => return (72, false),
-                SolidityType::uint80 => return (80, false),
-                SolidityType::uint88 => return (88, false),
-                SolidityType::uint96 => return (96, false),
-                SolidityType::uint104 => return (104, false),
-                SolidityType::uint112 => return (112, false),
-                SolidityType::uint120 => return (120, false),
-                SolidityType::uint128 => return (128, false),
-                SolidityType::uint136 => return (136, false),
-                SolidityType::uint144 => return (152, false),
-                SolidityType::uint152 => return (152, false),
-                SolidityType::uint160 => return (160, false),
-                SolidityType::uint168 => return (168, false),
-                SolidityType::uint176 => return (176, false),
-                SolidityType::uint184 => return (184, false),
-                SolidityType::uint192 => return (192, false),
-                SolidityType::uint200 => return (200, false),
-                SolidityType::uint208 => return (208, false),
-                SolidityType::uint216 => return (216, false),
-                SolidityType::uint224 => return (224, false),
-                SolidityType::uint232 => return (232, false),
-                SolidityType::uint240 => return (240, false),
-                SolidityType::uint248 => return (248, false),
-                SolidityType::uint256 => return (256, false),
+                SolidityType::ADDRESS => (256, false),
+                SolidityType::STRING => (256, false),
+                SolidityType::BOOL => (256, false),
+                SolidityType::INT8 => (8, true),
+                SolidityType::INT16 => (16, true),
+                SolidityType::INT24 => (24, true),
+                SolidityType::INT32 => (32, true),
+                SolidityType::INT40 => (40, true),
+                SolidityType::INT48 => (48, true),
+                SolidityType::INT56 => (56, true),
+                SolidityType::INT64 => (64, true),
+                SolidityType::INT72 => (72, true),
+                SolidityType::INT80 => (80, true),
+                SolidityType::INT88 => (88, true),
+                SolidityType::INT96 => (96, true),
+                SolidityType::INT104 => (104, true),
+                SolidityType::INT112 => (112, true),
+                SolidityType::INT120 => (120, true),
+                SolidityType::INT128 => (128, true),
+                SolidityType::INT136 => (136, true),
+                SolidityType::INT144 => (152, true),
+                SolidityType::INT152 => (152, true),
+                SolidityType::INT160 => (160, true),
+                SolidityType::INT168 => (168, true),
+                SolidityType::INT176 => (176, true),
+                SolidityType::INT184 => (184, true),
+                SolidityType::INT192 => (192, true),
+                SolidityType::INT200 => (200, true),
+                SolidityType::INT208 => (208, true),
+                SolidityType::INT216 => (216, true),
+                SolidityType::INT224 => (224, true),
+                SolidityType::INT232 => (232, true),
+                SolidityType::INT240 => (240, true),
+                SolidityType::INT248 => (248, true),
+                SolidityType::INT256 => (256, true),
+                SolidityType::UINT8 => (8, false),
+                SolidityType::UINT16 => (16, false),
+                SolidityType::UINT24 => (24, false),
+                SolidityType::UINT32 => (32, false),
+                SolidityType::UINT40 => (40, false),
+                SolidityType::UINT48 => (48, false),
+                SolidityType::UINT56 => (56, false),
+                SolidityType::UINT64 => (64, false),
+                SolidityType::UINT72 => (72, false),
+                SolidityType::UINT80 => (80, false),
+                SolidityType::UINT88 => (88, false),
+                SolidityType::UINT96 => (96, false),
+                SolidityType::UINT104 => (104, false),
+                SolidityType::UINT112 => (112, false),
+                SolidityType::UINT120 => (120, false),
+                SolidityType::UINT128 => (128, false),
+                SolidityType::UINT136 => (136, false),
+                SolidityType::UINT144 => (152, false),
+                SolidityType::UINT152 => (152, false),
+                SolidityType::UINT160 => (160, false),
+                SolidityType::UINT168 => (168, false),
+                SolidityType::UINT176 => (176, false),
+                SolidityType::UINT184 => (184, false),
+                SolidityType::UINT192 => (192, false),
+                SolidityType::UINT200 => (200, false),
+                SolidityType::UINT208 => (208, false),
+                SolidityType::UINT216 => (216, false),
+                SolidityType::UINT224 => (224, false),
+                SolidityType::UINT232 => (232, false),
+                SolidityType::UINT240 => (240, false),
+                SolidityType::UINT248 => (248, false),
+                SolidityType::UINT256 => (256, false),
             },
             _ => (256, false),
         }
@@ -1146,7 +1145,7 @@ impl SolidityExternalCall {
         let gas = YulExpression::Literal(YulLiteral::Num(2300));
         let value = YulExpression::Literal(YulLiteral::Num(0));
 
-        let mut f_call: FunctionCall;
+        let f_call: FunctionCall;
         let rhs = *self.call.function_call.rhs_expression.clone();
         if let Expression::FunctionCall(f) = rhs {
             f_call = f;
@@ -1156,8 +1155,7 @@ impl SolidityExternalCall {
 
         let enclosing = if f_call.identifier.enclosing_type.is_some() {
             let i = f_call.identifier.enclosing_type.clone();
-            let i = i.unwrap();
-            i
+            i.unwrap()
         } else {
             function_context.enclosing_type.clone()
         };
@@ -1185,7 +1183,7 @@ impl SolidityExternalCall {
             expression: *self.call.function_call.lhs_expression.clone(),
             IsLValue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         let mut static_slots = vec![];
         let mut dynamic_slots = vec![];
@@ -1220,7 +1218,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         IsLValue: false,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
                     static_slots.push(expression);
                 }
                 Type::Address => {
@@ -1229,7 +1227,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         IsLValue: false,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
                     static_slots.push(expression);
                 }
                 Type::Bool => {
@@ -1238,7 +1236,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         IsLValue: false,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
                     static_slots.push(expression);
                 }
                 Type::Solidity(_) => {
@@ -1247,7 +1245,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         IsLValue: false,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
                     static_slots.push(expression);
                 }
                 _ => panic!("Can not use non basic types in external call"),
@@ -1388,7 +1386,7 @@ impl SolidityExternalCall {
 
         function_context.emit(expression);
 
-        return YulExpression::Identifier(call_output);
+        YulExpression::Identifier(call_output)
     }
 }
 
@@ -1420,12 +1418,12 @@ impl SoliditySubscriptExpression {
         );
 
         if self.IsLValue {
-            return memLocation;
+            memLocation
         } else {
-            return YulExpression::FunctionCall(YulFunctionCall {
+            YulExpression::FunctionCall(YulFunctionCall {
                 name: format!("sload"),
                 arguments: vec![memLocation],
-            });
+            })
         }
     }
 
@@ -1450,7 +1448,7 @@ impl SoliditySubscriptExpression {
             expression: *expression.index_expression.clone(),
             IsLValue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         let base_type = function_context.environment.get_expression_type(
             Expression::Identifier(expression.base_expression.clone()),
@@ -1467,17 +1465,15 @@ impl SoliditySubscriptExpression {
             index_expression,
         );
 
-        let runtime = match base_type.clone() {
+        match base_type.clone() {
             Type::ArrayType(_) => SolidityRuntimeFunction::storage_array_offset(a, b),
-            Type::FixedSizedArrayType(f) => {
+            Type::FixedSizedArrayType(_f) => {
                 let size = function_context.environment.type_size(base_type);
                 SolidityRuntimeFunction::storage_fixed_array_offset(a, b, size)
             }
             Type::DictionaryType(_) => SolidityRuntimeFunction::storage_dictionary_offset_key(a, b),
             _ => panic!("Invalid Type"),
-        };
-
-        return runtime;
+        }
     }
 }
 
@@ -1489,13 +1485,12 @@ impl SoliditySelfExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> YulExpression {
         let ident = if function_context.InStructFunction {
             format!("_QuartzSelf")
+        } else if self.IsLValue {
+            format!("0")
         } else {
-            if self.IsLValue {
-                format!("0")
-            } else {
-                format!("")
-            }
+            format!("")
         };
+
         YulExpression::Identifier(ident)
     }
 }
@@ -1521,7 +1516,7 @@ impl SolidityFunctionCall {
                     expression: arg.expression,
                     IsLValue: false,
                 }
-                .generate(function_context);
+                    .generate(function_context);
             }
         }
 
@@ -1533,7 +1528,7 @@ impl SolidityFunctionCall {
                     expression: a.expression,
                     IsLValue: false,
                 }
-                .generate(function_context)
+                    .generate(function_context)
             })
             .collect();
 
@@ -1545,10 +1540,10 @@ impl SolidityFunctionCall {
             self.function_call.identifier.token.clone()
         };
 
-        return YulExpression::FunctionCall(YulFunctionCall {
+        YulExpression::FunctionCall(YulFunctionCall {
             name: identifier,
             arguments: args,
-        });
+        })
     }
 }
 
@@ -1565,10 +1560,10 @@ impl SolidityIdentifier {
                 rhs: Expression::Identifier(self.identifier.clone()),
                 IsLeft: self.IsLValue,
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
-        return YulExpression::Identifier(mangle(self.identifier.token.clone()));
+        YulExpression::Identifier(mangle(self.identifier.token.clone()))
     }
 }
 
@@ -1583,22 +1578,22 @@ impl SolidityAssignment {
             expression: self.rhs.clone(),
             IsLValue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         match self.lhs.clone() {
             Expression::VariableDeclaration(v) => {
                 let mangle = mangle(v.identifier.token);
-                return YulExpression::VariableDeclaration(YulVariableDeclaration {
+                YulExpression::VariableDeclaration(YulVariableDeclaration {
                     declaration: mangle,
                     declaration_type: YulType::Any,
                     expression: Some(Box::from(rhs_code)),
-                });
+                })
             }
             Expression::Identifier(i) if i.enclosing_type.is_none() => {
-                return YulExpression::Assignment(YulAssignment {
+                YulExpression::Assignment(YulAssignment {
                     identifiers: vec![mangle(i.token)],
                     expression: Box::from(rhs_code),
-                });
+                })
             }
             _ => {
                 println!("HERE we drop");
@@ -1606,7 +1601,7 @@ impl SolidityAssignment {
                     expression: self.lhs.clone(),
                     IsLValue: true,
                 }
-                .generate(function_context);
+                    .generate(function_context);
 
                 if function_context.InStructFunction {
                     let enclosing_name = if function_context
@@ -1637,10 +1632,9 @@ impl SolidityAssignment {
                         return SolidityRuntimeFunction::store_bool(lhs_code, rhs_code, true);
                     }
                 }
-                return SolidityRuntimeFunction::store_bool(lhs_code, rhs_code, false);
+                SolidityRuntimeFunction::store_bool(lhs_code, rhs_code, false)
             }
         }
-        unimplemented!()
     }
 }
 
@@ -1663,7 +1657,7 @@ impl SolidityPropertyAccess {
             scope.clone(),
         );
         if let Expression::Identifier(li) = self.lhs.clone() {
-            if let Expression::Identifier(ri) = self.rhs.clone() {
+            if let Expression::Identifier(_) = self.rhs.clone() {
                 if function_context.environment.is_enum_declared(&li.token) {
                     unimplemented!()
                 }
@@ -1708,7 +1702,7 @@ impl SolidityPropertyAccess {
                 expression: self.rhs.clone(),
                 enclosing_type: lhs_type,
             }
-            .generate(function_context),
+                .generate(function_context),
         };
 
         let offset = if function_context.InStructFunction {
@@ -1725,7 +1719,7 @@ impl SolidityPropertyAccess {
             SolidityRuntimeFunction::add_offset(
                 lhs_offset,
                 rhs_offset,
-                mangle(mangle_mem((enclosing_name))),
+                mangle(mangle_mem(enclosing_name)),
             )
         } else {
             let lhs_offset = if let Expression::Identifier(i) = self.lhs.clone() {
@@ -1736,11 +1730,6 @@ impl SolidityPropertyAccess {
                         .environment
                         .property_offset(i.token.clone(), &enclosing_type);
                     YulExpression::Literal(YulLiteral::Num(offset))
-                } else if function_context
-                    .scope_context
-                    .contains_variable_declaration(format!(""))
-                {
-                    unimplemented!()
                 } else {
                     unimplemented!()
                 }
@@ -1749,7 +1738,7 @@ impl SolidityPropertyAccess {
                     expression: self.lhs.clone(),
                     IsLValue: true,
                 }
-                .generate(function_context)
+                    .generate(function_context)
             };
 
             SolidityRuntimeFunction::add_offset_bool(lhs_offset, rhs_offset, is_mem_access)
@@ -1789,13 +1778,13 @@ impl SolidityPropertyOffset {
                 rhs: *b.rhs_expression,
                 IsLeft: true,
             }
-            .generate(function_context);
+                .generate(function_context);
         } else if let Expression::SubscriptExpression(s) = self.expression.clone() {
             return SoliditySubscriptExpression {
                 expression: s.clone(),
                 IsLValue: true,
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         if let Expression::Identifier(i) = self.expression.clone() {
@@ -2081,7 +2070,7 @@ impl SolidityRuntimeFunction {
                     ret := c
                 }
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn div_function() -> String {
@@ -2091,7 +2080,7 @@ impl SolidityRuntimeFunction {
             }
             ret := div(a, b)
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn power_function() -> String {
@@ -2101,7 +2090,7 @@ impl SolidityRuntimeFunction {
                 ret := Quartz$Mul(ret, b)
             }
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn revert_if_greater_function() -> String {
@@ -2111,14 +2100,14 @@ impl SolidityRuntimeFunction {
             }
             ret := a
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn fatal_error_function() -> String {
         "function Quartz$FatalError() {
             revert(0, 0)
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn send_function() -> String {
@@ -2128,7 +2117,7 @@ impl SolidityRuntimeFunction {
                 revert(0, 0)
             }
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn storage_dictionary_keys_array_offset_function() -> String {
@@ -2136,7 +2125,7 @@ impl SolidityRuntimeFunction {
             mstore(0, dictionaryOffset)
             ret := keccak256(0, 32)
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn storage_offset_for_key_function() -> String {
@@ -2145,7 +2134,7 @@ impl SolidityRuntimeFunction {
             mstore(32, offset)
             ret := keccak256(0, 64)
          }"
-        .to_string()
+            .to_string()
     }
 
     pub fn storage_dictionary_offset_for_key_function() -> String {
@@ -2163,7 +2152,7 @@ impl SolidityRuntimeFunction {
                 }
             ret := offsetForKey
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn storage_array_offset_function() -> String {
@@ -2179,14 +2168,14 @@ impl SolidityRuntimeFunction {
             }
             ret := Quartz$StorageOffsetForKey(arrayOffset, index)
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn is_invalid_subscript_expression_function() -> String {
         "function Quartz$IsInvalidSubscriptExpression(index, arraySize) -> ret {
             ret := or(iszero(arraySize), or(lt(index, 0), gt(index, Quartz$Sub(arraySize, 1))))
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn return_32_bytes_function() -> String {
@@ -2194,7 +2183,7 @@ impl SolidityRuntimeFunction {
             mstore(0, v)
             return(0, 0x20)
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn is_caller_protection_in_dictionary_function() -> String {
@@ -2211,7 +2200,7 @@ impl SolidityRuntimeFunction {
             }
             ret := found
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn is_caller_protection_in_array_function() -> String {
@@ -2226,14 +2215,14 @@ impl SolidityRuntimeFunction {
             }
             ret := found
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn is_valid_caller_protection_function() -> String {
         "function Quartz$IsValidCallerProtection(_address) -> ret {
             ret := eq(_address, caller())
          }"
-        .to_string()
+            .to_string()
     }
 
     pub fn check_no_value_function() -> String {
@@ -2242,7 +2231,7 @@ impl SolidityRuntimeFunction {
                 Quartz$FatalError()
             }
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn allocate_memory_function() -> String {
@@ -2250,7 +2239,7 @@ impl SolidityRuntimeFunction {
             ret := mload(0x40)
             mstore(0x40, add(ret, size))
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn compute_offset_function() -> String {
@@ -2263,7 +2252,7 @@ impl SolidityRuntimeFunction {
                 ret := add(base, offset)
             }
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn load_function() -> String {
@@ -2276,7 +2265,7 @@ impl SolidityRuntimeFunction {
                     ret := sload(ptr)
                 }
         }"
-        .to_string()
+            .to_string()
     }
 
     pub fn decode_address_function() -> String {
@@ -2337,7 +2326,7 @@ impl SolidityFunctionSelector {
             expression: state,
             IsLValue: false,
         }
-        .generate(&mut function_context);
+            .generate(&mut function_context);
 
         let protection = YulStatement::Inline(format!(
             "if eq({state}, 10000) {{ revert(0, 0)}}",
@@ -2345,15 +2334,13 @@ impl SolidityFunctionSelector {
         ));
 
         let selector = SolidityRuntimeFunction::selector();
-        let cases = format!("");
-        let mut hasher = Keccak256::digest(b"helo");
+        let mut _hasher = Keccak256::digest(b"helo");
         let cases: Vec<String> = self
             .functions
             .clone()
             .into_iter()
             .map(|f| {
                 let signature = f.mangled_signature();
-                let second_sig = signature.clone();
                 let hash = Keccak256::digest(signature.as_bytes());
                 let mut hex = encode(hash);
                 hex.truncate(8);
@@ -2363,7 +2350,7 @@ impl SolidityFunctionSelector {
                     revert: false,
                     variable: format!("_quartzCallerCheck"),
                 }
-                .generate(&self.enclosing.token.clone(), self.environment.clone());
+                    .generate(&self.enclosing.token.clone(), self.environment.clone());
 
                 let value_check = if !f.declaration.is_payable() {
                     format!(
@@ -2390,13 +2377,13 @@ impl SolidityFunctionSelector {
                     .into_iter()
                     .enumerate()
                     .map(|(k, v)| match v {
-                        SolidityIRType::uint256 => {
+                        SolidityIRType::Uint256 => {
                             SolidityRuntimeFunction::decode_as_uint(k as u64)
                         }
-                        SolidityIRType::address => {
+                        SolidityIRType::Address => {
                             SolidityRuntimeFunction::decode_as_address(k as u64)
                         }
-                        SolidityIRType::bytes32 => {
+                        SolidityIRType::Bytes32 => {
                             SolidityRuntimeFunction::decode_as_uint(k as u64)
                         }
                     })
@@ -2413,7 +2400,7 @@ impl SolidityFunctionSelector {
                     let result = f.declaration.get_result_type().clone();
                     let result = result.unwrap();
                     if SolidityIRType::if_maps_to_solidity_type(result.clone()) {
-                        let result = SolidityIRType::map_to_solidity_type(result);
+                        let _result = SolidityIRType::map_to_solidity_type(result);
                         call = SolidityRuntimeFunction::return_32_bytes(call);
                     }
                 }
@@ -2468,7 +2455,7 @@ impl SolidityBinaryExpression {
                 rhs: *self.expression.rhs_expression.clone(),
                 IsLeft: self.IsLValue,
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         if let BinOp::Equal = self.expression.op {
@@ -2478,7 +2465,7 @@ impl SolidityBinaryExpression {
                 lhs: *lhs,
                 rhs: *rhs,
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         let lhs = self.expression.lhs_expression.clone();
@@ -2487,12 +2474,12 @@ impl SolidityBinaryExpression {
             expression: *lhs,
             IsLValue: self.IsLValue,
         }
-        .generate(function_context);
+            .generate(function_context);
         let rhs = SolidityExpression {
             expression: *rhs,
             IsLValue: self.IsLValue,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         match self.expression.op {
             BinOp::Plus => SolidityRuntimeFunction::add(lhs, rhs),
@@ -2701,6 +2688,7 @@ impl fmt::Display for YulFunctionDefinition {
         )
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct YulFunctionCall {
     pub name: String,
