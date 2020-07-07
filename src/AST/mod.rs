@@ -209,7 +209,7 @@ pub trait Visitable {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Module {
     pub declarations: Vec<TopLevelDeclaration>,
 }
@@ -248,7 +248,7 @@ impl<T: Visitable> Visitable for Vec<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TopLevelDeclaration {
     ContractDeclaration(ContractDeclaration),
     ContractBehaviourDeclaration(ContractBehaviourDeclaration),
@@ -297,7 +297,7 @@ impl Visitable for TopLevelDeclaration {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct ContractDeclaration {
     pub identifier: Identifier,
     pub contract_members: Vec<ContractMember>,
@@ -387,7 +387,7 @@ impl Visitable for ContractDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ContractBehaviourDeclaration {
     pub identifier: Identifier,
     pub members: Vec<ContractBehaviourMember>,
@@ -479,7 +479,7 @@ impl Visitable for ContractBehaviourDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AssetDeclaration {
     pub identifier: Identifier,
     pub members: Vec<AssetMember>,
@@ -557,7 +557,7 @@ impl Visitable for AssetDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AssetMember {
     VariableDeclaration(VariableDeclaration),
     FunctionDeclaration(FunctionDeclaration),
@@ -579,7 +579,7 @@ impl Visitable for AssetMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StructDeclaration {
     pub identifier: Identifier,
     pub conformances: Vec<Conformance>,
@@ -647,7 +647,7 @@ impl Visitable for StructDeclaration {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumDeclaration {
     pub enum_token: std::string::String,
     pub identifier: Identifier,
@@ -661,7 +661,7 @@ impl Visitable for EnumDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TraitDeclaration {
     pub trait_kind: std::string::String,
     pub identifier: Identifier,
@@ -748,7 +748,7 @@ impl Visitable for TraitDeclaration {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ContractMember {
     VariableDeclaration(VariableDeclaration),
     EventDeclaration(EventDeclaration),
@@ -778,7 +778,7 @@ impl Visitable for ContractMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ContractBehaviourMember {
     FunctionDeclaration(FunctionDeclaration),
     SpecialDeclaration(SpecialDeclaration),
@@ -812,7 +812,7 @@ impl Visitable for ContractBehaviourMember {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumMember {
     pub case_token: std::string::String,
     pub identifier: Identifier,
@@ -841,7 +841,7 @@ impl Visitable for EnumMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TraitMember {
     FunctionDeclaration(FunctionDeclaration),
     SpecialDeclaration(SpecialDeclaration),
@@ -869,7 +869,7 @@ impl Visitable for TraitMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StructMember {
     VariableDeclaration(VariableDeclaration),
     FunctionDeclaration(FunctionDeclaration),
@@ -901,7 +901,7 @@ impl Visitable for StructMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Conformance {
     pub identifier: Identifier,
 }
@@ -918,7 +918,7 @@ impl Visitable for Conformance {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct TypeState {
     pub identifier: Identifier,
 }
@@ -935,7 +935,7 @@ impl Visitable for TypeState {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct CallerProtection {
     pub identifier: Identifier,
 }
@@ -975,7 +975,7 @@ impl Visitable for CallerProtection {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct FunctionDeclaration {
     pub head: FunctionSignatureDeclaration,
     pub body: Vec<Statement>,
@@ -1135,7 +1135,7 @@ impl Visitable for FunctionDeclaration {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct FunctionSignatureDeclaration {
     pub func_token: std::string::String,
     pub attributes: Vec<Attribute>,
@@ -1237,7 +1237,7 @@ impl Visitable for FunctionSignatureDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpecialDeclaration {
     pub head: SpecialSignatureDeclaration,
     pub body: Vec<Statement>,
@@ -1386,7 +1386,7 @@ impl Visitable for SpecialDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpecialSignatureDeclaration {
     pub special_token: std::string::String,
     pub attributes: Vec<Attribute>,
@@ -2492,7 +2492,7 @@ impl Visitable for FunctionArgument {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct EventDeclaration {
     pub identifier: Identifier,
     pub parameter_list: Vec<Parameter>,
