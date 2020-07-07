@@ -36,7 +36,7 @@ struct Rectangle {
         self.height = height
     }
 
-    public func diagonal(wideness: Int, tallness: Int) -> Int { 
+    public func diagonal(wideness: Int, tallness: Int) -> Int {
         return (wideness ** 2 + tallness ** 2) ** 0
-    } 
+    }
 }
