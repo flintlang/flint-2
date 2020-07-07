@@ -1196,7 +1196,7 @@ impl SolidityExternalCall {
         for param in param_types {
             match param {
                 Type::Solidity(_) => static_size += 32,
-                _ => panic!("Non Solidity Type not allowed in external call"),
+                _ => panic!("Non Solidity Type not allowed in external call: {:?}", param),
             }
         }
 

@@ -663,7 +663,7 @@ impl Visitable for EnumDeclaration {
 
 #[derive(Debug, Clone)]
 pub struct TraitDeclaration {
-    pub trait_kind: std::string::String,
+    pub external: bool,
     pub identifier: Identifier,
     pub members: Vec<TraitMember>,
     pub modifiers: Vec<FunctionCall>,

@@ -2270,7 +2270,7 @@ impl MovePropertyAccess {
                 rhs_enclosing.unwrap().token,
             ));
         }
-        panic!("Fatal Error")
+        panic!("Fatal Error: {:?}", self.right.clone())
     }
 }
 

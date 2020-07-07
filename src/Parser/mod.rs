@@ -1553,8 +1553,8 @@ fn parse_trait_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
         preceded(whitespace, parse_trait_modifier),
         whitespace,
     ))(i)?;
-    let (i, trait_kind) = tag("external")(i)?;
-    let (i, _) = nom::character::complete::space0(i)?;
+    let (i, external) = nom::combinator::opt(tag("external"))(i)?;
+    let (i, _) = nom::combinator::opt(nom::character::complete::space0)(i)?;
     let (i, _) = tag("trait")(i)?;
     let (i, _) = nom::character::complete::space0(i)?;
     let (i, identifier) = parse_identifier(i)?;
@@ -1566,7 +1566,7 @@ fn parse_trait_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     ))(i)?;
     let (i, _) = right_brace(i)?;
     let trait_declaration = TraitDeclaration {
-        trait_kind: trait_kind.to_string(),
+        external: external.is_some(),
         identifier,
         members,
         modifiers: modifiers,
