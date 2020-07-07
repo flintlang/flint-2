@@ -56,14 +56,10 @@ impl Visitor for SolidityPreProcessor {
             .filter(|p| p.is_dynamic())
             .collect();
 
-        let mut offset = 0;
-        let mut index = 0;
-        for p in dynamic_params {
+        for (index, (offset, p)) in dynamic_params.into_iter().enumerate().enumerate() {
             let ismem_param =
                 construct_parameter(mangle_mem(p.identifier.token.clone()), Type::Bool);
             _t.head.parameters.insert(index + offset + 1, ismem_param);
-            offset += 1;
-            index += 1;
         }
 
         Ok(())
@@ -251,12 +247,9 @@ impl Visitor for SolidityPreProcessor {
             }
         } else {
             let enclosing_type = if is_global_function_call(f_call.clone(), _ctx) {
-                format!("Quartz_Global")
+                "Quartz_Global".to_string()
             } else {
-                let trail_last = _ctx
-                    .function_call_receiver_trail
-                    .get(_ctx.function_call_receiver_trail.len() - 1);
-                let trail_last = trail_last.clone();
+                let trail_last = _ctx.function_call_receiver_trail.last();
                 let trail_last = trail_last.unwrap();
                 let trail_last = trail_last.clone();
 
@@ -448,9 +441,9 @@ pub fn mangle_solidity_function_name(
 ) -> String {
     let parameters: Vec<String> = param_type.into_iter().map(|p| p.name()).collect();
     let dollar = if parameters.is_empty() {
-        format!("")
+        "".to_string()
     } else {
-        format!("$")
+        "$".to_string()
     };
     let parameters = parameters.join("_");
 

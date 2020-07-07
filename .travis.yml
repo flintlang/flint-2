@@ -1,7 +1,9 @@
 language: rust
+os: linux
+dist: xenial
 before_script:
   - rustup component add clippy
 script:
-  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::correctness --verbose
+  - clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
   - cargo test --verbose
 cache: cargo    

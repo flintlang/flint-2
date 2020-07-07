@@ -57,7 +57,7 @@ impl TypeInfo {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == format!("module"))
+            .filter(|f| f.identifier.token == "module".to_string())
             .collect();
 
         if modifiers.is_empty() {
@@ -71,7 +71,7 @@ impl TypeInfo {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == format!("resource"))
+            .filter(|f| f.identifier.token == "resource".to_string())
             .collect();
 
         if modifiers.is_empty() {
@@ -86,7 +86,7 @@ impl TypeInfo {
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
             .filter(|f| {
-                f.identifier.token == format!("resource") || f.identifier.token == format!("struct")
+                f.identifier.token == "resource".to_string() || f.identifier.token == "struct".to_string()
             })
             .collect();
 
@@ -668,7 +668,7 @@ impl TraitDeclaration {
         let modifiers = self.modifiers.clone();
         let mut modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == format!("module"))
+            .filter(|f| f.identifier.token == "module".to_string())
             .collect();
 
         if modifiers.is_empty() {
@@ -683,7 +683,7 @@ impl TraitDeclaration {
                 let identifier = argument.identifier.clone();
                 let identifier = identifier.unwrap();
                 let name = identifier.token;
-                if name == format!("address") {
+                if name == "address".to_string() {
                     if let Expression::Literal(l) = argument.expression {
                         if let Literal::AddressLiteral(a) = l {
                             return Option::from(a);
@@ -1241,19 +1241,11 @@ pub struct SpecialDeclaration {
 
 impl SpecialDeclaration {
     pub(crate) fn is_init(&self) -> bool {
-        if &self.head.special_token == "init" {
-            true
-        } else {
-            false
-        }
+        &self.head.special_token == "init"
     }
 
     pub fn is_fallback(&self) -> bool {
-        if &self.head.special_token == "fallback" {
-            true
-        } else {
-            false
-        }
+        &self.head.special_token == "fallback"
     }
 
     pub(crate) fn is_public(&self) -> bool {
@@ -2128,7 +2120,7 @@ impl Visitable for ExternalCall {
             Err(e) => return Err(e),
         }
 
-        let old_is_external_call = ctx.is_external_function_call.clone();
+        let old_is_external_call = ctx.is_external_function_call;
         let old_external_call_context = ctx.external_call_context.clone();
 
         ctx.is_external_function_call = true;
@@ -2677,11 +2669,7 @@ impl Type {
         let identifier = identifier.token.clone();
         println!("Is resource type");
         println!("{:?}", identifier.clone());
-        if identifier.eq("Wei") || identifier.eq("Libra") || identifier.eq("LibraCoin.T") {
-            true
-        } else {
-            false
-        }
+        identifier.eq("Wei") || identifier.eq("Libra") || identifier.eq("LibraCoin.T")
     }
 
     pub fn is_currency_original_type(&self) -> bool {
@@ -2691,11 +2679,7 @@ impl Type {
         };
 
         let identifier = identifier.token.clone();
-        if identifier.eq("Wei") || identifier.eq("Libra") {
-            true
-        } else {
-            false
-        }
+        identifier.eq("Wei") || identifier.eq("Libra")
     }
 
     pub fn is_dynamic_type(&self) -> bool {
@@ -2767,12 +2751,12 @@ impl Type {
             Type::FixedSizedArrayType(_) => unimplemented!(),
             Type::DictionaryType(_) => unimplemented!(),
             Type::UserDefinedType(i) => i.token.clone(),
-            Type::Bool => format!("Bool"),
-            Type::Int => format!("Int"),
-            Type::String => format!("String"),
-            Type::Address => format!("Address"),
-            Type::Error => format!("Quartz$ErrorType"),
-            Type::SelfType => format!("Self"),
+            Type::Bool => "Bool".to_string(),
+            Type::Int => "Int".to_string(),
+            Type::String => "String".to_string(),
+            Type::Address => "Address".to_string(),
+            Type::Error => "Quartz$ErrorType".to_string(),
+            Type::SelfType => "Self".to_string(),
             Type::Solidity(s) => format!("{:?}", s),
         }
     }
@@ -2815,7 +2799,7 @@ impl Type {
         if let Type::UserDefinedType(u) = internal_type {
             let type_identifer = u.token.clone();
             if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer).clone();
+                let type_infos = environment.types.get(&type_identifer);
                 if type_infos.is_some() {
                     let type_infos = type_infos.unwrap();
                     let type_infos = type_infos.clone();
@@ -2841,7 +2825,7 @@ impl Type {
         if let Type::UserDefinedType(u) = internal_type {
             let type_identifer = u.token.clone();
             if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer).clone();
+                let type_infos = environment.types.get(&type_identifer);
                 if type_infos.is_some() {
                     let type_infos = type_infos.unwrap();
                     let type_infos = type_infos.clone();
@@ -2866,7 +2850,7 @@ impl Type {
         if let Type::UserDefinedType(u) = internal_type {
             let type_identifer = u.token.clone();
             if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer).clone();
+                let type_infos = environment.types.get(&type_identifer);
                 if type_infos.is_some() {
                     let type_infos = type_infos.unwrap();
                     let type_infos = type_infos.clone();

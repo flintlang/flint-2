@@ -232,7 +232,7 @@ impl Visitor for MovePreProcessor {
             );
         }
 
-        if _ctx.asset_context.is_some() && enclosing_identifier != format!("Quartz$Global") {
+        if _ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global".to_string() {
             let asset_ctx = _ctx.asset_context.clone();
             let asset_ctx = asset_ctx.unwrap();
             let asset_ctx_identifier = asset_ctx.identifier.clone();
@@ -263,7 +263,7 @@ impl Visitor for MovePreProcessor {
             }
         }
 
-        if _ctx.struct_declaration_context.is_some() && enclosing_identifier != format!("Quartz_Global") {
+        if _ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global".to_string() {
             let struct_ctx = _ctx.struct_declaration_context.clone();
             let struct_ctx = struct_ctx.unwrap();
             let struct_ctx_identifier = struct_ctx.identifier.clone();
@@ -406,26 +406,19 @@ impl Visitor for MovePreProcessor {
 
         let members = members
             .into_iter()
-            .filter_map(|m| {
+            .filter(|m| {
                 if let Statement::Expression(e) = m.clone() {
                     if let Expression::BinaryExpression(b) = e {
                         if let BinOp::Equal = b.op.clone() {
                             if let Expression::DictionaryLiteral(_) = *b.rhs_expression {
-                                None
-                            } else {
-                                Some(m)
+                                return false;
                             }
-                        } else {
-                            Some(m)
                         }
-                    } else {
-                        Some(m)
                     }
-                } else {
-                    Some(m)
                 }
-            })
-            .collect();
+                true
+            }).collect();
+
 
         _t.body = members;
         if _ctx.contract_behaviour_declaration_context.is_some() {
@@ -652,9 +645,9 @@ impl Visitor for MovePreProcessor {
             let scope = scope.unwrap_or_default();
 
             let declared_enclosing = if is_global_function_call {
-                format!("Quartz_Global")
+                "Quartz_Global".to_string()
             } else {
-                let receiver = receiver_trail.get(receiver_trail.len() - 1);
+                let receiver = receiver_trail.last();
                 let receiver = receiver.unwrap();
                 let receivier = receiver.clone();
                 _ctx.environment
@@ -969,16 +962,13 @@ pub fn delete_declarations(statements: Vec<Statement>) -> Vec<Statement> {
     statements
         .clone()
         .into_iter()
-        .filter_map(|s| {
+        .filter(|s| {
             if let Statement::Expression(e) = s.clone() {
                 if let Expression::VariableDeclaration(_) = e {
-                    None
-                } else {
-                    Some(s)
+                    return false;
                 }
-            } else {
-                Some(s)
             }
+            true
         })
         .collect()
 }

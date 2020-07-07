@@ -123,13 +123,7 @@ impl MoveContract {
         let imports = self.external_traits.clone();
         let imports: Vec<TraitDeclaration> = imports
             .into_iter()
-            .filter_map(|i| {
-                if i.get_module_address().is_some() {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
+            .filter(|i| i.get_module_address().is_some())
             .collect();
         let mut imports: Vec<MoveIRStatement> = imports
             .into_iter()
@@ -300,7 +294,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != format!("Quartz_Global"))
+            .filter(|s| s.identifier.token != "Quartz_Global".to_string())
             .collect();
         let mut structs: Vec<String> = structs
             .into_iter()
@@ -534,7 +528,7 @@ impl MoveContract {
             .collect();
         let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
             identifier: Identifier {
-                token: format!("T"),
+                token: "T".to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
             },
@@ -544,7 +538,7 @@ impl MoveContract {
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = format!("Quartz$self");
+            let shadow = "Quartz$self".to_string();
 
             let selfType = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
@@ -566,7 +560,7 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let self_identifier = MoveSelf {
-                token: format!("self"),
+                token: "self".to_string(),
                 position: Default::default(),
             };
             let self_identifier = Identifier {
@@ -761,9 +755,9 @@ impl MoveStruct {
             Option::from(self.environment.clone()),
         );
         let kind = if kind.is_resource() {
-            format!("resource")
+            "resource".to_string()
         } else {
-            format!("struct")
+            "struct".to_string()
         };
         let result = format!(
             "{kind} {name} {{ \n {members} \n }}",
@@ -1490,7 +1484,7 @@ impl MoveExternalCall {
                 let type_info = function_context.environment.types.get(&external_trait_name);
 
                 if type_info.is_some() {
-                    let type_info = type_info.clone();
+                    let type_info = type_info;
                     let type_info = type_info.unwrap();
 
                     if type_info.is_external_module() {
@@ -1520,7 +1514,7 @@ impl MoveExternalCall {
 
             MoveFunctionCall {
                 function_call,
-                module_name: format!("Self"),
+                module_name: "Self".to_string(),
             }.generate(function_context)
         } else {
             panic!("Cannot match external call with function")
@@ -1562,22 +1556,20 @@ impl MoveFunctionCall {
             let type_info = function_context
                 .environment
                 .types
-                .get(&self.function_call.identifier.token)
-                .clone();
+                .get(&self.function_call.identifier.token);
             if type_info.is_some() {
                 let type_info = type_info.unwrap();
                 if type_info.is_external_struct() {
                     if type_info.is_external_module() {
                         module = look_up.identifier.token.clone();
-                        call = format!("new");
+                        call = "new".to_string();
                     }
                 } else {
                     let external_address = look_up.arguments.remove(0).expression;
                     return MoveExpression {
                         expression: external_address,
                         position: Default::default(),
-                    }
-                        .generate(function_context);
+                    }.generate(function_context);
                 }
             }
         }
@@ -1748,14 +1740,14 @@ impl MoveCastExpression {
 
     pub fn maximum_value(input: u64) -> String {
         match input {
-            8 => format!("255"),
-            16 => format!("65535"),
-            24 => format!("16777215"),
-            32 => format!("4294967295"),
-            40 => format!("1099511627775"),
-            48 => format!("281474976710655"),
-            56 => format!("72057594037927935"),
-            64 => format!("18446744073709551615"),
+            8 => "255".to_string(),
+            16 => "65535".to_string(),
+            24 => "16777215".to_string(),
+            32 => "4294967295".to_string(),
+            40 => "1099511627775".to_string(),
+            48 => "281474976710655".to_string(),
+            56 => "72057594037927935".to_string(),
+            64 => "18446744073709551615".to_string(),
             _ => unimplemented!(),
         }
     }
@@ -2432,7 +2424,7 @@ struct MoveRuntimeTypes {}
 
 impl MoveRuntimeTypes {
     pub fn get_all_declarations() -> Vec<String> {
-        let libra = format!("resource Libra_Coin {{ \n coin: LibraCoin.T  \n }}");
+        let libra = "resource Libra_Coin {{ \n coin: LibraCoin.T  \n }}".to_string();
         vec![libra]
     }
 
@@ -2499,19 +2491,15 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_revert_if_greater() -> String {
-        format!(
-            "Quartz_RevertIfGreater(a: u64, b: u64): u64 {{  \n \
+        "Quartz_RevertIfGreater(a: u64, b: u64): u64 {{  \n \
              assert(copy(a) <= move(b), 1); \n \
-             return move(a); \n }}"
-        )
+             return move(a); \n }}".to_string()
     }
 
     pub fn get_deposit() -> String {
-        format!(
-            "Quartz_send(money: &mut LibraCoin.T, addr: address) {{ \n \
+        "Quartz_send(money: &mut LibraCoin.T, addr: address) {{ \n \
              LibraAccount.deposit(move(addr), Quartz_withdrawAll(move(money))); \n \
-             return; \n }}"
-        )
+             return; \n }}".to_string()
     }
 
     pub fn get_array_funcs() -> String {
@@ -2549,8 +2537,7 @@ impl MoveRuntimeFunction {
     };
     _ = move(vec);
     return;
-  }"
-            .to_string()
+  }".to_string()
     }
 
     pub fn get_libra_internal() -> String {
@@ -2636,8 +2623,7 @@ impl MoveRuntimeFunction {
     _ = move(_temp__5);
     _ = move(this);
     return;
-  }"
-            .to_string()
+  }".to_string()
     }
 }
 
@@ -2682,7 +2668,7 @@ impl MoveType {
                     return MoveIRType::Resource(string);
                 }
                 if function_context.enclosing_type == s.to_string() {
-                    let string = format!("Self.T");
+                    let string = "Self.T".to_string();
                     return MoveIRType::Resource(string);
                 }
                 if resource_type.is_currency_type() {
@@ -2694,7 +2680,7 @@ impl MoveType {
             MoveType::StructType(s) => {
                 let string = s.clone();
                 if string == "LibraCoin.T".to_string() {
-                    return MoveIRType::StructType(format!("{}", string));
+                    return MoveIRType::StructType(string);
                 }
                 let string = format!("Self.{}", string);
                 MoveIRType::StructType(string)
@@ -2736,23 +2722,23 @@ impl MoveType {
                     } else if original.is_external_contract(environment_value.clone()) {
                         return MoveType::Address;
                     } else if original.is_external_module(environment_value.clone()) {
-                        let type_info = environment_value.types.get(&i.token).clone();
+                        let type_info = environment_value.types.get(&i.token);
                         if type_info.is_some() {
                             let type_info = type_info.unwrap();
                             let modifiers = type_info.modifiers.clone();
                             let modifiers: Vec<FunctionCall> = modifiers
                                 .into_iter()
-                                .filter(|m| m.identifier.token == format!("resource"))
+                                .filter(|m| m.identifier.token == "resource".to_string())
                                 .collect();
                             if modifiers.is_empty() {
                                 return MoveType::External(
                                     i.token.clone(),
-                                    Box::from(MoveType::StructType(format!("T"))),
+                                    Box::from(MoveType::StructType("T".to_string())),
                                 );
                             } else {
                                 return MoveType::External(
                                     i.token.clone(),
-                                    Box::from(MoveType::Resource(format!("T"))),
+                                    Box::from(MoveType::Resource("T".to_string())),
                                 );
                             }
                         }
@@ -3066,9 +3052,9 @@ impl fmt::Display for MoveIRIf {
         let else_block = if self.else_block.is_some() {
             let block = self.else_block.clone();
             let block = block.unwrap();
-            format!("{}", block)
+            block.to_string()
         } else {
-            format!("{{}}")
+            "{}".to_string()
         };
         write!(
             f,

@@ -386,7 +386,7 @@ impl Visitor for SemanticAnalysis {
             {
                 let enclosing = _t.enclosing_type.clone();
                 let enclosing = enclosing.unwrap();
-                if enclosing == format!("Libra") || enclosing == format!("Wei") {
+                if enclosing == "Libra".to_string() || enclosing == "Wei".to_string() {
                     return Ok(());
                 }
                 if !_ctx

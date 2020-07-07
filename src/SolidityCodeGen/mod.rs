@@ -105,7 +105,7 @@ impl SolidityContract {
                             environment: self.environment.clone(),
                             caller_binding: declarations.caller_binding.clone(),
                             caller_protections: declarations.caller_protections.clone(),
-                            IsContractFunction: !declarations.caller_protections.is_empty(),
+                            is_contract_function: !declarations.caller_protections.is_empty(),
                         })
                     }
                     _ => {}
@@ -421,7 +421,7 @@ impl SolidityInterface {
 
             let mut attribute = "".to_string();
             if !function_declaration.is_mutating() {
-                attribute = format!("view ");
+                attribute = "view ".to_string();
             }
 
             let return_string = if function_declaration.get_result_type().is_some() {
@@ -474,7 +474,7 @@ impl SolidityStruct {
                     environment: self.environment.clone(),
                     caller_binding: None,
                     caller_protections: vec![],
-                    IsContractFunction: false,
+                    is_contract_function: false,
                 }
                     .generate(true)
             })
@@ -577,9 +577,9 @@ impl SolidityIRType {
 
     pub fn generate(&self) -> String {
         match self {
-            SolidityIRType::Uint256 => format!("uint256"),
-            SolidityIRType::Address => format!("address"),
-            SolidityIRType::Bytes32 => format!("bytes32"),
+            SolidityIRType::Uint256 => "uint256".to_string(),
+            SolidityIRType::Address => "address".to_string(),
+            SolidityIRType::Bytes32 => "bytes32".to_string(),
         }
     }
 }
@@ -591,7 +591,7 @@ pub struct SolidityFunction {
     pub environment: Environment,
     pub caller_binding: Option<Identifier>,
     pub caller_protections: Vec<CallerProtection>,
-    pub IsContractFunction: bool,
+    pub is_contract_function: bool,
 }
 
 impl SolidityFunction {
@@ -613,7 +613,7 @@ impl SolidityFunction {
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
-            InStructFunction: !self.IsContractFunction,
+            InStructFunction: !self.is_contract_function,
             block_stack: vec![YulBlock { statements: vec![] }],
             enclosing_type: self.identifier.token.clone(),
             counter: 0,
@@ -632,9 +632,9 @@ impl SolidityFunction {
             .collect();
         let parameters = parameters.join(", ");
         let return_var = if returns {
-            format!("-> ret")
+            "-> ret".to_string()
         } else {
-            format!("")
+            "".to_string()
         };
         let name = self.declaration.mangledIdentifier.clone();
         let name = name.unwrap_or_default();
@@ -653,7 +653,7 @@ impl SolidityFunction {
             enclosing_type: self.identifier.token.clone(),
             block_stack: vec![YulBlock { statements: vec![] }],
             scope_context: scope,
-            InStructFunction: !self.IsContractFunction,
+            InStructFunction: !self.is_contract_function,
             counter: 0,
         };
 
@@ -667,7 +667,7 @@ impl SolidityFunction {
         };
 
         let mut statements = self.declaration.body.clone();
-        let mut emitLastBrace = false;
+        let mut emit_last_brace = false;
         while !statements.is_empty() {
             let statement = statements.remove(0);
             let yul_statement = SolidityStatement {
@@ -679,15 +679,15 @@ impl SolidityFunction {
                 if i.endsWithReturn() {
                     let else_body = i.else_body.clone();
                     if else_body.is_empty() {
-                        let st = YulStatement::Inline(format!("default {{"));
-                        emitLastBrace = true;
+                        let st = YulStatement::Inline("default {".to_string());
+                        emit_last_brace = true;
                         function_context.emit(st);
                     }
                 }
             }
         }
-        if emitLastBrace {
-            let st = YulStatement::Inline(format!("}}"));
+        if emit_last_brace {
+            let st = YulStatement::Inline("}".to_string());
             function_context.emit(st);
         }
         let body = function_context.generate();
@@ -721,7 +721,7 @@ impl SolidityWrapperFunction {
         let caller_check = SolidityCallerProtectionCheck {
             caller_protections: self.function.caller_protections.clone(),
             revert: false,
-            variable: format!("_QuartzCallerCheck"),
+            variable: "_QuartzCallerCheck".to_string(),
         };
 
         let _caller_code = caller_check.generate(t, self.function.environment.clone());
@@ -730,7 +730,7 @@ impl SolidityWrapperFunction {
     }
 
     pub fn get_prefix_hard() -> String {
-        format!("quartzAttemptCallWrapperHard$")
+        "quartzAttemptCallWrapperHard$".to_string()
     }
 }
 
@@ -946,7 +946,7 @@ impl SolidityExpression {
                 .generate(function_context),
             Expression::SubscriptExpression(s) => SoliditySubscriptExpression {
                 expression: s,
-                IsLValue: self.IsLValue.clone(),
+                IsLValue: self.IsLValue,
             }
                 .generate(function_context),
             Expression::RangeExpression(_) => unimplemented!(),
@@ -1019,41 +1019,8 @@ impl SolidityCastExpression {
     }
 
     pub fn maximum_value(input: u64) -> String {
-        match input {
-            8 => format!("0xFF"),
-            16 => format!("0xFFFF"),
-            24 => format!("0xFFFFFF"),
-            32 => format!("0xFFFFFFFF"),
-            40 => format!("0xFFFFFFFFFF"),
-            48 => format!("0xFFFFFFFFFFFF"),
-            56 => format!("0xFFFFFFFFFFFFFF"),
-            64 => format!("0xFFFFFFFFFFFFFFFF"),
-            72 => format!("0xFFFFFFFFFFFFFFFFFF"),
-            80 => format!("0xFFFFFFFFFFFFFFFFFFFF"),
-            88 => format!("0xFFFFFFFFFFFFFFFFFFFFFF"),
-            96 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFF"),
-            104 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            112 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            120 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            128 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            136 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            144 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            152 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            160 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            168 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            176 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            184 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            192 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            200 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            208 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            216 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            224 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            232 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            240 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            248 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            256 => format!("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-            _ => panic!("Not Supported Value"),
-        }
+        assert!(input % 4 == 0 && input >= 8 && input <= 256);
+        format!("0x{}", std::iter::repeat("F").take(input as usize / 4).collect::<String>())
     }
 
     pub fn get_type_info(input: Type) -> (u64, bool) {
@@ -1332,7 +1299,7 @@ impl SolidityExternalCall {
                 name: "add".to_string(),
                 arguments: vec![
                     YulExpression::Identifier(call_input.clone()),
-                    YulExpression::Literal(YulLiteral::Num(cur_position.clone())),
+                    YulExpression::Literal(YulLiteral::Num(cur_position)),
                 ],
             });
             let expresion =
@@ -1421,7 +1388,7 @@ impl SoliditySubscriptExpression {
             memLocation
         } else {
             YulExpression::FunctionCall(YulFunctionCall {
-                name: format!("sload"),
+                name: "sload".to_string(),
                 arguments: vec![memLocation],
             })
         }
@@ -1484,11 +1451,11 @@ pub struct SoliditySelfExpression {
 impl SoliditySelfExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> YulExpression {
         let ident = if function_context.InStructFunction {
-            format!("_QuartzSelf")
+            "_QuartzSelf".to_string()
         } else if self.IsLValue {
-            format!("0")
+            "0".to_string()
         } else {
-            format!("")
+            "".to_string()
         };
 
         YulExpression::Identifier(ident)
@@ -1614,7 +1581,7 @@ impl SolidityAssignment {
                             .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type)
                             .unwrap()
                     } else {
-                        format!("QuartzSelf")
+                        "QuartzSelf".to_string()
                     };
 
                     return SolidityRuntimeFunction::store(
@@ -1712,7 +1679,7 @@ impl SolidityPropertyAccess {
             let enclosing_name = if enclosing_parameter.is_some() {
                 enclosing_parameter.unwrap()
             } else {
-                format!("QuartzSelf")
+                "QuartzSelf".to_string()
             };
 
             let lhs_offset = YulExpression::Identifier(mangle(enclosing_name.clone()));
@@ -1832,7 +1799,7 @@ impl SolidityRuntimeFunction {
     }
 
     pub fn call_value() -> String {
-        format!("callvalue()")
+        "callvalue()".to_string()
     }
 
     pub fn selector() -> String {
@@ -1953,9 +1920,9 @@ impl SolidityRuntimeFunction {
 
     pub fn load_bool(address: YulExpression, in_mem: bool) -> YulExpression {
         let name = if in_mem {
-            format!("mload")
+            "mload".to_string()
         } else {
-            format!("sload")
+            "sload".to_string()
         };
         YulExpression::FunctionCall(YulFunctionCall {
             name,
@@ -1973,9 +1940,9 @@ impl SolidityRuntimeFunction {
 
     pub fn store_bool(address: YulExpression, value: YulExpression, in_mem: bool) -> YulExpression {
         let name = if in_mem {
-            format!("mstore")
+            "mstore".to_string()
         } else {
-            format!("sstore")
+            "sstore".to_string()
         };
         YulExpression::FunctionCall(YulFunctionCall {
             name,
@@ -2049,11 +2016,11 @@ impl SolidityRuntimeFunction {
     }
 
     pub fn add_function() -> String {
-        format!("function Quartz$Add(a, b) -> ret {{ \n let c := add(a, b) \n if lt(c, a) {{ revert(0, 0) }} \n ret := c \n }}")
+        "function Quartz$Add(a, b) -> ret { \n let c := add(a, b) \n if lt(c, a) { revert(0, 0) } \n ret := c \n }".to_string()
     }
 
     pub fn sub_function() -> String {
-        format!("function Quartz$Sub(a, b) -> ret {{ \n if gt(b, a) {{ revert(0, 0) }} \n ret := sub(a, b) \n }}")
+        "function Quartz$Sub(a, b) -> ret { \n if gt(b, a) { revert(0, 0) } \n ret := sub(a, b) \n }".to_string()
     }
 
     pub fn mul_function() -> String {
@@ -2269,19 +2236,19 @@ impl SolidityRuntimeFunction {
     }
 
     pub fn decode_address_function() -> String {
-        format!("function Quartz$DecodeAsAddress(offset) -> ret {{ \n ret := Quartz$DecodeAsUInt(offset) \n }}")
+        "function Quartz$DecodeAsAddress(offset) -> ret { \n ret := Quartz$DecodeAsUInt(offset) \n }".to_string()
     }
 
     pub fn decode_uint_function() -> String {
-        format!("function Quartz$DecodeAsUInt(offset) -> ret {{ \n ret := calldataload(add(4, mul(offset, 0x20))) \n }}")
+        "function Quartz$DecodeAsUInt(offset) -> ret { \n ret := calldataload(add(4, mul(offset, 0x20))) \n }".to_string()
     }
 
     pub fn selector_function() -> String {
-        format!("function Quartz$Selector() -> ret {{ \n ret := div(calldataload(0), 0x100000000000000000000000000000000000000000000000000000000) \n }}")
+        "function Quartz$Selector() -> ret { \n ret := div(calldataload(0), 0x100000000000000000000000000000000000000000000000000000000) \n }".to_string()
     }
 
     pub fn store_function() -> String {
-        format!("function Quartz$Store(ptr, val, mem) {{ \n switch iszero(mem) \n case 0 {{ \n mstore(ptr, val) \n }} \n default {{ \n sstore(ptr, val) \n }} \n  }}")
+        "function Quartz$Store(ptr, val, mem) { \n switch iszero(mem) \n case 0 { \n mstore(ptr, val) \n } \n default { \n sstore(ptr, val) \n } \n  }".to_string()
     }
 }
 
@@ -2348,7 +2315,7 @@ impl SolidityFunctionSelector {
                 let caller_protection_check = SolidityCallerProtectionCheck {
                     caller_protections: f.caller_protections.clone(),
                     revert: false,
-                    variable: format!("_quartzCallerCheck"),
+                    variable: "_quartzCallerCheck".to_string(),
                 }
                     .generate(&self.enclosing.token.clone(), self.environment.clone());
 
@@ -2420,7 +2387,7 @@ impl SolidityFunctionSelector {
         let fallback = if self.fallback.is_some() {
             panic!("User supplied Fallback not currently supported")
         } else {
-            format!("revert(0, 0)")
+            "revert(0, 0)".to_string()
         };
 
         format!(
@@ -2587,12 +2554,7 @@ pub struct YulAssignment {
 
 impl fmt::Display for YulAssignment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let lhs: Vec<String> = self
-            .identifiers
-            .clone()
-            .into_iter()
-            .map(|i| format!("{}", i))
-            .collect();
+        let lhs: Vec<String> = self.identifiers.clone();
         let lhs = lhs.join(", ");
         write!(
             f,
@@ -2840,7 +2802,7 @@ pub struct YulVariableDeclaration {
 impl fmt::Display for YulVariableDeclaration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let declarations = if let YulType::Any = self.declaration_type {
-            format!("{ident}", ident = self.declaration)
+            self.declaration.to_string()
         } else {
             format!(
                 "{ident}: {var_type}",

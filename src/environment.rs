@@ -1174,8 +1174,7 @@ impl Environment {
 
             let functions = self.types.get(t).unwrap().all_functions();
             // println!("{:?}", functions.clone());
-            let functions = functions.get(&f.identifier.token).clone();
-            let functions = functions.clone();
+            let functions = functions.get(&f.identifier.token);
             if functions.is_some() {
                 let functions = functions.unwrap();
                 for function in functions {
@@ -1327,7 +1326,6 @@ impl Environment {
         if type_info.is_some() {
             let functions = &type_info.unwrap().functions;
             let functions = functions.get(&f.identifier.token.clone());
-            let functions = functions.clone();
 
             if functions.is_some() {
                 let functions = functions.unwrap();
@@ -1737,7 +1735,7 @@ impl Environment {
             }
             FunctionCallMatchResult::MatchedFunctionWithoutCaller(m) => {
                 if m.candidates.len() == 1 {
-                    let first = m.candidates.first().clone();
+                    let first = m.candidates.first();
                     let first = first.unwrap();
                     return if let CallableInformation::FunctionInformation(fi) = first {
                         fi.get_result_type().unwrap_or(Type::Error)
@@ -1770,7 +1768,7 @@ impl Environment {
                 .collect();
             for p in ordered_properties {
                 offset_map.insert(p.clone(), offset);
-                let property_type = root_type.properties.get(&p).clone();
+                let property_type = root_type.properties.get(&p);
                 let property_type = property_type.unwrap();
                 let property_size = self.type_size(property_type.property.get_type());
 
@@ -1820,7 +1818,7 @@ impl Environment {
             Type::RangeType(_) => unimplemented!(),
             Type::FixedSizedArrayType(a) => {
                 let key_size = self.type_size(*a.key_type.clone());
-                let size = a.size.clone();
+                let size = a.size;
                 key_size * size
             }
             Type::DictionaryType(_) => unimplemented!(),
