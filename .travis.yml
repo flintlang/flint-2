@@ -5,5 +5,8 @@ before_script:
   - rustup component add clippy
 script:
   - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
+  - cargo run libra test_files/counter.flint
+  - cargo run libra test_files/map.flint
+  - cargo run libra test_files/shapes.flint
   - cargo test --verbose
 cache: cargo    
