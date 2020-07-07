@@ -1,12 +1,14 @@
-use super::AST::*;
-
 extern crate nom;
 extern crate nom_locate;
-use nom_locate::{position, LocatedSpan};
+
+use std::collections::HashSet;
+
+use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
+use nom_locate::{LocatedSpan, position};
 
 use crate::environment::Environment;
-use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
-use std::collections::HashSet;
+
+use super::AST::*;
 
 type ParseResult = (Option<Module>, Environment);
 
@@ -519,6 +521,7 @@ fn parse_basic_type(i: Span) -> nom::IResult<Span, Type> {
     ))(i)?;
     Ok((i, base_type))
 }
+
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
         map(parse_inout_expression, |inout| {
@@ -1160,6 +1163,7 @@ fn parse_special_declaration(i: Span) -> nom::IResult<Span, SpecialDeclaration> 
 
     Ok((i, special_declaration))
 }
+
 fn parse_special_signature_declaration(i: Span) -> nom::IResult<Span, SpecialSignatureDeclaration> {
     let (i, attributes) = parse_attributes(i)?;
     let (i, modifiers) = parse_modifiers(i)?;
@@ -1625,11 +1629,13 @@ fn is_basic_type(basic_type: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::nom::error::ErrorKind;
-    use crate::Parser::*;
-    use crate::AST::{BinOp::*, Literal::*, *};
-    use nom_locate::{position, LocatedSpan};
+    use nom_locate::{LocatedSpan, position};
     use sha3::Digest;
+
+    use crate::AST::{*, BinOp::*, Literal::*};
+    use crate::Parser::*;
+
+    use super::nom::error::ErrorKind;
 
     #[test]
     fn test_parse_identifier() {
@@ -1640,7 +1646,7 @@ mod tests {
             Identifier {
                 token: String::from("id"),
                 enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0 }
+                line_info: LineInfo { line: 1, offset: 0 },
             }
         );
     }
@@ -1656,17 +1662,17 @@ mod tests {
                 Identifier {
                     token: String::from("first"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
                 Identifier {
                     token: String::from("second"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
                 Identifier {
                     token: String::from("third"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 }
             ]
         );
@@ -1683,17 +1689,17 @@ mod tests {
                 Identifier {
                     token: String::from("first"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
                 Identifier {
                     token: String::from("second"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
                 Identifier {
                     token: String::from("third"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 }
             ]
         );
@@ -1709,12 +1715,12 @@ mod tests {
                 identifier: Identifier {
                     token: String::from("first"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
 
                 type_assignment: Type::Int,
                 expression: None,
-                line_info: LineInfo { line: 1, offset: 0 }
+                line_info: LineInfo { line: 1, offset: 0 },
             }
         );
 
@@ -1727,14 +1733,14 @@ mod tests {
                 identifier: Identifier {
                     token: String::from("first"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
 
                 type_assignment: Type::Int,
                 expression: Some(Expression::Identifier(Identifier {
                     token: String::from("second"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 })),
 
                 line_info: LineInfo { line: 1, offset: 0 },
@@ -1754,9 +1760,9 @@ mod tests {
                     enclosing_type: None,
                     line_info: LineInfo {
                         line: 1,
-                        offset: 24
-                    }
-                },),
+                        offset: 24,
+                    },
+                }, ),
 
                 do_body: vec![Statement::ReturnStatement(ReturnStatement {
                     expression: Some(Expression::Identifier(Identifier {
@@ -1764,12 +1770,12 @@ mod tests {
                         enclosing_type: None,
                         line_info: LineInfo {
                             line: 1,
-                            offset: 11
-                        }
+                            offset: 11,
+                        },
                     })),
 
                     cleanup: vec![],
-                    line_info: LineInfo { line: 1, offset: 4 }
+                    line_info: LineInfo { line: 1, offset: 4 },
                 })],
 
                 catch_body: vec![Statement::ReturnStatement(ReturnStatement {
@@ -1778,15 +1784,15 @@ mod tests {
                         enclosing_type: None,
                         line_info: LineInfo {
                             line: 1,
-                            offset: 43
-                        }
+                            offset: 43,
+                        },
                     })),
 
                     cleanup: vec![],
                     line_info: LineInfo {
                         line: 1,
-                        offset: 36
-                    }
+                        offset: 36,
+                    },
                 })],
             })
         );
@@ -1803,11 +1809,11 @@ mod tests {
                     lhs_expression: Box::new(Expression::Identifier(Identifier {
                         token: String::from("x"),
                         enclosing_type: None,
-                        line_info: LineInfo { line: 1, offset: 3 }
+                        line_info: LineInfo { line: 1, offset: 3 },
                     })),
                     rhs_expression: Box::new(Expression::Literal(IntLiteral(5))),
                     op: LessThan,
-                    line_info: LineInfo { line: 1, offset: 3 }
+                    line_info: LineInfo { line: 1, offset: 3 },
                 }),
 
                 body: vec![Statement::ReturnStatement(ReturnStatement {
@@ -1816,17 +1822,17 @@ mod tests {
                         enclosing_type: None,
                         line_info: LineInfo {
                             line: 1,
-                            offset: 15
-                        }
+                            offset: 15,
+                        },
                     })),
 
                     cleanup: vec![],
-                    line_info: LineInfo { line: 1, offset: 8 }
+                    line_info: LineInfo { line: 1, offset: 8 },
                 })],
 
                 else_body: vec![],
                 IfBodyScopeContext: None,
-                ElseBodyScopeContext: None
+                ElseBodyScopeContext: None,
             })
         );
     }
@@ -1842,11 +1848,11 @@ mod tests {
                     identifier: Identifier {
                         token: String::from("foo"),
                         enclosing_type: None,
-                        line_info: LineInfo { line: 1, offset: 5 }
+                        line_info: LineInfo { line: 1, offset: 5 },
                     },
 
                     arguments: vec![],
-                    mangled_identifier: None
+                    mangled_identifier: None,
                 }
             })
         );
@@ -1862,10 +1868,10 @@ mod tests {
                 expression: Expression::Identifier(Identifier {
                     token: String::from("example"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 }),
 
-                line_info: LineInfo { line: 1, offset: 0 }
+                line_info: LineInfo { line: 1, offset: 0 },
             })
         );
     }
@@ -1882,7 +1888,7 @@ mod tests {
                     identifier: Identifier {
                         token: String::from("i"),
                         enclosing_type: None,
-                        line_info: LineInfo { line: 1, offset: 8 }
+                        line_info: LineInfo { line: 1, offset: 8 },
                     },
 
                     variable_type: Type::Int,
@@ -1892,7 +1898,7 @@ mod tests {
                 iterable: Expression::RangeExpression(RangeExpression {
                     start_expression: Box::new(Expression::Literal(IntLiteral(1))),
                     end_expression: Box::new(Expression::Literal(IntLiteral(5))),
-                    op: String::from("...")
+                    op: String::from("..."),
                 }),
 
                 body: vec![Statement::Expression(Expression::Literal(IntLiteral(5)))],
@@ -1910,7 +1916,7 @@ mod tests {
             Statement::ReturnStatement(ReturnStatement {
                 expression: None,
                 cleanup: vec![],
-                line_info: LineInfo { line: 1, offset: 0 }
+                line_info: LineInfo { line: 1, offset: 0 },
             })
         );
 
@@ -1923,11 +1929,11 @@ mod tests {
                 expression: Some(Expression::Identifier(Identifier {
                     token: String::from("id"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 })),
 
                 cleanup: vec![],
-                line_info: LineInfo { line: 1, offset: 0 }
+                line_info: LineInfo { line: 1, offset: 0 },
             })
         );
     }
@@ -1943,8 +1949,8 @@ mod tests {
                 expression: Box::new(Expression::Identifier(Identifier {
                     token: String::from("expression"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
-                }))
+                    line_info: LineInfo { line: 1, offset: 0 },
+                })),
             })
         );
     }
@@ -1959,7 +1965,7 @@ mod tests {
                 expression: Box::new(Expression::Identifier(Identifier {
                     token: String::from("expression"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 }))
             })
         );
@@ -1979,12 +1985,12 @@ mod tests {
                     identifier: Identifier {
                         token: String::from("foo"),
                         enclosing_type: None,
-                        line_info: LineInfo { line: 1, offset: 0 }
+                        line_info: LineInfo { line: 1, offset: 0 },
                     },
 
                     arguments: vec![],
-                    mangled_identifier: None
-                }
+                    mangled_identifier: None,
+                },
             }
         );
     }
@@ -1999,14 +2005,14 @@ mod tests {
                 base_expression: Identifier {
                     token: String::from("base"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
 
                 index_expression: Box::new(Expression::Identifier(Identifier {
                     token: String::from("index"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
-                }))
+                    line_info: LineInfo { line: 1, offset: 0 },
+                })),
             })
         );
     }
@@ -2019,12 +2025,12 @@ mod tests {
             lhs_expression: Box::new(Expression::Identifier(Identifier {
                 token: String::from("x"),
                 enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0}
-           })),
+                line_info: LineInfo { line: 1, offset: 0 },
+            })),
 
             rhs_expression: Box::new(Expression::Literal(IntLiteral(2))),
             op: BinOp::Power,
-            line_info: LineInfo { line:1, offset:0}
+            line_info: LineInfo { line: 1, offset: 0 },
         }));
     }
 
@@ -2048,7 +2054,7 @@ mod tests {
                         identifier: Identifier {
                             token: String::from("Coin"),
                             enclosing_type: None,
-                            line_info: LineInfo { line: 1, offset: 9 }
+                            line_info: LineInfo { line: 1, offset: 9 },
                         },
 
                         contract_members: vec![
@@ -2060,12 +2066,12 @@ mod tests {
                                     enclosing_type: None,
                                     line_info: LineInfo {
                                         line: 2,
-                                        offset: 36
-                                    }
+                                        offset: 36,
+                                    },
                                 },
 
                                 variable_type: Type::Address,
-                                expression: None
+                                expression: None,
                             }),
                             ContractMember::VariableDeclaration(VariableDeclaration {
                                 declaration_token: Some(String::from("var")),
@@ -2075,18 +2081,18 @@ mod tests {
                                     enclosing_type: None,
                                     line_info: LineInfo {
                                         line: 3,
-                                        offset: 80
-                                    }
+                                        offset: 80,
+                                    },
                                 },
 
                                 variable_type: Type::DictionaryType(DictionaryType {
                                     key_type: Box::new(Type::Address),
-                                    value_type: Box::new(Type::Int)
+                                    value_type: Box::new(Type::Int),
                                 }),
 
                                 expression: Some(Box::new(Expression::DictionaryLiteral(
                                     DictionaryLiteral { elements: vec![] }
-                                )))
+                                ))),
                             }),
                             ContractMember::EventDeclaration(EventDeclaration {
                                 identifier: Identifier {
@@ -2094,8 +2100,8 @@ mod tests {
                                     enclosing_type: None,
                                     line_info: LineInfo {
                                         line: 4,
-                                        offset: 144
-                                    }
+                                        offset: 144,
+                                    },
                                 },
 
                                 parameter_list: vec![
@@ -2105,16 +2111,16 @@ mod tests {
                                             enclosing_type: None,
                                             line_info: LineInfo {
                                                 line: 4,
-                                                offset: 149
-                                            }
+                                                offset: 149,
+                                            },
                                         },
 
                                         type_assignment: Type::Address,
                                         expression: None,
                                         line_info: LineInfo {
                                             line: 4,
-                                            offset: 149
-                                        }
+                                            offset: 149,
+                                        },
                                     },
                                     Parameter {
                                         identifier: Identifier {
@@ -2122,15 +2128,15 @@ mod tests {
                                             enclosing_type: None,
                                             line_info: LineInfo {
                                                 line: 4,
-                                                offset: 164
-                                            }
+                                                offset: 164,
+                                            },
                                         },
                                         type_assignment: Type::Address,
                                         expression: None,
                                         line_info: LineInfo {
                                             line: 4,
-                                            offset: 164
-                                        }
+                                            offset: 164,
+                                        },
                                     },
                                     Parameter {
                                         identifier: Identifier {
@@ -2138,21 +2144,21 @@ mod tests {
                                             enclosing_type: None,
                                             line_info: LineInfo {
                                                 line: 4,
-                                                offset: 177
-                                            }
+                                                offset: 177,
+                                            },
                                         },
                                         type_assignment: Type::Int,
                                         expression: None,
                                         line_info: LineInfo {
                                             line: 4,
-                                            offset: 177
-                                        }
+                                            offset: 177,
+                                        },
                                     }
-                                ]
+                                ],
                             })
                         ],
 
-                        conformances: vec![]
+                        conformances: vec![],
                     }
                 )]
             }
@@ -2171,11 +2177,11 @@ mod tests {
                 identifier: Identifier {
                     token: String::from("minter"),
                     enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 }
+                    line_info: LineInfo { line: 1, offset: 0 },
                 },
 
                 variable_type: Type::Address,
-                expression: None
+                expression: None,
             })
         );
     }
@@ -2246,7 +2252,7 @@ mod tests {
                 Identifier {
                     token: "caller".to_string(),
                     enclosing_type: None,
-                    line_info: Default::default()
+                    line_info: Default::default(),
                 }
             ),
             Err(_) => assert_eq!(1, 0),
