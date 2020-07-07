@@ -1679,7 +1679,7 @@ impl MoveExpression {
                 MoveCastExpression { expression: c }.generate(function_context)
             }
             Expression::Sequence(_) => unimplemented!(),
-        };
+        }
     }
 }
 

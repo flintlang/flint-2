@@ -5,7 +5,6 @@ use nom_locate::LocatedSpan;
 use std::collections::HashSet;
 
 use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
-use nom_locate::{LocatedSpan, position};
 
 use crate::environment::Environment;
 
