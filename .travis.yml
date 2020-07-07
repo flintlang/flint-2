@@ -4,6 +4,6 @@ dist: xenial
 before_script:
   - rustup component add clippy
 script:
-  - clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
+  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
   - cargo test --verbose
 cache: cargo    
