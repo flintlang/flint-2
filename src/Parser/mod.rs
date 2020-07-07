@@ -1700,6 +1700,42 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_parameter() {
+        let input = LocatedSpan::new("first: Int");
+        let (rest, result) = parse_parameter(input).expect("Error parsing parameter");
+        assert_eq!(result, Parameter {
+            identifier: Identifier {
+                token: String::from("first"),
+                enclosing_type: None,
+                line_info: LineInfo { line : 1, offset : 0}
+            },
+
+            type_assignment: Type::Int,
+            expression: None,
+            line_info: LineInfo { line : 1, offset : 0}
+        });
+
+        let input = LocatedSpan::new("first: Int = second");
+        let (rest, result) = parse_parameter(input).expect("Error parsing parameter with expression");
+        assert_eq!(result, Parameter {
+            identifier: Identifier {
+                token: String::from("first"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset : 0}
+            },
+            
+            type_assignment: Type::Int,
+            expression: Some(Expression::Identifier( Identifier {
+                token: String::from("second"),
+                enclosing_type: None,
+                line_info: LineInfo { line : 1, offset : 0}
+            })),
+            
+            line_info: LineInfo { line : 1, offset : 0},
+        });
+    }
+
+    #[test]
     fn test_docatch_statement() {
         let input = LocatedSpan::new("do {return id} catch is error_type {return error}");
         let (rest, result) = parse_docatch_statement(input).expect("Error with docatch statement");
@@ -1752,7 +1788,7 @@ mod tests {
     #[test]
     fn test_if_statement() {
         let input = LocatedSpan::new("if x<5 {return x}");
-        let (rest, result) = parse_if_statement(input).expect("Error with if statement");
+        let (rest, result) = parse_if_statement(input).expect("Error parsing if statement");
         assert_eq!(
             result,
             Statement::IfStatement(IfStatement {
@@ -1829,9 +1865,8 @@ mod tests {
 
     #[test]
     fn test_for_statement() {
-        //TODO: does it need double curly brackets?
         let input = LocatedSpan::new("for let i: Int in (1...5) {5}");
-        let (rest, result) = parse_for_statement(input).expect("Error with for statement");
+        let (rest, result) = parse_for_statement(input).expect("Error parsing for statement");
         assert_eq!(
             result,
             Statement::ForStatement(ForStatement {
@@ -1862,7 +1897,7 @@ mod tests {
     #[test]
     fn test_parse_return_statement() {
         let input = LocatedSpan::new("return");
-        let (rest, result) = parse_return_statement(input).expect("Error with return statement");
+        let (rest, result) = parse_return_statement(input).expect("Error parsing return statement");
         assert_eq!(
             result,
             Statement::ReturnStatement(ReturnStatement {
@@ -1874,7 +1909,7 @@ mod tests {
 
         let input = LocatedSpan::new("return id");
         let (rest, result) =
-            parse_return_statement(input).expect("Error with statement returning identifier");
+            parse_return_statement(input).expect("Error parsing statement returning identifier");
         assert_eq!(
             result,
             Statement::ReturnStatement(ReturnStatement {
@@ -1888,6 +1923,89 @@ mod tests {
                 line_info: LineInfo { line: 1, offset: 0 }
             })
         );
+    }
+
+    #[test]
+    fn test_parse_inout_expression() {
+        let input = LocatedSpan::new("&expression");
+        let (rest, result) = parse_expression(input).expect("Error parsing inout expression");
+        assert_eq!(result, Expression::InoutExpression(InoutExpression {
+            ampersand_token: String::from("&"),
+            expression: Box::new(Expression::Identifier(Identifier {
+                token: String::from("expression"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset: 0}
+            }))
+        }));
+    }
+
+    #[test]
+    fn test_parse_bracketed_expression() {
+        let input = LocatedSpan::new("(expression)");
+        let (rest, result) = parse_expression(input).expect("Error parsing bracketed expression");
+        assert_eq!(result, Expression::BracketedExpression(BracketedExpression {
+            expression: Box::new(Expression::Identifier(Identifier {
+                token: String::from("expression"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset: 0}
+            }))
+        }));
+    }
+
+    #[test]
+    fn test_parse_attempt_expression() {
+        let input = LocatedSpan::new("try?foo()");
+        let (rest, result) = parse_expression(input).expect("Error parsing attempt expression");
+        assert_eq!(result, Expression::AttemptExpression(AttemptExpression {
+            kind: String::from("?"),
+            function_call: FunctionCall {
+                identifier: Identifier {
+                    token: String::from("foo"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0}
+                },
+
+                arguments: vec![],
+                mangled_identifier: None
+            }
+        }));
+    }
+
+    #[test]
+    fn test_parse_subscript_expression() {
+        let input = LocatedSpan::new("base[index]");
+        let (rest, result) = parse_expression(input).expect("Error parsing subscript expression");
+        assert_eq!(result, Expression::SubscriptExpression(SubscriptExpression {
+            base_expression: Identifier {
+                token: String::from("base"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset: 0}
+            },
+
+            index_expression: Box::new(Expression::Identifier(Identifier {
+                token: String::from("index"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset : 0}
+            }))
+        }));
+    }
+
+    #[test]
+    fn test_parse_module() {
+        let input = LocatedSpan::new("contract Coin {
+                var minter: Address
+                        var balance: [Address: Int] = [:]
+                            event Sent(from: Address, to: Address, amount: Int)
+        }");
+        let (rest, result) = parse_contract_declaration(input).expect("Error parsing module");
+        assert_eq!(rest, LocatedSpan::new(""));
+    }
+
+    #[test]
+    fn test_parse_contract_member() {
+        let input = LocatedSpan::new("var minter: Address");
+        let (rest, result) = parse_contract_member(input).expect("Error parsing contract member");
+        assert_eq!(rest, LocatedSpan::new(""));
     }
 
     #[test]
