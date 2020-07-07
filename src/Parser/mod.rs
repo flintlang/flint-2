@@ -1703,36 +1703,43 @@ mod tests {
     fn test_parse_parameter() {
         let input = LocatedSpan::new("first: Int");
         let (rest, result) = parse_parameter(input).expect("Error parsing parameter");
-        assert_eq!(result, Parameter {
-            identifier: Identifier {
-                token: String::from("first"),
-                enclosing_type: None,
-                line_info: LineInfo { line : 1, offset : 0}
-            },
+        assert_eq!(
+            result,
+            Parameter {
+                identifier: Identifier {
+                    token: String::from("first"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
 
-            type_assignment: Type::Int,
-            expression: None,
-            line_info: LineInfo { line : 1, offset : 0}
-        });
+                type_assignment: Type::Int,
+                expression: None,
+                line_info: LineInfo { line: 1, offset: 0 }
+            }
+        );
 
         let input = LocatedSpan::new("first: Int = second");
-        let (rest, result) = parse_parameter(input).expect("Error parsing parameter with expression");
-        assert_eq!(result, Parameter {
-            identifier: Identifier {
-                token: String::from("first"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset : 0}
-            },
-            
-            type_assignment: Type::Int,
-            expression: Some(Expression::Identifier( Identifier {
-                token: String::from("second"),
-                enclosing_type: None,
-                line_info: LineInfo { line : 1, offset : 0}
-            })),
-            
-            line_info: LineInfo { line : 1, offset : 0},
-        });
+        let (rest, result) =
+            parse_parameter(input).expect("Error parsing parameter with expression");
+        assert_eq!(
+            result,
+            Parameter {
+                identifier: Identifier {
+                    token: String::from("first"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+
+                type_assignment: Type::Int,
+                expression: Some(Expression::Identifier(Identifier {
+                    token: String::from("second"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                })),
+
+                line_info: LineInfo { line: 1, offset: 0 },
+            }
+        );
     }
 
     #[test]
@@ -1929,83 +1936,248 @@ mod tests {
     fn test_parse_inout_expression() {
         let input = LocatedSpan::new("&expression");
         let (rest, result) = parse_expression(input).expect("Error parsing inout expression");
-        assert_eq!(result, Expression::InoutExpression(InoutExpression {
-            ampersand_token: String::from("&"),
-            expression: Box::new(Expression::Identifier(Identifier {
-                token: String::from("expression"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0}
-            }))
-        }));
+        assert_eq!(
+            result,
+            Expression::InoutExpression(InoutExpression {
+                ampersand_token: String::from("&"),
+                expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("expression"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                }))
+            })
+        );
     }
 
     #[test]
     fn test_parse_bracketed_expression() {
         let input = LocatedSpan::new("(expression)");
         let (rest, result) = parse_expression(input).expect("Error parsing bracketed expression");
-        assert_eq!(result, Expression::BracketedExpression(BracketedExpression {
-            expression: Box::new(Expression::Identifier(Identifier {
-                token: String::from("expression"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0}
-            }))
-        }));
+        assert_eq!(
+            result,
+            Expression::BracketedExpression(BracketedExpression {
+                expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("expression"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                }))
+            })
+        );
     }
 
     #[test]
+    //TODO: why is this function never called?
     fn test_parse_attempt_expression() {
         let input = LocatedSpan::new("try?foo()");
-        let (rest, result) = parse_expression(input).expect("Error parsing attempt expression");
-        assert_eq!(result, Expression::AttemptExpression(AttemptExpression {
-            kind: String::from("?"),
-            function_call: FunctionCall {
-                identifier: Identifier {
-                    token: String::from("foo"),
-                    enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0}
-                },
+        let (rest, result) =
+            parse_attempt_expression(input).expect("Error parsing attempt expression");
+        assert_eq!(
+            result,
+            AttemptExpression {
+                kind: String::from("?"),
+                function_call: FunctionCall {
+                    identifier: Identifier {
+                        token: String::from("foo"),
+                        enclosing_type: None,
+                        line_info: LineInfo { line: 1, offset: 0 }
+                    },
 
-                arguments: vec![],
-                mangled_identifier: None
+                    arguments: vec![],
+                    mangled_identifier: None
+                }
             }
-        }));
+        );
     }
 
     #[test]
     fn test_parse_subscript_expression() {
         let input = LocatedSpan::new("base[index]");
         let (rest, result) = parse_expression(input).expect("Error parsing subscript expression");
-        assert_eq!(result, Expression::SubscriptExpression(SubscriptExpression {
-            base_expression: Identifier {
-                token: String::from("base"),
+        assert_eq!(
+            result,
+            Expression::SubscriptExpression(SubscriptExpression {
+                base_expression: Identifier {
+                    token: String::from("base"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+
+                index_expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("index"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                }))
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_binary_expression() {
+        let input = LocatedSpan::new("x ** 2");
+        let (rest, result) = parse_expression(input).expect("Error parsing binary expression");
+        assert_eq!(result, Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(Expression::Identifier(Identifier {
+                token: String::from("x"),
                 enclosing_type: None,
                 line_info: LineInfo { line: 1, offset: 0}
-            },
+           })),
 
-            index_expression: Box::new(Expression::Identifier(Identifier {
-                token: String::from("index"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset : 0}
-            }))
+            rhs_expression: Box::new(Expression::Literal(IntLiteral(2))),
+            op: BinOp::Power,
+            line_info: LineInfo { line:1, offset:0}
         }));
     }
 
     #[test]
     fn test_parse_module() {
-        let input = LocatedSpan::new("contract Coin {
+        let input = LocatedSpan::new(
+            "contract Coin {
                 var minter: Address
                         var balance: [Address: Int] = [:]
                             event Sent(from: Address, to: Address, amount: Int)
-        }");
-        let (rest, result) = parse_contract_declaration(input).expect("Error parsing module");
-        assert_eq!(rest, LocatedSpan::new(""));
+        }",
+        );
+
+        let (rest, result) = parse_module(input).expect("Error parsing module");
+
+        assert_eq!(
+            result,
+            Module {
+                declarations: vec![TopLevelDeclaration::ContractDeclaration(
+                    ContractDeclaration {
+                        identifier: Identifier {
+                            token: String::from("Coin"),
+                            enclosing_type: None,
+                            line_info: LineInfo { line: 1, offset: 9 }
+                        },
+
+                        contract_members: vec![
+                            ContractMember::VariableDeclaration(VariableDeclaration {
+                                declaration_token: Some(String::from("var")),
+
+                                identifier: Identifier {
+                                    token: String::from("minter"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 2,
+                                        offset: 36
+                                    }
+                                },
+
+                                variable_type: Type::Address,
+                                expression: None
+                            }),
+                            ContractMember::VariableDeclaration(VariableDeclaration {
+                                declaration_token: Some(String::from("var")),
+
+                                identifier: Identifier {
+                                    token: String::from("balance"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 3,
+                                        offset: 80
+                                    }
+                                },
+
+                                variable_type: Type::DictionaryType(DictionaryType {
+                                    key_type: Box::new(Type::Address),
+                                    value_type: Box::new(Type::Int)
+                                }),
+
+                                expression: Some(Box::new(Expression::DictionaryLiteral(
+                                    DictionaryLiteral { elements: vec![] }
+                                )))
+                            }),
+                            ContractMember::EventDeclaration(EventDeclaration {
+                                identifier: Identifier {
+                                    token: String::from("Sent"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 4,
+                                        offset: 144
+                                    }
+                                },
+
+                                parameter_list: vec![
+                                    Parameter {
+                                        identifier: Identifier {
+                                            token: String::from("from"),
+                                            enclosing_type: None,
+                                            line_info: LineInfo {
+                                                line: 4,
+                                                offset: 149
+                                            }
+                                        },
+
+                                        type_assignment: Type::Address,
+                                        expression: None,
+                                        line_info: LineInfo {
+                                            line: 4,
+                                            offset: 149
+                                        }
+                                    },
+                                    Parameter {
+                                        identifier: Identifier {
+                                            token: String::from("to"),
+                                            enclosing_type: None,
+                                            line_info: LineInfo {
+                                                line: 4,
+                                                offset: 164
+                                            }
+                                        },
+                                        type_assignment: Type::Address,
+                                        expression: None,
+                                        line_info: LineInfo {
+                                            line: 4,
+                                            offset: 164
+                                        }
+                                    },
+                                    Parameter {
+                                        identifier: Identifier {
+                                            token: String::from("amount"),
+                                            enclosing_type: None,
+                                            line_info: LineInfo {
+                                                line: 4,
+                                                offset: 177
+                                            }
+                                        },
+                                        type_assignment: Type::Int,
+                                        expression: None,
+                                        line_info: LineInfo {
+                                            line: 4,
+                                            offset: 177
+                                        }
+                                    }
+                                ]
+                            })
+                        ],
+
+                        conformances: vec![]
+                    }
+                )]
+            }
+        );
     }
 
     #[test]
     fn test_parse_contract_member() {
         let input = LocatedSpan::new("var minter: Address");
         let (rest, result) = parse_contract_member(input).expect("Error parsing contract member");
-        assert_eq!(rest, LocatedSpan::new(""));
+        assert_eq!(
+            result,
+            ContractMember::VariableDeclaration(VariableDeclaration {
+                declaration_token: Some(String::from("var")),
+
+                identifier: Identifier {
+                    token: String::from("minter"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
+
+                variable_type: Type::Address,
+                expression: None
+            })
+        );
     }
 
     #[test]
