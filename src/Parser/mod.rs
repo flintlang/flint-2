@@ -1,5 +1,6 @@
 extern crate nom;
 extern crate nom_locate;
+use nom_locate::LocatedSpan;
 
 use std::collections::HashSet;
 
@@ -353,98 +354,98 @@ fn parse_solidity_type(i: Span) -> nom::IResult<Span, Type> {
         parse_solidity_type_third_part,
         parse_solidity_type_fourth_part,
         parse_solidity_type_fifth_part,
-        map(tag("address"), |_| Type::Solidity(SolidityType::address)),
-        map(tag("string"), |_| Type::Solidity(SolidityType::string)),
-        map(tag("bool"), |_| Type::Solidity(SolidityType::bool)),
+        map(tag("address"), |_| Type::Solidity(SolidityType::ADDRESS)),
+        map(tag("string"), |_| Type::Solidity(SolidityType::STRING)),
+        map(tag("bool"), |_| Type::Solidity(SolidityType::BOOL)),
     ))(i)
 }
 
 fn parse_solidity_type_first_part(i: Span) -> nom::IResult<Span, Type> {
     alt((
-        map(tag("int8"), |_| Type::Solidity(SolidityType::int8)),
-        map(tag("int16"), |_| Type::Solidity(SolidityType::int16)),
-        map(tag("int24"), |_| Type::Solidity(SolidityType::int24)),
-        map(tag("int32"), |_| Type::Solidity(SolidityType::int32)),
-        map(tag("int40"), |_| Type::Solidity(SolidityType::int40)),
-        map(tag("int48"), |_| Type::Solidity(SolidityType::int48)),
-        map(tag("int56"), |_| Type::Solidity(SolidityType::int56)),
-        map(tag("int64"), |_| Type::Solidity(SolidityType::int64)),
-        map(tag("int72"), |_| Type::Solidity(SolidityType::int72)),
-        map(tag("int80"), |_| Type::Solidity(SolidityType::int80)),
-        map(tag("int88"), |_| Type::Solidity(SolidityType::int88)),
-        map(tag("int96"), |_| Type::Solidity(SolidityType::int96)),
-        map(tag("int104"), |_| Type::Solidity(SolidityType::int104)),
-        map(tag("int112"), |_| Type::Solidity(SolidityType::int112)),
-        map(tag("int120"), |_| Type::Solidity(SolidityType::int120)),
+        map(tag("int8"), |_| Type::Solidity(SolidityType::INT8)),
+        map(tag("int16"), |_| Type::Solidity(SolidityType::INT16)),
+        map(tag("int24"), |_| Type::Solidity(SolidityType::INT24)),
+        map(tag("int32"), |_| Type::Solidity(SolidityType::INT32)),
+        map(tag("int40"), |_| Type::Solidity(SolidityType::INT40)),
+        map(tag("int48"), |_| Type::Solidity(SolidityType::INT48)),
+        map(tag("int56"), |_| Type::Solidity(SolidityType::INT56)),
+        map(tag("int64"), |_| Type::Solidity(SolidityType::INT64)),
+        map(tag("int72"), |_| Type::Solidity(SolidityType::INT72)),
+        map(tag("int80"), |_| Type::Solidity(SolidityType::INT80)),
+        map(tag("int88"), |_| Type::Solidity(SolidityType::INT88)),
+        map(tag("int96"), |_| Type::Solidity(SolidityType::INT96)),
+        map(tag("int104"), |_| Type::Solidity(SolidityType::INT104)),
+        map(tag("int112"), |_| Type::Solidity(SolidityType::INT112)),
+        map(tag("int120"), |_| Type::Solidity(SolidityType::INT120)),
     ))(i)
 }
 
 fn parse_solidity_type_second_part(i: Span) -> nom::IResult<Span, Type> {
     alt((
-        map(tag("int128"), |_| Type::Solidity(SolidityType::int128)),
-        map(tag("int136"), |_| Type::Solidity(SolidityType::int136)),
-        map(tag("int144"), |_| Type::Solidity(SolidityType::int144)),
-        map(tag("int152"), |_| Type::Solidity(SolidityType::int152)),
-        map(tag("int160"), |_| Type::Solidity(SolidityType::int160)),
-        map(tag("int168"), |_| Type::Solidity(SolidityType::int168)),
-        map(tag("int176"), |_| Type::Solidity(SolidityType::int176)),
-        map(tag("int184"), |_| Type::Solidity(SolidityType::int184)),
-        map(tag("int192"), |_| Type::Solidity(SolidityType::int192)),
-        map(tag("int200"), |_| Type::Solidity(SolidityType::int200)),
-        map(tag("int208"), |_| Type::Solidity(SolidityType::int208)),
-        map(tag("int216"), |_| Type::Solidity(SolidityType::int216)),
-        map(tag("int224"), |_| Type::Solidity(SolidityType::int224)),
-        map(tag("int232"), |_| Type::Solidity(SolidityType::int232)),
+        map(tag("int128"), |_| Type::Solidity(SolidityType::INT128)),
+        map(tag("int136"), |_| Type::Solidity(SolidityType::INT136)),
+        map(tag("int144"), |_| Type::Solidity(SolidityType::INT144)),
+        map(tag("int152"), |_| Type::Solidity(SolidityType::INT152)),
+        map(tag("int160"), |_| Type::Solidity(SolidityType::INT160)),
+        map(tag("int168"), |_| Type::Solidity(SolidityType::INT168)),
+        map(tag("int176"), |_| Type::Solidity(SolidityType::INT176)),
+        map(tag("int184"), |_| Type::Solidity(SolidityType::INT184)),
+        map(tag("int192"), |_| Type::Solidity(SolidityType::INT192)),
+        map(tag("int200"), |_| Type::Solidity(SolidityType::INT200)),
+        map(tag("int208"), |_| Type::Solidity(SolidityType::INT208)),
+        map(tag("int216"), |_| Type::Solidity(SolidityType::INT216)),
+        map(tag("int224"), |_| Type::Solidity(SolidityType::INT224)),
+        map(tag("int232"), |_| Type::Solidity(SolidityType::INT232)),
     ))(i)
 }
 
 fn parse_solidity_type_third_part(i: Span) -> nom::IResult<Span, Type> {
     alt((
-        map(tag("int240"), |_| Type::Solidity(SolidityType::int240)),
-        map(tag("int248"), |_| Type::Solidity(SolidityType::int248)),
-        map(tag("int256"), |_| Type::Solidity(SolidityType::int256)),
-        map(tag("uint8"), |_| Type::Solidity(SolidityType::uint8)),
-        map(tag("uint16"), |_| Type::Solidity(SolidityType::uint16)),
-        map(tag("uint24"), |_| Type::Solidity(SolidityType::uint24)),
-        map(tag("uint32"), |_| Type::Solidity(SolidityType::uint32)),
-        map(tag("uint40"), |_| Type::Solidity(SolidityType::uint40)),
-        map(tag("uint48"), |_| Type::Solidity(SolidityType::uint48)),
-        map(tag("uint56"), |_| Type::Solidity(SolidityType::uint56)),
-        map(tag("uint64"), |_| Type::Solidity(SolidityType::uint64)),
-        map(tag("uint72"), |_| Type::Solidity(SolidityType::uint72)),
-        map(tag("uint80"), |_| Type::Solidity(SolidityType::uint80)),
-        map(tag("uint88"), |_| Type::Solidity(SolidityType::uint88)),
+        map(tag("int240"), |_| Type::Solidity(SolidityType::INT240)),
+        map(tag("int248"), |_| Type::Solidity(SolidityType::INT248)),
+        map(tag("int256"), |_| Type::Solidity(SolidityType::INT256)),
+        map(tag("uint8"), |_| Type::Solidity(SolidityType::UINT8)),
+        map(tag("uint16"), |_| Type::Solidity(SolidityType::UINT16)),
+        map(tag("uint24"), |_| Type::Solidity(SolidityType::UINT24)),
+        map(tag("uint32"), |_| Type::Solidity(SolidityType::UINT32)),
+        map(tag("uint40"), |_| Type::Solidity(SolidityType::UINT40)),
+        map(tag("uint48"), |_| Type::Solidity(SolidityType::UINT48)),
+        map(tag("uint56"), |_| Type::Solidity(SolidityType::UINT56)),
+        map(tag("uint64"), |_| Type::Solidity(SolidityType::UINT64)),
+        map(tag("uint72"), |_| Type::Solidity(SolidityType::UINT72)),
+        map(tag("uint80"), |_| Type::Solidity(SolidityType::UINT80)),
+        map(tag("uint88"), |_| Type::Solidity(SolidityType::UINT88)),
     ))(i)
 }
 
 fn parse_solidity_type_fourth_part(i: Span) -> nom::IResult<Span, Type> {
     alt((
-        map(tag("uint96"), |_| Type::Solidity(SolidityType::uint96)),
-        map(tag("uint104"), |_| Type::Solidity(SolidityType::uint104)),
-        map(tag("uint112"), |_| Type::Solidity(SolidityType::uint112)),
-        map(tag("uint120"), |_| Type::Solidity(SolidityType::uint120)),
-        map(tag("uint128"), |_| Type::Solidity(SolidityType::uint128)),
-        map(tag("uint136"), |_| Type::Solidity(SolidityType::uint136)),
-        map(tag("uint144"), |_| Type::Solidity(SolidityType::uint144)),
-        map(tag("uint152"), |_| Type::Solidity(SolidityType::uint152)),
-        map(tag("uint160"), |_| Type::Solidity(SolidityType::uint160)),
-        map(tag("uint168"), |_| Type::Solidity(SolidityType::uint168)),
-        map(tag("uint176"), |_| Type::Solidity(SolidityType::uint176)),
-        map(tag("uint184"), |_| Type::Solidity(SolidityType::uint184)),
+        map(tag("uint96"), |_| Type::Solidity(SolidityType::UINT96)),
+        map(tag("uint104"), |_| Type::Solidity(SolidityType::UINT104)),
+        map(tag("uint112"), |_| Type::Solidity(SolidityType::UINT112)),
+        map(tag("uint120"), |_| Type::Solidity(SolidityType::UINT120)),
+        map(tag("uint128"), |_| Type::Solidity(SolidityType::UINT128)),
+        map(tag("uint136"), |_| Type::Solidity(SolidityType::UINT136)),
+        map(tag("uint144"), |_| Type::Solidity(SolidityType::UINT144)),
+        map(tag("uint152"), |_| Type::Solidity(SolidityType::UINT152)),
+        map(tag("uint160"), |_| Type::Solidity(SolidityType::UINT160)),
+        map(tag("uint168"), |_| Type::Solidity(SolidityType::UINT168)),
+        map(tag("uint176"), |_| Type::Solidity(SolidityType::UINT176)),
+        map(tag("uint184"), |_| Type::Solidity(SolidityType::UINT184)),
     ))(i)
 }
 
 fn parse_solidity_type_fifth_part(i: Span) -> nom::IResult<Span, Type> {
     alt((
-        map(tag("uint192"), |_| Type::Solidity(SolidityType::uint192)),
-        map(tag("uint200"), |_| Type::Solidity(SolidityType::uint200)),
-        map(tag("uint208"), |_| Type::Solidity(SolidityType::uint208)),
-        map(tag("uint216"), |_| Type::Solidity(SolidityType::uint216)),
-        map(tag("uint224"), |_| Type::Solidity(SolidityType::uint224)),
-        map(tag("uint232"), |_| Type::Solidity(SolidityType::uint232)),
-        map(tag("uint240"), |_| Type::Solidity(SolidityType::uint240)),
-        map(tag("uint248"), |_| Type::Solidity(SolidityType::uint248)),
-        map(tag("uint256"), |_| Type::Solidity(SolidityType::uint256)),
+        map(tag("uint192"), |_| Type::Solidity(SolidityType::UINT192)),
+        map(tag("uint200"), |_| Type::Solidity(SolidityType::UINT200)),
+        map(tag("uint208"), |_| Type::Solidity(SolidityType::UINT208)),
+        map(tag("uint216"), |_| Type::Solidity(SolidityType::UINT216)),
+        map(tag("uint224"), |_| Type::Solidity(SolidityType::UINT224)),
+        map(tag("uint232"), |_| Type::Solidity(SolidityType::UINT232)),
+        map(tag("uint240"), |_| Type::Solidity(SolidityType::UINT240)),
+        map(tag("uint248"), |_| Type::Solidity(SolidityType::UINT248)),
+        map(tag("uint256"), |_| Type::Solidity(SolidityType::UINT256)),
     ))(i)
 }
 
@@ -474,7 +475,7 @@ fn parse_fixed_array_type(i: Span) -> nom::IResult<Span, Type> {
 
     let fixed_sized_array_type = FixedSizedArrayType {
         key_type: Box::new(identifier),
-        size: size,
+        size,
     };
     Ok((i, Type::FixedSizedArrayType(fixed_sized_array_type)))
 }
@@ -620,7 +621,7 @@ fn parse_cast_expression(i: Span) -> nom::IResult<Span, CastExpression> {
     let (i, cast_type) = parse_type(i)?;
     let cast_expression = CastExpression {
         expression: Box::new(expression),
-        cast_type: cast_type,
+        cast_type,
     };
     Ok((i, cast_expression))
 }
@@ -781,11 +782,11 @@ fn parse_attempt_expression(i: Span) -> nom::IResult<Span, AttemptExpression> {
 }
 
 fn parse_binary_expression(input: Span) -> nom::IResult<Span, BinaryExpression> {
-    let (i, lhs_expression) = parse_expression_left(input)?;
-    let (_, op) = preceded(whitespace, parse_binary_op)(i)?;
+    let (i, _) = parse_expression_left(input)?;
+    let _ = preceded(whitespace, parse_binary_op)(i)?;
     let (i, expression) = parse_binary_expression_precedence(input, 0)?;
     if let Expression::BinaryExpression(b) = expression {
-        return Ok((i, b));
+        Ok((i, b))
     } else {
         unimplemented!()
     }
@@ -835,7 +836,7 @@ pub fn parse_binary_expression_precedence(
 }
 
 fn get_operator_precedence(op: &BinOp) -> i32 {
-    return match op {
+    match op {
         BinOp::Plus => 20,
         BinOp::OverflowingPlus => 20,
         BinOp::Minus => 20,
@@ -860,7 +861,7 @@ fn get_operator_precedence(op: &BinOp) -> i32 {
         BinOp::Or => 11,
         BinOp::And => 12,
         BinOp::Implies => 10,
-    };
+    }
 }
 
 fn parse_binary_op(i: Span) -> nom::IResult<Span, BinOp> {
@@ -1366,7 +1367,7 @@ fn parse_return_statement(i: Span) -> nom::IResult<Span, Statement> {
         line_info,
         ..Default::default()
     };
-    return Ok((i, Statement::ReturnStatement(return_statement)));
+    Ok((i, Statement::ReturnStatement(return_statement)))
 }
 
 fn parse_mutates(i: Span) -> nom::IResult<Span, Vec<Identifier>> {
@@ -1573,7 +1574,7 @@ fn parse_trait_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
         external: external.is_some(),
         identifier,
         members,
-        modifiers: modifiers,
+        modifiers,
     };
     Ok((i, TopLevelDeclaration::TraitDeclaration(trait_declaration)))
 }
@@ -1624,7 +1625,7 @@ fn is_basic_type(basic_type: &str) -> bool {
         .iter()
         .cloned()
         .collect();
-    return basic_types.contains(basic_type);
+    basic_types.contains(basic_type)
 }
 
 #[cfg(test)]

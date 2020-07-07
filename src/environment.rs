@@ -1,7 +1,7 @@
-use super::context::*;
-use super::SemanticAnalysis::*;
-use super::AST::*;
 use std::collections::HashMap;
+
+use super::AST::*;
+use super::context::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
@@ -31,15 +31,14 @@ impl FunctionCallMatchResult {
                 let mut c1_canididates = c1.candidates.clone();
                 let mut c2_canididates = c2.candidates.clone();
                 c1_canididates.append(&mut c2_canididates);
-                return FunctionCallMatchResult::Failure(Candidates {
+                FunctionCallMatchResult::Failure(Candidates {
                     candidates: c1_canididates,
-                });
+                })
             } else {
-                return f;
+                f
             }
         } else {
-            let result = self.clone();
-            return result;
+            self.clone()
         }
     }
 }
@@ -73,13 +72,13 @@ impl Environment {
 
     pub fn add_event_declaration(&mut self, e: &EventDeclaration) {
         let identifier = e.identifier.clone();
-        &self.event_declarations.push(identifier);
+        self.event_declarations.push(identifier);
     }
 
     pub fn add_contract_declaration(&mut self, c: &ContractDeclaration) {
         let identifier = c.identifier.clone();
-        &self.contract_declarations.push(identifier);
-        &self.types.insert(
+        self.contract_declarations.push(identifier);
+        self.types.insert(
             c.identifier.token.clone(),
             TypeInfo {
                 ..Default::default()
@@ -108,9 +107,9 @@ impl Environment {
 
     pub fn add_struct_declaration(&mut self, s: &StructDeclaration) {
         let identifier = s.identifier.clone();
-        &self.struct_declarations.push(identifier);
+        self.struct_declarations.push(identifier);
 
-        &self.types.insert(
+        self.types.insert(
             s.identifier.token.clone(),
             TypeInfo {
                 ..Default::default()
@@ -137,9 +136,9 @@ impl Environment {
 
     pub fn add_asset_declaration(&mut self, a: &AssetDeclaration) {
         let identifier = a.identifier.clone();
-        &self.asset_declarations.push(identifier);
+        self.asset_declarations.push(identifier);
 
-        &self.types.insert(
+        self.types.insert(
             a.identifier.token.clone(),
             TypeInfo {
                 ..Default::default()
@@ -166,7 +165,7 @@ impl Environment {
 
     pub fn add_trait_declaration(&mut self, t: &TraitDeclaration) {
         let identifier = t.identifier.clone();
-        &self.trait_declarations.push(identifier);
+        self.trait_declarations.push(identifier);
 
         let special = Environment::external_trait_init();
         self.add_init_sig(special, &t.identifier.token.clone(), vec![], true);
@@ -232,9 +231,9 @@ impl Environment {
 
     fn add_enum_declaration(&mut self, e: &EnumDeclaration) {
         let identifier = e.identifier.clone();
-        &self.trait_declarations.push(identifier);
+        self.trait_declarations.push(identifier);
 
-        &self.types.insert(
+        self.types.insert(
             e.identifier.token.clone(),
             TypeInfo {
                 ..Default::default()
@@ -247,7 +246,7 @@ impl Environment {
         let type_info = &self.types.get(t);
         if trait_info.is_some() && type_info.is_some() {
             let conformance = self.types.get(conformance_identifier).unwrap().clone();
-            &self
+            self
                 .types
                 .get_mut(t)
                 .unwrap()
@@ -279,7 +278,7 @@ impl Environment {
                 .get_mut(&name)
                 .is_some()
             {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -288,7 +287,7 @@ impl Environment {
                     .unwrap()
                     .push(function_information);
             } else {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -317,7 +316,7 @@ impl Environment {
                 .get_mut(&name)
                 .is_some()
             {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -326,7 +325,7 @@ impl Environment {
                     .unwrap()
                     .push(function_information);
             } else {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -339,39 +338,36 @@ impl Environment {
     pub fn remove_function(&mut self, function: &FunctionDeclaration, t: &TypeIdentifier) {
         let name = function.head.identifier.token.clone();
         let type_info = &self.types.get(t);
-        if type_info.is_some() {
-            if self
+        if type_info.is_some() && self.types
+            .get_mut(t)
+            .unwrap()
+            .functions
+            .get_mut(&name)
+            .is_some()
+        {
+            let functions: Vec<FunctionInformation> = self
                 .types
+                .get(t)
+                .unwrap()
+                .functions
+                .clone()
+                .remove(&name)
+                .unwrap()
+                .into_iter()
+                .filter(|f| {
+                    f.declaration.head.identifier.token == name
+                        && do_vecs_match(
+                        &f.declaration.parameters_and_types(),
+                        &function.parameters_and_types(),
+                    )
+                })
+                .collect();
+
+            self.types
                 .get_mut(t)
                 .unwrap()
                 .functions
-                .get_mut(&name)
-                .is_some()
-            {
-                let functions: Vec<FunctionInformation> = self
-                    .types
-                    .get(t)
-                    .unwrap()
-                    .functions
-                    .clone()
-                    .remove(&name)
-                    .unwrap()
-                    .into_iter()
-                    .filter(|f| {
-                        f.declaration.head.identifier.token == name
-                            && do_vecs_match(
-                                &f.declaration.parameters_and_types(),
-                                &function.parameters_and_types(),
-                            )
-                    })
-                    .collect();
-
-                self.types
-                    .get_mut(t)
-                    .unwrap()
-                    .functions
-                    .insert(name, functions);
-            }
+                .insert(name, functions);
         }
     }
 
@@ -409,7 +405,7 @@ impl Environment {
                 .get_mut(&name)
                 .is_some()
             {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -418,7 +414,7 @@ impl Environment {
                     .unwrap()
                     .push(function_information);
             } else {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -440,7 +436,7 @@ impl Environment {
                 },
             );
 
-            &self
+            self
                 .types
                 .get_mut(t)
                 .unwrap()
@@ -464,7 +460,7 @@ impl Environment {
             }
             let type_info = &self.types.get_mut(t);
             if type_info.is_some() {
-                &self
+                self
                     .types
                     .get_mut(t)
                     .unwrap()
@@ -504,7 +500,7 @@ impl Environment {
         };
         let type_info = &self.types.get_mut(enclosing);
         if type_info.is_some() {
-            &self
+            self
                 .types
                 .get_mut(enclosing)
                 .unwrap()
@@ -527,7 +523,7 @@ impl Environment {
                     modifiers: vec![],
                 },
             );
-            &self
+            self
                 .types
                 .get_mut(enclosing)
                 .unwrap()
@@ -547,13 +543,13 @@ impl Environment {
     ) {
         let type_info = &self.types.get_mut(t);
         if type_info.is_some() {
-            &self
+            self
                 .types
                 .get_mut(t)
                 .unwrap()
                 .properties
                 .insert(identifier.to_string(), PropertyInformation { property });
-            &self
+            self
                 .types
                 .get_mut(t)
                 .unwrap()
@@ -604,7 +600,7 @@ impl Environment {
         if self.property(identifier.clone(), t).is_some() {
             return self.property(identifier, t).unwrap().is_constant();
         }
-        return false;
+        false
     }
 
     pub fn has_public_initialiser(&mut self, t: &TypeIdentifier) -> bool {
@@ -626,7 +622,7 @@ impl Environment {
         if enums.contains(&enum_name) {
             return true;
         }
-        return false;
+        false
     }
 
     pub fn is_state_declared(&self, state: &TypeIdentifier, t: &TypeIdentifier) -> bool {
@@ -640,7 +636,7 @@ impl Environment {
                 .get(state)
                 .is_some();
         }
-        return false;
+        false
     }
 
     pub fn is_struct_declared(&self, t: &TypeIdentifier) -> bool {
@@ -722,7 +718,7 @@ impl Environment {
                 }
             }
         }
-        return false;
+        false
     }
 
     pub fn conflicting_trait_signatures(&self, t: &TypeIdentifier) -> bool {
@@ -741,7 +737,7 @@ impl Environment {
                     return true;
                 }
             }
-            return false;
+            false
         };
         if type_info.is_some() {
             let traits = type_info.unwrap().trait_functions().clone();
@@ -755,7 +751,7 @@ impl Environment {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn is_conflicting_function_declaration(
@@ -780,38 +776,36 @@ impl Environment {
                     .get(&function_declaration.head.identifier.token)
                     .unwrap()
                 {
-                    &value.push(function.declaration.head.identifier.clone());
+                    value.push(function.declaration.head.identifier.clone());
                 }
                 list.push(&value);
             }
             return self.conflicting(&function_declaration.head.identifier, list);
         }
         let type_info = &self.types.get(identifier);
-        if type_info.is_some() {
-            if type_info
+        if type_info.is_some() && type_info
+            .unwrap()
+            .functions
+            .contains_key(&function_declaration.head.identifier.token)
+        {
+            for function in self
+                .types
+                .get(identifier)
                 .unwrap()
                 .functions
-                .contains_key(&function_declaration.head.identifier.token)
+                .get(&function_declaration.head.identifier.token)
+                .unwrap()
             {
-                for function in self
-                    .types
-                    .get(identifier)
-                    .unwrap()
-                    .functions
-                    .get(&function_declaration.head.identifier.token)
-                    .unwrap()
+                let declaration = &function.declaration.head.identifier;
+                let parameters = &function.declaration.head.parameters;
+                if is_redeclaration(&function_declaration.head.identifier, declaration)
+                    && &function_declaration.head.parameters == parameters
                 {
-                    let declaration = &function.declaration.head.identifier;
-                    let parameters = &function.declaration.head.parameters;
-                    if is_redeclaration(&function_declaration.head.identifier, declaration)
-                        && &function_declaration.head.parameters == parameters
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
-        return false;
+        false
     }
 
     pub fn is_recursive_struct(&self, t: &TypeIdentifier) -> bool {
@@ -852,19 +846,19 @@ impl Environment {
                 if f.key_type.is_address_type() {
                     return true;
                 }
-                return false;
+                false
             }
             Type::ArrayType(a) => {
                 if a.key_type.is_address_type() {
                     return true;
                 }
-                return false;
+                false
             }
             Type::DictionaryType(d) => {
                 if d.value_type.is_address_type() {
                     return true;
                 }
-                return false;
+                false
             }
             _ => false,
         };
@@ -884,7 +878,7 @@ impl Environment {
                 }
                 return false;
             }
-            return false;
+            false
         };
         if type_info.is_some() {
             let mut properties: Vec<String> = type_info
@@ -915,8 +909,8 @@ impl Environment {
                 .collect();
             let mut functions: Vec<String> = functions
                 .into_iter()
-                .filter(|(k, v)| !v.is_empty())
-                .map(|(k, v)| k)
+                .filter(|(_, v)| !v.is_empty())
+                .map(|(k, _)| k)
                 .collect();
 
             properties.append(&mut functions);
@@ -924,7 +918,7 @@ impl Environment {
             return properties;
         }
 
-        return Vec::new();
+        Vec::new()
     }
 
     pub fn match_function_call(
@@ -966,8 +960,7 @@ impl Environment {
 
         let result = result.merge(regular_match);
         let result = result.merge(initaliser_match);
-        let result = result.merge(global_match);
-        return result;
+        result.merge(global_match)
     }
 
     fn compatible_caller_protections(
@@ -1016,15 +1009,15 @@ impl Environment {
         if target.arguments.len() <= source.parameter_identifiers().len()
             && target.arguments.len() >= source.required_parameter_identifiers().len()
         {
-            return self.check_parameter_compatibility(
+            self.check_parameter_compatibility(
                 target.arguments.clone(),
                 parameters.clone(),
                 t,
                 scope.clone(),
                 no_self_declaration_type,
-            );
+            )
         } else {
-            return false;
+            false
         }
     }
 
@@ -1089,8 +1082,7 @@ impl Environment {
         }
 
         while index < required_parameters.len() && argument_index < arguments.len() {
-            if arguments[argument_index].identifier.is_some() {
-            } else {
+            if arguments[argument_index].identifier.is_some() {} else {
                 let declared_type = declared_types[index].clone();
 
                 let argument_expression = arguments[argument_index].expression.clone();
@@ -1153,7 +1145,7 @@ impl Environment {
         if argument_index < arguments.len() {
             return false;
         }
-        return true;
+        true
     }
 
     fn match_regular_function(
@@ -1182,8 +1174,7 @@ impl Environment {
 
             let functions = self.types.get(t).unwrap().all_functions();
             // println!("{:?}", functions.clone());
-            let functions = functions.get(&f.identifier.token).clone();
-            let functions = functions.clone();
+            let functions = functions.get(&f.identifier.token);
             if functions.is_some() {
                 let functions = functions.unwrap();
                 for function in functions {
@@ -1249,14 +1240,14 @@ impl Environment {
 
         let candidates = Candidates { candidates };
 
-        return FunctionCallMatchResult::Failure(candidates);
+        FunctionCallMatchResult::Failure(candidates)
     }
 
     fn match_fallback_function(&self, f: FunctionCall, c: Vec<CallerProtection>) {
         let mut candidates = Vec::new();
-        let typeInfo = self.types.get(&f.identifier.token.clone());
-        if typeInfo.is_some() {
-            let fallbacks = &typeInfo.unwrap().fallbacks;
+        let type_info = self.types.get(&f.identifier.token.clone());
+        if type_info.is_some() {
+            let fallbacks = &type_info.unwrap().fallbacks;
             for fallback in fallbacks {
                 if self
                     .compatible_caller_protections(c.clone(), fallback.caller_protections.clone())
@@ -1302,9 +1293,9 @@ impl Environment {
                 println!("{:?}", equal_types.clone());
                 if equal_types
                     && self.compatible_caller_protections(
-                        c.clone(),
-                        initialiser.caller_protections.clone(),
-                    )
+                    c.clone(),
+                    initialiser.caller_protections.clone(),
+                )
                 {
                     return FunctionCallMatchResult::MatchedInitializer(initialiser.clone());
                 } else {
@@ -1319,7 +1310,7 @@ impl Environment {
             .collect();
 
         let candidates = Candidates { candidates };
-        return FunctionCallMatchResult::Failure(candidates);
+        FunctionCallMatchResult::Failure(candidates)
     }
 
     fn match_global_function(
@@ -1335,7 +1326,6 @@ impl Environment {
         if type_info.is_some() {
             let functions = &type_info.unwrap().functions;
             let functions = functions.get(&f.identifier.token.clone());
-            let functions = functions.clone();
 
             if functions.is_some() {
                 let functions = functions.unwrap();
@@ -1350,9 +1340,9 @@ impl Environment {
                     }
                     if equal_types
                         && self.compatible_caller_protections(
-                            c.clone(),
-                            function.caller_protection.clone(),
-                        )
+                        c.clone(),
+                        function.caller_protection.clone(),
+                    )
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
                     } else {
@@ -1372,7 +1362,7 @@ impl Environment {
         if token == "fatalError".to_string() {
             unimplemented!()
         }
-        return FunctionCallMatchResult::Failure(candidates);
+        FunctionCallMatchResult::Failure(candidates)
     }
 
     pub fn is_runtime_function_call(function_call: &FunctionCall) -> bool {
@@ -1409,16 +1399,16 @@ impl Environment {
                     t
                 };
 
-                return self.get_property_type(i.token.clone(), enclosing_type, scope);
+                self.get_property_type(i.token.clone(), enclosing_type, scope)
             }
             Expression::BinaryExpression(b) => {
-                return self.get_binary_expression_type(
+                self.get_binary_expression_type(
                     b,
                     t,
                     type_states,
                     caller_protections,
                     scope,
-                );
+                )
             }
             Expression::InoutExpression(e) => {
                 let key_type = self.get_expression_type(
@@ -1429,12 +1419,12 @@ impl Environment {
                     scope,
                 );
 
-                return Type::InoutType(InoutType {
+                Type::InoutType(InoutType {
                     key_type: Box::from(key_type),
-                });
+                })
             }
             Expression::ExternalCall(e) => {
-                return self.get_expression_type(
+                self.get_expression_type(
                     Expression::BinaryExpression(e.function_call),
                     t,
                     type_states,
@@ -1450,17 +1440,16 @@ impl Environment {
                     t
                 };
 
-                return self.get_function_call_type(
+                self.get_function_call_type(
                     f.clone(),
                     enclosing_type,
-                    type_states,
                     caller_protections,
                     scope,
-                );
+                )
             }
-            Expression::VariableDeclaration(v) => return v.variable_type,
+            Expression::VariableDeclaration(v) => v.variable_type,
             Expression::BracketedExpression(e) => {
-                return self.get_expression_type(
+                self.get_expression_type(
                     *e.expression,
                     t,
                     type_states,
@@ -1469,7 +1458,7 @@ impl Environment {
                 )
             }
             Expression::AttemptExpression(a) => {
-                return self.get_attempt_expression_type(
+                self.get_attempt_expression_type(
                     a,
                     t,
                     type_states,
@@ -1478,10 +1467,10 @@ impl Environment {
                 )
             }
             Expression::Literal(l) => {
-                return self.get_literal_type(l, t, type_states, caller_protections, scope)
+                self.get_literal_type(l)
             }
             Expression::ArrayLiteral(a) => {
-                return self.get_array_literal_type(a, t, type_states, caller_protections, scope)
+                self.get_array_literal_type(a, t, type_states, caller_protections, scope)
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => Type::UserDefinedType(Identifier {
@@ -1507,7 +1496,7 @@ impl Environment {
                 }
             }
             Expression::RangeExpression(r) => {
-                return self.get_range_type(r, t, type_states, caller_protections, scope)
+                self.get_range_type(r, t, type_states, caller_protections, scope)
             }
             Expression::RawAssembly(_, _) => unimplemented!(),
             Expression::CastExpression(c) => c.cast_type,
@@ -1546,14 +1535,7 @@ impl Environment {
         Type::Error
     }
 
-    fn get_literal_type(
-        &self,
-        literal: Literal,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
-    ) -> Type {
+    fn get_literal_type(&self, literal: Literal) -> Type {
         match literal {
             Literal::BooleanLiteral(_) => Type::Bool,
             Literal::AddressLiteral(_) => Type::Address,
@@ -1584,13 +1566,13 @@ impl Environment {
             t.clone()
         };
 
-        return self.get_expression_type(
+        self.get_expression_type(
             Expression::FunctionCall(function_call),
             &enclosing_type,
             type_states,
             caller_protections,
             scope,
-        );
+        )
     }
 
     fn get_range_type(
@@ -1619,9 +1601,9 @@ impl Environment {
             return Type::Error;
         }
 
-        return Type::RangeType(RangeType {
+        Type::RangeType(RangeType {
             key_type: Box::new(element_type),
-        });
+        })
     }
 
     fn get_binary_expression_type(
@@ -1688,13 +1670,13 @@ impl Environment {
             return rhs_type;
         }
 
-        return self.get_expression_type(
+        self.get_expression_type(
             *b.rhs_expression,
             t,
             type_states,
             caller_protections,
             scope,
-        );
+        )
     }
 
     fn get_array_literal_type(
@@ -1733,16 +1715,15 @@ impl Environment {
             //TODO change to Type::Any
             Type::Error
         };
-        return Type::ArrayType(ArrayType {
+        Type::ArrayType(ArrayType {
             key_type: Box::new(result_type),
-        });
+        })
     }
 
     fn get_function_call_type(
         &self,
         f: FunctionCall,
         t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
         caller_protections: Vec<CallerProtection>,
         scope: ScopeContext,
     ) -> Type {
@@ -1750,11 +1731,11 @@ impl Environment {
         let function_call = self.match_function_call(f, t, caller_protections, scope);
         match function_call {
             FunctionCallMatchResult::MatchedFunction(m) => {
-                return m.get_result_type().unwrap_or(Type::Error);
+                m.get_result_type().unwrap_or(Type::Error)
             }
             FunctionCallMatchResult::MatchedFunctionWithoutCaller(m) => {
                 if m.candidates.len() == 1 {
-                    let first = m.candidates.first().clone();
+                    let first = m.candidates.first();
                     let first = first.unwrap();
                     return if let CallableInformation::FunctionInformation(fi) = first {
                         fi.get_result_type().unwrap_or(Type::Error)
@@ -1762,13 +1743,13 @@ impl Environment {
                         Type::Error
                     };
                 }
-                return Type::Error;
+                Type::Error
             }
-            FunctionCallMatchResult::MatchedInitializer(m) => {
-                return Type::UserDefinedType(identifier)
+            FunctionCallMatchResult::MatchedInitializer(_) => {
+                Type::UserDefinedType(identifier)
             }
-            (_) => {
-                return Type::Error;
+            _ => {
+                Type::Error
             }
         }
     }
@@ -1787,24 +1768,23 @@ impl Environment {
                 .collect();
             for p in ordered_properties {
                 offset_map.insert(p.clone(), offset);
-                let property_type = root_type.properties.get(&p).clone();
+                let property_type = root_type.properties.get(&p);
                 let property_type = property_type.unwrap();
                 let property_size = self.type_size(property_type.property.get_type());
 
                 offset = offset + property_size;
             }
-            return offset;
+            offset
         } else {
-            return offset;
+            offset
         }
     }
 
     pub fn replace_self(list: Vec<Type>, enclosing: &TypeIdentifier) -> Vec<Type> {
-        let result: Vec<Type> = list
+        list
             .into_iter()
             .map(|t| t.replacing_self(enclosing))
-            .collect();
-        return result;
+            .collect()
     }
 
     fn external_trait_init() -> SpecialSignatureDeclaration {
@@ -1838,7 +1818,7 @@ impl Environment {
             Type::RangeType(_) => unimplemented!(),
             Type::FixedSizedArrayType(a) => {
                 let key_size = self.type_size(*a.key_type.clone());
-                let size = a.size.clone();
+                let size = a.size;
                 key_size * size
             }
             Type::DictionaryType(_) => unimplemented!(),
@@ -1856,7 +1836,7 @@ impl Environment {
                     acc = acc + self.type_size(v.property.get_type())
                 }
 
-                return acc;
+                acc
             }
             Type::Error => unimplemented!(),
             Type::SelfType => unimplemented!(),

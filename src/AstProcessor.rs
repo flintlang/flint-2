@@ -7,7 +7,7 @@ use super::TypeAssigner::*;
 use super::TypeChecker::*;
 use super::AST::*;
 use crate::MoveCodeGen::MovePreProcessor;
-use crate::SolidityCodeGen::{generate, SolidityPreProcessor};
+use crate::SolidityCodeGen::SolidityPreProcessor;
 
 pub fn process_ast(mut module: Module, environment: Environment, target: Target) {
     let type_assigner = &mut TypeAssigner {};
@@ -24,21 +24,21 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
 
     match result {
         Ok(_) => {}
-        Err(e) => return,
+        Err(_) => return,
     }
 
     let result = module.visit(semantic_analysis, context);
 
     match result {
         Ok(_) => {}
-        Err(e) => return,
+        Err(_) => return,
     }
 
     let result = module.visit(type_checker, context);
 
     match result {
         Ok(_) => {}
-        Err(e) => return,
+        Err(_) => return,
     }
 
     if let Target::Move = target {
@@ -46,19 +46,19 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
 
         match result {
             Ok(_) => {}
-            Err(e) => return,
+            Err(_) => return,
         }
 
-        let result = MoveCodeGen::generate(module, context);
+        let _result = MoveCodeGen::generate(module, context);
     } else {
         let result = module.visit(solidity_preprocessor, context);
 
         match result {
             Ok(_) => {}
-            Err(e) => return,
+            Err(_) => return,
         }
 
-        let result = SolidityCodeGen::generate(module, context);
+        let _result = SolidityCodeGen::generate(module, context);
     }
 }
 

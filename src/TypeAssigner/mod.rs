@@ -1,5 +1,4 @@
 use super::context::*;
-use super::environment::*;
 use super::visitor::*;
 use super::AST::*;
 
@@ -13,17 +12,17 @@ impl Visitor for TypeAssigner {
     ) -> VResult {
         if _ctx.in_function_or_special() {
             if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.ScopeContext.as_mut().unwrap();
+                let context_ref = _ctx.scope_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.FunctionDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.SpecialDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
         }
@@ -38,7 +37,7 @@ impl Visitor for TypeAssigner {
         if let BinOp::Dot = _t.op {
             let enclosing = _ctx.enclosing_type_identifier().clone();
             let enclosing = enclosing.unwrap();
-            let scope = _ctx.ScopeContext.clone();
+            let scope = _ctx.scope_context.clone();
             let scope = scope.unwrap_or_default();
             let lhs_type = _ctx.environment.get_expression_type(
                 *_t.lhs_expression.clone(),
@@ -54,8 +53,8 @@ impl Visitor for TypeAssigner {
                     _t.rhs_expression.assign_enclosing_type(&lhs_type.name());
                 }
             } else if let Type::SelfType = lhs_type {
-                if _ctx.TraitDeclarationContext.is_some() {
-                    let trait_ctx = _ctx.TraitDeclarationContext.clone();
+                if _ctx.trait_declaration_context.is_some() {
+                    let trait_ctx = _ctx.trait_declaration_context.clone();
                     let trait_ctx = trait_ctx.unwrap();
                     let trait_name = trait_ctx.identifier.token;
 

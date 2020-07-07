@@ -1,11 +1,11 @@
-use super::context::*;
-use super::environment::*;
-use super::AST::*;
-use crate::MoveCodeGen::MoveIRTransfer::Move;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+
+use super::AST::*;
+use super::context::*;
+use super::environment::*;
 
 pub mod MovePreProcessor;
 
@@ -43,7 +43,7 @@ pub fn generate(module: Module, context: &mut Context) {
                 .into_iter()
                 .filter_map(|d| match d {
                     TopLevelDeclaration::ContractBehaviourDeclaration(cbd) => Some(cbd),
-                    (_) => None,
+                    _ => None,
                 })
                 .filter(|cbd| cbd.identifier.token == c.identifier.token)
                 .collect();
@@ -54,7 +54,7 @@ pub fn generate(module: Module, context: &mut Context) {
                 .into_iter()
                 .filter_map(|d| match d {
                     TopLevelDeclaration::StructDeclaration(s) => Some(s),
-                    (_) => None,
+                    _ => None,
                 })
                 .collect();
 
@@ -64,7 +64,7 @@ pub fn generate(module: Module, context: &mut Context) {
                 .into_iter()
                 .filter_map(|d| match d {
                     TopLevelDeclaration::AssetDeclaration(a) => Some(a),
-                    (_) => None,
+                    _ => None,
                 })
                 .collect();
 
@@ -123,13 +123,7 @@ impl MoveContract {
         let imports = self.external_traits.clone();
         let imports: Vec<TraitDeclaration> = imports
             .into_iter()
-            .filter_map(|i| {
-                if i.get_module_address().is_some() {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
+            .filter(|i| i.get_module_address().is_some())
             .collect();
         let mut imports: Vec<MoveIRStatement> = imports
             .into_iter()
@@ -159,7 +153,7 @@ impl MoveContract {
             .flat_map(|c| {
                 c.members.into_iter().filter_map(|m| match m {
                     ContractBehaviourMember::FunctionDeclaration(f) => Some(f),
-                    (_) => None,
+                    _ => None,
                 })
             })
             .collect();
@@ -298,7 +292,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != format!("Quartz_Global"))
+            .filter(|s| s.identifier.token != "Quartz_Global".to_string())
             .collect();
         let mut structs: Vec<String> = structs
             .into_iter()
@@ -307,7 +301,7 @@ impl MoveContract {
                     struct_declaration: s,
                     environment: self.environment.clone(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
         let mut runtime_structs = MoveRuntimeTypes::get_all_declarations();
@@ -324,12 +318,10 @@ impl MoveContract {
                     struct_declaration: s,
                     environment: self.environment.clone(),
                 }
-                .generate_all_functions()
+                    .generate_all_functions()
             })
             .collect();
         let struct_functions = struct_functions.join("\n\n");
-
-        let assets = format!("");
 
         let assets: Vec<String> = self
             .asset_declarations
@@ -340,7 +332,7 @@ impl MoveContract {
                     declaration: a,
                     environment: self.environment.clone(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
         let assets = assets.join("\n");
@@ -354,18 +346,16 @@ impl MoveContract {
                     declaration: s,
                     environment: self.environment.clone(),
                 }
-                .generate_all_functions()
+                    .generate_all_functions()
             })
             .collect();
         let asset_functions = asset_functions.join("\n\n");
 
-        let mut contract_behaviour_declaration = None;
         let mut initialiser_declaration = None;
         for declarations in self.contract_behaviour_declarations.clone() {
             for member in declarations.members.clone() {
                 if let ContractBehaviourMember::SpecialDeclaration(s) = member {
                     if s.is_init() && s.is_public() {
-                        contract_behaviour_declaration = Some(declarations.clone());
                         initialiser_declaration = Some(s.clone());
                     }
                 }
@@ -376,7 +366,6 @@ impl MoveContract {
             panic!("Public Initiliaser not found")
         }
         let initialiser_declaration = initialiser_declaration.unwrap();
-        let contract_behaviour_declaration = contract_behaviour_declaration.unwrap();
 
         let scope = ScopeContext {
             parameters: vec![],
@@ -401,7 +390,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
         let params: Vec<String> = params.into_iter().map(|i| format!("{}", i)).collect();
@@ -414,7 +403,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, true, false)
+                    .generate(&function_context, true, false)
             })
             .collect();
         let params_values: Vec<String> = params_values
@@ -455,7 +444,7 @@ impl MoveContract {
             is_constructor: true,
         };
 
-        let mut body = format!("");
+        let body;
 
         for property in properties {
             let property_type = MoveType::move_type(
@@ -514,7 +503,7 @@ impl MoveContract {
                 let move_statement = MoveStatement {
                     statement: statement.clone(),
                 }
-                .generate(&mut function_context);
+                    .generate(&mut function_context);
                 function_context.emit(move_statement);
             }
         }
@@ -535,23 +524,23 @@ impl MoveContract {
             .collect();
         let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
             identifier: Identifier {
-                token: format!("T"),
+                token: "T".to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
             },
-            fields: fields,
+            fields,
         });
 
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = format!("Quartz$self");
+            let shadow = "Quartz$self".to_string();
 
             let selfType = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
             )
-            .generate(&function_context);
+                .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                 identifier: "this".to_string(),
@@ -567,17 +556,11 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let self_identifier = MoveSelf {
-                token: format!("self"),
+                token: "self".to_string(),
                 position: Default::default(),
             };
             let self_identifier = Identifier {
                 token: self_identifier.token.clone(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            };
-
-            let shadow_identifier = Identifier {
-                token: shadow.clone(),
                 enclosing_type: None,
                 line_info: Default::default(),
             };
@@ -619,10 +602,10 @@ impl MoveContract {
         );
 
         return format!("module {name} {{ \n  {imports} \n resource T {{ \n {members} \n }} {dict_resources} \n {assets}  \n {structs} \n {init} \n \n {asset_functions} \n \n {struct_functions} \n {functions} \n {runtime} \n {dict_runtime} }}"
-                 , name = self.contract_declaration.identifier.token, functions = functions, members = members,
-                             assets = assets, asset_functions = asset_functions, structs = structs, dict_resources = dict_resources,
-                             init = initialiser, struct_functions = struct_functions, imports = import_code,
-                            runtime = runtime_functions, dict_runtime = dict_runtime
+                       , name = self.contract_declaration.identifier.token, functions = functions, members = members,
+                       assets = assets, asset_functions = asset_functions, structs = structs, dict_resources = dict_resources,
+                       init = initialiser, struct_functions = struct_functions, imports = import_code,
+                       runtime = runtime_functions, dict_runtime = dict_runtime
         );
     }
 }
@@ -652,7 +635,7 @@ impl MoveAsset {
                 AssetMember::VariableDeclaration(v) => {
                     Some(MoveFieldDeclaration { declaration: v }.generate(&function_context))
                 }
-                (_) => None,
+                _ => None,
             })
             .collect();
         let members: Vec<String> = members.into_iter().map(|e| format!("{}", e)).collect();
@@ -662,11 +645,10 @@ impl MoveAsset {
             name = self.declaration.identifier.token,
             members = members
         );
-        return result;
+        result
     }
 
     pub fn generate_all_functions(&self) -> String {
-        let init = format!("");
         format!(
             "{initialisers} \n\n {functions}",
             initialisers = self.generate_initialisers(),
@@ -686,7 +668,7 @@ impl MoveAsset {
                         return Some(s);
                     }
                 }
-                return None;
+                None
             })
             .collect();
         let initialisers: Vec<String> = initialisers
@@ -698,11 +680,10 @@ impl MoveAsset {
                     environment: self.environment.clone(),
                     properties: self.declaration.get_variable_declarations(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
-        let initialisers = initialisers.join("\n\n");
-        return initialisers;
+        initialisers.join("\n\n")
     }
 
     pub fn generate_functions(&self) -> String {
@@ -715,7 +696,7 @@ impl MoveAsset {
                 if let AssetMember::FunctionDeclaration(f) = m {
                     return Some(f);
                 }
-                return None;
+                None
             })
             .collect();
         let functions: Vec<String> = functions
@@ -727,11 +708,10 @@ impl MoveAsset {
                     IsContractFunction: false,
                     enclosing_type: self.declaration.identifier.clone(),
                 }
-                .generate(true)
+                    .generate(true)
             })
             .collect();
-        let functions = functions.join("\n\n");
-        return functions;
+        functions.join("\n\n")
     }
 }
 
@@ -760,7 +740,7 @@ impl MoveStruct {
                 StructMember::VariableDeclaration(v) => {
                     Some(MoveFieldDeclaration { declaration: v }.generate(&function_context))
                 }
-                (_) => None,
+                _ => None,
             })
             .collect();
         let members: Vec<String> = members.into_iter().map(|e| format!("{}", e)).collect();
@@ -770,9 +750,9 @@ impl MoveStruct {
             Option::from(self.environment.clone()),
         );
         let kind = if kind.is_resource() {
-            format!("resource")
+            "resource".to_string()
         } else {
-            format!("struct")
+            "struct".to_string()
         };
         let result = format!(
             "{kind} {name} {{ \n {members} \n }}",
@@ -780,7 +760,7 @@ impl MoveStruct {
             name = self.struct_declaration.identifier.token,
             members = members
         );
-        return result;
+        result
     }
 
     pub fn generate_all_functions(&self) -> String {
@@ -802,7 +782,7 @@ impl MoveStruct {
                         return Some(s);
                     }
                 }
-                return None;
+                None
             })
             .collect();
         let initialisers: Vec<String> = initialisers
@@ -814,11 +794,10 @@ impl MoveStruct {
                     environment: self.environment.clone(),
                     properties: self.struct_declaration.get_variable_declarations(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
-        let initialisers = initialisers.join("\n\n");
-        return initialisers;
+        initialisers.join("\n\n")
     }
 
     pub fn generate_functions(&self) -> String {
@@ -831,7 +810,7 @@ impl MoveStruct {
                 if let StructMember::FunctionDeclaration(f) = m {
                     return Some(f);
                 }
-                return None;
+                None
             })
             .collect();
         let functions: Vec<String> = functions
@@ -843,11 +822,10 @@ impl MoveStruct {
                     IsContractFunction: false,
                     enclosing_type: self.struct_declaration.identifier.clone(),
                 }
-                .generate(true)
+                    .generate(true)
             })
             .collect();
-        let functions = functions.join("\n\n");
-        return functions;
+        functions.join("\n\n")
     }
 }
 
@@ -866,7 +844,7 @@ impl MoveStatement {
                     expression: e,
                     position: Default::default(),
                 }
-                .generate(function_context),
+                    .generate(function_context),
             ),
             Statement::BecomeStatement(b) => {
                 MoveBecomeStatement { statement: b }.generate(function_context)
@@ -895,7 +873,7 @@ impl MoveIfStatement {
             expression: self.statement.condition.clone(),
             position: Default::default(),
         }
-        .generate(function_context);
+            .generate(function_context);
         println!("With new block");
         let count = function_context.push_block();
         for statement in self.statement.body.clone() {
@@ -932,7 +910,7 @@ impl MoveReturnStatement {
             expression,
             position: Default::default(),
         }
-        .generate(&function_context);
+            .generate(&function_context);
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
             expresion: Box::from(expression),
@@ -949,7 +927,7 @@ impl MoveReturnStatement {
             "return move({identifier})",
             identifier = return_identifier.token
         );
-        return MoveIRStatement::Inline(string);
+        MoveIRStatement::Inline(string)
     }
 }
 
@@ -958,7 +936,7 @@ struct MoveBecomeStatement {
 }
 
 impl MoveBecomeStatement {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
+    pub fn generate(&self, _function_context: &mut FunctionContext) -> MoveIRStatement {
         panic!("Become Statements not currently supported")
     }
 }
@@ -968,7 +946,7 @@ struct MoveForStatement {
 }
 
 impl MoveForStatement {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
+    pub fn generate(&self, _function_context: &mut FunctionContext) -> MoveIRStatement {
         unimplemented!()
     }
 }
@@ -983,9 +961,9 @@ impl MoveEmitStatement {
             "{}",
             MoveFunctionCall {
                 function_call: self.statement.function_call.clone(),
-                module_name: "Self".to_string()
+                module_name: "Self".to_string(),
             }
-            .generate(function_context)
+                .generate(function_context)
         ))
     }
 }
@@ -1044,7 +1022,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
 
@@ -1083,13 +1061,13 @@ impl MoveStructInitialiser {
             "".to_string()
         } else {
             let mut properties = self.properties.clone();
-            for property in &self.properties {
+            for _ in &self.properties {
                 let property = properties.remove(0);
                 let property_type = MoveType::move_type(
                     property.variable_type,
                     Option::from(self.environment.clone()),
                 )
-                .generate(&function_context);
+                    .generate(&function_context);
                 let name = format!("__this_{}", property.identifier.token);
                 function_context.emit(MoveIRStatement::Expression(
                     MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
@@ -1167,7 +1145,7 @@ impl MoveStructInitialiser {
 
             let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
                 identifier: self.identifier.clone(),
-                fields: fields,
+                fields,
             });
 
             if statements.is_empty() {
@@ -1179,12 +1157,11 @@ impl MoveStructInitialiser {
 
                 function_context.emit_release_references();
 
-                let shadowSelfName = "Quartz$self";
                 let selfType = MoveType::move_type(
                     Type::type_from_identifier(self.identifier.clone()),
                     Option::from(self.environment.clone()),
                 )
-                .generate(&function_context);
+                    .generate(&function_context);
 
                 let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier: "this".to_string(),
@@ -1269,7 +1246,7 @@ impl MoveFunction {
                     identifier: p.identifier.clone(),
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
         let parameters: Vec<String> = parameters
@@ -1368,7 +1345,7 @@ impl MoveFunction {
             tags = tags,
             body = body
         );
-        return result;
+        result
     }
 }
 
@@ -1394,7 +1371,7 @@ impl FunctionContext {
             return statements.join("\n");
         }
 
-        return String::from("");
+        String::from("")
     }
 
     pub fn emit(&mut self, statement: MoveIRStatement) {
@@ -1408,7 +1385,7 @@ impl FunctionContext {
             let block = MoveIRStatement::Block(self.pop_block());
             self.emit(block);
         }
-        return self.pop_block();
+        self.pop_block()
     }
 
     pub fn push_block(&mut self) -> usize {
@@ -1433,7 +1410,7 @@ impl FunctionContext {
                 identifier: reference,
                 position: Default::default(),
             }
-            .generate(self, true, false);
+                .generate(self, true, false);
             self.emit(MoveIRStatement::Inline(format!("_ = {}", expression)))
         }
     }
@@ -1441,15 +1418,15 @@ impl FunctionContext {
     pub fn self_type(&self) -> Type {
         let result = self.ScopeContext.type_for("self".to_string());
         if result.is_some() {
-            return result.unwrap();
+            result.unwrap()
         } else {
-            return self.environment.get_expression_type(
+            self.environment.get_expression_type(
                 Expression::SelfExpression,
                 &self.enclosing_type,
                 vec![],
                 vec![],
                 self.ScopeContext.clone(),
-            );
+            )
         }
     }
 }
@@ -1461,7 +1438,7 @@ struct MoveExternalCall {
 impl MoveExternalCall {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         if let Expression::FunctionCall(f) =
-            *self.external_call.function_call.rhs_expression.clone()
+        *self.external_call.function_call.rhs_expression.clone()
         {
             let mut lookup = f.clone();
             if !lookup.arguments.is_empty() {
@@ -1477,8 +1454,7 @@ impl MoveExternalCall {
                 function_context.ScopeContext.clone(),
             );
 
-            if let FunctionCallMatchResult::MatchedFunction(_) = result {
-            } else if let FunctionCallMatchResult::Failure(c) = result {
+            if let FunctionCallMatchResult::MatchedFunction(_) = result {} else if let FunctionCallMatchResult::Failure(c) = result {
                 let candidate = c.clone();
                 let mut candidate = candidate.candidates.clone();
                 if candidate.is_empty() {
@@ -1486,8 +1462,7 @@ impl MoveExternalCall {
                 } else {
                     let candidate = candidate.remove(0);
 
-                    if let CallableInformation::FunctionInformation(_) = candidate {
-                    } else {
+                    if let CallableInformation::FunctionInformation(_) = candidate {} else {
                         panic!("Cannot match function signature of external call")
                     }
                 }
@@ -1502,7 +1477,7 @@ impl MoveExternalCall {
                 let type_info = function_context.environment.types.get(&external_trait_name);
 
                 if type_info.is_some() {
-                    let type_info = type_info.clone();
+                    let type_info = type_info;
                     let type_info = type_info.unwrap();
 
                     if type_info.is_external_module() {
@@ -1510,7 +1485,7 @@ impl MoveExternalCall {
                             function_call: f.clone(),
                             module_name: external_trait_name,
                         }
-                        .generate(function_context);
+                            .generate(function_context);
                     }
                 }
             }
@@ -1530,15 +1505,14 @@ impl MoveExternalCall {
                 });
             }
 
-            return MoveFunctionCall {
+            MoveFunctionCall {
                 function_call,
-                module_name: format!("Self"),
-            }
-            .generate(function_context);
+                module_name: "Self".to_string(),
+            }.generate(function_context)
+
         } else {
             panic!("Cannot match external call with function")
         }
-        unimplemented!()
     }
 }
 
@@ -1576,22 +1550,20 @@ impl MoveFunctionCall {
             let type_info = function_context
                 .environment
                 .types
-                .get(&self.function_call.identifier.token)
-                .clone();
+                .get(&self.function_call.identifier.token);
             if type_info.is_some() {
                 let type_info = type_info.unwrap();
                 if type_info.is_external_struct() {
                     if type_info.is_external_module() {
                         module = look_up.identifier.token.clone();
-                        call = format!("new");
+                        call = "new".to_string();
                     }
                 } else {
                     let external_address = look_up.arguments.remove(0).expression;
                     return MoveExpression {
                         expression: external_address,
                         position: Default::default(),
-                    }
-                    .generate(function_context);
+                    }.generate(function_context);
                 }
             }
         }
@@ -1607,13 +1579,13 @@ impl MoveFunctionCall {
                         identifier: i,
                         position: Default::default(),
                     }
-                    .generate(function_context, false, true)
+                        .generate(function_context, false, true)
                 } else {
                     MoveExpression {
                         expression: a.expression,
                         position: Default::default(),
                     }
-                    .generate(function_context)
+                        .generate(function_context)
                 }
             })
             .collect();
@@ -1632,22 +1604,22 @@ struct MoveExpression {
 
 impl MoveExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
-        return match self.expression.clone() {
+        match self.expression.clone() {
             Expression::Identifier(i) => MoveIdentifier {
                 identifier: i,
                 position: self.position.clone(),
             }
-            .generate(function_context, false, false),
+                .generate(function_context, false, false),
             Expression::BinaryExpression(b) => MoveBinaryExpression {
                 expression: b,
                 position: self.position.clone(),
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::InoutExpression(i) => MoveInoutExpression {
                 expression: i,
                 position: self.position.clone(),
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::ExternalCall(f) => {
                 MoveExternalCall { external_call: f }.generate(function_context)
             }
@@ -1657,7 +1629,7 @@ impl MoveExpression {
                     module_name: "Self".to_string(),
                 }
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::VariableDeclaration(v) => {
                 MoveVariableDeclaration { declaration: v }.generate(function_context)
             }
@@ -1665,7 +1637,7 @@ impl MoveExpression {
                 expression: *b.expression,
                 position: Default::default(),
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::AttemptExpression(a) => {
                 MoveAttemptExpression { expression: a }.generate(function_context)
             }
@@ -1681,7 +1653,7 @@ impl MoveExpression {
                             expression: e,
                             position: Default::default(),
                         }
-                        .generate(function_context)
+                            .generate(function_context)
                     })
                     .collect();
                 MoveIRExpression::Vector(MoveIRVector {
@@ -1694,13 +1666,13 @@ impl MoveExpression {
                 token: "self".to_string(),
                 position: self.position.clone(),
             }
-            .generate(function_context, false),
+                .generate(function_context, false),
             Expression::SubscriptExpression(s) => MoveSubscriptExpression {
                 expression: s,
                 position: self.position.clone(),
                 rhs: None,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::RangeExpression(_) => unimplemented!(),
             Expression::RawAssembly(s, _) => MoveIRExpression::Inline(s),
             Expression::CastExpression(c) => {
@@ -1736,7 +1708,7 @@ impl MoveCastExpression {
             expression: *self.expression.expression.clone(),
             position: Default::default(),
         }
-        .generate(function_context);
+            .generate(function_context);
 
         if original_type_information.0 <= target_type_information.0 {
             return expression_code;
@@ -1744,10 +1716,10 @@ impl MoveCastExpression {
 
         let target = MoveCastExpression::maximum_value(target_type_information.0);
 
-        return MoveRuntimeFunction::revert_if_greater(
+        MoveRuntimeFunction::revert_if_greater(
             expression_code,
             MoveIRExpression::Inline(target),
-        );
+        )
     }
 
     pub fn get_type_info(input: Type) -> (u64, bool) {
@@ -1762,14 +1734,14 @@ impl MoveCastExpression {
 
     pub fn maximum_value(input: u64) -> String {
         match input {
-            8 => format!("255"),
-            16 => format!("65535"),
-            24 => format!("16777215"),
-            32 => format!("4294967295"),
-            40 => format!("1099511627775"),
-            48 => format!("281474976710655"),
-            56 => format!("72057594037927935"),
-            64 => format!("18446744073709551615"),
+            8 => "255".to_string(),
+            16 => "65535".to_string(),
+            24 => "16777215".to_string(),
+            32 => "4294967295".to_string(),
+            40 => "1099511627775".to_string(),
+            48 => "281474976710655".to_string(),
+            56 => "72057594037927935".to_string(),
+            64 => "18446744073709551615".to_string(),
             _ => unimplemented!(),
         }
     }
@@ -1793,7 +1765,7 @@ impl MoveSubscriptExpression {
             expression: index,
             position: Default::default(),
         }
-        .generate(function_context);
+            .generate(function_context);
 
         let identifier = self.expression.base_expression.clone();
 
@@ -1801,7 +1773,7 @@ impl MoveSubscriptExpression {
             identifier,
             position: self.position.clone(),
         }
-        .generate(function_context, false, false);
+            .generate(function_context, false, false);
         let base_type = function_context.environment.get_expression_type(
             Expression::Identifier(self.expression.base_expression.clone()),
             &function_context.enclosing_type.clone(),
@@ -1820,15 +1792,15 @@ impl MoveSubscriptExpression {
             inner_type,
             Option::from(function_context.environment.clone()),
         );
-        let move_type = move_type.generate(function_context);
+        let _move_type = move_type.generate(function_context);
 
         if let MovePosition::Left = self.position.clone() {
             match base_type {
-                Type::ArrayType(a) => {
+                Type::ArrayType(_) => {
                     return MoveRuntimeFunction::append_to_array_int(identifier_code, rhs);
                 }
-                Type::FixedSizedArrayType(a) => panic!("Fixed Size Arrays not currently supported"),
-                Type::DictionaryType(p) => {
+                Type::FixedSizedArrayType(_) => panic!("Fixed Size Arrays not currently supported"),
+                Type::DictionaryType(_) => {
                     let f_name = format!(
                         "Self._insert_{}",
                         mangle_dictionary(self.expression.base_expression.token.clone())
@@ -1843,26 +1815,26 @@ impl MoveSubscriptExpression {
         }
 
         match base_type.clone() {
-            Type::ArrayType(a) => {
+            Type::ArrayType(_) => {
                 let identifier = self.expression.base_expression.clone();
 
                 let identifier_code = MoveIdentifier {
                     identifier,
                     position: self.position.clone(),
                 }
-                .generate(function_context, false, true);
-                return MoveRuntimeFunction::get_from_array_int(identifier_code, index);
+                    .generate(function_context, false, true);
+                MoveRuntimeFunction::get_from_array_int(identifier_code, index)
             }
-            Type::FixedSizedArrayType(a) => panic!("Fixed Size Arrays not currently supported"),
-            Type::DictionaryType(p) => {
+            Type::FixedSizedArrayType(_) => panic!("Fixed Size Arrays not currently supported"),
+            Type::DictionaryType(_) => {
                 let f_name = format!(
                     "Self._get_{}",
                     mangle_dictionary(self.expression.base_expression.token.clone())
                 );
-                return MoveIRExpression::FunctionCall(MoveIRFunctionCall {
+                MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                     identifier: f_name,
                     arguments: vec![rhs],
-                });
+                })
             }
             _ => panic!("Invalid Type for Subscript Expression"),
         }
@@ -1912,7 +1884,7 @@ struct MoveAttemptExpression {
 
 impl MoveAttemptExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
-        let function_call = self.expression.function_call.clone();
+        let _function_call = self.expression.function_call.clone();
         let identifier =
             "QuartzWrapper".to_owned() + &self.expression.function_call.identifier.token.clone();
         let arguments: Vec<MoveIRExpression> = self
@@ -1926,13 +1898,13 @@ impl MoveAttemptExpression {
                     expression: a.expression.clone(),
                     position: Default::default(),
                 }
-                .generate(function_context)
+                    .generate(function_context)
             })
             .collect();
-        return MoveIRExpression::FunctionCall(MoveIRFunctionCall {
+        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
             identifier,
             arguments,
-        });
+        })
     }
 }
 
@@ -1951,28 +1923,25 @@ impl MoveInoutExpression {
             function_context.ScopeContext.clone(),
         );
 
-        if let Type::InoutType(i) = expression_type {
+        if let Type::InoutType(_) = expression_type {
             return MoveExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
-        if let MovePosition::Accessed = self.position {
-        } else {
-            if let Expression::Identifier(i) = *self.expression.expression.clone() {
-                if i.enclosing_type.is_none() {
-                    return MoveIRExpression::Operation(MoveIROperation::MutableReference(
-                        Box::from(
-                            MoveExpression {
-                                expression: *self.expression.expression.clone(),
-                                position: MovePosition::Left,
-                            }
+        if let MovePosition::Accessed = self.position {} else if let Expression::Identifier(i) = *self.expression.expression.clone() {
+            if i.enclosing_type.is_none() {
+                return MoveIRExpression::Operation(MoveIROperation::MutableReference(
+                    Box::from(
+                        MoveExpression {
+                            expression: *self.expression.expression.clone(),
+                            position: MovePosition::Left,
+                        }
                             .generate(function_context),
-                        ),
-                    ));
-                }
+                    ),
+                ));
             }
         }
 
@@ -1981,17 +1950,17 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         let expression = self.expression.clone();
-        return MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::from(
+        MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::from(
             MoveExpression {
                 expression: *expression.expression,
                 position: MovePosition::Inout,
             }
-            .generate(function_context),
-        )));
+                .generate(function_context),
+        )))
     }
 }
 
@@ -2001,13 +1970,13 @@ struct MoveLiteralToken {
 
 impl MoveLiteralToken {
     pub fn generate(&self) -> MoveIRLiteral {
-        return match self.token.clone() {
+        match self.token.clone() {
             Literal::BooleanLiteral(b) => MoveIRLiteral::Bool(b),
             Literal::AddressLiteral(a) => MoveIRLiteral::Hex(a),
             Literal::StringLiteral(s) => MoveIRLiteral::String(s),
             Literal::IntLiteral(i) => MoveIRLiteral::Num(i),
-            Literal::FloatLiteral(i) => panic!("Floats not currently supported"),
-        };
+            Literal::FloatLiteral(_) => panic!("Floats not currently supported"),
+        }
     }
 }
 
@@ -2033,7 +2002,7 @@ impl MoveIdentifier {
                     right: Expression::Identifier(self.identifier.clone()),
                     position: self.position.clone(),
                 }
-                .generate(function_context, f_call);
+                    .generate(function_context, f_call);
             }
         };
 
@@ -2042,7 +2011,7 @@ impl MoveIdentifier {
                 token: self.identifier.token.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context, force);
+                .generate(function_context, force);
         }
 
         let ir_identifier = MoveIRExpression::Identifier(mangle(self.identifier.token.clone()));
@@ -2091,11 +2060,11 @@ impl MoveIdentifier {
                 Box::from(expression),
             ));
 
-            return MoveIRExpression::Operation(MoveIROperation::Dereference(Box::from(
+            MoveIRExpression::Operation(MoveIROperation::Dereference(Box::from(
                 expression,
-            )));
+            )))
         } else {
-            return MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
+            MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)))
         }
     }
 }
@@ -2113,14 +2082,14 @@ impl MoveBinaryExpression {
                     function_call: f,
                     module_name: "Self".to_string(),
                 }
-                .generate(function_context);
+                    .generate(function_context);
             }
             return MovePropertyAccess {
                 left: *self.expression.lhs_expression.clone(),
                 right: *self.expression.rhs_expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context, false);
+                .generate(function_context, false);
         }
 
         if let BinOp::Equal = self.expression.op {
@@ -2128,21 +2097,21 @@ impl MoveBinaryExpression {
                 lhs: *self.expression.lhs_expression.clone(),
                 rhs: *self.expression.rhs_expression.clone(),
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         let lhs = MoveExpression {
             expression: *self.expression.lhs_expression.clone(),
             position: self.position.clone(),
         }
-        .generate(function_context);
+            .generate(function_context);
         let rhs = MoveExpression {
             expression: *self.expression.rhs_expression.clone(),
             position: self.position.clone(),
         }
-        .generate(function_context);
+            .generate(function_context);
 
-        return match self.expression.op.clone() {
+        match self.expression.op.clone() {
             BinOp::Plus => {
                 MoveIRExpression::Operation(MoveIROperation::Add(Box::from(lhs), Box::from(rhs)))
             }
@@ -2158,6 +2127,7 @@ impl MoveBinaryExpression {
             BinOp::Minus => {
                 MoveIRExpression::Operation(MoveIROperation::Minus(Box::from(lhs), Box::from(rhs)))
             }
+
             BinOp::OverflowingMinus => {
                 MoveIRExpression::Operation(MoveIROperation::Minus(Box::from(lhs), Box::from(rhs)))
             }
@@ -2167,6 +2137,7 @@ impl MoveBinaryExpression {
             BinOp::OverflowingTimes => {
                 MoveIRExpression::Operation(MoveIROperation::Times(Box::from(lhs), Box::from(rhs)))
             }
+
             BinOp::Power => {
                 MoveIRExpression::Operation(MoveIROperation::Power(Box::from(lhs), Box::from(rhs)))
             }
@@ -2208,7 +2179,7 @@ impl MoveBinaryExpression {
             BinOp::And => {
                 MoveIRExpression::Operation(MoveIROperation::And(Box::from(lhs), Box::from(rhs)))
             }
-        };
+        }
     }
 }
 
@@ -2230,7 +2201,7 @@ impl MovePropertyAccess {
                             expression: property.unwrap().property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                        .generate(function_context);
+                            .generate(function_context);
                     }
                 }
             }
@@ -2242,7 +2213,7 @@ impl MovePropertyAccess {
                     identifier: rhs_enclosing.unwrap(),
                     position: self.position.clone(),
                 }
-                .generate(function_context, false, false);
+                    .generate(function_context, false, false);
             }
             let position = if let MovePosition::Inout = self.position {
                 MovePosition::Inout
@@ -2253,7 +2224,7 @@ impl MovePropertyAccess {
                 expression: self.left.clone(),
                 position,
             }
-            .generate(function_context);
+                .generate(function_context);
             if f_call {
                 let exp = lhs.clone();
                 if let MoveIRExpression::Operation(o) = exp {
@@ -2299,14 +2270,13 @@ impl MoveAssignment {
                         expression: self.lhs.clone(),
                         position: MovePosition::Left,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
 
-                    if let Expression::ArrayLiteral(l) = self.rhs.clone() {
+                    if let Expression::ArrayLiteral(_) = self.rhs.clone() {
                         let rhs_ir = MoveExpression {
                             expression: self.rhs.clone(),
                             position: Default::default(),
-                        }
-                        .generate(function_context);
+                        }.generate(function_context);
 
                         if let MoveIRExpression::Vector(v) = rhs_ir {
                             let mut vector = v.clone();
@@ -2314,7 +2284,7 @@ impl MoveAssignment {
                                 *a.key_type,
                                 Option::from(function_context.environment.clone()),
                             )
-                            .generate(function_context);
+                                .generate(function_context);
                             vector.vec_type = Option::from(vec_type);
                             let rhs_ir = MoveIRExpression::Vector(vector);
                             return MoveIRExpression::Assignment(MoveIRAssignment {
@@ -2333,9 +2303,9 @@ impl MoveAssignment {
             expression: self.rhs.clone(),
             position: Default::default(),
         }
-        .generate(function_context);
+            .generate(function_context);
 
-        if let Expression::VariableDeclaration(v) = &lhs {
+        if let Expression::VariableDeclaration(_) = &lhs {
             unimplemented!()
         }
 
@@ -2354,7 +2324,7 @@ impl MoveAssignment {
                 position: MovePosition::Left,
                 rhs: Option::from(rhs_ir),
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         if let Expression::RawAssembly(s, _) = lhs {
@@ -2367,7 +2337,7 @@ impl MoveAssignment {
                                 identifier: i.clone(),
                                 position: Default::default(),
                             }
-                            .generate(function_context, true, false),
+                                .generate(function_context, true, false),
                         ),
                     });
                 }
@@ -2378,28 +2348,27 @@ impl MoveAssignment {
             expression: self.lhs.clone(),
             position: MovePosition::Left,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         if function_context.in_struct_function {
             return MoveIRExpression::Assignment(MoveIRAssignment {
                 identifier: format!("{lhs}", lhs = lhs_ir),
                 expresion: Box::new(rhs_ir),
             });
-        } else if self.lhs.enclosing_identifier().is_some() {
-            if function_context
-                .ScopeContext
-                .contains_variable_declaration(self.lhs.enclosing_identifier().unwrap().token)
-            {
-                return MoveIRExpression::Assignment(MoveIRAssignment {
-                    identifier: self.lhs.enclosing_identifier().unwrap().token,
-                    expresion: Box::new(rhs_ir),
-                });
-            }
+        } else if self.lhs.enclosing_identifier().is_some() && function_context
+            .ScopeContext
+            .contains_variable_declaration(self.lhs.enclosing_identifier().unwrap().token)
+        {
+            return MoveIRExpression::Assignment(MoveIRAssignment {
+                identifier: self.lhs.enclosing_identifier().unwrap().token,
+                expresion: Box::new(rhs_ir),
+            });
         }
-        return MoveIRExpression::Assignment(MoveIRAssignment {
+
+        MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: format!("{lhs}", lhs = lhs_ir),
             expresion: Box::new(rhs_ir),
-        });
+        })
     }
 }
 
@@ -2413,13 +2382,13 @@ impl MoveFieldDeclaration {
             self.declaration.variable_type.clone(),
             Option::from(function_context.environment.clone()),
         )
-        .generate(function_context);
+            .generate(function_context);
 
-        return MoveIRExpression::FieldDeclaration(MoveIRFieldDeclaration {
+        MoveIRExpression::FieldDeclaration(MoveIRFieldDeclaration {
             identifier: self.declaration.identifier.token.clone(),
             declaration_type: ir_type,
             expression: None,
-        });
+        })
     }
 }
 
@@ -2433,7 +2402,7 @@ impl MoveVariableDeclaration {
             self.declaration.variable_type.clone(),
             Option::from(function_context.environment.clone()),
         )
-        .generate(function_context);
+            .generate(function_context);
 
         if self.declaration.identifier.is_self() {
             return MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
@@ -2441,10 +2410,10 @@ impl MoveVariableDeclaration {
                 declaration_type: ir_type,
             });
         }
-        return MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
+        MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
             identifier: self.declaration.identifier.token.clone(),
             declaration_type: ir_type,
-        });
+        })
     }
 }
 
@@ -2452,7 +2421,7 @@ struct MoveRuntimeTypes {}
 
 impl MoveRuntimeTypes {
     pub fn get_all_declarations() -> Vec<String> {
-        let libra = format!("resource Libra_Coin {{ \n coin: LibraCoin.T  \n }}");
+        let libra = "resource Libra_Coin {{ \n coin: LibraCoin.T  \n }}".to_string();
         vec![libra]
     }
 
@@ -2519,19 +2488,15 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_revert_if_greater() -> String {
-        format!(
-            "Quartz_RevertIfGreater(a: u64, b: u64): u64 {{  \n \
+        "Quartz_RevertIfGreater(a: u64, b: u64): u64 {{  \n \
              assert(copy(a) <= move(b), 1); \n \
-             return move(a); \n }}"
-        )
+             return move(a); \n }}".to_string()
     }
 
     pub fn get_deposit() -> String {
-        format!(
-            "Quartz_send(money: &mut LibraCoin.T, addr: address) {{ \n \
+        "Quartz_send(money: &mut LibraCoin.T, addr: address) {{ \n \
              LibraAccount.deposit(move(addr), Quartz_withdrawAll(move(money))); \n \
-             return; \n }}"
-        )
+             return; \n }}".to_string()
     }
 
     pub fn get_array_funcs() -> String {
@@ -2569,8 +2534,7 @@ impl MoveRuntimeFunction {
     };
     _ = move(vec);
     return;
-  }"
-        .to_string()
+  }".to_string()
     }
 
     pub fn get_libra_internal() -> String {
@@ -2656,8 +2620,7 @@ impl MoveRuntimeFunction {
     _ = move(_temp__5);
     _ = move(this);
     return;
-  }"
-        .to_string()
+  }".to_string()
     }
 }
 
@@ -2702,7 +2665,7 @@ impl MoveType {
                     return MoveIRType::Resource(string);
                 }
                 if function_context.enclosing_type == s.to_string() {
-                    let string = format!("Self.T");
+                    let string = "Self.T".to_string();
                     return MoveIRType::Resource(string);
                 }
                 if resource_type.is_currency_type() {
@@ -2714,7 +2677,7 @@ impl MoveType {
             MoveType::StructType(s) => {
                 let string = s.clone();
                 if string == "LibraCoin.T".to_string() {
-                    return MoveIRType::StructType(format!("{}", string));
+                    return MoveIRType::StructType(string);
                 }
                 let string = format!("Self.{}", string);
                 MoveIRType::StructType(string)
@@ -2756,23 +2719,23 @@ impl MoveType {
                     } else if original.is_external_contract(environment_value.clone()) {
                         return MoveType::Address;
                     } else if original.is_external_module(environment_value.clone()) {
-                        let type_info = environment_value.types.get(&i.token).clone();
+                        let type_info = environment_value.types.get(&i.token);
                         if type_info.is_some() {
                             let type_info = type_info.unwrap();
                             let modifiers = type_info.modifiers.clone();
                             let modifiers: Vec<FunctionCall> = modifiers
                                 .into_iter()
-                                .filter(|m| m.identifier.token == format!("resource"))
+                                .filter(|m| m.identifier.token == "resource".to_string())
                                 .collect();
                             if modifiers.is_empty() {
                                 return MoveType::External(
                                     i.token.clone(),
-                                    Box::from(MoveType::StructType(format!("T"))),
+                                    Box::from(MoveType::StructType("T".to_string())),
                                 );
                             } else {
                                 return MoveType::External(
                                     i.token.clone(),
-                                    Box::from(MoveType::Resource(format!("T"))),
+                                    Box::from(MoveType::Resource("T".to_string())),
                                 );
                             }
                         }
@@ -2780,7 +2743,7 @@ impl MoveType {
                     if environment_value.is_enum_declared(&i.token) {
                         unimplemented!()
                     } else {
-                        return MoveType::StructType(i.token.clone());
+                        MoveType::StructType(i.token.clone())
                     }
                 } else {
                     MoveType::StructType(i.token)
@@ -3085,9 +3048,9 @@ impl fmt::Display for MoveIRIf {
         let else_block = if self.else_block.is_some() {
             let block = self.else_block.clone();
             let block = block.unwrap();
-            format!("{}", block)
+            block.to_string()
         } else {
-            format!("{{}}")
+            "{}".to_string()
         };
         write!(
             f,

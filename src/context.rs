@@ -1,97 +1,95 @@
-use super::environment::*;
-use super::SemanticAnalysis::*;
 use super::AST::*;
-use std::thread::panicking;
+use super::environment::*;
 
 #[derive(Debug, Default)]
 pub struct Context {
     pub environment: Environment,
-    pub ContractDeclarationContext: Option<ContractDeclarationContext>,
-    pub ContractBehaviourDeclarationContext: Option<ContractBehaviourDeclarationContext>,
-    pub StructDeclarationContext: Option<StructDeclarationContext>,
-    pub FunctionDeclarationContext: Option<FunctionDeclarationContext>,
-    pub SpecialDeclarationContext: Option<SpecialDeclarationContext>,
-    pub TraitDeclarationContext: Option<TraitDeclarationContext>,
-    pub ScopeContext: Option<ScopeContext>,
-    pub AssetContext: Option<AssetDeclarationContext>,
-    pub BlockContext: Option<BlockContext>,
-    pub FunctionCallReceiverTrail: Vec<Expression>,
-    pub IsPropertyDefaultAssignment: bool,
-    pub IsFunctionCallContext: bool,
-    pub IsFunctionCallArgument: bool,
-    pub IsFunctionCallArgumentLabel: bool,
-    pub ExternalCallContext: Option<ExternalCall>,
-    pub IsExternalFunctionCall: bool,
-    pub InAssignment: bool,
-    pub InIfCondition: bool,
-    pub InBecome: bool,
-    pub IsLValue: bool,
-    pub InSubscript: bool,
-    pub IsEnclosing: bool,
-    pub InEmit: bool,
-    pub PreStatements: Vec<Statement>,
-    pub PostStatements: Vec<Statement>,
+    pub contract_declaration_context: Option<ContractDeclarationContext>,
+    pub contract_behaviour_declaration_context: Option<ContractBehaviourDeclarationContext>,
+    pub struct_declaration_context: Option<StructDeclarationContext>,
+    pub function_declaration_context: Option<FunctionDeclarationContext>,
+    pub special_declaration_context: Option<SpecialDeclarationContext>,
+    pub trait_declaration_context: Option<TraitDeclarationContext>,
+    pub scope_context: Option<ScopeContext>,
+    pub asset_context: Option<AssetDeclarationContext>,
+    pub block_context: Option<BlockContext>,
+    pub function_call_receiver_trail: Vec<Expression>,
+    pub is_property_default_assignment: bool,
+    pub is_function_call_context: bool,
+    pub is_function_call_argument: bool,
+    pub is_function_call_argument_label: bool,
+    pub external_call_context: Option<ExternalCall>,
+    pub is_external_function_call: bool,
+    pub in_assignment: bool,
+    pub in_if_condition: bool,
+    pub in_become: bool,
+    pub is_lvalue: bool,
+    pub in_subscript: bool,
+    pub is_enclosing: bool,
+    pub in_emit: bool,
+    pub pre_statements: Vec<Statement>,
+    pub post_statements: Vec<Statement>,
 }
 
 impl Context {
     pub fn enclosing_type_identifier(&self) -> Option<Identifier> {
         if self.is_contract_behaviour_declaration_context() {
             let i = self
-                .ContractBehaviourDeclarationContext
+                .contract_behaviour_declaration_context
                 .as_ref()
                 .unwrap()
                 .identifier
                 .clone();
-            return Some(i);
+            Some(i)
         } else if self.is_struct_declaration_context() {
             let i = self
-                .StructDeclarationContext
+                .struct_declaration_context
                 .as_ref()
                 .unwrap()
                 .identifier
                 .clone();
-            return Some(i);
+            Some(i)
         } else if self.is_contract_declaration_context() {
             let i = self
-                .ContractDeclarationContext
+                .contract_declaration_context
                 .as_ref()
                 .unwrap()
                 .identifier
                 .clone();
-            return Some(i);
+            Some(i)
         } else if self.is_asset_declaration_context() {
-            let i = self.AssetContext.as_ref().unwrap().identifier.clone();
-            return Some(i);
+            let i = self.asset_context.as_ref().unwrap().identifier.clone();
+            Some(i)
         } else {
             None
         }
     }
     pub fn is_contract_declaration_context(&self) -> bool {
-        self.ContractDeclarationContext.is_some()
+        self.contract_declaration_context.is_some()
     }
 
     pub fn is_contract_behaviour_declaration_context(&self) -> bool {
-        self.ContractBehaviourDeclarationContext.is_some()
+        self.contract_behaviour_declaration_context.is_some()
     }
 
     fn is_struct_declaration_context(&self) -> bool {
-        self.StructDeclarationContext.is_some()
+        self.struct_declaration_context.is_some()
     }
 
     fn is_asset_declaration_context(&self) -> bool {
-        self.AssetContext.is_some()
+        self.asset_context.is_some()
     }
 
     pub fn is_function_declaration_context(&self) -> bool {
-        self.FunctionDeclarationContext.is_some()
+        self.function_declaration_context.is_some()
     }
 
     pub fn is_special_declaration_context(&self) -> bool {
-        self.SpecialDeclarationContext.is_some()
+        self.special_declaration_context.is_some()
     }
 
     pub fn is_trait_declaration_context(&self) -> bool {
-        self.TraitDeclarationContext.is_some()
+        self.trait_declaration_context.is_some()
     }
 
     pub(crate) fn in_function_or_special(&self) -> bool {
@@ -99,11 +97,11 @@ impl Context {
     }
 
     pub(crate) fn has_scope_context(&self) -> bool {
-        self.ScopeContext.is_some()
+        self.scope_context.is_some()
     }
 
     pub fn scope_context(&self) -> Option<&ScopeContext> {
-        self.ScopeContext.as_ref()
+        self.scope_context.as_ref()
     }
 }
 
@@ -129,6 +127,7 @@ pub struct FunctionDeclarationContext {
     pub declaration: FunctionDeclaration,
     pub local_variables: Vec<VariableDeclaration>,
 }
+
 impl FunctionDeclarationContext {
     pub fn mutates(&self) -> Vec<Identifier> {
         self.declaration.mutates()
@@ -180,7 +179,7 @@ impl ScopeContext {
             let declaration = identifiers.first().unwrap().clone();
             return Some(declaration);
         }
-        return None;
+        None
     }
 
     pub fn type_for(&self, variable: String) -> Option<Type> {
@@ -207,7 +206,7 @@ impl ScopeContext {
 
             return Some(result_type);
         }
-        return None;
+        None
     }
 
     pub fn contains_variable_declaration(&self, name: String) -> bool {
@@ -234,11 +233,11 @@ impl ScopeContext {
         self.counter = self.counter + 1;
         let count = self.local_variables.len() + self.parameters.len() + self.counter as usize;
         let name = format!("temp__{}", count);
-        return Identifier {
+        Identifier {
             token: name,
             enclosing_type: None,
-            line_info: line_info,
-        };
+            line_info,
+        }
     }
 
     pub fn enclosing_parameter(
@@ -248,17 +247,15 @@ impl ScopeContext {
     ) -> Option<String> {
         let expression_enclosing = expression.enclosing_type();
         let expression_enclosing = expression_enclosing.unwrap_or_default();
-        if expression_enclosing == t.to_string() {
-            if expression.enclosing_identifier().is_some() {
-                let enclosing_identifier = expression.enclosing_identifier().clone();
-                let enclosing_identifier = enclosing_identifier.unwrap();
-                if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {
-                    return Option::from(enclosing_identifier.token);
-                }
+        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {
+            let enclosing_identifier = expression.enclosing_identifier().clone();
+            let enclosing_identifier = enclosing_identifier.unwrap();
+            if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {
+                return Option::from(enclosing_identifier.token);
             }
         }
 
-        return None;
+        None
     }
 }
 
