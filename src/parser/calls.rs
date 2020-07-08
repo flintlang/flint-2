@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn parse_external_call(i: Span) -> nom::IResult<Span, ExternalCall> {
     let (i, _) = tag("call")(i)?;

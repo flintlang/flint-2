@@ -1,5 +1,5 @@
 use super::context::*;
-use super::AST::*;
+use super::ast::*;
 
 pub trait Visitor {
     fn start_module(&mut self, _t: &mut Module, _ctx: &mut Context) -> VResult {

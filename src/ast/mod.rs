@@ -1,5 +1,5 @@
 
-use crate::TypeChecker::ExpressionCheck;
+use crate::type_checker::ExpressionCheck;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::error::Error;

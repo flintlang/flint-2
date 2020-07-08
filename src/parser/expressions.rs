@@ -1,5 +1,5 @@
-use crate::Parser::calls::*;
-use crate::Parser::utils::*;
+use crate::parser::calls::*;
+use crate::parser::utils::*;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
@@ -192,7 +192,7 @@ pub fn parse_binary_expression_precedence(
 #[cfg(test)]
 mod test {
 
-    use crate::Parser::expressions::*;
+    use crate::parser::expressions::*;
 
     #[test]
     fn test_parse_inout_expression() {

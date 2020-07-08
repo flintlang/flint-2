@@ -4,11 +4,11 @@ use std::io::Write;
 use std::path::Path;
 
 use super::context::*;
-use super::AST::*;
+use super::ast::*;
 use crate::environment::*;
-use crate::TypeChecker::ExpressionCheck;
+use crate::type_checker::ExpressionCheck;
 
-pub mod MovePreProcessor;
+pub mod move_preprocessor;
 
 #[derive(Debug, Clone)]
 pub enum MovePosition {

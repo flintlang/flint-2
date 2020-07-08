@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn get_operator_precedence(op: &BinOp) -> i32 {
     match op {

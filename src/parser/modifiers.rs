@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn parse_modifiers(i: Span) -> nom::IResult<Span, Vec<std::string::String>> {
     many0(nom::sequence::terminated(

@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, top) = alt((
@@ -550,7 +550,7 @@ fn parse_trait_member(i: Span) -> nom::IResult<Span, TraitMember> {
 #[cfg(test)]
 mod test {
 
-    use crate::Parser::declarations::*;
+    use crate::parser::declarations::*;
 
     #[test]
     fn test_parse_contract_member() {

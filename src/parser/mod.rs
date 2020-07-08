@@ -17,17 +17,17 @@ use std::collections::HashSet;
 use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
 
 use crate::environment::Environment;
-use crate::Parser::calls::*;
-use crate::Parser::declarations::*;
-use crate::Parser::expressions::*;
-use crate::Parser::identifiers::*;
-use crate::Parser::literals::*;
-use crate::Parser::modifiers::*;
-use crate::Parser::operators::*;
-use crate::Parser::parameters::*;
-use crate::Parser::statements::*;
-use crate::Parser::types::*;
-use crate::Parser::utils::*;
+use crate::parser::calls::*;
+use crate::parser::declarations::*;
+use crate::parser::expressions::*;
+use crate::parser::identifiers::*;
+use crate::parser::literals::*;
+use crate::parser::modifiers::*;
+use crate::parser::operators::*;
+use crate::parser::parameters::*;
+use crate::parser::statements::*;
+use crate::parser::types::*;
+use crate::parser::utils::*;
 
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
@@ -68,7 +68,7 @@ mod tests {
     use nom_locate::LocatedSpan;
     use sha3::Digest;
 
-    use crate::Parser::*;
+    use crate::parser::*;
 
     #[test]
     fn test_parse_module() {

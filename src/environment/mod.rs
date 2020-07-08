@@ -1,8 +1,8 @@
 mod expr_type_check;
 
 use super::context::*;
-use super::AST::*;
-use crate::TypeChecker::ExpressionCheck;
+use super::ast::*;
+use crate::type_checker::ExpressionCheck;
 use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone)]

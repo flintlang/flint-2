@@ -1,9 +1,9 @@
 use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
-use crate::MoveCodeGen::{FunctionContext, MoveExpression, MoveIRBlock};
-use crate::TypeChecker::ExpressionCheck;
-use crate::AST::*;
+use crate::move_codegen::{FunctionContext, MoveExpression, MoveIRBlock};
+use crate::type_checker::ExpressionCheck;
+use crate::ast::*;
 
 pub(crate) struct MovePreProcessor {}
 

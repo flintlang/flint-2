@@ -1,5 +1,5 @@
-use crate::Parser::expressions::*;
-use crate::Parser::utils::*;
+use crate::parser::expressions::*;
+use crate::parser::utils::*;
 
 pub fn parse_literal(i: Span) -> nom::IResult<Span, Literal> {
     alt((

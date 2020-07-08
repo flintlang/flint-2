@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn parse_type_annotation(i: Span) -> nom::IResult<Span, TypeAnnotation> {
     let (i, colon) = colon(i)?;
@@ -216,7 +216,7 @@ fn parse_basic_type(i: Span) -> nom::IResult<Span, Type> {
 #[cfg(test)]
 mod test {
 
-    use crate::Parser::types::*;
+    use crate::parser::types::*;
 
     #[test]
     fn test_parse_int_type() {

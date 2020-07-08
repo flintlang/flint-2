@@ -1,20 +1,20 @@
 use super::context::*;
 use super::environment::*;
-use super::MoveCodeGen;
-use super::SemanticAnalysis::*;
-use super::SolidityCodeGen;
-use super::TypeAssigner::*;
-use super::TypeChecker::*;
-use super::AST::*;
-use crate::MoveCodeGen::MovePreProcessor;
-use crate::SolidityCodeGen::SolidityPreProcessor;
+use super::move_codegen;
+use super::semantic_analysis::*;
+use super::solidity_codegen;
+use super::type_assigner::*;
+use super::type_checker::*;
+use super::ast::*;
+use crate::move_codegen::move_preprocessor;
+use crate::solidity_codegen::solidity_preprocessor;
 
 pub fn process_ast(mut module: Module, environment: Environment, target: Target) {
     let type_assigner = &mut TypeAssigner {};
     let semantic_analysis = &mut SemanticAnalysis {};
     let type_checker = &mut TypeChecker {};
-    let solidity_preprocessor = &mut SolidityPreProcessor::SolidityPreProcessor {};
-    let move_preprocessor = &mut MovePreProcessor::MovePreProcessor {};
+    let solidity_preprocessor = &mut solidity_preprocessor::SolidityPreProcessor {};
+    let move_preprocessor = &mut move_preprocessor::MovePreProcessor {};
     let context = &mut Context {
         environment,
         ..Default::default()
@@ -49,7 +49,7 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
             Err(_) => return,
         }
 
-        let _result = MoveCodeGen::generate(module, context);
+        let _result = move_codegen::generate(module, context);
     } else {
         let result = module.visit(solidity_preprocessor, context);
 
@@ -58,7 +58,7 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
             Err(_) => return,
         }
 
-        let _result = SolidityCodeGen::generate(module, context);
+        let _result = solidity_codegen::generate(module, context);
     }
 }
 

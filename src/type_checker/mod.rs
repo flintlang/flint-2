@@ -1,6 +1,6 @@
 use super::context::*;
 use super::visitor::*;
-use super::AST::*;
+use super::ast::*;
 
 pub struct TypeChecker {}
 

@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn parse_statements(i: Span) -> nom::IResult<Span, Vec<Statement>> {
     let (i, statements) = many0(nom::sequence::terminated(
@@ -133,9 +133,9 @@ mod tests {
     use nom_locate::LocatedSpan;
     use sha3::Digest;
 
-    use crate::AST::{BinOp::*, Literal::*, *};
+    use crate::ast::{BinOp::*, Literal::*, *};
 
-    use crate::Parser::statements::*;
+    use crate::parser::statements::*;
 
     #[test]
     fn test_docatch_statement() {

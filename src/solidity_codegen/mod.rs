@@ -8,10 +8,10 @@ use sha3::{Digest, Keccak256};
 
 use super::context::*;
 use super::environment::*;
-use super::AST::*;
-use crate::TypeChecker::ExpressionCheck;
+use super::ast::*;
+use crate::type_checker::ExpressionCheck;
 
-pub mod SolidityPreProcessor;
+pub mod solidity_preprocessor;
 
 pub fn generate(module: Module, context: &mut Context) {
     let mut contracts: Vec<SolidityContract> = Vec::new();

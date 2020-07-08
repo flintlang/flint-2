@@ -1,4 +1,4 @@
-use crate::Parser::utils::*;
+use crate::parser::utils::*;
 
 pub fn parse_enclosing_identifier(i: Span) -> nom::IResult<Span, Identifier> {
     let line_info = LineInfo {
@@ -51,7 +51,7 @@ pub fn parse_identifier_group(i: Span) -> nom::IResult<Span, Vec<Identifier>> {
 #[cfg(test)]
 mod test {
 
-    use crate::Parser::identifiers::*;
+    use crate::parser::identifiers::*;
 
     #[test]
     fn test_parse_identifier() {

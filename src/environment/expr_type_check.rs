@@ -1,7 +1,7 @@
 use crate::context::*;
 use crate::environment::*;
-use crate::TypeChecker::ExpressionCheck;
-use crate::AST::*;
+use crate::type_checker::ExpressionCheck;
+use crate::ast::*;
 
 impl ExpressionCheck for Environment {
     fn get_expression_type(

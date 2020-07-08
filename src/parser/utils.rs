@@ -1,6 +1,6 @@
 pub use crate::environment::Environment;
-pub use crate::Parser::*;
-pub use crate::AST::*;
+pub use crate::parser::*;
+pub use crate::ast::*;
 pub use nom::{
     branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded,
 };
@@ -37,7 +37,7 @@ pub fn multi_whitespace(i: Span) -> nom::IResult<Span, Span> {
 #[cfg(test)]
 mod test {
 
-    use crate::Parser::utils::*;
+    use crate::parser::utils::*;
 
     #[test]
     fn test_parse_whitespace() {
