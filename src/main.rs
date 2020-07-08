@@ -1,9 +1,9 @@
 mod ast;
 mod ast_processor;
-mod move_codegen;
+mod moveir;
 mod parser;
 mod semantic_analysis;
-mod solidity_codegen;
+mod solidity;
 mod type_assigner;
 mod type_checker;
 mod context;

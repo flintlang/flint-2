@@ -8,7 +8,7 @@ use super::ast::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
 
-pub mod move_preprocessor;
+pub mod preprocessor;
 
 #[derive(Debug, Clone)]
 pub enum MovePosition {

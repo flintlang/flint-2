@@ -11,7 +11,7 @@ use super::environment::*;
 use super::ast::*;
 use crate::type_checker::ExpressionCheck;
 
-pub mod solidity_preprocessor;
+pub mod preprocessor;
 
 pub fn generate(module: Module, context: &mut Context) {
     let mut contracts: Vec<SolidityContract> = Vec::new();
