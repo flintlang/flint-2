@@ -1,15 +1,15 @@
-mod AST;
-mod AstProcessor;
-mod MoveCodeGen;
-mod Parser;
-mod SemanticAnalysis;
-mod SolidityCodeGen;
-mod TypeAssigner;
-mod TypeChecker;
+mod ast;
+mod ast_processor;
+mod move_codegen;
+mod parser;
+mod semantic_analysis;
+mod solidity_codegen;
+mod type_assigner;
+mod type_checker;
 mod context;
 mod environment;
 mod visitor;
-use crate::AstProcessor::Target;
+use crate::ast_processor::Target;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -80,7 +80,7 @@ fn main() {
             program = program
         )
     }
-    let (module, environment) = Parser::parse_program(&program);
+    let (module, environment) = parser::parse_program(&program);
 
     if module.is_none() {
         println!("Parse Error");
@@ -88,6 +88,6 @@ fn main() {
 
     if module.is_some() {
         let module = module.unwrap();
-        let _process_result = AstProcessor::process_ast(module, environment, target);
+        let _process_result = ast_processor::process_ast(module, environment, target);
     }
 }

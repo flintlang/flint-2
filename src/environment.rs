@@ -1,5 +1,5 @@
 use crate::context::ScopeContext;
-use crate::AST::*;
+use crate::ast::*;
 use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone)]
