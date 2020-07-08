@@ -28,7 +28,7 @@ impl Visitor for SolidityPreProcessor {
             param_types,
             &enclosing_identifier,
         );
-        _t.mangledIdentifier = Some(mangled_name);
+        _t.mangled_identifier = Some(mangled_name);
 
         if _ctx.struct_declaration_context.is_some() {
             let s_ctx = _ctx.struct_declaration_context.clone();

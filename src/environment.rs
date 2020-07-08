@@ -382,9 +382,9 @@ impl Environment {
         let function_declaration = FunctionDeclaration {
             head: f.clone(),
             body: vec![],
-            ScopeContext: None,
+            scope_context: None,
             tags: vec![],
-            mangledIdentifier: None,
+            mangled_identifier: None,
             is_external,
         };
 
@@ -495,7 +495,7 @@ impl Environment {
         let special = SpecialDeclaration {
             head: sig,
             body: vec![],
-            ScopeContext: Default::default(),
+            scope_context: Default::default(),
             generated,
         };
         let type_info = &self.types.get_mut(enclosing);

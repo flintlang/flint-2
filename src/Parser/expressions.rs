@@ -197,7 +197,7 @@ mod test {
     #[test]
     fn test_parse_inout_expression() {
         let input = LocatedSpan::new("&expression");
-        let (rest, result) = parse_expression(input).expect("Error parsing inout expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing inout expression");
         assert_eq!(
             result,
             Expression::InoutExpression(InoutExpression {
@@ -214,7 +214,7 @@ mod test {
     #[test]
     fn test_parse_bracketed_expression() {
         let input = LocatedSpan::new("(expression)");
-        let (rest, result) = parse_expression(input).expect("Error parsing bracketed expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing bracketed expression");
         assert_eq!(
             result,
             Expression::BracketedExpression(BracketedExpression {
@@ -231,7 +231,7 @@ mod test {
     //TODO: why is this function never called?
     fn test_parse_attempt_expression() {
         let input = LocatedSpan::new("try?foo()");
-        let (rest, result) =
+        let (_rest, result) =
             parse_attempt_expression(input).expect("Error parsing attempt expression");
         assert_eq!(
             result,
@@ -254,7 +254,7 @@ mod test {
     #[test]
     fn test_parse_subscript_expression() {
         let input = LocatedSpan::new("base[index]");
-        let (rest, result) = parse_expression(input).expect("Error parsing subscript expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing subscript expression");
         assert_eq!(
             result,
             Expression::SubscriptExpression(SubscriptExpression {
@@ -276,7 +276,7 @@ mod test {
     #[test]
     fn test_parse_binary_expression() {
         let input = LocatedSpan::new("x ** 2");
-        let (rest, result) = parse_expression(input).expect("Error parsing binary expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing binary expression");
         assert_eq!(result, Expression::BinaryExpression(BinaryExpression {
             lhs_expression: Box::new(Expression::Identifier(Identifier {
                 token: String::from("x"),

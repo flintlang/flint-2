@@ -29,7 +29,7 @@ use crate::Parser::declarations::*;
 use crate::Parser::calls::*;
 use crate::Parser::modifiers::*;
 
-use super::AST::*;
+
 
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
@@ -67,14 +67,14 @@ fn parse_module(i: Span) -> nom::IResult<Span, Module> {
 
 #[cfg(test)]
 mod tests {
-    use nom_locate::{LocatedSpan, position};
+    use nom_locate::{LocatedSpan};
     use sha3::Digest;
 
-    use crate::AST::{*, BinOp::*, Literal::*};
+    
     use crate::Parser::*;
-    use crate::Parser::statements;
+    
 
-    use nom::error::ErrorKind;
+    
 
     #[test]
     fn test_parse_module() {
@@ -86,7 +86,7 @@ mod tests {
         }",
         );
 
-        let (rest, result) = parse_module(input).expect("Error parsing module");
+        let (_rest, result) = parse_module(input).expect("Error parsing module");
 
         assert_eq!(
             result,

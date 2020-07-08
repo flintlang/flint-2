@@ -291,7 +291,7 @@ fn parse_special_declaration(i: Span) -> nom::IResult<Span, SpecialDeclaration> 
     let special_declaration = SpecialDeclaration {
         head: signature,
         body: statements,
-        ScopeContext: Default::default(),
+        scope_context: Default::default(),
         generated: false,
     };
 
@@ -363,9 +363,9 @@ fn parse_function_declaration(i: Span) -> nom::IResult<Span, FunctionDeclaration
     let function_declaration = FunctionDeclaration {
         head: signature,
         body: statements,
-        ScopeContext: None,
+        scope_context: None,
         tags: vec![],
-        mangledIdentifier: None,
+        mangled_identifier: None,
         is_external: false,
     };
     Ok((i, function_declaration))
@@ -573,7 +573,7 @@ mod test {
     #[test]
     fn test_parse_contract_member() {
         let input = LocatedSpan::new("var minter: Address");
-        let (rest, result) = parse_contract_member(input).expect("Error parsing contract member");
+        let (_rest, result) = parse_contract_member(input).expect("Error parsing contract member");
         assert_eq!(
             result,
             ContractMember::VariableDeclaration(VariableDeclaration {
@@ -597,7 +597,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_caller_binding(input);
         match result {
-            Ok((c, b)) => assert_eq!(
+            Ok((_c, b)) => assert_eq!(
                 b,
                 Identifier {
                     token: "caller".to_string(),

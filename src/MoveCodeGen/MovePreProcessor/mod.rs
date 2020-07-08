@@ -151,7 +151,7 @@ impl Visitor for MovePreProcessor {
             &enclosing_identifier,
             false,
         );
-        _t.mangledIdentifier = Some(mangled_name);
+        _t.mangled_identifier = Some(mangled_name);
 
         if _t.is_payable() {
             let payable_param = _t.first_payable_param().clone();
@@ -329,11 +329,11 @@ impl Visitor for MovePreProcessor {
             }
         }
 
-        let scope = _t.ScopeContext.clone();
+        let scope = _t.scope_context.clone();
         if scope.is_some() {
             let mut scope = scope.unwrap();
             scope.parameters = _t.head.parameters.clone();
-            _t.ScopeContext = Some(scope);
+            _t.scope_context = Some(scope);
         }
         Ok(())
     }
@@ -489,11 +489,11 @@ impl Visitor for MovePreProcessor {
                         let mut context = context.unwrap();
                         context.local_variables.push(variable.clone());
 
-                        let scope = context.declaration.ScopeContext.clone();
+                        let scope = context.declaration.scope_context.clone();
                         let mut scope = scope.unwrap();
                         scope.local_variables.push(variable.clone());
 
-                        context.declaration.ScopeContext = Some(scope);
+                        context.declaration.scope_context = Some(scope);
                         _ctx.function_declaration_context = Some(context)
                     }
 
@@ -502,11 +502,11 @@ impl Visitor for MovePreProcessor {
                         let mut context = context.unwrap();
                         context.local_variables.push(variable.clone());
 
-                        let scope = context.declaration.ScopeContext.clone();
+                        let scope = context.declaration.scope_context.clone();
                         let mut scope = scope;
                         scope.local_variables.push(variable.clone());
 
-                        context.declaration.ScopeContext = scope;
+                        context.declaration.scope_context = scope;
                         _ctx.special_declaration_context = Some(context);
                     }
 
@@ -851,13 +851,13 @@ pub fn convert_default_parameter_functions(
                 })
                 .collect();
 
-            if assigned_function.ScopeContext.is_some() {
+            if assigned_function.scope_context.is_some() {
                 let scope = ScopeContext {
                     parameters: assigned_function.head.parameters.clone(),
                     local_variables: vec![],
                     ..Default::default()
                 };
-                assigned_function.ScopeContext = Some(scope);
+                assigned_function.scope_context = Some(scope);
             }
 
             _ctx.environment.remove_function(f, t);
@@ -976,7 +976,7 @@ pub fn generate_contract_wrapper(
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
     let name = function.head.identifier.token.clone();
-    wrapper.mangledIdentifier = Option::from(mangle_function_move(name, &"".to_string(), true));
+    wrapper.mangled_identifier = Option::from(mangle_function_move(name, &"".to_string(), true));
 
     wrapper.body = vec![];
     wrapper.tags.push("acquires T".to_string());
@@ -1107,7 +1107,7 @@ pub fn generate_contract_wrapper(
             predicates,
             FunctionContext {
                 environment: context.environment.clone(),
-                ScopeContext: function.ScopeContext.clone().unwrap_or_default(),
+                scope_context: function.scope_context.clone().unwrap_or_default(),
                 enclosing_type: contract_behaviour_declaration.identifier.token.clone(),
                 block_stack: vec![MoveIRBlock { statements: vec![] }],
                 in_struct_function: false,
@@ -1129,7 +1129,7 @@ pub fn generate_contract_wrapper(
         })
         .collect();
 
-    let name = function.mangledIdentifier.clone();
+    let name = function.mangled_identifier.clone();
     let function_call = Expression::FunctionCall(FunctionCall {
         identifier: Identifier {
             token: name.unwrap_or_default(),
@@ -1312,12 +1312,12 @@ pub fn pre_assign(
             let mut context = context.unwrap();
             context.local_variables.push(declaration.clone());
 
-            if context.declaration.ScopeContext.is_some() {
-                let scope_ctx = context.declaration.ScopeContext.clone();
+            if context.declaration.scope_context.is_some() {
+                let scope_ctx = context.declaration.scope_context.clone();
                 let mut scope_ctx = scope_ctx.unwrap();
                 scope_ctx.local_variables.push(declaration.clone());
 
-                context.declaration.ScopeContext = Some(scope_ctx);
+                context.declaration.scope_context = Some(scope_ctx);
             }
 
             ctx.function_declaration_context = Option::from(context);
@@ -1328,11 +1328,11 @@ pub fn pre_assign(
             let mut context = context.unwrap();
             context.local_variables.push(declaration.clone());
 
-            let scope_ctx = context.declaration.ScopeContext.clone();
+            let scope_ctx = context.declaration.scope_context.clone();
             let mut scope_ctx = scope_ctx;
             scope_ctx.local_variables.push(declaration.clone());
 
-            context.declaration.ScopeContext = scope_ctx;
+            context.declaration.scope_context = scope_ctx;
 
             ctx.special_declaration_context = Option::from(context);
         }
@@ -1490,7 +1490,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 }
             }
 
-            FunctionCallMatchResult::MatchedInitializer(i) => Some(mangle_function_move(
+            FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
                 "init".to_string(),
                 &function_call.identifier.token,
                 false,

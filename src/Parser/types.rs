@@ -224,7 +224,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::Int),
+            Ok((_c, b)) => assert_eq!(b, Type::Int),
             Err(_) => assert_eq!(1, 0),
         }
     }
@@ -235,7 +235,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::Address),
+            Ok((_c, b)) => assert_eq!(b, Type::Address),
             Err(_) => assert_eq!(1, 0),
         }
     }
@@ -246,7 +246,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::Bool),
+            Ok((_c, b)) => assert_eq!(b, Type::Bool),
             Err(_) => assert_eq!(1, 0),
         }
     }
@@ -257,7 +257,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::String),
+            Ok((_c, b)) => assert_eq!(b, Type::String),
             Err(_) => assert_eq!(1, 0),
         }
     }

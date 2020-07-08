@@ -259,7 +259,7 @@ impl Visitor for SemanticAnalysis {
 
         let remaining = statements
             .into_iter()
-            .skip_while(|s| !isReturnOrBecomeStatement(s.clone()));
+            .skip_while(|s| !is_return_or_become_statement(s.clone()));
 
         for statement in _t.body.clone() {
             match statement {
@@ -269,8 +269,8 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let remainingAfterEnd = remaining.filter(|s| !isReturnOrBecomeStatement(s.clone()));
-        if remainingAfterEnd.count() > 0 {
+        let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s.clone()));
+        if remaining_after_end.count() > 0 {
             println!("Statements after Return");
             return Err(Box::from("".to_owned()));
         }
@@ -309,7 +309,7 @@ impl Visitor for SemanticAnalysis {
         _t: &mut FunctionDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        _t.ScopeContext = _ctx.scope_context.clone();
+        _t.scope_context = _ctx.scope_context.clone();
         Ok(())
     }
 

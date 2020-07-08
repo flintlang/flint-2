@@ -44,7 +44,7 @@ mod test {
     #[test]
     fn test_parse_parameter() {
         let input = LocatedSpan::new("first: Int");
-        let (rest, result) = parse_parameter(input).expect("Error parsing parameter");
+        let (_rest, result) = parse_parameter(input).expect("Error parsing parameter");
         assert_eq!(
             result,
             Parameter {
@@ -61,7 +61,7 @@ mod test {
         );
 
         let input = LocatedSpan::new("first: Int = second");
-        let (rest, result) =
+        let (_rest, result) =
             parse_parameter(input).expect("Error parsing parameter with expression");
         assert_eq!(
             result,

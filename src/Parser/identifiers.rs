@@ -56,7 +56,7 @@ mod test {
     #[test]
     fn test_parse_identifier() {
         let input = LocatedSpan::new("id");
-        let (rest, result) = parse_identifier(input).expect("Error with parsing identifier");
+        let (_rest, result) = parse_identifier(input).expect("Error with parsing identifier");
         assert_eq!(
             result,
             Identifier {
@@ -70,7 +70,7 @@ mod test {
     #[test]
     fn test_parse_identifier_list() {
         let input = LocatedSpan::new("first, second, third");
-        let (rest, result) =
+        let (_rest, result) =
             parse_identifier_list(input).expect("Error with parsing identifier list");
         assert_eq!(
             result,
@@ -97,7 +97,7 @@ mod test {
     #[test]
     fn test_parse_identifier_group() {
         let input = LocatedSpan::new("(first, second, third)");
-        let (rest, result) =
+        let (_rest, result) =
             parse_identifier_group(input).expect("Error with parsing identifier group");
         assert_eq!(
             result,

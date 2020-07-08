@@ -43,7 +43,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = whitespace(input);
         match result {
-            Ok((c, b)) => assert_eq!(c, LocatedSpan::new("")),
+            Ok((c, _b)) => assert_eq!(c, LocatedSpan::new("")),
             Err(_) => assert_eq!(1, 0),
         }
     }

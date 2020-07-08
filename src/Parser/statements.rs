@@ -55,8 +55,8 @@ fn parse_if_statement(i: Span) -> nom::IResult<Span, Statement> {
             condition,
             body: statements,
             else_body: else_statements,
-            IfBodyScopeContext: None,
-            ElseBodyScopeContext: None,
+            if_body_scope_context: None,
+            else_body_scope_context: None,
         };
         return Ok((i, Statement::IfStatement(if_statement)));
     }
@@ -64,8 +64,8 @@ fn parse_if_statement(i: Span) -> nom::IResult<Span, Statement> {
         condition,
         body: statements,
         else_body: Vec::new(),
-        IfBodyScopeContext: None,
-        ElseBodyScopeContext: None,
+        if_body_scope_context: None,
+        else_body_scope_context: None,
     };
     Ok((i, Statement::IfStatement(if_statement)))
 }
@@ -84,7 +84,7 @@ fn parse_for_statement(i: Span) -> nom::IResult<Span, Statement> {
         variable,
         iterable,
         body: statements,
-        ForBodyScopeContext: None,
+        for_body_scope_context: None,
     };
     Ok((i, Statement::ForStatement(for_statement)))
 }
@@ -130,19 +130,19 @@ fn parse_return_statement(i: Span) -> nom::IResult<Span, Statement> {
 
 #[cfg(test)]
 mod tests {
-    use nom_locate::{LocatedSpan, position};
+    use nom_locate::{LocatedSpan};
     use sha3::Digest;
 
     use crate::AST::{*, BinOp::*, Literal::*};
-    use crate::Parser::*;
+    
     use crate::Parser::statements::*;
 
-    use nom::error::ErrorKind;
+    
 
     #[test]
     fn test_docatch_statement() {
         let input = LocatedSpan::new("do {return id} catch is error_type {return error}");
-        let (rest, result) = parse_docatch_statement(input).expect("Error with docatch statement");
+        let (_rest, result) = parse_docatch_statement(input).expect("Error with docatch statement");
         assert_eq!(
             result,
             Statement::DoCatchStatement(DoCatchStatement {
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn test_if_statement() {
         let input = LocatedSpan::new("if x<5 {return x}");
-        let (rest, result) = parse_if_statement(input).expect("Error parsing if statement");
+        let (_rest, result) = parse_if_statement(input).expect("Error parsing if statement");
         assert_eq!(
             result,
             Statement::IfStatement(IfStatement {
@@ -222,8 +222,8 @@ mod tests {
                 })],
 
                 else_body: vec![],
-                IfBodyScopeContext: None,
-                ElseBodyScopeContext: None,
+                if_body_scope_context: None,
+                else_body_scope_context: None,
             })
         );
     }
@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn test_parse_emit_statement() {
         let input = LocatedSpan::new("emit foo()");
-        let (rest, result) = parse_emit_statement(input).expect("Error parsing emit statement");
+        let (_rest, result) = parse_emit_statement(input).expect("Error parsing emit statement");
         assert_eq!(
             result,
             Statement::EmitStatement(EmitStatement {
@@ -252,7 +252,7 @@ mod tests {
     #[test]
     fn test_become_statement() {
         let input = LocatedSpan::new("become example");
-        let (rest, result) = parse_become_statement(input).expect("Error parsing become statement");
+        let (_rest, result) = parse_become_statement(input).expect("Error parsing become statement");
         assert_eq!(
             result,
             Statement::BecomeStatement(BecomeStatement {
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_for_statement() {
         let input = LocatedSpan::new("for let i: Int in (1...5) {5}");
-        let (rest, result) = parse_for_statement(input).expect("Error parsing for statement");
+        let (_rest, result) = parse_for_statement(input).expect("Error parsing for statement");
         assert_eq!(
             result,
             Statement::ForStatement(ForStatement {
@@ -293,7 +293,7 @@ mod tests {
                 }),
 
                 body: vec![Statement::Expression(Expression::Literal(IntLiteral(5)))],
-                ForBodyScopeContext: None,
+                for_body_scope_context: None,
             })
         );
     }
@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn test_parse_return_statement() {
         let input = LocatedSpan::new("return");
-        let (rest, result) = parse_return_statement(input).expect("Error parsing return statement");
+        let (_rest, result) = parse_return_statement(input).expect("Error parsing return statement");
         assert_eq!(
             result,
             Statement::ReturnStatement(ReturnStatement {
@@ -312,7 +312,7 @@ mod tests {
         );
 
         let input = LocatedSpan::new("return id");
-        let (rest, result) =
+        let (_rest, result) =
             parse_return_statement(input).expect("Error parsing statement returning identifier");
         assert_eq!(
             result,

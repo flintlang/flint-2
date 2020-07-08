@@ -163,7 +163,7 @@ impl MoveContract {
             .map(|f| MoveFunction {
                 function_declaration: f,
                 environment: self.environment.clone(),
-                IsContractFunction: false,
+                is_contract_function: false,
                 enclosing_type: self.contract_declaration.identifier.clone(),
             })
             .map(|f| f.generate(true))
@@ -172,7 +172,7 @@ impl MoveContract {
 
         let function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: Default::default(),
+            scope_context: Default::default(),
             enclosing_type: "".to_string(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: false,
@@ -375,7 +375,7 @@ impl MoveContract {
 
         let function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: scope,
+            scope_context: scope,
             enclosing_type: self.contract_declaration.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: false,
@@ -437,7 +437,7 @@ impl MoveContract {
 
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: Default::default(),
+            scope_context: Default::default(),
             enclosing_type: self.contract_declaration.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: false,
@@ -536,7 +536,7 @@ impl MoveContract {
 
             let shadow = "Quartz$self".to_string();
 
-            let selfType = MoveType::move_type(
+            let self_type = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
             )
@@ -544,13 +544,13 @@ impl MoveContract {
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                 identifier: "this".to_string(),
-                declaration_type: MoveIRType::MutableReference(Box::from(selfType.clone())),
+                declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
             });
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                 identifier: mangle(shadow.clone()),
-                declaration_type: selfType,
+                declaration_type: self_type,
             });
 
             function_context.emit(MoveIRStatement::Expression(emit));
@@ -565,7 +565,7 @@ impl MoveContract {
                 line_info: Default::default(),
             };
 
-            let mut scope = function_context.ScopeContext.clone();
+            let mut scope = function_context.scope_context.clone();
             scope.local_variables.push(VariableDeclaration {
                 declaration_token: None,
                 identifier: self_identifier,
@@ -619,7 +619,7 @@ impl MoveAsset {
     fn generate(&self) -> String {
         let function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: Default::default(),
+            scope_context: Default::default(),
             enclosing_type: self.declaration.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: false,
@@ -705,7 +705,7 @@ impl MoveAsset {
                 MoveFunction {
                     function_declaration: f.clone(),
                     environment: self.environment.clone(),
-                    IsContractFunction: false,
+                    is_contract_function: false,
                     enclosing_type: self.declaration.identifier.clone(),
                 }
                     .generate(true)
@@ -724,7 +724,7 @@ impl MoveStruct {
     fn generate(&self) -> String {
         let function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: Default::default(),
+            scope_context: Default::default(),
             enclosing_type: self.struct_declaration.identifier.token.clone(),
             block_stack: vec![],
             in_struct_function: true,
@@ -819,7 +819,7 @@ impl MoveStruct {
                 MoveFunction {
                     function_declaration: f.clone(),
                     environment: self.environment.clone(),
-                    IsContractFunction: false,
+                    is_contract_function: false,
                     enclosing_type: self.struct_declaration.identifier.clone(),
                 }
                     .generate(true)
@@ -995,7 +995,7 @@ impl MoveStructInitialiser {
 
         let function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: scope,
+            scope_context: scope,
             enclosing_type: self.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: true,
@@ -1050,7 +1050,7 @@ impl MoveStructInitialiser {
 
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: self.declaration.ScopeContext.clone(),
+            scope_context: self.declaration.scope_context.clone(),
             enclosing_type: self.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: true,
@@ -1157,7 +1157,7 @@ impl MoveStructInitialiser {
 
                 function_context.emit_release_references();
 
-                let selfType = MoveType::move_type(
+                let self_type = MoveType::move_type(
                     Type::type_from_identifier(self.identifier.clone()),
                     Option::from(self.environment.clone()),
                 )
@@ -1165,13 +1165,13 @@ impl MoveStructInitialiser {
 
                 let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier: "this".to_string(),
-                    declaration_type: MoveIRType::MutableReference(Box::from(selfType.clone())),
+                    declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
                 });
                 function_context.emit(MoveIRStatement::Expression(emit));
 
                 let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier: "".to_string(),
-                    declaration_type: selfType,
+                    declaration_type: self_type,
                 });
                 function_context.emit(MoveIRStatement::Expression(emit));
 
@@ -1194,21 +1194,21 @@ impl MoveStructInitialiser {
 struct MoveFunction {
     pub function_declaration: FunctionDeclaration,
     pub environment: Environment,
-    pub IsContractFunction: bool,
+    pub is_contract_function: bool,
     pub enclosing_type: Identifier,
 }
 
 impl MoveFunction {
     fn generate(&self, _return: bool) -> String {
-        let scope = self.function_declaration.ScopeContext.clone();
+        let scope = self.function_declaration.scope_context.clone();
         let scope = scope.unwrap_or(Default::default());
 
         let function_context = FunctionContext {
             environment: self.environment.clone(),
-            ScopeContext: scope,
+            scope_context: scope,
             enclosing_type: self.enclosing_type.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
-            in_struct_function: !self.IsContractFunction,
+            in_struct_function: !self.is_contract_function,
             is_constructor: false,
         };
 
@@ -1224,7 +1224,7 @@ impl MoveFunction {
         let name = self.function_declaration.head.identifier.token.clone();
         let name = self
             .function_declaration
-            .mangledIdentifier
+            .mangled_identifier
             .as_ref()
             .unwrap_or(&name);
         let parameter_move_types: Vec<MoveType> = self
@@ -1273,7 +1273,7 @@ impl MoveFunction {
         let tags = self.function_declaration.tags.clone();
         let tags = tags.join("");
 
-        let scope = self.function_declaration.ScopeContext.clone();
+        let scope = self.function_declaration.scope_context.clone();
 
         let mut scope = scope.unwrap_or(Default::default());
 
@@ -1308,8 +1308,8 @@ impl MoveFunction {
             environment: self.environment.clone(),
             enclosing_type: self.enclosing_type.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
-            ScopeContext: scope,
-            in_struct_function: !self.IsContractFunction,
+            scope_context: scope,
+            in_struct_function: !self.is_contract_function,
             is_constructor: false,
         };
         let statements = self.function_declaration.body.clone();
@@ -1352,7 +1352,7 @@ impl MoveFunction {
 #[derive(Debug, Default, Clone)]
 pub struct FunctionContext {
     pub environment: Environment,
-    pub ScopeContext: ScopeContext,
+    pub scope_context: ScopeContext,
     pub enclosing_type: String,
     pub block_stack: Vec<MoveIRBlock>,
     pub in_struct_function: bool,
@@ -1398,7 +1398,7 @@ impl FunctionContext {
     }
     pub fn emit_release_references(&mut self) {
         let references: Vec<Identifier> = self
-            .ScopeContext
+            .scope_context
             .parameters
             .clone()
             .into_iter()
@@ -1416,7 +1416,7 @@ impl FunctionContext {
     }
 
     pub fn self_type(&self) -> Type {
-        let result = self.ScopeContext.type_for("self".to_string());
+        let result = self.scope_context.type_for("self".to_string());
         if result.is_some() {
             result.unwrap()
         } else {
@@ -1425,7 +1425,7 @@ impl FunctionContext {
                 &self.enclosing_type,
                 vec![],
                 vec![],
-                self.ScopeContext.clone(),
+                self.scope_context.clone(),
             )
         }
     }
@@ -1451,7 +1451,7 @@ impl MoveExternalCall {
                 lookup,
                 &enclosing,
                 vec![],
-                function_context.ScopeContext.clone(),
+                function_context.scope_context.clone(),
             );
 
             if let FunctionCallMatchResult::MatchedFunction(_) = result {} else if let FunctionCallMatchResult::Failure(c) = result {
@@ -1691,7 +1691,7 @@ impl MoveCastExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let enclosing = self.expression.expression.enclosing_type().clone();
         let enclosing = enclosing.unwrap_or(function_context.enclosing_type.clone());
-        let scope = function_context.ScopeContext.clone();
+        let scope = function_context.scope_context.clone();
         let original_type = function_context.environment.get_expression_type(
             *self.expression.expression.clone(),
             &enclosing,
@@ -1779,7 +1779,7 @@ impl MoveSubscriptExpression {
             &function_context.enclosing_type.clone(),
             vec![],
             vec![],
-            function_context.ScopeContext.clone(),
+            function_context.scope_context.clone(),
         );
 
         let inner_type = match base_type.clone() {
@@ -1920,7 +1920,7 @@ impl MoveInoutExpression {
             &function_context.enclosing_type,
             vec![],
             vec![],
-            function_context.ScopeContext.clone(),
+            function_context.scope_context.clone(),
         );
 
         if let Type::InoutType(_) = expression_type {
@@ -2021,7 +2021,7 @@ impl MoveIdentifier {
         }
 
         let identifier_type = function_context
-            .ScopeContext
+            .scope_context
             .type_for(self.identifier.token.clone());
         if identifier_type.is_some() {
             let unwrapped_type = identifier_type.unwrap();
@@ -2263,7 +2263,7 @@ impl MoveAssignment {
                     &enclosing,
                     vec![],
                     vec![],
-                    function_context.ScopeContext.clone(),
+                    function_context.scope_context.clone(),
                 );
                 if let Type::ArrayType(a) = var_type {
                     let lhs_ir = MoveExpression {
@@ -2356,7 +2356,7 @@ impl MoveAssignment {
                 expresion: Box::new(rhs_ir),
             });
         } else if self.lhs.enclosing_identifier().is_some() && function_context
-            .ScopeContext
+            .scope_context
             .contains_variable_declaration(self.lhs.enclosing_identifier().unwrap().token)
         {
             return MoveIRExpression::Assignment(MoveIRAssignment {

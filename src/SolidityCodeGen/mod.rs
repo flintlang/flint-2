@@ -224,7 +224,7 @@ impl SolidityContract {
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
-            InStructFunction: false, //Inside Contract
+            in_struct_function: false, //Inside Contract
             block_stack: vec![YulBlock { statements: vec![] }],
             enclosing_type: self.declaration.identifier.token.clone(),
             counter: 0,
@@ -238,7 +238,7 @@ impl SolidityContract {
             .map(|p| {
                 SolidityIdentifier {
                     identifier: p.identifier.clone(),
-                    IsLValue: false,
+                    is_lvalue: false,
                 }
                     .generate(&mut function_context)
             })
@@ -263,14 +263,14 @@ impl SolidityContract {
 
         let parameter_binding = parameter_binding.join("\n");
 
-        let scope = initialiser_declaration.ScopeContext.clone();
+        let scope = initialiser_declaration.scope_context.clone();
 
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             enclosing_type: self.declaration.identifier.token.clone(),
             block_stack: vec![YulBlock { statements: vec![] }],
             scope_context: scope,
-            InStructFunction: false,
+            in_struct_function: false,
             counter: 0,
         };
 
@@ -487,7 +487,7 @@ impl SolidityStruct {
 pub struct FunctionContext {
     pub environment: Environment,
     pub scope_context: ScopeContext,
-    pub InStructFunction: bool,
+    pub in_struct_function: bool,
     pub block_stack: Vec<YulBlock>,
     pub enclosing_type: String,
     pub counter: u64,
@@ -608,12 +608,12 @@ impl SolidityFunction {
     pub fn generate(&self, returns: bool) -> String {
         let returns = self.declaration.head.result_type.is_some() && returns;
 
-        let scope = self.declaration.ScopeContext.clone();
+        let scope = self.declaration.scope_context.clone();
         let scope = scope.unwrap_or(Default::default());
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
-            InStructFunction: !self.is_contract_function,
+            in_struct_function: !self.is_contract_function,
             block_stack: vec![YulBlock { statements: vec![] }],
             enclosing_type: self.identifier.token.clone(),
             counter: 0,
@@ -624,7 +624,7 @@ impl SolidityFunction {
             .map(|p| {
                 SolidityIdentifier {
                     identifier: p.identifier.clone(),
-                    IsLValue: false,
+                    is_lvalue: false,
                 }
                     .generate(&mut function_context)
             })
@@ -636,7 +636,7 @@ impl SolidityFunction {
         } else {
             "".to_string()
         };
-        let name = self.declaration.mangledIdentifier.clone();
+        let name = self.declaration.mangled_identifier.clone();
         let name = name.unwrap_or_default();
         let signature = format!(
             "{name}({parameters}) {return_var}",
@@ -645,7 +645,7 @@ impl SolidityFunction {
             return_var = return_var
         );
 
-        let scope = self.declaration.ScopeContext.clone();
+        let scope = self.declaration.scope_context.clone();
         let scope = scope.unwrap_or(Default::default());
 
         let mut function_context = FunctionContext {
@@ -653,7 +653,7 @@ impl SolidityFunction {
             enclosing_type: self.identifier.token.clone(),
             block_stack: vec![YulBlock { statements: vec![] }],
             scope_context: scope,
-            InStructFunction: !self.is_contract_function,
+            in_struct_function: !self.is_contract_function,
             counter: 0,
         };
 
@@ -676,7 +676,7 @@ impl SolidityFunction {
                 .generate(&mut function_context);
             function_context.emit(yul_statement);
             if let Statement::IfStatement(i) = statement {
-                if i.endsWithReturn() {
+                if i.ends_with_return() {
                     let else_body = i.else_body.clone();
                     if else_body.is_empty() {
                         let st = YulStatement::Inline("default {".to_string());
@@ -763,7 +763,7 @@ impl SolidityCallerProtectionCheck {
                     let _function_context = FunctionContext {
                         environment: environment.clone(),
                         scope_context: Default::default(),
-                        InStructFunction: false,
+                        in_struct_function: false,
                         block_stack: vec![YulBlock { statements: vec![] }],
                         enclosing_type: t.to_string(),
                         counter: 0,
@@ -824,7 +824,7 @@ impl SolidityStatement {
             Statement::Expression(e) => YulStatement::Expression(
                 SolidityExpression {
                     expression: e,
-                    IsLValue: false,
+                    is_lvalue: false,
                 }
                     .generate(function_context),
             ),
@@ -852,7 +852,7 @@ impl SolidityReturnStatement {
         let expression = expression.unwrap();
         let expression = SolidityExpression {
             expression,
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(function_context);
         let string = format!("ret := {expression}", expression = expression);
@@ -868,7 +868,7 @@ impl SolidityIfStatement {
     pub fn generate(&self, function_context: &mut FunctionContext) -> YulStatement {
         let condition = SolidityExpression {
             expression: self.statement.condition.clone(),
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(function_context);
 
@@ -890,7 +890,7 @@ impl SolidityIfStatement {
 
 pub struct SolidityExpression {
     pub expression: Expression,
-    pub IsLValue: bool,
+    pub is_lvalue: bool,
 }
 
 impl SolidityExpression {
@@ -898,17 +898,17 @@ impl SolidityExpression {
         match self.expression.clone() {
             Expression::Identifier(i) => SolidityIdentifier {
                 identifier: i,
-                IsLValue: self.IsLValue,
+                is_lvalue: self.is_lvalue,
             }
                 .generate(function_context),
             Expression::BinaryExpression(b) => SolidityBinaryExpression {
                 expression: b,
-                IsLValue: self.IsLValue,
+                is_lvalue: self.is_lvalue,
             }
                 .generate(function_context),
             Expression::InoutExpression(i) => SolidityExpression {
                 expression: *i.expression.clone(),
-                IsLValue: true,
+                is_lvalue: true,
             }
                 .generate(function_context),
             Expression::ExternalCall(e) => {
@@ -922,7 +922,7 @@ impl SolidityExpression {
             }
             Expression::BracketedExpression(e) => SolidityExpression {
                 expression: *e.expression,
-                IsLValue: false,
+                is_lvalue: false,
             }
                 .generate(function_context),
             Expression::AttemptExpression(_) => {
@@ -941,12 +941,12 @@ impl SolidityExpression {
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => SoliditySelfExpression {
-                IsLValue: self.IsLValue,
+                is_lvalue: self.is_lvalue,
             }
                 .generate(function_context),
             Expression::SubscriptExpression(s) => SoliditySubscriptExpression {
                 expression: s,
-                IsLValue: self.IsLValue,
+                is_lvalue: self.is_lvalue,
             }
                 .generate(function_context),
             Expression::RangeExpression(_) => unimplemented!(),
@@ -959,7 +959,7 @@ impl SolidityExpression {
                 for expression in s {
                     let result = SolidityExpression {
                         expression,
-                        IsLValue: self.IsLValue,
+                        is_lvalue: self.is_lvalue,
                     }
                         .generate(function_context);
                     sequence.push(result);
@@ -1003,7 +1003,7 @@ impl SolidityCastExpression {
 
         let expression_ir = SolidityExpression {
             expression: *self.expression.expression.clone(),
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(function_context);
 
@@ -1148,7 +1148,7 @@ impl SolidityExternalCall {
 
         let address_expression = SolidityExpression {
             expression: *self.call.function_call.lhs_expression.clone(),
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(function_context);
 
@@ -1183,7 +1183,7 @@ impl SolidityExternalCall {
                     let expression = q.clone();
                     let expression = SolidityExpression {
                         expression: expression.expression.clone(),
-                        IsLValue: false,
+                        is_lvalue: false,
                     }
                         .generate(function_context);
                     static_slots.push(expression);
@@ -1192,7 +1192,7 @@ impl SolidityExternalCall {
                     let expression = q.clone();
                     let expression = SolidityExpression {
                         expression: expression.expression.clone(),
-                        IsLValue: false,
+                        is_lvalue: false,
                     }
                         .generate(function_context);
                     static_slots.push(expression);
@@ -1201,7 +1201,7 @@ impl SolidityExternalCall {
                     let expression = q.clone();
                     let expression = SolidityExpression {
                         expression: expression.expression.clone(),
-                        IsLValue: false,
+                        is_lvalue: false,
                     }
                         .generate(function_context);
                     static_slots.push(expression);
@@ -1210,7 +1210,7 @@ impl SolidityExternalCall {
                     let expression = q.clone();
                     let expression = SolidityExpression {
                         expression: expression.expression.clone(),
-                        IsLValue: false,
+                        is_lvalue: false,
                     }
                         .generate(function_context);
                     static_slots.push(expression);
@@ -1359,7 +1359,7 @@ impl SolidityExternalCall {
 
 pub struct SoliditySubscriptExpression {
     pub expression: SubscriptExpression,
-    pub IsLValue: bool,
+    pub is_lvalue: bool,
 }
 
 impl SoliditySubscriptExpression {
@@ -1378,18 +1378,18 @@ impl SoliditySubscriptExpression {
             .environment
             .property_offset(identifier.token.clone(), &enclosing);
 
-        let memLocation = SoliditySubscriptExpression::nested_offset(
+        let mem_location = SoliditySubscriptExpression::nested_offset(
             self.expression.clone(),
             offset,
             function_context,
         );
 
-        if self.IsLValue {
-            memLocation
+        if self.is_lvalue {
+            mem_location
         } else {
             YulExpression::FunctionCall(YulFunctionCall {
                 name: "sload".to_string(),
-                arguments: vec![memLocation],
+                arguments: vec![mem_location],
             })
         }
     }
@@ -1413,7 +1413,7 @@ impl SoliditySubscriptExpression {
     ) -> YulExpression {
         let index_expression = SolidityExpression {
             expression: *expression.index_expression.clone(),
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(function_context);
 
@@ -1445,14 +1445,14 @@ impl SoliditySubscriptExpression {
 }
 
 pub struct SoliditySelfExpression {
-    pub IsLValue: bool,
+    pub is_lvalue: bool,
 }
 
 impl SoliditySelfExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> YulExpression {
-        let ident = if function_context.InStructFunction {
+        let ident = if function_context.in_struct_function {
             "_QuartzSelf".to_string()
-        } else if self.IsLValue {
+        } else if self.is_lvalue {
             "0".to_string()
         } else {
             "".to_string()
@@ -1481,7 +1481,7 @@ impl SolidityFunctionCall {
             if i.declaration.generated {
                 return SolidityExpression {
                     expression: arg.expression,
-                    IsLValue: false,
+                    is_lvalue: false,
                 }
                     .generate(function_context);
             }
@@ -1493,7 +1493,7 @@ impl SolidityFunctionCall {
             .map(|a| {
                 SolidityExpression {
                     expression: a.expression,
-                    IsLValue: false,
+                    is_lvalue: false,
                 }
                     .generate(function_context)
             })
@@ -1516,7 +1516,7 @@ impl SolidityFunctionCall {
 
 pub struct SolidityIdentifier {
     pub identifier: Identifier,
-    pub IsLValue: bool,
+    pub is_lvalue: bool,
 }
 
 impl SolidityIdentifier {
@@ -1525,7 +1525,7 @@ impl SolidityIdentifier {
             return SolidityPropertyAccess {
                 lhs: Expression::SelfExpression,
                 rhs: Expression::Identifier(self.identifier.clone()),
-                IsLeft: self.IsLValue,
+                is_left: self.is_lvalue,
             }
                 .generate(function_context);
         }
@@ -1543,7 +1543,7 @@ impl SolidityAssignment {
     pub fn generate(&self, function_context: &mut FunctionContext) -> YulExpression {
         let rhs_code = SolidityExpression {
             expression: self.rhs.clone(),
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(function_context);
 
@@ -1566,11 +1566,11 @@ impl SolidityAssignment {
                 println!("HERE we drop");
                 let lhs_code = SolidityExpression {
                     expression: self.lhs.clone(),
-                    IsLValue: true,
+                    is_lvalue: true,
                 }
                     .generate(function_context);
 
-                if function_context.InStructFunction {
+                if function_context.in_struct_function {
                     let enclosing_name = if function_context
                         .scope_context
                         .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type)
@@ -1608,7 +1608,7 @@ impl SolidityAssignment {
 pub struct SolidityPropertyAccess {
     pub lhs: Expression,
     pub rhs: Expression,
-    pub IsLeft: bool,
+    pub is_left: bool,
 }
 
 impl SolidityPropertyAccess {
@@ -1672,7 +1672,7 @@ impl SolidityPropertyAccess {
                 .generate(function_context),
         };
 
-        let offset = if function_context.InStructFunction {
+        let offset = if function_context.in_struct_function {
             let enclosing_parameter = function_context
                 .scope_context
                 .enclosing_parameter(self.lhs.clone(), &type_identifier);
@@ -1703,7 +1703,7 @@ impl SolidityPropertyAccess {
             } else {
                 SolidityExpression {
                     expression: self.lhs.clone(),
-                    IsLValue: true,
+                    is_lvalue: true,
                 }
                     .generate(function_context)
             };
@@ -1711,11 +1711,11 @@ impl SolidityPropertyAccess {
             SolidityRuntimeFunction::add_offset_bool(lhs_offset, rhs_offset, is_mem_access)
         };
 
-        if self.IsLeft {
+        if self.is_left {
             return offset;
         }
 
-        if function_context.InStructFunction && !is_mem_access {
+        if function_context.in_struct_function && !is_mem_access {
             let lhs_enclosing = if self.lhs.enclosing_identifier().is_some() {
                 let ident = self.lhs.enclosing_identifier().clone();
                 let ident = ident.unwrap();
@@ -1743,13 +1743,13 @@ impl SolidityPropertyOffset {
             return SolidityPropertyAccess {
                 lhs: *b.lhs_expression,
                 rhs: *b.rhs_expression,
-                IsLeft: true,
+                is_left: true,
             }
                 .generate(function_context);
         } else if let Expression::SubscriptExpression(s) = self.expression.clone() {
             return SoliditySubscriptExpression {
                 expression: s.clone(),
-                IsLValue: true,
+                is_lvalue: true,
             }
                 .generate(function_context);
         }
@@ -2283,7 +2283,7 @@ impl SolidityFunctionSelector {
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: Default::default(),
-            InStructFunction: false,
+            in_struct_function: false,
             block_stack: vec![YulBlock { statements: vec![] }],
             enclosing_type: self.enclosing.token.clone(),
             counter: 0,
@@ -2291,7 +2291,7 @@ impl SolidityFunctionSelector {
 
         let state = SolidityExpression {
             expression: state,
-            IsLValue: false,
+            is_lvalue: false,
         }
             .generate(&mut function_context);
 
@@ -2359,7 +2359,7 @@ impl SolidityFunctionSelector {
                 let mut call = format!(
                     "{wrapper}{name}({args})",
                     wrapper = wrapper,
-                    name = f.clone().declaration.mangledIdentifier.unwrap_or_default(),
+                    name = f.clone().declaration.mangled_identifier.unwrap_or_default(),
                     args = parameters
                 );
 
@@ -2407,7 +2407,7 @@ impl SolidityFunctionSelector {
 
 pub struct SolidityBinaryExpression {
     pub expression: BinaryExpression,
-    pub IsLValue: bool,
+    pub is_lvalue: bool,
 }
 
 impl SolidityBinaryExpression {
@@ -2420,7 +2420,7 @@ impl SolidityBinaryExpression {
             return SolidityPropertyAccess {
                 lhs: *self.expression.lhs_expression.clone(),
                 rhs: *self.expression.rhs_expression.clone(),
-                IsLeft: self.IsLValue,
+                is_left: self.is_lvalue,
             }
                 .generate(function_context);
         }
@@ -2439,12 +2439,12 @@ impl SolidityBinaryExpression {
         let rhs = self.expression.rhs_expression.clone();
         let lhs = SolidityExpression {
             expression: *lhs,
-            IsLValue: self.IsLValue,
+            is_lvalue: self.is_lvalue,
         }
             .generate(function_context);
         let rhs = SolidityExpression {
             expression: *rhs,
-            IsLValue: self.IsLValue,
+            is_lvalue: self.is_lvalue,
         }
             .generate(function_context);
 
