@@ -1,7 +1,7 @@
 use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
-use crate::move_codegen::{FunctionContext, MoveExpression, MoveIRBlock};
+use crate::moveir::{FunctionContext, MoveExpression, MoveIRBlock};
 use crate::ast::*;
 
 pub(crate) struct MovePreProcessor {}

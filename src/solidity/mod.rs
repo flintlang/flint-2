@@ -10,7 +10,7 @@ use super::context::*;
 use super::environment::*;
 use super::ast::*;
 
-pub mod solidity_preprocessor;
+pub mod preprocessor;
 
 pub fn generate(module: Module, context: &mut Context) {
     let mut contracts: Vec<SolidityContract> = Vec::new();

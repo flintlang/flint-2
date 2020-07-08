@@ -7,7 +7,7 @@ use super::context::*;
 use super::environment::*;
 use super::ast::*;
 
-pub mod move_preprocessor;
+pub mod preprocessor;
 
 #[derive(Debug, Clone)]
 pub enum MovePosition {
