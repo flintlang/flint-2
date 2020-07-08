@@ -289,4 +289,30 @@ mod test {
             line_info: LineInfo { line: 1, offset: 0 },
         }));
     }
+
+    #[test]
+    fn test_parse_cast_expression() {
+        let input = LocatedSpan::new("cast x to Int");
+        let (rest, result) = parse_expression(input).expect("Error parsing cast expression");
+        assert_eq!(result, Expression::CastExpression(CastExpression {
+            expression: Box::new(Expression::Identifier(Identifier {
+                token: String::from("x"),
+                enclosing_type: None,
+                line_info: LineInfo { line: 1, offset: 0 },
+            })),
+
+            cast_type: Type::Int
+        }));
+    }
+
+    #[test]
+    fn test_parse_range_expression() {
+        let input = LocatedSpan::new("(0..<3)");
+        let (rest, result) = parse_expression(input).expect("Error parsing range expression");
+        assert_eq!(result, Expression::RangeExpression(RangeExpression {
+            start_expression: Box::new(Expression::Literal(Literal::IntLiteral(0))),
+            end_expression: Box::new(Expression::Literal(Literal::IntLiteral(3))),
+            op: String::from("..<")
+        }));
+    }
 }

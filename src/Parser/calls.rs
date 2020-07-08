@@ -54,3 +54,39 @@ fn parse_function_call_argument(i: Span) -> nom::IResult<Span, FunctionArgument>
         }),
     ))(i)
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::Parser::calls::*;
+
+    #[test]
+    fn test_parse_function_call() {
+        let input = LocatedSpan::new("foo(first, second)");
+        let (rest, result) = parse_function_call(input).expect("Error parsing function call");
+        assert_eq!(result, FunctionCall {
+            identifier: Identifier {
+                token: String::from("foo"),
+                enclosing_type: None,
+                line_info: LineInfo { line : 1, offset : 0}            
+            },
+
+            arguments: vec![FunctionArgument {
+                identifier: None,
+                expression: Expression::Identifier(Identifier {
+                    token: String::from("first"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line : 1, offset : 4}
+                })
+            }, FunctionArgument {
+                identifier: None,
+                expression: Expression::Identifier(Identifier {
+                    token: String::from("second"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line : 1, offset : 11}
+                })
+            }],
+            mangled_identifier: None
+        });
+    }
+}
