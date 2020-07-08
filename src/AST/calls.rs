@@ -1,3 +1,5 @@
+use crate::context::Context;
+use crate::visitor::Visitor;
 use crate::AST::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -9,11 +11,7 @@ pub struct ExternalCall {
 
 impl Visitable for ExternalCall {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_external_call(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_external_call(self, ctx)?;
 
         let old_is_external_call = ctx.is_external_function_call;
         let old_external_call_context = ctx.external_call_context.clone();
@@ -21,20 +19,12 @@ impl Visitable for ExternalCall {
         ctx.is_external_function_call = true;
         ctx.external_call_context = Option::from(self.clone());
 
-        let result = self.function_call.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.function_call.visit(v, ctx)?;
 
         ctx.is_external_function_call = old_is_external_call;
         ctx.external_call_context = old_external_call_context;
 
-        let result = v.finish_external_call(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_external_call(self, ctx)?;
         Ok(())
     }
 }
@@ -48,36 +38,19 @@ pub struct FunctionCall {
 
 impl Visitable for FunctionCall {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_call(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_call(self, ctx)?;
 
         ctx.is_function_call_context = true;
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
         ctx.is_function_call_context = false;
 
         let old_context = ctx.external_call_context.clone();
         ctx.external_call_context = None;
 
-        let result = self.arguments.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.arguments.visit(v, ctx)?;
         ctx.external_call_context = old_context;
 
-        let result = v.finish_function_call(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_call(self, ctx)?;
         ctx.external_call_context = None;
 
         Ok(())
@@ -92,35 +65,23 @@ pub struct FunctionArgument {
 
 impl Visitable for FunctionArgument {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_argument(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_argument(self, ctx)?;
 
         ctx.is_function_call_argument_label = true;
         if self.identifier.is_some() {
             let ident = self.identifier.clone();
             let mut ident = ident.unwrap();
 
-            ident.visit(v, ctx);
+            ident.visit(v, ctx)?;
             self.identifier = Option::from(ident);
         }
         ctx.is_function_call_argument_label = false;
 
         ctx.is_function_call_argument = true;
-        let result = self.expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.expression.visit(v, ctx)?;
         ctx.is_function_call_argument = false;
 
-        let result = v.finish_function_argument(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_argument(self, ctx)?;
 
         Ok(())
     }

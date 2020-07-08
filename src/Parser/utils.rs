@@ -1,9 +1,12 @@
-pub use nom_locate::LocatedSpan;
-pub use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
 pub use crate::environment::Environment;
-pub use crate::AST::*;
-pub use crate::Parser::*;
 use crate::Parser::statements::*;
+pub use crate::Parser::*;
+pub use crate::AST::*;
+pub use nom::{
+    branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded,
+};
+pub use nom_locate::LocatedSpan;
+use crate::Parser::operators::*;
 
 pub type ParseResult = (Option<Module>, Environment);
 
@@ -46,7 +49,7 @@ mod test {
         assert_eq!(result, LocatedSpan::new(""));
 
         let input = LocatedSpan::new("   ");
-        let (rest, result) = whitespace(input).expect("Error parsing whitespace");
+        let (_rest, result) = whitespace(input).expect("Error parsing whitespace");
         assert_eq!(result, LocatedSpan::new(""));
     }
 }

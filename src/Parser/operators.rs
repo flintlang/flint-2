@@ -237,7 +237,3 @@ pub fn half_open_range(i: Span) -> nom::IResult<Span, Span> {
 pub fn closed_range(i: Span) -> nom::IResult<Span, Span> {
     tag("...")(i)
 }
-
-pub fn implies(i: Span) -> nom::IResult<Span, Span> {
-    tag("==>")(i)
-}

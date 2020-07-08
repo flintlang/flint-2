@@ -2951,6 +2951,7 @@ impl fmt::Display for MoveIRFunctionCall {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum MoveIRLiteral {
     Num(u64),

@@ -1,4 +1,7 @@
+use crate::context::*;
+use crate::visitor::Visitor;
 use crate::AST::*;
+use hex::encode;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TopLevelDeclaration {
@@ -21,30 +24,18 @@ impl TopLevelDeclaration {
 
 impl Visitable for TopLevelDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_top_level_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_top_level_declaration(self, ctx)?;
 
-        let result = match self {
+        match self {
             TopLevelDeclaration::ContractDeclaration(c) => c.visit(v, ctx),
             TopLevelDeclaration::ContractBehaviourDeclaration(c) => c.visit(v, ctx),
             TopLevelDeclaration::StructDeclaration(s) => s.visit(v, ctx),
             TopLevelDeclaration::EnumDeclaration(e) => e.visit(v, ctx),
             TopLevelDeclaration::TraitDeclaration(t) => t.visit(v, ctx),
             TopLevelDeclaration::AssetDeclaration(a) => a.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
 
-        let result = v.finish_top_level_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_top_level_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -92,44 +83,21 @@ impl ContractDeclaration {
 
 impl Visitable for ContractDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_contract_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_contract_declaration(self, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         ctx.contract_declaration_context = Some(ContractDeclarationContext {
             identifier: self.identifier.clone(),
         });
 
-        let result = self.conformances.visit(v, ctx);
+        self.conformances.visit(v, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.contract_members.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.contract_members.visit(v, ctx)?;
 
         ctx.contract_declaration_context = None;
 
-        let result = v.finish_contract_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_contract_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -143,24 +111,12 @@ pub enum ContractMember {
 
 impl Visitable for ContractMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_contract_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_contract_member(self, ctx)?;
+        match self {
             ContractMember::VariableDeclaration(d) => d.visit(v, ctx),
             ContractMember::EventDeclaration(d) => d.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_contract_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_contract_member(self, ctx)?;
         Ok(())
     }
 }
@@ -200,58 +156,32 @@ impl Visitable for ContractBehaviourDeclaration {
         };
         ctx.scope_context = Some(scope);
 
-        let result = v.start_contract_behaviour_declaration(self, ctx);
+        v.start_contract_behaviour_declaration(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.identifier.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         if self.caller_binding.is_some() {
             let caller = self.caller_binding.clone();
             let mut caller = caller.unwrap();
 
-            let result = caller.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            caller.visit(v, ctx)?;
 
             self.caller_binding = Some(caller);
         }
 
-        let result = self.caller_protections.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.caller_protections.visit(v, ctx)?;
 
         let scope = ctx.scope_context.clone();
 
         for member in &mut self.members {
             ctx.scope_context = scope.clone();
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
 
         ctx.contract_behaviour_declaration_context = None;
         ctx.scope_context = None;
 
-        let result = v.finish_contract_behaviour_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_contract_behaviour_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -267,26 +197,14 @@ pub enum ContractBehaviourMember {
 
 impl Visitable for ContractBehaviourMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_contract_behaviour_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_contract_behaviour_member(self, ctx)?;
+        match self {
             ContractBehaviourMember::FunctionDeclaration(f) => f.visit(v, ctx),
             ContractBehaviourMember::SpecialDeclaration(s) => s.visit(v, ctx),
             ContractBehaviourMember::FunctionSignatureDeclaration(f) => f.visit(v, ctx),
             ContractBehaviourMember::SpecialSignatureDeclaration(s) => s.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_contract_behaviour_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_contract_behaviour_member(self, ctx)?;
         Ok(())
     }
 }
@@ -315,32 +233,23 @@ impl AssetDeclaration {
 
 impl Visitable for AssetDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_asset_declaration(self, ctx);
+        v.start_asset_declaration(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let AssetDeclarationContext = AssetDeclarationContext {
+        let asset_declaration_context = AssetDeclarationContext {
             identifier: self.identifier.clone(),
         };
 
-        let ScopeContext = ScopeContext {
+        let scope_context = ScopeContext {
             parameters: vec![],
             local_variables: vec![],
             counter: 0,
         };
-        let ScopeContext = Some(ScopeContext);
+        let scope_context = Some(scope_context);
 
-        ctx.asset_context = Option::from(AssetDeclarationContext);
-        ctx.scope_context = ScopeContext;
+        ctx.asset_context = Option::from(asset_declaration_context);
+        ctx.scope_context = scope_context;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         for member in &mut self.members {
             ctx.scope_context = Option::from(ScopeContext {
@@ -348,22 +257,13 @@ impl Visitable for AssetDeclaration {
                 local_variables: vec![],
                 counter: 0,
             });
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
 
         ctx.asset_context = None;
         ctx.scope_context = None;
 
-        let result = v.finish_asset_declaration(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_asset_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -378,15 +278,11 @@ pub enum AssetMember {
 
 impl Visitable for AssetMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = match self {
+        match self {
             AssetMember::VariableDeclaration(d) => d.visit(v, ctx),
             AssetMember::SpecialDeclaration(s) => s.visit(v, ctx),
             AssetMember::FunctionDeclaration(f) => f.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
         Ok(())
     }
 }
@@ -416,27 +312,19 @@ impl StructDeclaration {
 
 impl Visitable for StructDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_struct_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_struct_declaration(self, ctx)?;
 
-        let StructDeclarationContext = Some(StructDeclarationContext {
+        let struct_declaration_context = Some(StructDeclarationContext {
             identifier: self.identifier.clone(),
         });
-        let ScopeContext = Some(ScopeContext {
+        let scope_context = Some(ScopeContext {
             ..Default::default()
         });
 
-        ctx.struct_declaration_context = StructDeclarationContext;
-        ctx.scope_context = ScopeContext;
+        ctx.struct_declaration_context = struct_declaration_context;
+        ctx.scope_context = scope_context;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         for member in &mut self.members {
             ctx.scope_context = Option::from(ScopeContext {
@@ -444,16 +332,12 @@ impl Visitable for StructDeclaration {
                 local_variables: vec![],
                 counter: 0,
             });
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
         ctx.struct_declaration_context = None;
         ctx.scope_context = None;
 
-        v.finish_struct_declaration(self, ctx);
+        v.finish_struct_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -467,25 +351,13 @@ pub enum StructMember {
 
 impl Visitable for StructMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_struct_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_struct_member(self, ctx)?;
+        match self {
             StructMember::FunctionDeclaration(f) => f.visit(v, ctx),
             StructMember::SpecialDeclaration(s) => s.visit(v, ctx),
             StructMember::VariableDeclaration(d) => d.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_struct_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_struct_member(self, ctx)?;
         Ok(())
     }
 }
@@ -514,21 +386,9 @@ pub struct EnumMember {
 
 impl Visitable for EnumMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_enum_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_enum_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_enum_member(self, ctx)?;
+        self.identifier.visit(v, ctx)?;
+        v.finish_enum_member(self, ctx)?;
         Ok(())
     }
 }
@@ -577,17 +437,9 @@ impl TraitDeclaration {
 
 impl Visitable for TraitDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_trait_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_trait_declaration(self, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         let trait_declaration_context = TraitDeclarationContext {
             identifier: self.identifier.clone(),
@@ -604,18 +456,14 @@ impl Visitable for TraitDeclaration {
 
         for member in &mut self.members {
             ctx.scope_context = Some(trait_scope_ctx.clone());
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
 
         ctx.trait_declaration_context = None;
 
         ctx.scope_context = None;
 
-        v.finish_trait_declaration(self, ctx);
+        v.finish_trait_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -632,18 +480,14 @@ pub enum TraitMember {
 
 impl Visitable for TraitMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = match self {
+        match self {
             TraitMember::FunctionDeclaration(f) => f.visit(v, ctx),
             TraitMember::SpecialDeclaration(s) => s.visit(v, ctx),
             TraitMember::FunctionSignatureDeclaration(f) => f.visit(v, ctx),
             TraitMember::SpecialSignatureDeclaration(s) => s.visit(v, ctx),
             TraitMember::ContractBehaviourDeclaration(c) => c.visit(v, ctx),
             TraitMember::EventDeclaration(e) => e.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
         Ok(())
     }
 }
@@ -725,16 +569,8 @@ impl FunctionDeclaration {
 
 impl Visitable for FunctionDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.head.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_declaration(self, ctx)?;
+        self.head.visit(v, ctx)?;
 
         let local_variables = {
             if ctx.has_scope_context() {
@@ -765,11 +601,7 @@ impl Visitable for FunctionDeclaration {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            let result = statement.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -795,11 +627,7 @@ impl Visitable for FunctionDeclaration {
         }
         ctx.function_declaration_context = None;
 
-        let result = v.finish_function_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_declaration(self, ctx)?;
 
         ctx.pre_statements = vec![];
         ctx.post_statements = vec![];
@@ -871,40 +699,20 @@ impl FunctionSignatureDeclaration {
 
 impl Visitable for FunctionSignatureDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_signature_declaration(self, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
-        let result = self.parameters.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.parameters.visit(v, ctx)?;
 
         if self.result_type.is_some() {
             let result_type = self.result_type.clone();
             let mut result_type = result_type.unwrap();
-            let result = result_type.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            result_type.visit(v, ctx)?;
             self.result_type = Some(result_type);
         }
 
-        let result = v.finish_function_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_signature_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -968,22 +776,9 @@ impl SpecialDeclaration {
 
 impl Visitable for SpecialDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_special_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_special_declaration(self, ctx)?;
 
-        let result = self.head.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.head.visit(v, ctx)?;
 
         let local_variables = {
             if ctx.has_scope_context() {
@@ -1013,11 +808,7 @@ impl Visitable for SpecialDeclaration {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            let result = statement.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -1042,11 +833,7 @@ impl Visitable for SpecialDeclaration {
             ctx.scope_context = Some(scope);
         }
         ctx.special_declaration_context = None;
-        let result = v.finish_special_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_special_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -1068,23 +855,11 @@ impl SpecialSignatureDeclaration {
 
 impl Visitable for SpecialSignatureDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_special_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_special_signature_declaration(self, ctx)?;
 
-        let result = self.parameters.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.parameters.visit(v, ctx)?;
 
-        let result = v.finish_special_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_special_signature_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -1136,21 +911,9 @@ impl Parameter {
 
 impl Visitable for Parameter {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_parameter(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.type_assignment.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_parameter(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_parameter(self, ctx)?;
+        self.type_assignment.visit(v, ctx)?;
+        v.finish_parameter(self, ctx)?;
         Ok(())
     }
 }
@@ -1181,24 +944,11 @@ impl VariableDeclaration {
 
 impl Visitable for VariableDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_variable_declaration(self, ctx);
+        v.start_variable_declaration(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.variable_type.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.variable_type.visit(v, ctx)?;
 
         if self.expression.is_some() {
             let previous_scope = ctx.scope_context.clone();
@@ -1212,7 +962,7 @@ impl Visitable for VariableDeclaration {
             let expression = self.expression.clone();
             let mut expression = expression.unwrap();
 
-            expression.visit(v, ctx);
+            expression.visit(v, ctx)?;
 
             self.expression = Option::from(expression);
             ctx.is_property_default_assignment = false;
@@ -1220,16 +970,8 @@ impl Visitable for VariableDeclaration {
             ctx.scope_context = previous_scope;
         }
 
-        let result = v.finish_variable_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_variable_declaration(self, ctx)?;
 
         Ok(())
     }
 }
-
-
-
-

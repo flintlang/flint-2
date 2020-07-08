@@ -1,10 +1,10 @@
-mod statements;
-mod expressions;
-mod types;
+mod calls;
 mod declarations;
+mod expressions;
 mod literals;
 mod operators;
-mod calls;
+mod statements;
+mod types;
 
 use std::cmp::max;
 use std::collections::HashMap;
@@ -19,13 +19,13 @@ use super::context::*;
 use super::environment::*;
 use super::visitor::*;
 
-pub use crate::AST::statements::*;
-pub use crate::AST::expressions::*;
-pub use crate::AST::types::*;
-pub use crate::AST::declarations::*;
-pub use crate::AST::operators::*;
-pub use crate::AST::literals::*;
 pub use crate::AST::calls::*;
+pub use crate::AST::declarations::*;
+pub use crate::AST::expressions::*;
+pub use crate::AST::literals::*;
+pub use crate::AST::operators::*;
+pub use crate::AST::statements::*;
+pub use crate::AST::types::*;
 
 pub type VResult = Result<(), Box<dyn Error>>;
 
@@ -298,21 +298,9 @@ impl CallerProtection {
 
 impl Visitable for CallerProtection {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_caller_protection(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_caller_protection(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_caller_protection(self, ctx)?;
+        self.identifier.visit(v, ctx)?;
+        v.finish_caller_protection(self, ctx)?;
         Ok(())
     }
 }

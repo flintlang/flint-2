@@ -1,5 +1,8 @@
+use crate::context::Context;
+use crate::visitor::*;
 use crate::AST::*;
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     Identifier(Identifier),
@@ -99,13 +102,9 @@ impl Expression {
 
 impl Visitable for Expression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_expression(self, ctx)?;
 
-        let result = match self {
+        match self {
             Expression::Identifier(i) => i.visit(v, ctx),
             Expression::BinaryExpression(b) => b.visit(v, ctx),
             Expression::InoutExpression(i) => i.visit(v, ctx),
@@ -124,23 +123,12 @@ impl Visitable for Expression {
             Expression::CastExpression(c) => c.visit(v, ctx),
             Expression::Sequence(l) => {
                 for i in l {
-                    i.visit(v, ctx);
+                    i.visit(v, ctx)?;
                 }
                 Ok(())
             }
-        };
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = v.finish_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        Ok(())
+        }?;
+        v.finish_expression(self, ctx)
     }
 }
 
@@ -152,32 +140,13 @@ pub struct CastExpression {
 
 impl Visitable for CastExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_cast_expression(self, ctx);
+        v.start_cast_expression(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.cast_type.visit(v, ctx)?;
 
-        let result = self.cast_type.visit(v, ctx);
+        self.expression.visit(v, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.expression.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = v.finish_cast_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_cast_expression(self, ctx)?;
         Ok(())
     }
 }
@@ -203,36 +172,19 @@ pub struct SubscriptExpression {
 
 impl Visitable for SubscriptExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_subscript_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_subscript_expression(self, ctx)?;
 
         let in_subscript = ctx.in_subscript;
 
-        let result = self.base_expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.base_expression.visit(v, ctx)?;
 
         ctx.in_subscript = true;
 
-        let result = self.index_expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.index_expression.visit(v, ctx)?;
 
         ctx.in_subscript = in_subscript;
 
-        let result = v.finish_subscript_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        Ok(())
+        v.finish_subscript_expression(self, ctx)
     }
 }
 
@@ -275,17 +227,8 @@ impl PartialEq for Identifier {
 
 impl Visitable for Identifier {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_identifier(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_identifier(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        Ok(())
+        v.start_identifier(self, ctx)?;
+        v.finish_identifier(self, ctx)
     }
 }
 
@@ -299,14 +242,11 @@ pub struct BinaryExpression {
 
 impl Visitable for BinaryExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_binary_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_binary_expression(self, ctx)?;
 
         if self.op.is_assignment() {
-            if let Expression::VariableDeclaration(_) = *self.lhs_expression {} else {
+            if let Expression::VariableDeclaration(_) = *self.lhs_expression {
+            } else {
                 ctx.is_lvalue = true;
             }
         }
@@ -318,11 +258,7 @@ impl Visitable for BinaryExpression {
         let old_context = ctx.external_call_context.clone();
         ctx.external_call_context = None;
 
-        let result = self.lhs_expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.lhs_expression.visit(v, ctx)?;
 
         if let BinOp::Dot = self.op.clone() {
             ctx.is_lvalue = false;
@@ -353,21 +289,12 @@ impl Visitable for BinaryExpression {
                 if self.op.is_assignment() {
                     ctx.in_assignment = true;
                 }
-                let result = self.rhs_expression.visit(v, ctx);
-                match result {
-                    Ok(_) => {}
-                    Err(e) => return Err(e),
-                }
+                self.rhs_expression.visit(v, ctx)?;
                 ctx.in_assignment = false;
             }
         };
 
-        let result = v.finish_binary_expression(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_binary_expression(self, ctx)?;
         ctx.is_lvalue = false;
         Ok(())
     }
@@ -381,22 +308,9 @@ pub struct InoutExpression {
 
 impl Visitable for InoutExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_inout_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_inout_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        Ok(())
+        v.start_inout_expression(self, ctx)?;
+        self.expression.visit(v, ctx)?;
+        v.finish_inout_expression(self, ctx)
     }
 }
 
@@ -407,11 +321,6 @@ pub struct BracketedExpression {
 
 impl Visitable for BracketedExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = self.expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        Ok(())
+        self.expression.visit(v, ctx)
     }
 }

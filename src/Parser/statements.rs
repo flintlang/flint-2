@@ -2,7 +2,6 @@ use crate::Parser::calls::parse_function_call;
 use crate::Parser::declarations::parse_variable_declaration;
 use crate::Parser::expressions::parse_expression;
 use crate::Parser::utils::*;
-use crate::context;
 
 pub fn parse_statements(i: Span) -> nom::IResult<Span, Vec<Statement>> {
     let (i, statements) = many0(nom::sequence::terminated(

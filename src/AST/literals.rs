@@ -1,4 +1,6 @@
 use crate::AST::*;
+use crate::visitor::Visitor;
+use crate::context::Context;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DictionaryLiteral {
@@ -7,29 +9,13 @@ pub struct DictionaryLiteral {
 
 impl Visitable for DictionaryLiteral {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_dictionary_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_dictionary_literal(self, ctx)?;
 
         for (e, l) in &mut self.elements {
-            let result = e.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
-            let result = l.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            e.visit(v, ctx)?;
+            l.visit(v, ctx)?;
         }
-        let result = v.finish_dictionary_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_dictionary_literal(self, ctx)?;
         Ok(())
     }
 }
@@ -41,23 +27,11 @@ pub struct ArrayLiteral {
 
 impl Visitable for ArrayLiteral {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_array_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_array_literal(self, ctx)?;
 
-        let result = self.elements.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.elements.visit(v, ctx)?;
 
-        let result = v.finish_array_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_array_literal(self, ctx)?;
         Ok(())
     }
 }

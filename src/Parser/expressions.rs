@@ -1,6 +1,9 @@
-use crate::Parser::utils::*;
 use crate::Parser::calls::*;
 use crate::Parser::types::*;
+use crate::Parser::utils::*;
+use crate::Parser::literals::*;
+use crate::Parser::identifiers::parse_identifier;
+use crate::Parser::operators::*;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
@@ -194,11 +197,13 @@ pub fn parse_binary_expression_precedence(
 mod test {
 
     use crate::Parser::expressions::*;
+    use crate::AST::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_inout_expression() {
         let input = LocatedSpan::new("&expression");
-        let (rest, result) = parse_expression(input).expect("Error parsing inout expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing inout expression");
         assert_eq!(
             result,
             Expression::InoutExpression(InoutExpression {
@@ -215,7 +220,7 @@ mod test {
     #[test]
     fn test_parse_bracketed_expression() {
         let input = LocatedSpan::new("(expression)");
-        let (rest, result) = parse_expression(input).expect("Error parsing bracketed expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing bracketed expression");
         assert_eq!(
             result,
             Expression::BracketedExpression(BracketedExpression {
@@ -232,7 +237,7 @@ mod test {
     //TODO: why is this function never called?
     fn test_parse_attempt_expression() {
         let input = LocatedSpan::new("try?foo()");
-        let (rest, result) =
+        let (_rest, result) =
             parse_attempt_expression(input).expect("Error parsing attempt expression");
         assert_eq!(
             result,
@@ -255,7 +260,7 @@ mod test {
     #[test]
     fn test_parse_subscript_expression() {
         let input = LocatedSpan::new("base[index]");
-        let (rest, result) = parse_expression(input).expect("Error parsing subscript expression");
+        let (_rest, result) = parse_expression(input).expect("Error parsing subscript expression");
         assert_eq!(
             result,
             Expression::SubscriptExpression(SubscriptExpression {
@@ -277,43 +282,52 @@ mod test {
     #[test]
     fn test_parse_binary_expression() {
         let input = LocatedSpan::new("x ** 2");
-        let (rest, result) = parse_expression(input).expect("Error parsing binary expression");
-        assert_eq!(result, Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(Expression::Identifier(Identifier {
-                token: String::from("x"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0 },
-            })),
+        let (_rest, result) = parse_expression(input).expect("Error parsing binary expression");
+        assert_eq!(
+            result,
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("x"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 },
+                })),
 
-            rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(2))),
-            op: BinOp::Power,
-            line_info: LineInfo { line: 1, offset: 0 },
-        }));
+                rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(2))),
+                op: BinOp::Power,
+                line_info: LineInfo { line: 1, offset: 0 },
+            })
+        );
     }
 
     #[test]
     fn test_parse_cast_expression() {
         let input = LocatedSpan::new("cast x to Int");
-        let (rest, result) = parse_expression(input).expect("Error parsing cast expression");
-        assert_eq!(result, Expression::CastExpression(CastExpression {
-            expression: Box::new(Expression::Identifier(Identifier {
-                token: String::from("x"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0 },
-            })),
+        let (_rest, result) = parse_expression(input).expect("Error parsing cast expression");
+        assert_eq!(
+            result,
+            Expression::CastExpression(CastExpression {
+                expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("x"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 },
+                })),
 
-            cast_type: Type::Int
-        }));
+                cast_type: Type::Int
+            })
+        );
     }
 
     #[test]
     fn test_parse_range_expression() {
         let input = LocatedSpan::new("(0..<3)");
-        let (rest, result) = parse_expression(input).expect("Error parsing range expression");
-        assert_eq!(result, Expression::RangeExpression(RangeExpression {
-            start_expression: Box::new(Expression::Literal(Literal::IntLiteral(0))),
-            end_expression: Box::new(Expression::Literal(Literal::IntLiteral(3))),
-            op: String::from("..<")
-        }));
+        let (_rest, result) = parse_expression(input).expect("Error parsing range expression");
+        assert_eq!(
+            result,
+            Expression::RangeExpression(RangeExpression {
+                start_expression: Box::new(Expression::Literal(Literal::IntLiteral(0))),
+                end_expression: Box::new(Expression::Literal(Literal::IntLiteral(3))),
+                op: String::from("..<")
+            })
+        );
     }
 }

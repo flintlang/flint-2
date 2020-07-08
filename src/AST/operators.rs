@@ -1,5 +1,4 @@
-use crate::AST::*;
-
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum BinOp {
     Plus,
@@ -25,7 +24,6 @@ pub enum BinOp {
     GreaterThanOrEqual,
     Or,
     And,
-    Implies,
 }
 
 impl BinOp {
@@ -47,7 +45,6 @@ impl BinOp {
             BinOp::GreaterThanOrEqual => true,
             BinOp::Or => true,
             BinOp::And => true,
-            BinOp::Implies => true,
             _ => false,
         }
     }

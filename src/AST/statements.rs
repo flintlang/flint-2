@@ -1,4 +1,6 @@
 use crate::AST::*;
+use crate::context::{BlockContext, Context, ScopeContext};
+use crate::visitor::Visitor;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
@@ -22,12 +24,8 @@ impl Statement {
 
 impl Visitable for Statement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_statement(self, ctx)?;
+        match self {
             Statement::ReturnStatement(r) => r.visit(v, ctx),
             Statement::Expression(e) => e.visit(v, ctx),
             Statement::BecomeStatement(b) => b.visit(v, ctx),
@@ -35,16 +33,8 @@ impl Visitable for Statement {
             Statement::ForStatement(f) => f.visit(v, ctx),
             Statement::IfStatement(i) => i.visit(v, ctx),
             Statement::DoCatchStatement(d) => d.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -85,11 +75,11 @@ impl IfStatement {
 
 impl Visitable for IfStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        v.start_if_statement(self, ctx);
+        v.start_if_statement(self, ctx)?;
 
         ctx.in_if_condition = true;
 
-        self.condition.visit(v, ctx);
+        self.condition.visit(v, ctx)?;
 
         ctx.in_if_condition = false;
 
@@ -114,7 +104,7 @@ impl Visitable for IfStatement {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            statement.visit(v, ctx);
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -180,7 +170,7 @@ impl Visitable for IfStatement {
         for statement in &mut self.else_body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            statement.visit(v, ctx);
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -209,11 +199,7 @@ impl Visitable for IfStatement {
         ctx.pre_statements = pre_statements;
         ctx.post_statements = post_statements;
 
-        let result = v.finish_if_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_if_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -228,16 +214,16 @@ pub struct ForStatement {
 
 impl Visitable for ForStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        v.start_for_statement(self, ctx);
+        v.start_for_statement(self, ctx)?;
 
-        self.variable.visit(v, ctx);
+        self.variable.visit(v, ctx)?;
 
-        self.iterable.visit(v, ctx);
+        self.iterable.visit(v, ctx)?;
 
-        let scopeContext = ctx.scope_context.clone();
-        let blockContext = ctx.block_context.clone();
-        let PreStatements = ctx.pre_statements.clone();
-        let PostStatements = ctx.post_statements.clone();
+        let initial_scope_context = ctx.scope_context.clone();
+        let initial_block_context = ctx.block_context.clone();
+        let initial_pre_statements = ctx.pre_statements.clone();
+        let initial_post_statements = ctx.post_statements.clone();
 
         let blocks_scope = if self.for_body_scope_context.is_some() {
             let temp = self.for_body_scope_context.clone();
@@ -252,10 +238,11 @@ impl Visitable for ForStatement {
         ctx.block_context = Some(block_context);
 
         let mut statements: Vec<Vec<Statement>> = vec![];
+
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            statement.visit(v, ctx);
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -271,16 +258,12 @@ impl Visitable for ForStatement {
 
         self.body = statements;
 
-        ctx.scope_context = scopeContext;
-        ctx.block_context = blockContext;
-        ctx.pre_statements = PreStatements;
-        ctx.post_statements = PostStatements;
+        ctx.scope_context = initial_scope_context;
+        ctx.block_context = initial_block_context;
+        ctx.pre_statements = initial_pre_statements;
+        ctx.post_statements = initial_post_statements;
 
-        let result = v.finish_for_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_for_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -292,25 +275,13 @@ pub struct EmitStatement {
 
 impl Visitable for EmitStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_emit_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_emit_statement(self, ctx)?;
 
         ctx.in_emit = true;
-        let result = self.function_call.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.function_call.visit(v, ctx)?;
         ctx.in_emit = false;
 
-        let result = v.finish_emit_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_emit_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -324,7 +295,7 @@ pub struct BecomeStatement {
 impl Visitable for BecomeStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         ctx.in_become = true;
-        self.expression.visit(v, ctx);
+        self.expression.visit(v, ctx)?;
         ctx.in_become = false;
         Ok(())
     }
@@ -339,27 +310,15 @@ pub struct ReturnStatement {
 
 impl Visitable for ReturnStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_return_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_return_statement(self, ctx)?;
         if self.expression.is_some() {
             let expression = self.expression.clone();
             let mut expression = expression.unwrap();
-            let result = expression.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            expression.visit(v, ctx)?;
             self.expression = Option::from(expression);
         }
 
-        let result = v.finish_return_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_return_statement(self, ctx)?;
         Ok(())
     }
 }

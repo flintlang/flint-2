@@ -2822,7 +2822,7 @@ impl fmt::Display for YulVariableDeclaration {
             )
         };
         if self.expression.is_none() {
-            write!(f, "let {declarations}", declarations = declarations);
+            write!(f, "let {declarations}", declarations = declarations)?;
         }
         let expression = self.expression.clone();
         let expression = expression.unwrap();

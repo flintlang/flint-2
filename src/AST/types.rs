@@ -1,8 +1,10 @@
 use crate::AST::*;
+use crate::environment::Environment;
+use crate::visitor::Visitor;
+use crate::context::Context;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
-    QuartzType(QuartzType),
     InoutType(InoutType),
     ArrayType(ArrayType),
     RangeType(RangeType),
@@ -104,7 +106,6 @@ impl Type {
 
     pub fn is_built_in_type(&self) -> bool {
         match self {
-            Type::QuartzType(_) => unimplemented!(),
             Type::InoutType(i) => i.key_type.is_built_in_type(),
             Type::ArrayType(a) => a.key_type.is_built_in_type(),
             Type::RangeType(r) => r.key_type.is_built_in_type(),
@@ -123,7 +124,6 @@ impl Type {
 
     pub fn name(&self) -> String {
         match self {
-            Type::QuartzType(_) => unimplemented!(),
             Type::InoutType(i) => {
                 let name = i.key_type.name();
                 format!("$inout{name}", name = name)
@@ -268,9 +268,9 @@ impl Type {
 
 impl Visitable for Type {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        v.start_type(self, ctx);
+        v.start_type(self, ctx)?;
 
-        v.finish_type(self, ctx);
+        v.finish_type(self, ctx)?;
 
         Ok(())
     }
@@ -372,12 +372,6 @@ pub struct FixedSizedArrayType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct InoutType {
     pub key_type: Box<Type>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct QuartzType {
-    pub base_type: Box<Type>,
-    pub arguments: Vec<Type>,
 }
 
 #[derive(Debug)]

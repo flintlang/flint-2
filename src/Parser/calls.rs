@@ -1,4 +1,7 @@
 use crate::Parser::utils::*;
+use crate::Parser::expressions::*;
+use crate::Parser::identifiers::*;
+use crate::Parser::operators::*;
 
 pub fn parse_external_call(i: Span) -> nom::IResult<Span, ExternalCall> {
     let (i, _) = tag("call")(i)?;
@@ -59,34 +62,45 @@ fn parse_function_call_argument(i: Span) -> nom::IResult<Span, FunctionArgument>
 mod test {
 
     use crate::Parser::calls::*;
+    use nom_locate::LocatedSpan;
+    use crate::AST::*;
 
     #[test]
     fn test_parse_function_call() {
         let input = LocatedSpan::new("foo(first, second)");
-        let (rest, result) = parse_function_call(input).expect("Error parsing function call");
-        assert_eq!(result, FunctionCall {
-            identifier: Identifier {
-                token: String::from("foo"),
-                enclosing_type: None,
-                line_info: LineInfo { line : 1, offset : 0}            
-            },
+        let (_rest, result) = parse_function_call(input).expect("Error parsing function call");
+        assert_eq!(
+            result,
+            FunctionCall {
+                identifier: Identifier {
+                    token: String::from("foo"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                },
 
-            arguments: vec![FunctionArgument {
-                identifier: None,
-                expression: Expression::Identifier(Identifier {
-                    token: String::from("first"),
-                    enclosing_type: None,
-                    line_info: LineInfo { line : 1, offset : 4}
-                })
-            }, FunctionArgument {
-                identifier: None,
-                expression: Expression::Identifier(Identifier {
-                    token: String::from("second"),
-                    enclosing_type: None,
-                    line_info: LineInfo { line : 1, offset : 11}
-                })
-            }],
-            mangled_identifier: None
-        });
+                arguments: vec![
+                    FunctionArgument {
+                        identifier: None,
+                        expression: Expression::Identifier(Identifier {
+                            token: String::from("first"),
+                            enclosing_type: None,
+                            line_info: LineInfo { line: 1, offset: 4 }
+                        })
+                    },
+                    FunctionArgument {
+                        identifier: None,
+                        expression: Expression::Identifier(Identifier {
+                            token: String::from("second"),
+                            enclosing_type: None,
+                            line_info: LineInfo {
+                                line: 1,
+                                offset: 11
+                            }
+                        })
+                    }
+                ],
+                mangled_identifier: None
+            }
+        );
     }
 }

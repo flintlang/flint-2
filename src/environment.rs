@@ -1,7 +1,6 @@
+use crate::context::ScopeContext;
+use crate::AST::*;
 use std::collections::HashMap;
-
-use super::context::*;
-use super::AST::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
@@ -14,6 +13,7 @@ pub struct Environment {
     pub types: HashMap<TypeIdentifier, TypeInfo>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum FunctionCallMatchResult {
     MatchedFunction(FunctionInformation),
@@ -1234,6 +1234,7 @@ impl Environment {
         FunctionCallMatchResult::Failure(candidates)
     }
 
+    #[allow(dead_code)]
     fn match_fallback_function(&self, f: FunctionCall, c: Vec<CallerProtection>) {
         let mut candidates = Vec::new();
         let type_info = self.types.get(&f.identifier.token.clone());
