@@ -1,6 +1,6 @@
-use super::AST::*;
 use super::context::*;
 use super::visitor::*;
+use super::AST::*;
 
 pub struct SemanticAnalysis {}
 
@@ -259,7 +259,7 @@ impl Visitor for SemanticAnalysis {
 
         let remaining = statements
             .into_iter()
-            .skip_while(|s| !isReturnOrBecomeStatement(s.clone()));
+            .skip_while(|s| !is_return_or_become_statement(s.clone()));
 
         for statement in _t.body.clone() {
             match statement {
@@ -269,8 +269,8 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let remainingAfterEnd = remaining.filter(|s| !isReturnOrBecomeStatement(s.clone()));
-        if remainingAfterEnd.count() > 0 {
+        let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s.clone()));
+        if remaining_after_end.count() > 0 {
             println!("Statements after Return");
             return Err(Box::from("".to_owned()));
         }
@@ -309,7 +309,7 @@ impl Visitor for SemanticAnalysis {
         _t: &mut FunctionDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        _t.ScopeContext = _ctx.scope_context.clone();
+        _t.scope_context = _ctx.scope_context.clone();
         Ok(())
     }
 
@@ -337,7 +337,8 @@ impl Visitor for SemanticAnalysis {
         if _ctx.is_property_default_assignment
             && !_ctx.environment.is_struct_declared(&_t.token)
             && !_ctx.environment.is_asset_declared(&_t.token)
-            && _ctx.enclosing_type_identifier().is_some() {
+            && _ctx.enclosing_type_identifier().is_some()
+        {
             return if _ctx.environment.is_property_defined(
                 _t.token.clone(),
                 &_ctx.enclosing_type_identifier().unwrap().token,
@@ -350,8 +351,8 @@ impl Visitor for SemanticAnalysis {
             };
         }
 
-
-        if _ctx.is_function_call_context || _ctx.is_function_call_argument_label {} else if _ctx.in_function_or_special() && !_ctx.in_become && !_ctx.in_emit {
+        if _ctx.is_function_call_context || _ctx.is_function_call_argument_label {
+        } else if _ctx.in_function_or_special() && !_ctx.in_become && !_ctx.in_emit {
             let is_l_value = _ctx.is_lvalue;
             if _t.enclosing_type.is_none() {
                 let scope = _ctx.scope_context.is_some();
@@ -397,7 +398,7 @@ impl Visitor for SemanticAnalysis {
                     let error = format!("Use of Undeclared Identifier {ident}", ident = identifier);
                     println!("{}", error);
                     return Err(Box::from("".to_owned()));
-                    //TODO add add used undefined variable to env
+                //TODO add add used undefined variable to env
                 } else if is_l_value && !_ctx.in_subscript {
                     if _ctx.environment.is_property_constant(
                         _t.token.clone(),
@@ -438,7 +439,8 @@ impl Visitor for SemanticAnalysis {
                     }
                 }
             }
-        } else if _ctx.in_become {}
+        } else if _ctx.in_become {
+        }
 
         Ok(())
     }
@@ -447,7 +449,8 @@ impl Visitor for SemanticAnalysis {
         let start = _t.start_expression.clone();
         let end = _t.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
+        } else {
             println!("Invalid Range Declaration");
             return Err(Box::from("".to_owned()));
         }
@@ -462,15 +465,13 @@ impl Visitor for SemanticAnalysis {
     ) -> VResult {
         if _ctx.enclosing_type_identifier().is_some()
             && !_t.is_any()
-            && !_ctx.environment.contains_caller_protection(
-            _t,
-            &_ctx.enclosing_type_identifier().unwrap().token,
-        )
+            && !_ctx
+                .environment
+                .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
         {
             println!("Undeclared Caller Protection");
             return Err(Box::from("".to_owned()));
         }
-
 
         Ok(())
     }

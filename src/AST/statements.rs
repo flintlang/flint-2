@@ -67,12 +67,12 @@ pub struct IfStatement {
     pub condition: Expression,
     pub body: Vec<Statement>,
     pub else_body: Vec<Statement>,
-    pub IfBodyScopeContext: Option<ScopeContext>,
-    pub ElseBodyScopeContext: Option<ScopeContext>,
+    pub if_body_scope_context: Option<ScopeContext>,
+    pub else_body_scope_context: Option<ScopeContext>,
 }
 
 impl IfStatement {
-    pub fn endsWithReturn(&self) -> bool {
+    pub fn ends_with_return(&self) -> bool {
         let body = self.body.clone();
         for b in body {
             if let Statement::ReturnStatement(_) = b {
@@ -98,15 +98,15 @@ impl Visitable for IfStatement {
         let scope = ctx.scope_context.clone();
         let block = ctx.block_context.clone();
 
-        let blocks_scope = if self.IfBodyScopeContext.is_some() {
-            let temp = self.IfBodyScopeContext.clone();
+        let blocks_scope = if self.if_body_scope_context.is_some() {
+            let temp = self.if_body_scope_context.clone();
             temp.unwrap()
         } else {
             let temp = ctx.scope_context.clone();
             temp.unwrap()
         };
         let block_context = BlockContext {
-            ScopeContext: blocks_scope,
+            scope_context: blocks_scope,
         };
 
         ctx.block_context = Some(block_context);
@@ -130,12 +130,12 @@ impl Visitable for IfStatement {
 
         self.body = statements;
 
-        if self.IfBodyScopeContext.is_none() {
-            self.IfBodyScopeContext = ctx.scope_context.clone();
+        if self.if_body_scope_context.is_none() {
+            self.if_body_scope_context = ctx.scope_context.clone();
         } else if ctx.block_context.is_some() {
             let block = ctx.block_context.clone();
             let block = block.unwrap();
-            self.IfBodyScopeContext = Option::from(block.ScopeContext.clone());
+            self.if_body_scope_context = Option::from(block.scope_context.clone());
         }
 
         if scope.is_some() {
@@ -154,7 +154,7 @@ impl Visitable for IfStatement {
             temp_scope.counter = if ctx.block_context.is_some() {
                 let ctx_block = ctx.block_context.clone();
                 let ctx_scope = ctx_block.unwrap();
-                let ctx_scope = ctx_scope.ScopeContext;
+                let ctx_scope = ctx_scope.scope_context;
                 temp_scope.counter + ctx_scope.local_variables.len() as u64
             } else {
                 temp_scope.counter + 1
@@ -163,15 +163,15 @@ impl Visitable for IfStatement {
             ctx.scope_context = Option::from(temp_scope);
         }
 
-        let blocks_scope = if self.ElseBodyScopeContext.is_some() {
-            let temp = self.ElseBodyScopeContext.clone();
+        let blocks_scope = if self.else_body_scope_context.is_some() {
+            let temp = self.else_body_scope_context.clone();
             temp.unwrap()
         } else {
             let temp = ctx.scope_context.clone();
             temp.unwrap()
         };
         let block_context = BlockContext {
-            ScopeContext: blocks_scope,
+            scope_context: blocks_scope,
         };
 
         ctx.block_context = Some(block_context);
@@ -196,12 +196,12 @@ impl Visitable for IfStatement {
 
         self.else_body = statements;
 
-        if self.ElseBodyScopeContext.is_none() {
-            self.ElseBodyScopeContext = ctx.scope_context.clone();
+        if self.else_body_scope_context.is_none() {
+            self.else_body_scope_context = ctx.scope_context.clone();
         } else if ctx.block_context.is_some() {
             let block = ctx.block_context.clone();
             let block = block.unwrap();
-            self.ElseBodyScopeContext = Option::from(block.ScopeContext.clone());
+            self.else_body_scope_context = Option::from(block.scope_context.clone());
         }
 
         ctx.scope_context = scope;
@@ -223,7 +223,7 @@ pub struct ForStatement {
     pub variable: VariableDeclaration,
     pub iterable: Expression,
     pub body: Vec<Statement>,
-    pub ForBodyScopeContext: Option<ScopeContext>,
+    pub for_body_scope_context: Option<ScopeContext>,
 }
 
 impl Visitable for ForStatement {
@@ -239,15 +239,15 @@ impl Visitable for ForStatement {
         let PreStatements = ctx.pre_statements.clone();
         let PostStatements = ctx.post_statements.clone();
 
-        let blocks_scope = if self.ForBodyScopeContext.is_some() {
-            let temp = self.ForBodyScopeContext.clone();
+        let blocks_scope = if self.for_body_scope_context.is_some() {
+            let temp = self.for_body_scope_context.clone();
             temp.unwrap()
         } else {
             let temp = ctx.scope_context.clone();
             temp.unwrap()
         };
         let block_context = BlockContext {
-            ScopeContext: blocks_scope,
+            scope_context: blocks_scope,
         };
         ctx.block_context = Some(block_context);
 

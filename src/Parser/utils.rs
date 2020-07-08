@@ -3,6 +3,7 @@ pub use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, 
 pub use crate::environment::Environment;
 pub use crate::AST::*;
 pub use crate::Parser::*;
+use crate::Parser::statements::*;
 
 pub type ParseResult = (Option<Module>, Environment);
 

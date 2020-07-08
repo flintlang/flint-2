@@ -1,3 +1,10 @@
+use crate::Parser::calls::parse_function_call;
+use crate::Parser::expressions::*;
+use crate::Parser::identifiers::*;
+use crate::Parser::modifiers::*;
+use crate::Parser::operators::*;
+use crate::Parser::parameters::*;
+use crate::Parser::types::*;
 use crate::Parser::utils::*;
 
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
@@ -14,9 +21,7 @@ pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclar
     Ok((i, top))
 }
 
-
 // event declaration
-
 
 fn parse_event_declaration(i: Span) -> nom::IResult<Span, EventDeclaration> {
     let (i, _event_token) = tag("event")(i)?;
@@ -31,9 +36,7 @@ fn parse_event_declaration(i: Span) -> nom::IResult<Span, EventDeclaration> {
     Ok((i, event_declaration))
 }
 
-
 // contract declaration
-
 
 fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, _contract_token) = tag("contract")(i)?;
@@ -82,7 +85,6 @@ fn parse_conformances(i: Span) -> nom::IResult<Span, Vec<Conformance>> {
 }
 
 // contract behaviour declaration
-
 
 fn parse_contract_behaviour_declaration(
     i: Span,
@@ -169,7 +171,6 @@ fn parse_caller_protection_group(i: Span) -> nom::IResult<Span, Vec<CallerProtec
 
 // variable declaration
 
-
 fn parse_variable_declaration_enclosing(i: Span) -> nom::IResult<Span, VariableDeclaration> {
     let (i, _) = parse_modifiers(i)?;
     let (i, _) = whitespace(i)?;
@@ -215,9 +216,7 @@ pub fn parse_variable_declaration(i: Span) -> nom::IResult<Span, VariableDeclara
     Ok((i, variable_declaration))
 }
 
-
 // enum declaration
-
 
 fn parse_enum_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, enum_token) = tag("enum")(i)?;
@@ -280,9 +279,7 @@ fn parse_enum_member(i: Span) -> nom::IResult<Span, EnumMember> {
     Ok((i, enum_member))
 }
 
-
 // special declaration
-
 
 fn parse_special_declaration(i: Span) -> nom::IResult<Span, SpecialDeclaration> {
     let (i, signature) = parse_special_signature_declaration(i)?;
@@ -291,7 +288,7 @@ fn parse_special_declaration(i: Span) -> nom::IResult<Span, SpecialDeclaration> 
     let special_declaration = SpecialDeclaration {
         head: signature,
         body: statements,
-        ScopeContext: Default::default(),
+        scope_context: Default::default(),
         generated: false,
     };
 
@@ -351,9 +348,7 @@ fn parse_mutates(i: Span) -> nom::IResult<Span, Vec<Identifier>> {
     Ok((i, identifiers))
 }
 
-
 // function declaration
-
 
 fn parse_function_declaration(i: Span) -> nom::IResult<Span, FunctionDeclaration> {
     let (i, signature) = parse_function_signature_declaration(i)?;
@@ -363,9 +358,9 @@ fn parse_function_declaration(i: Span) -> nom::IResult<Span, FunctionDeclaration
     let function_declaration = FunctionDeclaration {
         head: signature,
         body: statements,
-        ScopeContext: None,
+        scope_context: None,
         tags: vec![],
-        mangledIdentifier: None,
+        mangled_identifier: None,
         is_external: false,
     };
     Ok((i, function_declaration))
@@ -415,9 +410,7 @@ fn parse_result(i: Span) -> nom::IResult<Span, Option<Type>> {
     Ok((i, Some(identifier)))
 }
 
-
 // asset declaration
-
 
 fn parse_asset_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, _struct_token) = tag("asset")(i)?;
@@ -452,9 +445,7 @@ fn parse_asset_member(i: Span) -> nom::IResult<Span, AssetMember> {
     ))(i)
 }
 
-
 // struct declaration
-
 
 fn parse_struct_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, _struct_token) = tag("struct")(i)?;
@@ -494,9 +485,7 @@ fn parse_struct_member(i: Span) -> nom::IResult<Span, StructMember> {
     ))(i)
 }
 
-
 // trait declaration
-
 
 fn parse_trait_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, modifiers) = many0(nom::sequence::terminated(
@@ -567,13 +556,14 @@ fn parse_trait_member(i: Span) -> nom::IResult<Span, TraitMember> {
 
 #[cfg(test)]
 mod test {
-
     use crate::Parser::declarations::*;
+    use crate::AST::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_contract_member() {
         let input = LocatedSpan::new("var minter: Address");
-        let (rest, result) = parse_contract_member(input).expect("Error parsing contract member");
+        let (_rest, result) = parse_contract_member(input).expect("Error parsing contract member");
         assert_eq!(
             result,
             ContractMember::VariableDeclaration(VariableDeclaration {
@@ -597,7 +587,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_caller_binding(input);
         match result {
-            Ok((c, b)) => assert_eq!(
+            Ok((_c, b)) => assert_eq!(
                 b,
                 Identifier {
                     token: "caller".to_string(),

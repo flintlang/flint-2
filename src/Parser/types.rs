@@ -1,3 +1,8 @@
+use std::collections::HashSet;
+
+use crate::Parser::identifiers::parse_identifier;
+use crate::Parser::literals::*;
+use crate::Parser::operators::*;
 use crate::Parser::utils::*;
 
 pub fn parse_type_annotation(i: Span) -> nom::IResult<Span, TypeAnnotation> {
@@ -217,6 +222,8 @@ fn parse_basic_type(i: Span) -> nom::IResult<Span, Type> {
 mod test {
 
     use crate::Parser::types::*;
+    use crate::AST::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_int_type() {
@@ -224,7 +231,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::Int),
+            Ok((_c, b)) => assert_eq!(b, Type::Int),
             Err(_) => assert_eq!(1, 0),
         }
     }
@@ -235,7 +242,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::Address),
+            Ok((_c, b)) => assert_eq!(b, Type::Address),
             Err(_) => assert_eq!(1, 0),
         }
     }
@@ -246,7 +253,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::Bool),
+            Ok((_c, b)) => assert_eq!(b, Type::Bool),
             Err(_) => assert_eq!(1, 0),
         }
     }
@@ -257,7 +264,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_type(input);
         match result {
-            Ok((c, b)) => assert_eq!(b, Type::String),
+            Ok((_c, b)) => assert_eq!(b, Type::String),
             Err(_) => assert_eq!(1, 0),
         }
     }

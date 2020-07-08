@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use super::AST::*;
 use super::context::*;
+use super::AST::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
@@ -246,8 +246,7 @@ impl Environment {
         let type_info = &self.types.get(t);
         if trait_info.is_some() && type_info.is_some() {
             let conformance = self.types.get(conformance_identifier).unwrap().clone();
-            self
-                .types
+            self.types
                 .get_mut(t)
                 .unwrap()
                 .conformances
@@ -278,8 +277,7 @@ impl Environment {
                 .get_mut(&name)
                 .is_some()
             {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .functions
@@ -287,8 +285,7 @@ impl Environment {
                     .unwrap()
                     .push(function_information);
             } else {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .functions
@@ -316,8 +313,7 @@ impl Environment {
                 .get_mut(&name)
                 .is_some()
             {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .functions
@@ -325,8 +321,7 @@ impl Environment {
                     .unwrap()
                     .push(function_information);
             } else {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .functions
@@ -338,12 +333,14 @@ impl Environment {
     pub fn remove_function(&mut self, function: &FunctionDeclaration, t: &TypeIdentifier) {
         let name = function.head.identifier.token.clone();
         let type_info = &self.types.get(t);
-        if type_info.is_some() && self.types
-            .get_mut(t)
-            .unwrap()
-            .functions
-            .get_mut(&name)
-            .is_some()
+        if type_info.is_some()
+            && self
+                .types
+                .get_mut(t)
+                .unwrap()
+                .functions
+                .get_mut(&name)
+                .is_some()
         {
             let functions: Vec<FunctionInformation> = self
                 .types
@@ -357,9 +354,9 @@ impl Environment {
                 .filter(|f| {
                     f.declaration.head.identifier.token == name
                         && do_vecs_match(
-                        &f.declaration.parameters_and_types(),
-                        &function.parameters_and_types(),
-                    )
+                            &f.declaration.parameters_and_types(),
+                            &function.parameters_and_types(),
+                        )
                 })
                 .collect();
 
@@ -382,9 +379,9 @@ impl Environment {
         let function_declaration = FunctionDeclaration {
             head: f.clone(),
             body: vec![],
-            ScopeContext: None,
+            scope_context: None,
             tags: vec![],
-            mangledIdentifier: None,
+            mangled_identifier: None,
             is_external,
         };
 
@@ -405,8 +402,7 @@ impl Environment {
                 .get_mut(&name)
                 .is_some()
             {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .functions
@@ -414,8 +410,7 @@ impl Environment {
                     .unwrap()
                     .push(function_information);
             } else {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .functions
@@ -436,8 +431,7 @@ impl Environment {
                 },
             );
 
-            self
-                .types
+            self.types
                 .get_mut(t)
                 .unwrap()
                 .functions
@@ -460,8 +454,7 @@ impl Environment {
             }
             let type_info = &self.types.get_mut(t);
             if type_info.is_some() {
-                self
-                    .types
+                self.types
                     .get_mut(t)
                     .unwrap()
                     .initialisers
@@ -495,13 +488,12 @@ impl Environment {
         let special = SpecialDeclaration {
             head: sig,
             body: vec![],
-            ScopeContext: Default::default(),
+            scope_context: Default::default(),
             generated,
         };
         let type_info = &self.types.get_mut(enclosing);
         if type_info.is_some() {
-            self
-                .types
+            self.types
                 .get_mut(enclosing)
                 .unwrap()
                 .initialisers
@@ -523,8 +515,7 @@ impl Environment {
                     modifiers: vec![],
                 },
             );
-            self
-                .types
+            self.types
                 .get_mut(enclosing)
                 .unwrap()
                 .initialisers
@@ -543,14 +534,12 @@ impl Environment {
     ) {
         let type_info = &self.types.get_mut(t);
         if type_info.is_some() {
-            self
-                .types
+            self.types
                 .get_mut(t)
                 .unwrap()
                 .properties
                 .insert(identifier.to_string(), PropertyInformation { property });
-            self
-                .types
+            self.types
                 .get_mut(t)
                 .unwrap()
                 .ordered_properties
@@ -783,10 +772,11 @@ impl Environment {
             return self.conflicting(&function_declaration.head.identifier, list);
         }
         let type_info = &self.types.get(identifier);
-        if type_info.is_some() && type_info
-            .unwrap()
-            .functions
-            .contains_key(&function_declaration.head.identifier.token)
+        if type_info.is_some()
+            && type_info
+                .unwrap()
+                .functions
+                .contains_key(&function_declaration.head.identifier.token)
         {
             for function in self
                 .types
@@ -1082,7 +1072,8 @@ impl Environment {
         }
 
         while index < required_parameters.len() && argument_index < arguments.len() {
-            if arguments[argument_index].identifier.is_some() {} else {
+            if arguments[argument_index].identifier.is_some() {
+            } else {
                 let declared_type = declared_types[index].clone();
 
                 let argument_expression = arguments[argument_index].expression.clone();
@@ -1293,9 +1284,9 @@ impl Environment {
                 println!("{:?}", equal_types.clone());
                 if equal_types
                     && self.compatible_caller_protections(
-                    c.clone(),
-                    initialiser.caller_protections.clone(),
-                )
+                        c.clone(),
+                        initialiser.caller_protections.clone(),
+                    )
                 {
                     return FunctionCallMatchResult::MatchedInitializer(initialiser.clone());
                 } else {
@@ -1340,9 +1331,9 @@ impl Environment {
                     }
                     if equal_types
                         && self.compatible_caller_protections(
-                        c.clone(),
-                        function.caller_protection.clone(),
-                    )
+                            c.clone(),
+                            function.caller_protection.clone(),
+                        )
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
                     } else {
@@ -1402,13 +1393,7 @@ impl Environment {
                 self.get_property_type(i.token.clone(), enclosing_type, scope)
             }
             Expression::BinaryExpression(b) => {
-                self.get_binary_expression_type(
-                    b,
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                )
+                self.get_binary_expression_type(b, t, type_states, caller_protections, scope)
             }
             Expression::InoutExpression(e) => {
                 let key_type = self.get_expression_type(
@@ -1423,15 +1408,13 @@ impl Environment {
                     key_type: Box::from(key_type),
                 })
             }
-            Expression::ExternalCall(e) => {
-                self.get_expression_type(
-                    Expression::BinaryExpression(e.function_call),
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                )
-            }
+            Expression::ExternalCall(e) => self.get_expression_type(
+                Expression::BinaryExpression(e.function_call),
+                t,
+                type_states,
+                caller_protections,
+                scope,
+            ),
             Expression::FunctionCall(f) => {
                 let enclosing_type = if f.identifier.enclosing_type.is_some() {
                     let enclosing = f.identifier.enclosing_type.as_ref();
@@ -1440,35 +1423,16 @@ impl Environment {
                     t
                 };
 
-                self.get_function_call_type(
-                    f.clone(),
-                    enclosing_type,
-                    caller_protections,
-                    scope,
-                )
+                self.get_function_call_type(f.clone(), enclosing_type, caller_protections, scope)
             }
             Expression::VariableDeclaration(v) => v.variable_type,
             Expression::BracketedExpression(e) => {
-                self.get_expression_type(
-                    *e.expression,
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                )
+                self.get_expression_type(*e.expression, t, type_states, caller_protections, scope)
             }
             Expression::AttemptExpression(a) => {
-                self.get_attempt_expression_type(
-                    a,
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                )
+                self.get_attempt_expression_type(a, t, type_states, caller_protections, scope)
             }
-            Expression::Literal(l) => {
-                self.get_literal_type(l)
-            }
+            Expression::Literal(l) => self.get_literal_type(l),
             Expression::ArrayLiteral(a) => {
                 self.get_array_literal_type(a, t, type_states, caller_protections, scope)
             }
@@ -1670,13 +1634,7 @@ impl Environment {
             return rhs_type;
         }
 
-        self.get_expression_type(
-            *b.rhs_expression,
-            t,
-            type_states,
-            caller_protections,
-            scope,
-        )
+        self.get_expression_type(*b.rhs_expression, t, type_states, caller_protections, scope)
     }
 
     fn get_array_literal_type(
@@ -1745,12 +1703,8 @@ impl Environment {
                 }
                 Type::Error
             }
-            FunctionCallMatchResult::MatchedInitializer(_) => {
-                Type::UserDefinedType(identifier)
-            }
-            _ => {
-                Type::Error
-            }
+            FunctionCallMatchResult::MatchedInitializer(_) => Type::UserDefinedType(identifier),
+            _ => Type::Error,
         }
     }
 
@@ -1781,8 +1735,7 @@ impl Environment {
     }
 
     pub fn replace_self(list: Vec<Type>, enclosing: &TypeIdentifier) -> Vec<Type> {
-        list
-            .into_iter()
+        list.into_iter()
             .map(|t| t.replacing_self(enclosing))
             .collect()
     }
@@ -1812,7 +1765,6 @@ impl Environment {
             Type::Int => 1,
             Type::String => 1,
             Type::Address => 1,
-            Type::QuartzType(_) => unimplemented!(),
             Type::InoutType(_) => unimplemented!(),
             Type::ArrayType(_) => 1,
             Type::RangeType(_) => unimplemented!(),

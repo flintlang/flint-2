@@ -1,5 +1,5 @@
-use crate::Parser::utils::*;
 use crate::Parser::expressions::*;
+use crate::Parser::utils::*;
 
 pub fn parse_literal(i: Span) -> nom::IResult<Span, Literal> {
     alt((
@@ -98,8 +98,3 @@ pub fn parse_array_literal(i: Span) -> nom::IResult<Span, ArrayLiteral> {
     };
     Ok((i, array_literal))
 }
-
-
-
-
-

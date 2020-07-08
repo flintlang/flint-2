@@ -29,12 +29,6 @@ pub use crate::AST::calls::*;
 
 pub type VResult = Result<(), Box<dyn Error>>;
 
-pub type PResult = Result<PassResult, Box<dyn Error>>;
-
-pub struct PassResult {
-    pub context: Context,
-}
-
 pub type TypeIdentifier = String;
 
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -102,7 +96,8 @@ impl TypeInfo {
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
             .filter(|f| {
-                f.identifier.token == "resource".to_string() || f.identifier.token == "struct".to_string()
+                f.identifier.token == "resource".to_string()
+                    || f.identifier.token == "struct".to_string()
             })
             .collect();
 
@@ -135,6 +130,7 @@ impl PropertyInformation {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Property {
     VariableDeclaration(VariableDeclaration),
@@ -231,21 +227,9 @@ pub struct Module {
 
 impl Visitable for Module {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_module(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.declarations.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_module(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_module(self, ctx)?;
+        self.declarations.visit(v, ctx)?;
+        v.finish_module(self, ctx)?;
         Ok(())
     }
 }
@@ -253,11 +237,7 @@ impl Visitable for Module {
 impl<T: Visitable> Visitable for Vec<T> {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         for t in self {
-            let result = t.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            t.visit(v, ctx)?;
         }
         Ok(())
     }
@@ -350,7 +330,7 @@ pub fn is_redeclaration(identifier1: &Identifier, identifier2: &Identifier) -> b
     false
 }
 
-pub fn isReturnOrBecomeStatement(statement: Statement) -> bool {
+pub fn is_return_or_become_statement(statement: Statement) -> bool {
     match statement {
         Statement::ReturnStatement(_) => true,
         Statement::BecomeStatement(_) => false,
@@ -408,8 +388,8 @@ pub struct CodeGen {
 
 impl CodeGen {
     pub fn add<S>(&mut self, code: S)
-        where
-            S: AsRef<str>,
+    where
+        S: AsRef<str>,
     {
         for line in code.as_ref().lines() {
             let line = line.trim();

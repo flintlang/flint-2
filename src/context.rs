@@ -1,5 +1,5 @@
-use super::AST::*;
 use super::environment::*;
+use super::AST::*;
 
 #[derive(Debug, Default)]
 pub struct Context {
@@ -147,7 +147,7 @@ pub struct TraitDeclarationContext {
 
 #[derive(Debug, Clone)]
 pub struct BlockContext {
-    pub ScopeContext: ScopeContext,
+    pub scope_context: ScopeContext,
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]

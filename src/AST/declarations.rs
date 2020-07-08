@@ -652,9 +652,9 @@ impl Visitable for TraitMember {
 pub struct FunctionDeclaration {
     pub head: FunctionSignatureDeclaration,
     pub body: Vec<Statement>,
-    pub ScopeContext: Option<ScopeContext>,
+    pub scope_context: Option<ScopeContext>,
     pub tags: Vec<String>,
-    pub mangledIdentifier: Option<String>,
+    pub mangled_identifier: Option<String>,
     pub is_external: bool,
 }
 
@@ -914,7 +914,7 @@ impl Visitable for FunctionSignatureDeclaration {
 pub struct SpecialDeclaration {
     pub head: SpecialSignatureDeclaration,
     pub body: Vec<Statement>,
-    pub ScopeContext: ScopeContext,
+    pub scope_context: ScopeContext,
     pub generated: bool,
 }
 
@@ -958,9 +958,9 @@ impl SpecialDeclaration {
         FunctionDeclaration {
             head: function_sig,
             body: self.body.clone(),
-            ScopeContext: Option::from(self.ScopeContext.clone()),
+            scope_context: Option::from(self.scope_context.clone()),
             tags: vec![],
-            mangledIdentifier: None,
+            mangled_identifier: None,
             is_external: false,
         }
     }
