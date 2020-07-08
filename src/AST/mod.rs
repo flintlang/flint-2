@@ -13,12 +13,6 @@ use super::visitor::*;
 
 pub type VResult = Result<(), Box<dyn Error>>;
 
-pub type PResult = Result<PassResult, Box<dyn Error>>;
-
-pub struct PassResult {
-    pub context: Context,
-}
-
 pub type TypeIdentifier = String;
 
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -86,7 +80,8 @@ impl TypeInfo {
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
             .filter(|f| {
-                f.identifier.token == "resource".to_string() || f.identifier.token == "struct".to_string()
+                f.identifier.token == "resource".to_string()
+                    || f.identifier.token == "struct".to_string()
             })
             .collect();
 
@@ -119,6 +114,7 @@ impl PropertyInformation {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Property {
     VariableDeclaration(VariableDeclaration),
@@ -215,21 +211,9 @@ pub struct Module {
 
 impl Visitable for Module {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_module(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.declarations.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_module(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_module(self, ctx)?;
+        self.declarations.visit(v, ctx)?;
+        v.finish_module(self, ctx)?;
         Ok(())
     }
 }
@@ -237,11 +221,7 @@ impl Visitable for Module {
 impl<T: Visitable> Visitable for Vec<T> {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         for t in self {
-            let result = t.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            t.visit(v, ctx)?;
         }
         Ok(())
     }
@@ -268,30 +248,18 @@ impl TopLevelDeclaration {
 
 impl Visitable for TopLevelDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_top_level_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_top_level_declaration(self, ctx)?;
 
-        let result = match self {
+        match self {
             TopLevelDeclaration::ContractDeclaration(c) => c.visit(v, ctx),
             TopLevelDeclaration::ContractBehaviourDeclaration(c) => c.visit(v, ctx),
             TopLevelDeclaration::StructDeclaration(s) => s.visit(v, ctx),
             TopLevelDeclaration::EnumDeclaration(e) => e.visit(v, ctx),
             TopLevelDeclaration::TraitDeclaration(t) => t.visit(v, ctx),
             TopLevelDeclaration::AssetDeclaration(a) => a.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
 
-        let result = v.finish_top_level_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_top_level_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -339,44 +307,21 @@ impl ContractDeclaration {
 
 impl Visitable for ContractDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_contract_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_contract_declaration(self, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         ctx.contract_declaration_context = Some(ContractDeclarationContext {
             identifier: self.identifier.clone(),
         });
 
-        let result = self.conformances.visit(v, ctx);
+        self.conformances.visit(v, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.contract_members.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.contract_members.visit(v, ctx)?;
 
         ctx.contract_declaration_context = None;
 
-        let result = v.finish_contract_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_contract_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -417,58 +362,32 @@ impl Visitable for ContractBehaviourDeclaration {
         };
         ctx.scope_context = Some(scope);
 
-        let result = v.start_contract_behaviour_declaration(self, ctx);
+        v.start_contract_behaviour_declaration(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.identifier.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         if self.caller_binding.is_some() {
             let caller = self.caller_binding.clone();
             let mut caller = caller.unwrap();
 
-            let result = caller.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            caller.visit(v, ctx)?;
 
             self.caller_binding = Some(caller);
         }
 
-        let result = self.caller_protections.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.caller_protections.visit(v, ctx)?;
 
         let scope = ctx.scope_context.clone();
 
         for member in &mut self.members {
             ctx.scope_context = scope.clone();
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
 
         ctx.contract_behaviour_declaration_context = None;
         ctx.scope_context = None;
 
-        let result = v.finish_contract_behaviour_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_contract_behaviour_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -498,12 +417,7 @@ impl AssetDeclaration {
 
 impl Visitable for AssetDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_asset_declaration(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_asset_declaration(self, ctx)?;
 
         let asset_declaration_context = AssetDeclarationContext {
             identifier: self.identifier.clone(),
@@ -519,11 +433,7 @@ impl Visitable for AssetDeclaration {
         ctx.asset_context = Option::from(asset_declaration_context);
         ctx.scope_context = scope_context;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         for member in &mut self.members {
             ctx.scope_context = Option::from(ScopeContext {
@@ -531,22 +441,13 @@ impl Visitable for AssetDeclaration {
                 local_variables: vec![],
                 counter: 0,
             });
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
 
         ctx.asset_context = None;
         ctx.scope_context = None;
 
-        let result = v.finish_asset_declaration(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_asset_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -561,15 +462,11 @@ pub enum AssetMember {
 
 impl Visitable for AssetMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = match self {
+        match self {
             AssetMember::VariableDeclaration(d) => d.visit(v, ctx),
             AssetMember::SpecialDeclaration(s) => s.visit(v, ctx),
             AssetMember::FunctionDeclaration(f) => f.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
         Ok(())
     }
 }
@@ -599,11 +496,7 @@ impl StructDeclaration {
 
 impl Visitable for StructDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_struct_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_struct_declaration(self, ctx)?;
 
         let struct_declaration_context = Some(StructDeclarationContext {
             identifier: self.identifier.clone(),
@@ -615,11 +508,7 @@ impl Visitable for StructDeclaration {
         ctx.struct_declaration_context = struct_declaration_context;
         ctx.scope_context = scope_context;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         for member in &mut self.members {
             ctx.scope_context = Option::from(ScopeContext {
@@ -627,16 +516,13 @@ impl Visitable for StructDeclaration {
                 local_variables: vec![],
                 counter: 0,
             });
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
         ctx.struct_declaration_context = None;
         ctx.scope_context = None;
 
-        v.finish_struct_declaration(self, ctx);
+        v.finish_struct_declaration(self, ctx)
+            .expect("Struct declaration could not finish");
         Ok(())
     }
 }
@@ -699,17 +585,9 @@ impl TraitDeclaration {
 
 impl Visitable for TraitDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_trait_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_trait_declaration(self, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
         let trait_declaration_context = TraitDeclarationContext {
             identifier: self.identifier.clone(),
@@ -726,18 +604,14 @@ impl Visitable for TraitDeclaration {
 
         for member in &mut self.members {
             ctx.scope_context = Some(trait_scope_ctx.clone());
-            let result = member.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            member.visit(v, ctx)?;
         }
 
         ctx.trait_declaration_context = None;
 
         ctx.scope_context = None;
 
-        v.finish_trait_declaration(self, ctx);
+        v.finish_trait_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -750,24 +624,12 @@ pub enum ContractMember {
 
 impl Visitable for ContractMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_contract_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_contract_member(self, ctx)?;
+        match self {
             ContractMember::VariableDeclaration(d) => d.visit(v, ctx),
             ContractMember::EventDeclaration(d) => d.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_contract_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_contract_member(self, ctx)?;
         Ok(())
     }
 }
@@ -782,26 +644,14 @@ pub enum ContractBehaviourMember {
 
 impl Visitable for ContractBehaviourMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_contract_behaviour_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_contract_behaviour_member(self, ctx)?;
+        match self {
             ContractBehaviourMember::FunctionDeclaration(f) => f.visit(v, ctx),
             ContractBehaviourMember::SpecialDeclaration(s) => s.visit(v, ctx),
             ContractBehaviourMember::FunctionSignatureDeclaration(f) => f.visit(v, ctx),
             ContractBehaviourMember::SpecialSignatureDeclaration(s) => s.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_contract_behaviour_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_contract_behaviour_member(self, ctx)?;
         Ok(())
     }
 }
@@ -816,21 +666,9 @@ pub struct EnumMember {
 
 impl Visitable for EnumMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_enum_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_enum_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_enum_member(self, ctx)?;
+        self.identifier.visit(v, ctx)?;
+        v.finish_enum_member(self, ctx)?;
         Ok(())
     }
 }
@@ -847,18 +685,14 @@ pub enum TraitMember {
 
 impl Visitable for TraitMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = match self {
+        match self {
             TraitMember::FunctionDeclaration(f) => f.visit(v, ctx),
             TraitMember::SpecialDeclaration(s) => s.visit(v, ctx),
             TraitMember::FunctionSignatureDeclaration(f) => f.visit(v, ctx),
             TraitMember::SpecialSignatureDeclaration(s) => s.visit(v, ctx),
             TraitMember::ContractBehaviourDeclaration(c) => c.visit(v, ctx),
             TraitMember::EventDeclaration(e) => e.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
         Ok(())
     }
 }
@@ -872,25 +706,13 @@ pub enum StructMember {
 
 impl Visitable for StructMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_struct_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_struct_member(self, ctx)?;
+        match self {
             StructMember::FunctionDeclaration(f) => f.visit(v, ctx),
             StructMember::SpecialDeclaration(s) => s.visit(v, ctx),
             StructMember::VariableDeclaration(d) => d.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_struct_member(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_struct_member(self, ctx)?;
         Ok(())
     }
 }
@@ -950,21 +772,9 @@ impl CallerProtection {
 
 impl Visitable for CallerProtection {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_caller_protection(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_caller_protection(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_caller_protection(self, ctx)?;
+        self.identifier.visit(v, ctx)?;
+        v.finish_caller_protection(self, ctx)?;
         Ok(())
     }
 }
@@ -1046,16 +856,8 @@ impl FunctionDeclaration {
 
 impl Visitable for FunctionDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.head.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_declaration(self, ctx)?;
+        self.head.visit(v, ctx)?;
 
         let local_variables = {
             if ctx.has_scope_context() {
@@ -1086,11 +888,7 @@ impl Visitable for FunctionDeclaration {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            let result = statement.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -1116,11 +914,7 @@ impl Visitable for FunctionDeclaration {
         }
         ctx.function_declaration_context = None;
 
-        let result = v.finish_function_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_declaration(self, ctx)?;
 
         ctx.pre_statements = vec![];
         ctx.post_statements = vec![];
@@ -1192,40 +986,20 @@ impl FunctionSignatureDeclaration {
 
 impl Visitable for FunctionSignatureDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_signature_declaration(self, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
-        let result = self.parameters.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.parameters.visit(v, ctx)?;
 
         if self.result_type.is_some() {
             let result_type = self.result_type.clone();
             let mut result_type = result_type.unwrap();
-            let result = result_type.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            result_type.visit(v, ctx)?;
             self.result_type = Some(result_type);
         }
 
-        let result = v.finish_function_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_signature_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -1289,22 +1063,9 @@ impl SpecialDeclaration {
 
 impl Visitable for SpecialDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_special_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_special_declaration(self, ctx)?;
 
-        let result = self.head.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.head.visit(v, ctx)?;
 
         let local_variables = {
             if ctx.has_scope_context() {
@@ -1334,11 +1095,7 @@ impl Visitable for SpecialDeclaration {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            let result = statement.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -1363,11 +1120,7 @@ impl Visitable for SpecialDeclaration {
             ctx.scope_context = Some(scope);
         }
         ctx.special_declaration_context = None;
-        let result = v.finish_special_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_special_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -1389,23 +1142,11 @@ impl SpecialSignatureDeclaration {
 
 impl Visitable for SpecialSignatureDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_special_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_special_signature_declaration(self, ctx)?;
 
-        let result = self.parameters.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.parameters.visit(v, ctx)?;
 
-        let result = v.finish_special_signature_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_special_signature_declaration(self, ctx)?;
         Ok(())
     }
 }
@@ -1432,12 +1173,8 @@ impl Statement {
 
 impl Visitable for Statement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = match self {
+        v.start_statement(self, ctx)?;
+        match self {
             Statement::ReturnStatement(r) => r.visit(v, ctx),
             Statement::Expression(e) => e.visit(v, ctx),
             Statement::BecomeStatement(b) => b.visit(v, ctx),
@@ -1445,16 +1182,8 @@ impl Visitable for Statement {
             Statement::ForStatement(f) => f.visit(v, ctx),
             Statement::IfStatement(i) => i.visit(v, ctx),
             Statement::DoCatchStatement(d) => d.visit(v, ctx),
-        };
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        }?;
+        v.finish_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -1495,11 +1224,11 @@ impl IfStatement {
 
 impl Visitable for IfStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        v.start_if_statement(self, ctx);
+        v.start_if_statement(self, ctx)?;
 
         ctx.in_if_condition = true;
 
-        self.condition.visit(v, ctx);
+        self.condition.visit(v, ctx)?;
 
         ctx.in_if_condition = false;
 
@@ -1524,7 +1253,7 @@ impl Visitable for IfStatement {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            statement.visit(v, ctx);
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -1590,7 +1319,7 @@ impl Visitable for IfStatement {
         for statement in &mut self.else_body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            statement.visit(v, ctx);
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -1619,11 +1348,7 @@ impl Visitable for IfStatement {
         ctx.pre_statements = pre_statements;
         ctx.post_statements = post_statements;
 
-        let result = v.finish_if_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_if_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -1638,11 +1363,11 @@ pub struct ForStatement {
 
 impl Visitable for ForStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        v.start_for_statement(self, ctx);
+        v.start_for_statement(self, ctx)?;
 
-        self.variable.visit(v, ctx);
+        self.variable.visit(v, ctx)?;
 
-        self.iterable.visit(v, ctx);
+        self.iterable.visit(v, ctx)?;
 
         let original_scope_context = ctx.scope_context.clone();
         let original_block_context = ctx.block_context.clone();
@@ -1665,7 +1390,7 @@ impl Visitable for ForStatement {
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
-            statement.visit(v, ctx);
+            statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -1686,11 +1411,7 @@ impl Visitable for ForStatement {
         ctx.pre_statements = original_pre_statements;
         ctx.post_statements = original_post_statements;
 
-        let result = v.finish_for_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_for_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -1702,25 +1423,13 @@ pub struct EmitStatement {
 
 impl Visitable for EmitStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_emit_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_emit_statement(self, ctx)?;
 
         ctx.in_emit = true;
-        let result = self.function_call.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.function_call.visit(v, ctx)?;
         ctx.in_emit = false;
 
-        let result = v.finish_emit_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_emit_statement(self, ctx)?;
         Ok(())
     }
 }
@@ -1734,7 +1443,7 @@ pub struct BecomeStatement {
 impl Visitable for BecomeStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         ctx.in_become = true;
-        self.expression.visit(v, ctx);
+        self.expression.visit(v, ctx)?;
         ctx.in_become = false;
         Ok(())
     }
@@ -1749,31 +1458,20 @@ pub struct ReturnStatement {
 
 impl Visitable for ReturnStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_return_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_return_statement(self, ctx)?;
         if self.expression.is_some() {
             let expression = self.expression.clone();
             let mut expression = expression.unwrap();
-            let result = expression.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            expression.visit(v, ctx)?;
             self.expression = Option::from(expression);
         }
 
-        let result = v.finish_return_statement(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_return_statement(self, ctx)?;
         Ok(())
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     Identifier(Identifier),
@@ -1873,13 +1571,9 @@ impl Expression {
 
 impl Visitable for Expression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_expression(self, ctx)?;
 
-        let result = match self {
+        match self {
             Expression::Identifier(i) => i.visit(v, ctx),
             Expression::BinaryExpression(b) => b.visit(v, ctx),
             Expression::InoutExpression(i) => i.visit(v, ctx),
@@ -1896,24 +1590,15 @@ impl Visitable for Expression {
             Expression::RangeExpression(r) => r.visit(v, ctx),
             Expression::RawAssembly(_, _) => return Ok(()),
             Expression::CastExpression(c) => c.visit(v, ctx),
-            Expression::Sequence(l) => {
-                for i in l {
-                    i.visit(v, ctx);
+            Expression::Sequence(seq) => {
+                for expr in seq {
+                    expr.visit(v, ctx)?;
                 }
                 Ok(())
             }
-        };
+        }?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = v.finish_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_expression(self, ctx)?;
         Ok(())
     }
 }
@@ -1926,32 +1611,12 @@ pub struct CastExpression {
 
 impl Visitable for CastExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_cast_expression(self, ctx);
+        v.start_cast_expression(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.cast_type.visit(v, ctx)?;
+        self.expression.visit(v, ctx)?;
 
-        let result = self.cast_type.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.expression.visit(v, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = v.finish_cast_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_cast_expression(self, ctx)?;
         Ok(())
     }
 }
@@ -1977,35 +1642,19 @@ pub struct SubscriptExpression {
 
 impl Visitable for SubscriptExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_subscript_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_subscript_expression(self, ctx)?;
 
         let in_subscript = ctx.in_subscript;
 
-        let result = self.base_expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.base_expression.visit(v, ctx)?;
 
         ctx.in_subscript = true;
 
-        let result = self.index_expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.index_expression.visit(v, ctx)?;
 
         ctx.in_subscript = in_subscript;
 
-        let result = v.finish_subscript_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_subscript_expression(self, ctx)?;
         Ok(())
     }
 }
@@ -2017,29 +1666,13 @@ pub struct DictionaryLiteral {
 
 impl Visitable for DictionaryLiteral {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_dictionary_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_dictionary_literal(self, ctx)?;
 
         for (e, l) in &mut self.elements {
-            let result = e.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
-            let result = l.visit(v, ctx);
-            match result {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+            e.visit(v, ctx)?;
+            l.visit(v, ctx)?;
         }
-        let result = v.finish_dictionary_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_dictionary_literal(self, ctx)?;
         Ok(())
     }
 }
@@ -2051,23 +1684,11 @@ pub struct ArrayLiteral {
 
 impl Visitable for ArrayLiteral {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_array_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_array_literal(self, ctx)?;
 
-        let result = self.elements.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.elements.visit(v, ctx)?;
 
-        let result = v.finish_array_literal(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_array_literal(self, ctx)?;
         Ok(())
     }
 }
@@ -2114,11 +1735,7 @@ pub struct ExternalCall {
 
 impl Visitable for ExternalCall {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_external_call(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_external_call(self, ctx)?;
 
         let old_is_external_call = ctx.is_external_function_call;
         let old_external_call_context = ctx.external_call_context.clone();
@@ -2126,20 +1743,12 @@ impl Visitable for ExternalCall {
         ctx.is_external_function_call = true;
         ctx.external_call_context = Option::from(self.clone());
 
-        let result = self.function_call.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.function_call.visit(v, ctx)?;
 
         ctx.is_external_function_call = old_is_external_call;
         ctx.external_call_context = old_external_call_context;
 
-        let result = v.finish_external_call(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_external_call(self, ctx)?;
         Ok(())
     }
 }
@@ -2165,20 +1774,13 @@ impl PartialEq for Identifier {
 
 impl Visitable for Identifier {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_identifier(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_identifier(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_identifier(self, ctx)?;
+        v.finish_identifier(self, ctx)?;
         Ok(())
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum BinOp {
     Plus,
@@ -2204,7 +1806,6 @@ pub enum BinOp {
     GreaterThanOrEqual,
     Or,
     And,
-    Implies,
 }
 
 impl BinOp {
@@ -2226,7 +1827,6 @@ impl BinOp {
             BinOp::GreaterThanOrEqual => true,
             BinOp::Or => true,
             BinOp::And => true,
-            BinOp::Implies => true,
             _ => false,
         }
     }
@@ -2273,14 +1873,11 @@ pub struct BinaryExpression {
 
 impl Visitable for BinaryExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_binary_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_binary_expression(self, ctx)?;
 
         if self.op.is_assignment() {
-            if let Expression::VariableDeclaration(_) = *self.lhs_expression {} else {
+            if let Expression::VariableDeclaration(_) = *self.lhs_expression {
+            } else {
                 ctx.is_lvalue = true;
             }
         }
@@ -2292,11 +1889,7 @@ impl Visitable for BinaryExpression {
         let old_context = ctx.external_call_context.clone();
         ctx.external_call_context = None;
 
-        let result = self.lhs_expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.lhs_expression.visit(v, ctx)?;
 
         if let BinOp::Dot = self.op.clone() {
             ctx.is_lvalue = false;
@@ -2327,21 +1920,12 @@ impl Visitable for BinaryExpression {
                 if self.op.is_assignment() {
                     ctx.in_assignment = true;
                 }
-                let result = self.rhs_expression.visit(v, ctx);
-                match result {
-                    Ok(_) => {}
-                    Err(e) => return Err(e),
-                }
+                self.rhs_expression.visit(v, ctx)?;
                 ctx.in_assignment = false;
             }
         };
 
-        let result = v.finish_binary_expression(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_binary_expression(self, ctx)?;
         ctx.is_lvalue = false;
         Ok(())
     }
@@ -2355,21 +1939,9 @@ pub struct InoutExpression {
 
 impl Visitable for InoutExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_inout_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_inout_expression(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_inout_expression(self, ctx)?;
+        self.expression.visit(v, ctx)?;
+        v.finish_inout_expression(self, ctx)?;
         Ok(())
     }
 }
@@ -2383,36 +1955,19 @@ pub struct FunctionCall {
 
 impl Visitable for FunctionCall {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_call(self, ctx);
-
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_call(self, ctx)?;
 
         ctx.is_function_call_context = true;
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
         ctx.is_function_call_context = false;
 
         let old_context = ctx.external_call_context.clone();
         ctx.external_call_context = None;
 
-        let result = self.arguments.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.arguments.visit(v, ctx)?;
         ctx.external_call_context = old_context;
 
-        let result = v.finish_function_call(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_call(self, ctx)?;
         ctx.external_call_context = None;
 
         Ok(())
@@ -2426,11 +1981,7 @@ pub struct BracketedExpression {
 
 impl Visitable for BracketedExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = self.expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.expression.visit(v, ctx)?;
         Ok(())
     }
 }
@@ -2443,35 +1994,24 @@ pub struct FunctionArgument {
 
 impl Visitable for FunctionArgument {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_function_argument(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_function_argument(self, ctx)?;
 
         ctx.is_function_call_argument_label = true;
         if self.identifier.is_some() {
             let ident = self.identifier.clone();
             let mut ident = ident.unwrap();
 
-            ident.visit(v, ctx);
+            ident.visit(v, ctx)?;
             self.identifier = Option::from(ident);
         }
         ctx.is_function_call_argument_label = false;
 
         ctx.is_function_call_argument = true;
-        let result = self.expression.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+
+        self.expression.visit(v, ctx)?;
         ctx.is_function_call_argument = false;
 
-        let result = v.finish_function_argument(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_function_argument(self, ctx)?;
 
         Ok(())
     }
@@ -2524,21 +2064,9 @@ impl Parameter {
 
 impl Visitable for Parameter {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_parameter(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = self.type_assignment.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-        let result = v.finish_parameter(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.start_parameter(self, ctx)?;
+        self.type_assignment.visit(v, ctx)?;
+        v.finish_parameter(self, ctx)?;
         Ok(())
     }
 }
@@ -2569,24 +2097,11 @@ impl VariableDeclaration {
 
 impl Visitable for VariableDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        let result = v.start_variable_declaration(self, ctx);
+        v.start_variable_declaration(self, ctx)?;
 
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.identifier.visit(v, ctx)?;
 
-        let result = self.identifier.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
-
-        let result = self.variable_type.visit(v, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        self.variable_type.visit(v, ctx)?;
 
         if self.expression.is_some() {
             let previous_scope = ctx.scope_context.clone();
@@ -2600,7 +2115,7 @@ impl Visitable for VariableDeclaration {
             let expression = self.expression.clone();
             let mut expression = expression.unwrap();
 
-            expression.visit(v, ctx);
+            expression.visit(v, ctx)?;
 
             self.expression = Option::from(expression);
             ctx.is_property_default_assignment = false;
@@ -2608,11 +2123,7 @@ impl Visitable for VariableDeclaration {
             ctx.scope_context = previous_scope;
         }
 
-        let result = v.finish_variable_declaration(self, ctx);
-        match result {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
+        v.finish_variable_declaration(self, ctx)?;
 
         Ok(())
     }
@@ -2620,7 +2131,6 @@ impl Visitable for VariableDeclaration {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
-    QuartzType(QuartzType),
     InoutType(InoutType),
     ArrayType(ArrayType),
     RangeType(RangeType),
@@ -2722,7 +2232,6 @@ impl Type {
 
     pub fn is_built_in_type(&self) -> bool {
         match self {
-            Type::QuartzType(_) => unimplemented!(),
             Type::InoutType(i) => i.key_type.is_built_in_type(),
             Type::ArrayType(a) => a.key_type.is_built_in_type(),
             Type::RangeType(r) => r.key_type.is_built_in_type(),
@@ -2741,7 +2250,6 @@ impl Type {
 
     pub fn name(&self) -> String {
         match self {
-            Type::QuartzType(_) => unimplemented!(),
             Type::InoutType(i) => {
                 let name = i.key_type.name();
                 format!("$inout{name}", name = name)
@@ -2886,14 +2394,15 @@ impl Type {
 
 impl Visitable for Type {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        v.start_type(self, ctx);
+        v.start_type(self, ctx)?;
 
-        v.finish_type(self, ctx);
+        v.finish_type(self, ctx)?;
 
         Ok(())
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum SolidityType {
     ADDRESS,
@@ -2992,12 +2501,6 @@ pub struct InoutType {
     pub key_type: Box<Type>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct QuartzType {
-    pub base_type: Box<Type>,
-    pub arguments: Vec<Type>,
-}
-
 #[derive(Debug)]
 pub struct TypeAnnotation {
     pub colon: std::string::String,
@@ -3075,8 +2578,8 @@ pub struct CodeGen {
 
 impl CodeGen {
     pub fn add<S>(&mut self, code: S)
-        where
-            S: AsRef<str>,
+    where
+        S: AsRef<str>,
     {
         for line in code.as_ref().lines() {
             let line = line.trim();

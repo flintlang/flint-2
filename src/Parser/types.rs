@@ -1,3 +1,8 @@
+use std::collections::HashSet;
+
+use crate::Parser::identifiers::parse_identifier;
+use crate::Parser::literals::*;
+use crate::Parser::operators::*;
 use crate::Parser::utils::*;
 
 pub fn parse_type_annotation(i: Span) -> nom::IResult<Span, TypeAnnotation> {
@@ -217,6 +222,8 @@ fn parse_basic_type(i: Span) -> nom::IResult<Span, Type> {
 mod test {
 
     use crate::Parser::types::*;
+    use crate::AST::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_int_type() {

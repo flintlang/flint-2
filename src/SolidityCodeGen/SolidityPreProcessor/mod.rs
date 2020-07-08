@@ -1,8 +1,8 @@
-use crate::AST::*;
-use crate::AST::Expression::SelfExpression;
 use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
+use crate::AST::Expression::SelfExpression;
+use crate::AST::*;
 
 pub(crate) struct SolidityPreProcessor {}
 
@@ -226,7 +226,9 @@ impl Visitor for SolidityPreProcessor {
         let mut f_call = _t.clone();
         if _ctx.environment.is_initiliase_call(f_call.clone()) {
             let mut temp = f_call.clone();
-            if _ctx.function_declaration_context.is_some() || _ctx.special_declaration_context.is_some() && !temp.arguments.is_empty() {
+            if _ctx.function_declaration_context.is_some()
+                || _ctx.special_declaration_context.is_some() && !temp.arguments.is_empty()
+            {
                 temp.arguments.remove(0);
             }
 
@@ -293,7 +295,9 @@ impl Visitor for SolidityPreProcessor {
                 });
             }
 
-            if _ctx.environment.is_struct_declared(&enclosing_type) && !is_global_function_call(f_call.clone(), _ctx) {
+            if _ctx.environment.is_struct_declared(&enclosing_type)
+                && !is_global_function_call(f_call.clone(), _ctx)
+            {
                 let receiver = construct_expression(_ctx.function_call_receiver_trail.clone());
                 let inout_expression = InoutExpression {
                     ampersand_token: "".to_string(),

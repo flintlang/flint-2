@@ -1,8 +1,12 @@
-pub use nom_locate::LocatedSpan;
-pub use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
 pub use crate::environment::Environment;
-pub use crate::AST::*;
+use crate::Parser::operators::{left_brace, parse_comment, right_brace};
+use crate::Parser::statements::parse_statements;
 pub use crate::Parser::*;
+pub use crate::AST::*;
+pub use nom::{
+    branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded,
+};
+pub use nom_locate::LocatedSpan;
 
 pub type ParseResult = (Option<Module>, Environment);
 
@@ -34,7 +38,6 @@ pub fn multi_whitespace(i: Span) -> nom::IResult<Span, Span> {
 
 #[cfg(test)]
 mod test {
-
     use crate::Parser::utils::*;
 
     #[test]

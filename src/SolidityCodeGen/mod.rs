@@ -6,9 +6,9 @@ use std::path::Path;
 use hex::encode;
 use sha3::{Digest, Keccak256};
 
-use super::AST::*;
 use super::context::*;
 use super::environment::*;
+use super::AST::*;
 
 pub mod SolidityPreProcessor;
 
@@ -54,7 +54,7 @@ pub fn generate(module: Module, context: &mut Context) {
             contract: contract.clone(),
             environment: context.environment.clone(),
         }
-            .generate();
+        .generate();
 
         let mut code = CodeGen {
             code: "".to_string(),
@@ -154,7 +154,7 @@ impl SolidityContract {
                     declaration: s.clone(),
                     environment: self.environment.clone(),
                 }
-                    .generate()
+                .generate()
             })
             .collect();
 
@@ -240,7 +240,7 @@ impl SolidityContract {
                     identifier: p.identifier.clone(),
                     is_lvalue: false,
                 }
-                    .generate(&mut function_context)
+                .generate(&mut function_context)
             })
             .collect();
         let parameter_names: Vec<String> = parameter_names
@@ -289,7 +289,7 @@ impl SolidityContract {
             let yul_statement = SolidityStatement {
                 statement: statement.clone(),
             }
-                .generate(&mut function_context);
+            .generate(&mut function_context);
             function_context.emit(yul_statement);
             if let Statement::IfStatement(_) = statement {}
         }
@@ -476,7 +476,7 @@ impl SolidityStruct {
                     caller_protections: vec![],
                     is_contract_function: false,
                 }
-                    .generate(true)
+                .generate(true)
             })
             .collect();
 
@@ -546,7 +546,6 @@ pub enum SolidityIRType {
 impl SolidityIRType {
     pub fn map_to_solidity_type(input: Type) -> SolidityIRType {
         match input {
-            Type::QuartzType(_) => panic!("Can not convert this type to Solidity Type"),
             Type::InoutType(i) => SolidityIRType::map_to_solidity_type(*i.key_type),
             Type::ArrayType(_) => panic!("Can not convert this type to Solidity Type"),
             Type::RangeType(_) => panic!("Can not convert this type to Solidity Type"),
@@ -626,7 +625,7 @@ impl SolidityFunction {
                     identifier: p.identifier.clone(),
                     is_lvalue: false,
                 }
-                    .generate(&mut function_context)
+                .generate(&mut function_context)
             })
             .map(|p| format!("{}", p))
             .collect();
@@ -673,7 +672,7 @@ impl SolidityFunction {
             let yul_statement = SolidityStatement {
                 statement: statement.clone(),
             }
-                .generate(&mut function_context);
+            .generate(&mut function_context);
             function_context.emit(yul_statement);
             if let Statement::IfStatement(i) = statement {
                 if i.ends_with_return() {
@@ -826,7 +825,7 @@ impl SolidityStatement {
                     expression: e,
                     is_lvalue: false,
                 }
-                    .generate(function_context),
+                .generate(function_context),
             ),
             Statement::BecomeStatement(_) => panic!("Become Statement Not Currently Supported"),
             Statement::EmitStatement(_) => unimplemented!(),
@@ -854,7 +853,7 @@ impl SolidityReturnStatement {
             expression,
             is_lvalue: false,
         }
-            .generate(function_context);
+        .generate(function_context);
         let string = format!("ret := {expression}", expression = expression);
         YulStatement::Inline(string)
     }
@@ -870,7 +869,7 @@ impl SolidityIfStatement {
             expression: self.statement.condition.clone(),
             is_lvalue: false,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         println!("With new block");
         let count = function_context.push_block();
@@ -900,17 +899,17 @@ impl SolidityExpression {
                 identifier: i,
                 is_lvalue: self.is_lvalue,
             }
-                .generate(function_context),
+            .generate(function_context),
             Expression::BinaryExpression(b) => SolidityBinaryExpression {
                 expression: b,
                 is_lvalue: self.is_lvalue,
             }
-                .generate(function_context),
+            .generate(function_context),
             Expression::InoutExpression(i) => SolidityExpression {
                 expression: *i.expression.clone(),
                 is_lvalue: true,
             }
-                .generate(function_context),
+            .generate(function_context),
             Expression::ExternalCall(e) => {
                 SolidityExternalCall { call: e }.generate(function_context)
             }
@@ -924,7 +923,7 @@ impl SolidityExpression {
                 expression: *e.expression,
                 is_lvalue: false,
             }
-                .generate(function_context),
+            .generate(function_context),
             Expression::AttemptExpression(_) => {
                 panic!("Attempt Expression Not Currently Supported")
             }
@@ -933,7 +932,8 @@ impl SolidityExpression {
             }
             Expression::ArrayLiteral(a) => {
                 for e in a.elements {
-                    if let Expression::ArrayLiteral(_) = e {} else {
+                    if let Expression::ArrayLiteral(_) = e {
+                    } else {
                         panic!("Does not support Non-empty array literals")
                     }
                 }
@@ -943,12 +943,12 @@ impl SolidityExpression {
             Expression::SelfExpression => SoliditySelfExpression {
                 is_lvalue: self.is_lvalue,
             }
-                .generate(function_context),
+            .generate(function_context),
             Expression::SubscriptExpression(s) => SoliditySubscriptExpression {
                 expression: s,
                 is_lvalue: self.is_lvalue,
             }
-                .generate(function_context),
+            .generate(function_context),
             Expression::RangeExpression(_) => unimplemented!(),
             Expression::RawAssembly(a, _) => YulExpression::Inline(a),
             Expression::CastExpression(c) => {
@@ -961,7 +961,7 @@ impl SolidityExpression {
                         expression,
                         is_lvalue: self.is_lvalue,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
                     sequence.push(result);
                 }
 
@@ -1005,7 +1005,7 @@ impl SolidityCastExpression {
             expression: *self.expression.expression.clone(),
             is_lvalue: false,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         if original_type_info.0 <= target_type_info.0 {
             return expression_ir;
@@ -1020,7 +1020,12 @@ impl SolidityCastExpression {
 
     pub fn maximum_value(input: u64) -> String {
         assert!(input % 4 == 0 && input >= 8 && input <= 256);
-        format!("0x{}", std::iter::repeat("F").take(input as usize / 4).collect::<String>())
+        format!(
+            "0x{}",
+            std::iter::repeat("F")
+                .take(input as usize / 4)
+                .collect::<String>()
+        )
     }
 
     pub fn get_type_info(input: Type) -> (u64, bool) {
@@ -1150,7 +1155,7 @@ impl SolidityExternalCall {
             expression: *self.call.function_call.lhs_expression.clone(),
             is_lvalue: false,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         let mut static_slots = vec![];
         let mut dynamic_slots = vec![];
@@ -1161,7 +1166,10 @@ impl SolidityExternalCall {
         for param in param_types {
             match param {
                 Type::Solidity(_) => static_size += 32,
-                _ => panic!("Non Solidity Type not allowed in external call: {:?}", param),
+                _ => panic!(
+                    "Non Solidity Type not allowed in external call: {:?}",
+                    param
+                ),
             }
         }
 
@@ -1185,7 +1193,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         is_lvalue: false,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
                     static_slots.push(expression);
                 }
                 Type::Address => {
@@ -1194,7 +1202,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         is_lvalue: false,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
                     static_slots.push(expression);
                 }
                 Type::Bool => {
@@ -1203,7 +1211,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         is_lvalue: false,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
                     static_slots.push(expression);
                 }
                 Type::Solidity(_) => {
@@ -1212,7 +1220,7 @@ impl SolidityExternalCall {
                         expression: expression.expression.clone(),
                         is_lvalue: false,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
                     static_slots.push(expression);
                 }
                 _ => panic!("Can not use non basic types in external call"),
@@ -1415,7 +1423,7 @@ impl SoliditySubscriptExpression {
             expression: *expression.index_expression.clone(),
             is_lvalue: false,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         let base_type = function_context.environment.get_expression_type(
             Expression::Identifier(expression.base_expression.clone()),
@@ -1483,7 +1491,7 @@ impl SolidityFunctionCall {
                     expression: arg.expression,
                     is_lvalue: false,
                 }
-                    .generate(function_context);
+                .generate(function_context);
             }
         }
 
@@ -1495,7 +1503,7 @@ impl SolidityFunctionCall {
                     expression: a.expression,
                     is_lvalue: false,
                 }
-                    .generate(function_context)
+                .generate(function_context)
             })
             .collect();
 
@@ -1527,7 +1535,7 @@ impl SolidityIdentifier {
                 rhs: Expression::Identifier(self.identifier.clone()),
                 is_left: self.is_lvalue,
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         YulExpression::Identifier(mangle(self.identifier.token.clone()))
@@ -1545,7 +1553,7 @@ impl SolidityAssignment {
             expression: self.rhs.clone(),
             is_lvalue: false,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         match self.lhs.clone() {
             Expression::VariableDeclaration(v) => {
@@ -1568,7 +1576,7 @@ impl SolidityAssignment {
                     expression: self.lhs.clone(),
                     is_lvalue: true,
                 }
-                    .generate(function_context);
+                .generate(function_context);
 
                 if function_context.in_struct_function {
                     let enclosing_name = if function_context
@@ -1669,7 +1677,7 @@ impl SolidityPropertyAccess {
                 expression: self.rhs.clone(),
                 enclosing_type: lhs_type,
             }
-                .generate(function_context),
+            .generate(function_context),
         };
 
         let offset = if function_context.in_struct_function {
@@ -1705,7 +1713,7 @@ impl SolidityPropertyAccess {
                     expression: self.lhs.clone(),
                     is_lvalue: true,
                 }
-                    .generate(function_context)
+                .generate(function_context)
             };
 
             SolidityRuntimeFunction::add_offset_bool(lhs_offset, rhs_offset, is_mem_access)
@@ -1745,13 +1753,13 @@ impl SolidityPropertyOffset {
                 rhs: *b.rhs_expression,
                 is_left: true,
             }
-                .generate(function_context);
+            .generate(function_context);
         } else if let Expression::SubscriptExpression(s) = self.expression.clone() {
             return SoliditySubscriptExpression {
                 expression: s.clone(),
                 is_lvalue: true,
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         if let Expression::Identifier(i) = self.expression.clone() {
@@ -1769,6 +1777,7 @@ impl SolidityPropertyOffset {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum SolidityRuntimeFunction {
     Selector,
@@ -2037,7 +2046,7 @@ impl SolidityRuntimeFunction {
                     ret := c
                 }
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn div_function() -> String {
@@ -2047,7 +2056,7 @@ impl SolidityRuntimeFunction {
             }
             ret := div(a, b)
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn power_function() -> String {
@@ -2057,7 +2066,7 @@ impl SolidityRuntimeFunction {
                 ret := Quartz$Mul(ret, b)
             }
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn revert_if_greater_function() -> String {
@@ -2067,14 +2076,14 @@ impl SolidityRuntimeFunction {
             }
             ret := a
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn fatal_error_function() -> String {
         "function Quartz$FatalError() {
             revert(0, 0)
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn send_function() -> String {
@@ -2084,7 +2093,7 @@ impl SolidityRuntimeFunction {
                 revert(0, 0)
             }
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn storage_dictionary_keys_array_offset_function() -> String {
@@ -2092,7 +2101,7 @@ impl SolidityRuntimeFunction {
             mstore(0, dictionaryOffset)
             ret := keccak256(0, 32)
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn storage_offset_for_key_function() -> String {
@@ -2101,7 +2110,7 @@ impl SolidityRuntimeFunction {
             mstore(32, offset)
             ret := keccak256(0, 64)
          }"
-            .to_string()
+        .to_string()
     }
 
     pub fn storage_dictionary_offset_for_key_function() -> String {
@@ -2119,7 +2128,7 @@ impl SolidityRuntimeFunction {
                 }
             ret := offsetForKey
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn storage_array_offset_function() -> String {
@@ -2135,14 +2144,14 @@ impl SolidityRuntimeFunction {
             }
             ret := Quartz$StorageOffsetForKey(arrayOffset, index)
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn is_invalid_subscript_expression_function() -> String {
         "function Quartz$IsInvalidSubscriptExpression(index, arraySize) -> ret {
             ret := or(iszero(arraySize), or(lt(index, 0), gt(index, Quartz$Sub(arraySize, 1))))
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn return_32_bytes_function() -> String {
@@ -2150,7 +2159,7 @@ impl SolidityRuntimeFunction {
             mstore(0, v)
             return(0, 0x20)
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn is_caller_protection_in_dictionary_function() -> String {
@@ -2167,7 +2176,7 @@ impl SolidityRuntimeFunction {
             }
             ret := found
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn is_caller_protection_in_array_function() -> String {
@@ -2182,14 +2191,14 @@ impl SolidityRuntimeFunction {
             }
             ret := found
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn is_valid_caller_protection_function() -> String {
         "function Quartz$IsValidCallerProtection(_address) -> ret {
             ret := eq(_address, caller())
          }"
-            .to_string()
+        .to_string()
     }
 
     pub fn check_no_value_function() -> String {
@@ -2198,7 +2207,7 @@ impl SolidityRuntimeFunction {
                 Quartz$FatalError()
             }
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn allocate_memory_function() -> String {
@@ -2206,7 +2215,7 @@ impl SolidityRuntimeFunction {
             ret := mload(0x40)
             mstore(0x40, add(ret, size))
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn compute_offset_function() -> String {
@@ -2219,7 +2228,7 @@ impl SolidityRuntimeFunction {
                 ret := add(base, offset)
             }
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn load_function() -> String {
@@ -2232,7 +2241,7 @@ impl SolidityRuntimeFunction {
                     ret := sload(ptr)
                 }
         }"
-            .to_string()
+        .to_string()
     }
 
     pub fn decode_address_function() -> String {
@@ -2293,7 +2302,7 @@ impl SolidityFunctionSelector {
             expression: state,
             is_lvalue: false,
         }
-            .generate(&mut function_context);
+        .generate(&mut function_context);
 
         let protection = YulStatement::Inline(format!(
             "if eq({state}, 10000) {{ revert(0, 0)}}",
@@ -2317,7 +2326,7 @@ impl SolidityFunctionSelector {
                     revert: false,
                     variable: "_quartzCallerCheck".to_string(),
                 }
-                    .generate(&self.enclosing.token.clone(), self.environment.clone());
+                .generate(&self.enclosing.token.clone(), self.environment.clone());
 
                 let value_check = if !f.declaration.is_payable() {
                     format!(
@@ -2422,7 +2431,7 @@ impl SolidityBinaryExpression {
                 rhs: *self.expression.rhs_expression.clone(),
                 is_left: self.is_lvalue,
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         if let BinOp::Equal = self.expression.op {
@@ -2432,7 +2441,7 @@ impl SolidityBinaryExpression {
                 lhs: *lhs,
                 rhs: *rhs,
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         let lhs = self.expression.lhs_expression.clone();
@@ -2441,12 +2450,12 @@ impl SolidityBinaryExpression {
             expression: *lhs,
             is_lvalue: self.is_lvalue,
         }
-            .generate(function_context);
+        .generate(function_context);
         let rhs = SolidityExpression {
             expression: *rhs,
             is_lvalue: self.is_lvalue,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         match self.expression.op {
             BinOp::Plus => SolidityRuntimeFunction::add(lhs, rhs),
@@ -2505,7 +2514,6 @@ impl SolidityBinaryExpression {
             BinOp::MinusEqual => panic!("Unexpected Operator"),
             BinOp::TimesEqual => panic!("Unexpected Operator"),
             BinOp::DivideEqual => panic!("Unexpected Operator"),
-            BinOp::Implies => panic!("Unexpected Operator"),
         }
     }
 }
@@ -2584,6 +2592,7 @@ impl fmt::Display for YulBlock {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulExpression {
     FunctionCall(YulFunctionCall),
@@ -2666,6 +2675,7 @@ impl fmt::Display for YulFunctionCall {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulStatement {
     Block(YulBlock),
@@ -2768,6 +2778,7 @@ impl fmt::Display for YulForLoop {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulLiteral {
     Num(u64),
@@ -2824,6 +2835,7 @@ impl fmt::Display for YulVariableDeclaration {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulType {
     Bool,

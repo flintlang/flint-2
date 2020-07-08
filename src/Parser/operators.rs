@@ -25,7 +25,6 @@ pub fn get_operator_precedence(op: &BinOp) -> i32 {
         BinOp::GreaterThanOrEqual => 15,
         BinOp::Or => 11,
         BinOp::And => 12,
-        BinOp::Implies => 10,
     }
 }
 

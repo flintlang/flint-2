@@ -1,5 +1,8 @@
-use crate::Parser::utils::*;
+use crate::Parser::expressions::*;
+use crate::Parser::identifiers::*;
+use crate::Parser::operators::*;
 use crate::Parser::types::*;
+use crate::Parser::utils::*;
 
 pub fn parse_parameter_list(i: Span) -> nom::IResult<Span, Vec<Parameter>> {
     let (i, _) = left_parens(i)?;
@@ -38,8 +41,10 @@ fn parse_parameter(i: Span) -> nom::IResult<Span, Parameter> {
 
 #[cfg(test)]
 mod test {
+    use nom_locate::LocatedSpan;
 
     use crate::Parser::parameters::*;
+    use crate::AST::*;
 
     #[test]
     fn test_parse_parameter() {

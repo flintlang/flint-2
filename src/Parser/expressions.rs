@@ -1,5 +1,10 @@
-use crate::Parser::utils::*;
 use crate::Parser::calls::*;
+use crate::Parser::declarations::*;
+use crate::Parser::identifiers::*;
+use crate::Parser::literals::*;
+use crate::Parser::operators::*;
+use crate::Parser::types::*;
+use crate::Parser::utils::*;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
@@ -191,8 +196,10 @@ pub fn parse_binary_expression_precedence(
 
 #[cfg(test)]
 mod test {
+    use nom_locate::LocatedSpan;
 
     use crate::Parser::expressions::*;
+    use crate::AST::*;
 
     #[test]
     fn test_parse_inout_expression() {
@@ -277,16 +284,19 @@ mod test {
     fn test_parse_binary_expression() {
         let input = LocatedSpan::new("x ** 2");
         let (_rest, result) = parse_expression(input).expect("Error parsing binary expression");
-        assert_eq!(result, Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(Expression::Identifier(Identifier {
-                token: String::from("x"),
-                enclosing_type: None,
-                line_info: LineInfo { line: 1, offset: 0 },
-            })),
+        assert_eq!(
+            result,
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("x"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 },
+                })),
 
-            rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(2))),
-            op: BinOp::Power,
-            line_info: LineInfo { line: 1, offset: 0 },
-        }));
+                rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(2))),
+                op: BinOp::Power,
+                line_info: LineInfo { line: 1, offset: 0 },
+            })
+        );
     }
 }
