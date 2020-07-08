@@ -4,6 +4,17 @@ use super::AST::*;
 
 pub struct TypeChecker {}
 
+pub trait ExpressionCheck {
+    fn get_expression_type(
+        &self,
+        expr: Expression,
+        t: &TypeIdentifier,
+        type_states: Vec<TypeState>,
+        caller_protections: Vec<CallerProtection>,
+        scope: ScopeContext,
+    ) -> Type;
+}
+
 impl Visitor for TypeChecker {
     fn start_variable_declaration(
         &mut self,

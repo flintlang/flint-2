@@ -3,6 +3,7 @@ use crate::AST::Expression::SelfExpression;
 use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
+use crate::TypeChecker::ExpressionCheck;
 
 pub(crate) struct SolidityPreProcessor {}
 
