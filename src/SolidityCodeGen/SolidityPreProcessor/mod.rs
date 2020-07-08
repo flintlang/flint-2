@@ -1,8 +1,8 @@
+use crate::AST::*;
+use crate::AST::Expression::SelfExpression;
 use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
-use crate::AST::Expression::SelfExpression;
-use crate::AST::*;
 
 pub(crate) struct SolidityPreProcessor {}
 
@@ -28,10 +28,10 @@ impl Visitor for SolidityPreProcessor {
             param_types,
             &enclosing_identifier,
         );
-        _t.mangledIdentifier = Some(mangled_name);
+        _t.mangled_identifier = Some(mangled_name);
 
-        if _ctx.StructDeclarationContext.is_some() {
-            let s_ctx = _ctx.StructDeclarationContext.clone();
+        if _ctx.struct_declaration_context.is_some() {
+            let s_ctx = _ctx.struct_declaration_context.clone();
             let s_ctx = s_ctx.unwrap();
 
             if enclosing_identifier != "Quartz_Global".to_string() {
@@ -56,14 +56,10 @@ impl Visitor for SolidityPreProcessor {
             .filter(|p| p.is_dynamic())
             .collect();
 
-        let mut offset = 0;
-        let mut index = 0;
-        for p in dynamic_params {
+        for (index, (offset, p)) in dynamic_params.into_iter().enumerate().enumerate() {
             let ismem_param =
                 construct_parameter(mangle_mem(p.identifier.token.clone()), Type::Bool);
             _t.head.parameters.insert(index + offset + 1, ismem_param);
-            offset += 1;
-            index += 1;
         }
 
         Ok(())
@@ -74,7 +70,7 @@ impl Visitor for SolidityPreProcessor {
         if let Expression::BinaryExpression(b) = expression {
             if let BinOp::Dot = b.op {
                 if let Expression::Identifier(lhs) = *b.lhs_expression.clone() {
-                    if let Expression::Identifier(rhs) = *b.rhs_expression.clone() {
+                    if let Expression::Identifier(_) = *b.rhs_expression.clone() {
                         if _ctx.environment.is_enum_declared(&lhs.token) {
                             unimplemented!()
                         }
@@ -148,9 +144,9 @@ impl Visitor for SolidityPreProcessor {
             };
             _t.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         } else if let BinOp::Dot = _t.op {
-            let mut trail = _ctx.FunctionCallReceiverTrail.clone();
+            let mut trail = _ctx.function_call_receiver_trail.clone();
             trail.push(*_t.lhs_expression.clone());
-            _ctx.FunctionCallReceiverTrail = trail;
+            _ctx.function_call_receiver_trail = trail;
         }
 
         let op = _t.op.clone();
@@ -201,17 +197,17 @@ impl Visitor for SolidityPreProcessor {
     ) -> VResult {
         if _ctx.in_function_or_special() {
             if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.ScopeContext.as_mut().unwrap();
+                let context_ref = _ctx.scope_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.FunctionDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.SpecialDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
         }
@@ -223,19 +219,17 @@ impl Visitor for SolidityPreProcessor {
             return Ok(());
         }
 
-        if _ctx.FunctionCallReceiverTrail.is_empty() {
-            _ctx.FunctionCallReceiverTrail = vec![Expression::SelfExpression];
+        if _ctx.function_call_receiver_trail.is_empty() {
+            _ctx.function_call_receiver_trail = vec![Expression::SelfExpression];
         }
 
         let mut f_call = _t.clone();
         if _ctx.environment.is_initiliase_call(f_call.clone()) {
             let mut temp = f_call.clone();
-            if _ctx.FunctionDeclarationContext.is_some() || _ctx.SpecialDeclarationContext.is_some()
-            {
-                if !temp.arguments.is_empty() {
-                    temp.arguments.remove(0);
-                }
+            if _ctx.function_declaration_context.is_some() || _ctx.special_declaration_context.is_some() && !temp.arguments.is_empty() {
+                temp.arguments.remove(0);
             }
+
             let mangled = mangle_function_call_name(&temp, _ctx);
             if mangled.is_some() {
                 println!("Mangled");
@@ -253,12 +247,9 @@ impl Visitor for SolidityPreProcessor {
             }
         } else {
             let enclosing_type = if is_global_function_call(f_call.clone(), _ctx) {
-                format!("Quartz_Global")
+                "Quartz_Global".to_string()
             } else {
-                let trail_last = _ctx
-                    .FunctionCallReceiverTrail
-                    .get(_ctx.FunctionCallReceiverTrail.len() - 1);
-                let trail_last = trail_last.clone();
+                let trail_last = _ctx.function_call_receiver_trail.last();
                 let trail_last = trail_last.unwrap();
                 let trail_last = trail_last.clone();
 
@@ -266,7 +257,7 @@ impl Visitor for SolidityPreProcessor {
                 let enclosing_ident = enclosing_ident.unwrap_or_default();
                 let enclosing_ident = enclosing_ident.token;
 
-                let scope = _ctx.ScopeContext.clone();
+                let scope = _ctx.scope_context.clone();
                 let scope = scope.unwrap_or(ScopeContext {
                     parameters: vec![],
                     local_variables: vec![],
@@ -302,28 +293,26 @@ impl Visitor for SolidityPreProcessor {
                 });
             }
 
-            if _ctx.environment.is_struct_declared(&enclosing_type) {
-                if !is_global_function_call(f_call.clone(), _ctx) {
-                    let receiver = construct_expression(_ctx.FunctionCallReceiverTrail.clone());
-                    let inout_expression = InoutExpression {
-                        ampersand_token: "".to_string(),
-                        expression: Box::new(receiver),
-                    };
-                    f_call.arguments.insert(
-                        0,
-                        FunctionArgument {
-                            identifier: None,
-                            expression: Expression::InoutExpression(inout_expression),
-                        },
-                    );
-                    *_t = f_call.clone();
-                }
+            if _ctx.environment.is_struct_declared(&enclosing_type) && !is_global_function_call(f_call.clone(), _ctx) {
+                let receiver = construct_expression(_ctx.function_call_receiver_trail.clone());
+                let inout_expression = InoutExpression {
+                    ampersand_token: "".to_string(),
+                    expression: Box::new(receiver),
+                };
+                f_call.arguments.insert(
+                    0,
+                    FunctionArgument {
+                        identifier: None,
+                        expression: Expression::InoutExpression(inout_expression),
+                    },
+                );
+                *_t = f_call.clone();
             }
         }
 
         println!("{:?}", _ctx.environment.is_initiliase_call(f_call.clone()));
         println!("{:?}", f_call.mangled_identifier);
-        let scope = _ctx.ScopeContext.clone();
+        let scope = _ctx.scope_context.clone();
         let scope = scope.unwrap_or(ScopeContext {
             parameters: vec![],
             local_variables: vec![],
@@ -360,7 +349,7 @@ impl Visitor for SolidityPreProcessor {
                 let param_name = scope.enclosing_parameter(arg.expression.clone(), &enclosing);
 
                 if param_name.is_some() {
-                    let param_name = param_name.unwrap();
+                    let _param_name = param_name.unwrap();
                     unimplemented!()
                 }
 
@@ -406,7 +395,7 @@ impl Visitor for SolidityPreProcessor {
                 }
 
                 f_call.arguments.insert(
-                    (index + offset + 1),
+                    index + offset + 1,
                     FunctionArgument {
                         identifier: None,
                         expression: is_mem,
@@ -420,7 +409,7 @@ impl Visitor for SolidityPreProcessor {
             println!("{:?}", _t.mangled_identifier);
         }
 
-        _ctx.FunctionCallReceiverTrail = vec![];
+        _ctx.function_call_receiver_trail = vec![];
 
         println!("{:?}", _t.mangled_identifier);
 
@@ -452,9 +441,9 @@ pub fn mangle_solidity_function_name(
 ) -> String {
     let parameters: Vec<String> = param_type.into_iter().map(|p| p.name()).collect();
     let dollar = if parameters.is_empty() {
-        format!("")
+        "".to_string()
     } else {
-        format!("$")
+        "$".to_string()
     };
     let parameters = parameters.join("_");
 
@@ -471,8 +460,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
     if !is_ether_runtime_function_call(function_call) {
         let enclosing_type = if function_call.identifier.enclosing_type.is_some() {
             let enclosing = function_call.identifier.enclosing_type.clone();
-            let enclosing = enclosing.unwrap();
-            enclosing
+            enclosing.unwrap()
         } else {
             let enclosing = ctx.enclosing_type_identifier().clone();
             let enclosing = enclosing.unwrap();
@@ -480,15 +468,15 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
         };
         let call = function_call.clone();
 
-        let caller_protections = if ctx.ContractBehaviourDeclarationContext.is_some() {
-            let behaviour = ctx.ContractBehaviourDeclarationContext.clone();
+        let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
+            let behaviour = ctx.contract_behaviour_declaration_context.clone();
             let behaviour = behaviour.unwrap();
             behaviour.caller_protections
         } else {
             vec![]
         };
 
-        let scope = ctx.ScopeContext.clone();
+        let scope = ctx.scope_context.clone();
         let scope = scope.unwrap_or_default();
 
         let match_result = ctx.environment.match_function_call(
@@ -519,17 +507,17 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = fi.declaration;
                     let param_types = declaration.head.parameters;
-                    let param_types: Vec<Type> = param_types
+                    let _param_types: Vec<Type> = param_types
                         .clone()
                         .into_iter()
                         .map(|p| p.type_assignment)
                         .collect();
 
-                    return Some(mangle_function_move(
+                    Some(mangle_function_move(
                         declaration.head.identifier.token,
                         &enclosing_type,
                         false,
-                    ));
+                    ))
                 } else {
                     panic!("Non-function CallableInformation where function expected")
                 }
@@ -556,7 +544,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     &"Quartz_Global".to_string(),
                 ))
             }
-            FunctionCallMatchResult::Failure(lol) => None,
+            FunctionCallMatchResult::Failure(_) => None,
         }
     } else {
         Some(function_call.identifier.token.clone())
@@ -572,15 +560,15 @@ pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
     let mut expression = expressions.clone();
     if expression.len() > 1 {
         let first = expression.remove(0);
-        return Expression::BinaryExpression(BinaryExpression {
+        Expression::BinaryExpression(BinaryExpression {
             lhs_expression: Box::new(first),
             rhs_expression: Box::new(construct_expression(expression)),
             op: BinOp::Dot,
             line_info: Default::default(),
-        });
+        })
     } else {
-        return expression.remove(0);
-    };
+        expression.remove(0)
+    }
 }
 
 pub fn construct_parameter(name: String, t: Type) -> Parameter {
@@ -601,15 +589,15 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
     let enclosing = ctx.enclosing_type_identifier().clone();
     let enclosing = enclosing.unwrap();
     let enclosing = enclosing.token.clone();
-    let caller_protections = if ctx.ContractBehaviourDeclarationContext.is_some() {
-        let behaviour = ctx.ContractBehaviourDeclarationContext.clone();
+    let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
+        let behaviour = ctx.contract_behaviour_declaration_context.clone();
         let behaviour = behaviour.unwrap();
         behaviour.caller_protections
     } else {
         vec![]
     };
 
-    let scope = ctx.ScopeContext.clone();
+    let scope = ctx.scope_context.clone();
     let scope = scope.unwrap_or_default();
 
     println!("MATCH THE GLOBAL TING");
@@ -623,7 +611,7 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
         return true;
     }
 
-    return false;
+    false
 }
 
 pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
@@ -637,7 +625,7 @@ pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
         .filter(|p| p.get_value().is_some())
         .collect();
 
-    let statements = properties_in_enclosing
+    properties_in_enclosing
         .into_iter()
         .map(|p| {
             let mut identifier = p.get_identifier();
@@ -649,7 +637,5 @@ pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
                 line_info: Default::default(),
             }))
         })
-        .collect();
-
-    return statements;
+        .collect()
 }

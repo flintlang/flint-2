@@ -10,11 +10,9 @@ mod context;
 mod environment;
 mod visitor;
 use crate::AstProcessor::Target;
-use nom_locate::LocatedSpan;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
-use AST::Visitable;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -90,6 +88,6 @@ fn main() {
 
     if module.is_some() {
         let module = module.unwrap();
-        let process_result = AstProcessor::process_ast(module, environment, target);
+        let _process_result = AstProcessor::process_ast(module, environment, target);
     }
 }

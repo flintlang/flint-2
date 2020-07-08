@@ -1,20 +1,19 @@
-use super::context::*;
-use super::environment::*;
-use super::visitor::*;
-use super::SemanticAnalysis::*;
-use hex::encode;
-use nom::multi::count;
-use sha3::{Digest, Keccak256};
 use std::cmp::max;
 use std::collections::HashMap;
 use std::error::Error;
-use std::process::exit;
 use std::string::String;
 use std::vec::Vec;
 
-pub type VResult = Result<(), Box<std::error::Error>>;
+use hex::encode;
+use sha3::{Digest, Keccak256};
 
-pub type PResult = Result<PassResult, Box<std::error::Error>>;
+use super::context::*;
+use super::environment::*;
+use super::visitor::*;
+
+pub type VResult = Result<(), Box<dyn Error>>;
+
+pub type PResult = Result<PassResult, Box<dyn Error>>;
 
 pub struct PassResult {
     pub context: Context,
@@ -58,28 +57,28 @@ impl TypeInfo {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == format!("module"))
+            .filter(|f| f.identifier.token == "module".to_string())
             .collect();
 
         if modifiers.is_empty() {
             return false;
         }
 
-        return true;
+        true
     }
 
     pub fn is_external_resource(&self) -> bool {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == format!("resource"))
+            .filter(|f| f.identifier.token == "resource".to_string())
             .collect();
 
         if modifiers.is_empty() {
             return false;
         }
 
-        return true;
+        true
     }
 
     pub fn is_external_struct(&self) -> bool {
@@ -87,7 +86,7 @@ impl TypeInfo {
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
             .filter(|f| {
-                f.identifier.token == format!("resource") || f.identifier.token == format!("struct")
+                f.identifier.token == "resource".to_string() || f.identifier.token == "struct".to_string()
             })
             .collect();
 
@@ -95,7 +94,7 @@ impl TypeInfo {
             return false;
         }
 
-        return true;
+        true
     }
 }
 
@@ -142,7 +141,7 @@ impl Property {
     }
 
     pub fn get_value(&self) -> Option<Expression> {
-        return match self {
+        match self {
             Property::VariableDeclaration(v) => {
                 let expression = v.expression.clone();
                 match expression {
@@ -151,7 +150,7 @@ impl Property {
                 }
             }
             Property::EnumCase(e) => e.hidden_value.clone(),
-        };
+        }
     }
 }
 
@@ -209,7 +208,7 @@ pub trait Visitable {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Module {
     pub declarations: Vec<TopLevelDeclaration>,
 }
@@ -248,7 +247,7 @@ impl<T: Visitable> Visitable for Vec<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TopLevelDeclaration {
     ContractDeclaration(ContractDeclaration),
     ContractBehaviourDeclaration(ContractBehaviourDeclaration),
@@ -297,7 +296,7 @@ impl Visitable for TopLevelDeclaration {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct ContractDeclaration {
     pub identifier: Identifier,
     pub contract_members: Vec<ContractMember>,
@@ -306,25 +305,23 @@ pub struct ContractDeclaration {
 
 impl ContractDeclaration {
     pub fn contract_enum_prefix() -> String {
-        return "QuartzStateEnum$".to_string();
+        "QuartzStateEnum$".to_string()
     }
 
     pub fn get_variable_declarations(&self) -> Vec<VariableDeclaration> {
         let members = self.contract_members.clone();
-        let members = members
+        members
             .into_iter()
             .filter_map(|c| match c {
                 ContractMember::VariableDeclaration(v) => Some(v),
                 ContractMember::EventDeclaration(_) => None,
             })
-            .collect();
-
-        return members;
+            .collect()
     }
 
     pub fn get_variable_declarations_without_dict(&self) -> Vec<VariableDeclaration> {
         let members = self.contract_members.clone();
-        let members = members
+        members
             .into_iter()
             .filter_map(|c| match c {
                 ContractMember::VariableDeclaration(v) => {
@@ -336,9 +333,7 @@ impl ContractDeclaration {
                 }
                 ContractMember::EventDeclaration(_) => None,
             })
-            .collect();
-
-        return members;
+            .collect()
     }
 }
 
@@ -357,7 +352,7 @@ impl Visitable for ContractDeclaration {
             Err(e) => return Err(e),
         }
 
-        ctx.ContractDeclarationContext = Some(ContractDeclarationContext {
+        ctx.contract_declaration_context = Some(ContractDeclarationContext {
             identifier: self.identifier.clone(),
         });
 
@@ -375,7 +370,7 @@ impl Visitable for ContractDeclaration {
             Err(e) => return Err(e),
         }
 
-        ctx.ContractDeclarationContext = None;
+        ctx.contract_declaration_context = None;
 
         let result = v.finish_contract_declaration(self, ctx);
         match result {
@@ -387,7 +382,7 @@ impl Visitable for ContractDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ContractBehaviourDeclaration {
     pub identifier: Identifier,
     pub members: Vec<ContractBehaviourMember>,
@@ -398,7 +393,7 @@ pub struct ContractBehaviourDeclaration {
 
 impl Visitable for ContractBehaviourDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        ctx.ContractBehaviourDeclarationContext = Some(ContractBehaviourDeclarationContext {
+        ctx.contract_behaviour_declaration_context = Some(ContractBehaviourDeclarationContext {
             identifier: self.identifier.clone(),
             caller: self.caller_binding.clone(),
             caller_protections: self.caller_protections.clone(),
@@ -420,7 +415,7 @@ impl Visitable for ContractBehaviourDeclaration {
             local_variables,
             ..Default::default()
         };
-        ctx.ScopeContext = Some(scope);
+        ctx.scope_context = Some(scope);
 
         let result = v.start_contract_behaviour_declaration(self, ctx);
 
@@ -455,10 +450,10 @@ impl Visitable for ContractBehaviourDeclaration {
             Err(e) => return Err(e),
         }
 
-        let scope = ctx.ScopeContext.clone();
+        let scope = ctx.scope_context.clone();
 
         for member in &mut self.members {
-            ctx.ScopeContext = scope.clone();
+            ctx.scope_context = scope.clone();
             let result = member.visit(v, ctx);
             match result {
                 Ok(_) => {}
@@ -466,8 +461,8 @@ impl Visitable for ContractBehaviourDeclaration {
             }
         }
 
-        ctx.ContractBehaviourDeclarationContext = None;
-        ctx.ScopeContext = None;
+        ctx.contract_behaviour_declaration_context = None;
+        ctx.scope_context = None;
 
         let result = v.finish_contract_behaviour_declaration(self, ctx);
         match result {
@@ -479,7 +474,7 @@ impl Visitable for ContractBehaviourDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AssetDeclaration {
     pub identifier: Identifier,
     pub members: Vec<AssetMember>,
@@ -488,7 +483,7 @@ pub struct AssetDeclaration {
 impl AssetDeclaration {
     pub fn get_variable_declarations(&self) -> Vec<VariableDeclaration> {
         let members = self.members.clone();
-        let members = members
+        members
             .into_iter()
             .filter_map(|m| {
                 if let AssetMember::VariableDeclaration(v) = m {
@@ -497,10 +492,10 @@ impl AssetDeclaration {
                     None
                 }
             })
-            .collect();
-        return members;
+            .collect()
     }
 }
+
 impl Visitable for AssetDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         let result = v.start_asset_declaration(self, ctx);
@@ -510,19 +505,19 @@ impl Visitable for AssetDeclaration {
             Err(e) => return Err(e),
         }
 
-        let AssetDeclarationContext = AssetDeclarationContext {
+        let asset_declaration_context = AssetDeclarationContext {
             identifier: self.identifier.clone(),
         };
 
-        let ScopeContext = ScopeContext {
+        let scope_context = ScopeContext {
             parameters: vec![],
             local_variables: vec![],
             counter: 0,
         };
-        let ScopeContext = Some(ScopeContext);
+        let scope_context = Some(scope_context);
 
-        ctx.AssetContext = Option::from(AssetDeclarationContext);
-        ctx.ScopeContext = ScopeContext;
+        ctx.asset_context = Option::from(asset_declaration_context);
+        ctx.scope_context = scope_context;
 
         let result = self.identifier.visit(v, ctx);
         match result {
@@ -531,7 +526,7 @@ impl Visitable for AssetDeclaration {
         }
 
         for member in &mut self.members {
-            ctx.ScopeContext = Option::from(ScopeContext {
+            ctx.scope_context = Option::from(ScopeContext {
                 parameters: vec![],
                 local_variables: vec![],
                 counter: 0,
@@ -543,8 +538,8 @@ impl Visitable for AssetDeclaration {
             }
         }
 
-        ctx.AssetContext = None;
-        ctx.ScopeContext = None;
+        ctx.asset_context = None;
+        ctx.scope_context = None;
 
         let result = v.finish_asset_declaration(self, ctx);
 
@@ -557,7 +552,7 @@ impl Visitable for AssetDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AssetMember {
     VariableDeclaration(VariableDeclaration),
     FunctionDeclaration(FunctionDeclaration),
@@ -565,7 +560,7 @@ pub enum AssetMember {
 }
 
 impl Visitable for AssetMember {
-    fn visit(&mut self, v: &mut Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         let result = match self {
             AssetMember::VariableDeclaration(d) => d.visit(v, ctx),
             AssetMember::SpecialDeclaration(s) => s.visit(v, ctx),
@@ -579,7 +574,7 @@ impl Visitable for AssetMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StructDeclaration {
     pub identifier: Identifier,
     pub conformances: Vec<Conformance>,
@@ -589,7 +584,7 @@ pub struct StructDeclaration {
 impl StructDeclaration {
     pub fn get_variable_declarations(&self) -> Vec<VariableDeclaration> {
         let members = self.members.clone();
-        let members = members
+        members
             .into_iter()
             .filter_map(|m| {
                 if let StructMember::VariableDeclaration(v) = m {
@@ -598,8 +593,7 @@ impl StructDeclaration {
                     None
                 }
             })
-            .collect();
-        return members;
+            .collect()
     }
 }
 
@@ -611,15 +605,15 @@ impl Visitable for StructDeclaration {
             Err(e) => return Err(e),
         }
 
-        let StructDeclarationContext = Some(StructDeclarationContext {
+        let struct_declaration_context = Some(StructDeclarationContext {
             identifier: self.identifier.clone(),
         });
-        let ScopeContext = Some(ScopeContext {
+        let scope_context = Some(ScopeContext {
             ..Default::default()
         });
 
-        ctx.StructDeclarationContext = StructDeclarationContext;
-        ctx.ScopeContext = ScopeContext;
+        ctx.struct_declaration_context = struct_declaration_context;
+        ctx.scope_context = scope_context;
 
         let result = self.identifier.visit(v, ctx);
         match result {
@@ -628,7 +622,7 @@ impl Visitable for StructDeclaration {
         }
 
         for member in &mut self.members {
-            ctx.ScopeContext = Option::from(ScopeContext {
+            ctx.scope_context = Option::from(ScopeContext {
                 parameters: vec![],
                 local_variables: vec![],
                 counter: 0,
@@ -639,15 +633,15 @@ impl Visitable for StructDeclaration {
                 Err(e) => return Err(e),
             }
         }
-        ctx.StructDeclarationContext = None;
-        ctx.ScopeContext = None;
+        ctx.struct_declaration_context = None;
+        ctx.scope_context = None;
 
         v.finish_struct_declaration(self, ctx);
         Ok(())
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumDeclaration {
     pub enum_token: std::string::String,
     pub identifier: Identifier,
@@ -656,14 +650,14 @@ pub struct EnumDeclaration {
 }
 
 impl Visitable for EnumDeclaration {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TraitDeclaration {
-    pub trait_kind: std::string::String,
+    pub external: bool,
     pub identifier: Identifier,
     pub members: Vec<TraitMember>,
     pub modifiers: Vec<FunctionCall>,
@@ -674,7 +668,7 @@ impl TraitDeclaration {
         let modifiers = self.modifiers.clone();
         let mut modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == format!("module"))
+            .filter(|f| f.identifier.token == "module".to_string())
             .collect();
 
         if modifiers.is_empty() {
@@ -689,7 +683,7 @@ impl TraitDeclaration {
                 let identifier = argument.identifier.clone();
                 let identifier = identifier.unwrap();
                 let name = identifier.token;
-                if name == format!("address") {
+                if name == "address".to_string() {
                     if let Expression::Literal(l) = argument.expression {
                         if let Literal::AddressLiteral(a) = l {
                             return Option::from(a);
@@ -699,7 +693,7 @@ impl TraitDeclaration {
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -726,12 +720,12 @@ impl Visitable for TraitDeclaration {
             counter: 0,
         };
 
-        ctx.TraitDeclarationContext = Some(trait_declaration_context);
+        ctx.trait_declaration_context = Some(trait_declaration_context);
 
-        ctx.ScopeContext = Option::from(trait_scope_ctx.clone());
+        ctx.scope_context = Option::from(trait_scope_ctx.clone());
 
         for member in &mut self.members {
-            ctx.ScopeContext = Some(trait_scope_ctx.clone());
+            ctx.scope_context = Some(trait_scope_ctx.clone());
             let result = member.visit(v, ctx);
             match result {
                 Ok(_) => {}
@@ -739,16 +733,16 @@ impl Visitable for TraitDeclaration {
             }
         }
 
-        ctx.TraitDeclarationContext = None;
+        ctx.trait_declaration_context = None;
 
-        ctx.ScopeContext = None;
+        ctx.scope_context = None;
 
         v.finish_trait_declaration(self, ctx);
         Ok(())
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ContractMember {
     VariableDeclaration(VariableDeclaration),
     EventDeclaration(EventDeclaration),
@@ -778,7 +772,7 @@ impl Visitable for ContractMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ContractBehaviourMember {
     FunctionDeclaration(FunctionDeclaration),
     SpecialDeclaration(SpecialDeclaration),
@@ -812,7 +806,7 @@ impl Visitable for ContractBehaviourMember {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumMember {
     pub case_token: std::string::String,
     pub identifier: Identifier,
@@ -841,7 +835,7 @@ impl Visitable for EnumMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TraitMember {
     FunctionDeclaration(FunctionDeclaration),
     SpecialDeclaration(SpecialDeclaration),
@@ -869,7 +863,7 @@ impl Visitable for TraitMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StructMember {
     VariableDeclaration(VariableDeclaration),
     FunctionDeclaration(FunctionDeclaration),
@@ -901,7 +895,7 @@ impl Visitable for StructMember {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Conformance {
     pub identifier: Identifier,
 }
@@ -913,12 +907,12 @@ impl Conformance {
 }
 
 impl Visitable for Conformance {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct TypeState {
     pub identifier: Identifier,
 }
@@ -930,12 +924,12 @@ impl TypeState {
 }
 
 impl Visitable for TypeState {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct CallerProtection {
     pub identifier: Identifier,
 }
@@ -950,7 +944,7 @@ impl CallerProtection {
     }
 
     pub fn is_sub_protection(&self, parent: CallerProtection) -> bool {
-        (parent.is_any() || self.name() == parent.name())
+        parent.is_any() || self.name() == parent.name()
     }
 }
 
@@ -975,13 +969,13 @@ impl Visitable for CallerProtection {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct FunctionDeclaration {
     pub head: FunctionSignatureDeclaration,
     pub body: Vec<Statement>,
-    pub ScopeContext: Option<ScopeContext>,
+    pub scope_context: Option<ScopeContext>,
     pub tags: Vec<String>,
-    pub mangledIdentifier: Option<String>,
+    pub mangled_identifier: Option<String>,
     pub is_external: bool,
 }
 
@@ -1065,21 +1059,21 @@ impl Visitable for FunctionDeclaration {
 
         let local_variables = {
             if ctx.has_scope_context() {
-                let scope = ctx.ScopeContext.clone();
+                let scope = ctx.scope_context.clone();
                 let scope = scope.unwrap();
                 scope.local_variables
             } else {
                 vec![]
             }
         };
-        ctx.FunctionDeclarationContext = Some(FunctionDeclarationContext {
+        ctx.function_declaration_context = Some(FunctionDeclarationContext {
             declaration: self.clone(),
             local_variables,
         });
 
-        if ctx.ScopeContext.is_some() {
+        if ctx.scope_context.is_some() {
             for parameter in &self.head.parameters {
-                ctx.ScopeContext
+                ctx.scope_context
                     .as_mut()
                     .unwrap()
                     .parameters
@@ -1090,15 +1084,15 @@ impl Visitable for FunctionDeclaration {
         let mut statements: Vec<Vec<Statement>> = vec![];
 
         for statement in &mut self.body {
-            ctx.PreStatements = vec![];
-            ctx.PostStatements = vec![];
+            ctx.pre_statements = vec![];
+            ctx.post_statements = vec![];
             let result = statement.visit(v, ctx);
             match result {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             }
-            statements.push(ctx.PreStatements.clone());
-            statements.push(ctx.PostStatements.clone());
+            statements.push(ctx.pre_statements.clone());
+            statements.push(ctx.post_statements.clone());
         }
 
         let body = self.body.clone();
@@ -1112,15 +1106,15 @@ impl Visitable for FunctionDeclaration {
 
         self.body = statements;
 
-        let declarations = ctx.FunctionDeclarationContext.clone();
+        let declarations = ctx.function_declaration_context.clone();
         let declarations = declarations.unwrap().local_variables;
         if ctx.has_scope_context() {
-            let scope = ctx.ScopeContext.clone();
+            let scope = ctx.scope_context.clone();
             let mut scope = scope.unwrap();
             scope.local_variables = declarations;
-            ctx.ScopeContext = Some(scope);
+            ctx.scope_context = Some(scope);
         }
-        ctx.FunctionDeclarationContext = None;
+        ctx.function_declaration_context = None;
 
         let result = v.finish_function_declaration(self, ctx);
         match result {
@@ -1128,14 +1122,14 @@ impl Visitable for FunctionDeclaration {
             Err(e) => return Err(e),
         }
 
-        ctx.PreStatements = vec![];
-        ctx.PostStatements = vec![];
+        ctx.pre_statements = vec![];
+        ctx.post_statements = vec![];
 
         Ok(())
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct FunctionSignatureDeclaration {
     pub func_token: std::string::String,
     pub attributes: Vec<Attribute>,
@@ -1149,7 +1143,7 @@ pub struct FunctionSignatureDeclaration {
 
 impl FunctionSignatureDeclaration {
     pub fn is_payable(&self) -> bool {
-        return self.payable;
+        self.payable
     }
 
     pub fn is_public(&self) -> bool {
@@ -1192,7 +1186,7 @@ impl FunctionSignatureDeclaration {
             return true;
         }
 
-        return false;
+        false
     }
 }
 
@@ -1237,29 +1231,21 @@ impl Visitable for FunctionSignatureDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpecialDeclaration {
     pub head: SpecialSignatureDeclaration,
     pub body: Vec<Statement>,
-    pub ScopeContext: ScopeContext,
+    pub scope_context: ScopeContext,
     pub generated: bool,
 }
 
 impl SpecialDeclaration {
     pub(crate) fn is_init(&self) -> bool {
-        if &self.head.special_token == "init" {
-            true
-        } else {
-            false
-        }
+        &self.head.special_token == "init"
     }
 
     pub fn is_fallback(&self) -> bool {
-        if &self.head.special_token == "fallback" {
-            true
-        } else {
-            false
-        }
+        &self.head.special_token == "fallback"
     }
 
     pub(crate) fn is_public(&self) -> bool {
@@ -1293,9 +1279,9 @@ impl SpecialDeclaration {
         FunctionDeclaration {
             head: function_sig,
             body: self.body.clone(),
-            ScopeContext: Option::from(self.ScopeContext.clone()),
+            scope_context: Option::from(self.scope_context.clone()),
             tags: vec![],
-            mangledIdentifier: None,
+            mangled_identifier: None,
             is_external: false,
         }
     }
@@ -1322,21 +1308,21 @@ impl Visitable for SpecialDeclaration {
 
         let local_variables = {
             if ctx.has_scope_context() {
-                let scope = ctx.ScopeContext.clone();
+                let scope = ctx.scope_context.clone();
                 let scope = scope.unwrap();
                 scope.local_variables
             } else {
                 vec![]
             }
         };
-        ctx.SpecialDeclarationContext = Some(SpecialDeclarationContext {
+        ctx.special_declaration_context = Some(SpecialDeclarationContext {
             declaration: self.clone(),
             local_variables,
         });
 
-        if ctx.ScopeContext.is_some() {
+        if ctx.scope_context.is_some() {
             for parameter in &self.head.parameters {
-                ctx.ScopeContext
+                ctx.scope_context
                     .as_mut()
                     .unwrap()
                     .parameters
@@ -1346,15 +1332,15 @@ impl Visitable for SpecialDeclaration {
 
         let mut statements: Vec<Vec<Statement>> = vec![];
         for statement in &mut self.body {
-            ctx.PreStatements = vec![];
-            ctx.PostStatements = vec![];
+            ctx.pre_statements = vec![];
+            ctx.post_statements = vec![];
             let result = statement.visit(v, ctx);
             match result {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             }
-            statements.push(ctx.PreStatements.clone());
-            statements.push(ctx.PostStatements.clone());
+            statements.push(ctx.pre_statements.clone());
+            statements.push(ctx.post_statements.clone());
         }
 
         let body = self.body.clone();
@@ -1368,15 +1354,15 @@ impl Visitable for SpecialDeclaration {
 
         self.body = statements;
 
-        let declarations = ctx.SpecialDeclarationContext.clone();
+        let declarations = ctx.special_declaration_context.clone();
         let declarations = declarations.unwrap().local_variables;
         if ctx.has_scope_context() {
-            let scope = ctx.ScopeContext.clone();
+            let scope = ctx.scope_context.clone();
             let mut scope = scope.unwrap();
             scope.local_variables = declarations;
-            ctx.ScopeContext = Some(scope);
+            ctx.scope_context = Some(scope);
         }
-        ctx.SpecialDeclarationContext = None;
+        ctx.special_declaration_context = None;
         let result = v.finish_special_declaration(self, ctx);
         match result {
             Ok(_) => {}
@@ -1386,7 +1372,7 @@ impl Visitable for SpecialDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpecialSignatureDeclaration {
     pub special_token: std::string::String,
     pub attributes: Vec<Attribute>,
@@ -1424,7 +1410,7 @@ impl Visitable for SpecialSignatureDeclaration {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     ReturnStatement(ReturnStatement),
     Expression(Expression),
@@ -1473,7 +1459,7 @@ impl Visitable for Statement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DoCatchStatement {
     pub error: Expression,
     pub do_body: Vec<Statement>,
@@ -1481,29 +1467,29 @@ pub struct DoCatchStatement {
 }
 
 impl Visitable for DoCatchStatement {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IfStatement {
     pub condition: Expression,
     pub body: Vec<Statement>,
     pub else_body: Vec<Statement>,
-    pub IfBodyScopeContext: Option<ScopeContext>,
-    pub ElseBodyScopeContext: Option<ScopeContext>,
+    pub if_body_scope_context: Option<ScopeContext>,
+    pub else_body_scope_context: Option<ScopeContext>,
 }
 
 impl IfStatement {
-    pub fn endsWithReturn(&self) -> bool {
+    pub fn ends_with_return(&self) -> bool {
         let body = self.body.clone();
         for b in body {
             if let Statement::ReturnStatement(_) = b {
                 return true;
             }
         }
-        return false;
+        false
     }
 }
 
@@ -1511,36 +1497,36 @@ impl Visitable for IfStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_if_statement(self, ctx);
 
-        ctx.InIfCondition = true;
+        ctx.in_if_condition = true;
 
         self.condition.visit(v, ctx);
 
-        ctx.InIfCondition = false;
+        ctx.in_if_condition = false;
 
-        let pre_statements = ctx.PreStatements.clone();
-        let post_statements = ctx.PostStatements.clone();
-        let scope = ctx.ScopeContext.clone();
-        let block = ctx.BlockContext.clone();
+        let pre_statements = ctx.pre_statements.clone();
+        let post_statements = ctx.post_statements.clone();
+        let scope = ctx.scope_context.clone();
+        let block = ctx.block_context.clone();
 
-        let blocks_scope = if self.IfBodyScopeContext.is_some() {
-            let temp = self.IfBodyScopeContext.clone();
+        let blocks_scope = if self.if_body_scope_context.is_some() {
+            let temp = self.if_body_scope_context.clone();
             temp.unwrap()
         } else {
-            let temp = ctx.ScopeContext.clone();
+            let temp = ctx.scope_context.clone();
             temp.unwrap()
         };
         let block_context = BlockContext {
-            ScopeContext: blocks_scope,
+            scope_context: blocks_scope,
         };
 
-        ctx.BlockContext = Some(block_context);
+        ctx.block_context = Some(block_context);
         let mut statements: Vec<Vec<Statement>> = vec![];
         for statement in &mut self.body {
-            ctx.PreStatements = vec![];
-            ctx.PostStatements = vec![];
+            ctx.pre_statements = vec![];
+            ctx.post_statements = vec![];
             statement.visit(v, ctx);
-            statements.push(ctx.PreStatements.clone());
-            statements.push(ctx.PostStatements.clone());
+            statements.push(ctx.pre_statements.clone());
+            statements.push(ctx.post_statements.clone());
         }
 
         let body = self.body.clone();
@@ -1554,12 +1540,12 @@ impl Visitable for IfStatement {
 
         self.body = statements;
 
-        if self.IfBodyScopeContext.is_none() {
-            self.IfBodyScopeContext = ctx.ScopeContext.clone();
-        } else if ctx.BlockContext.is_some() {
-            let block = ctx.BlockContext.clone();
+        if self.if_body_scope_context.is_none() {
+            self.if_body_scope_context = ctx.scope_context.clone();
+        } else if ctx.block_context.is_some() {
+            let block = ctx.block_context.clone();
             let block = block.unwrap();
-            self.IfBodyScopeContext = Option::from(block.ScopeContext.clone());
+            self.if_body_scope_context = Option::from(block.scope_context.clone());
         }
 
         if scope.is_some() {
@@ -1567,7 +1553,7 @@ impl Visitable for IfStatement {
             let mut temp_scope = temp_scope.unwrap();
 
             temp_scope.counter = if ctx.scope_context().is_some() {
-                let ctx_scope = ctx.ScopeContext.clone();
+                let ctx_scope = ctx.scope_context.clone();
                 let ctx_scope = ctx_scope.unwrap();
 
                 temp_scope.counter + ctx_scope.local_variables.len() as u64
@@ -1575,38 +1561,38 @@ impl Visitable for IfStatement {
                 temp_scope.counter + 1
             };
 
-            temp_scope.counter = if ctx.BlockContext.is_some() {
-                let ctx_block = ctx.BlockContext.clone();
+            temp_scope.counter = if ctx.block_context.is_some() {
+                let ctx_block = ctx.block_context.clone();
                 let ctx_scope = ctx_block.unwrap();
-                let ctx_scope = ctx_scope.ScopeContext;
+                let ctx_scope = ctx_scope.scope_context;
                 temp_scope.counter + ctx_scope.local_variables.len() as u64
             } else {
                 temp_scope.counter + 1
             };
 
-            ctx.ScopeContext = Option::from(temp_scope);
+            ctx.scope_context = Option::from(temp_scope);
         }
 
-        let blocks_scope = if self.ElseBodyScopeContext.is_some() {
-            let temp = self.ElseBodyScopeContext.clone();
+        let blocks_scope = if self.else_body_scope_context.is_some() {
+            let temp = self.else_body_scope_context.clone();
             temp.unwrap()
         } else {
-            let temp = ctx.ScopeContext.clone();
+            let temp = ctx.scope_context.clone();
             temp.unwrap()
         };
         let block_context = BlockContext {
-            ScopeContext: blocks_scope,
+            scope_context: blocks_scope,
         };
 
-        ctx.BlockContext = Some(block_context);
+        ctx.block_context = Some(block_context);
 
         let mut statements: Vec<Vec<Statement>> = vec![];
         for statement in &mut self.else_body {
-            ctx.PreStatements = vec![];
-            ctx.PostStatements = vec![];
+            ctx.pre_statements = vec![];
+            ctx.post_statements = vec![];
             statement.visit(v, ctx);
-            statements.push(ctx.PreStatements.clone());
-            statements.push(ctx.PostStatements.clone());
+            statements.push(ctx.pre_statements.clone());
+            statements.push(ctx.post_statements.clone());
         }
 
         let body = self.else_body.clone();
@@ -1620,18 +1606,18 @@ impl Visitable for IfStatement {
 
         self.else_body = statements;
 
-        if self.ElseBodyScopeContext.is_none() {
-            self.ElseBodyScopeContext = ctx.ScopeContext.clone();
-        } else if ctx.BlockContext.is_some() {
-            let block = ctx.BlockContext.clone();
+        if self.else_body_scope_context.is_none() {
+            self.else_body_scope_context = ctx.scope_context.clone();
+        } else if ctx.block_context.is_some() {
+            let block = ctx.block_context.clone();
             let block = block.unwrap();
-            self.ElseBodyScopeContext = Option::from(block.ScopeContext.clone());
+            self.else_body_scope_context = Option::from(block.scope_context.clone());
         }
 
-        ctx.ScopeContext = scope;
-        ctx.BlockContext = block;
-        ctx.PreStatements = pre_statements;
-        ctx.PostStatements = post_statements;
+        ctx.scope_context = scope;
+        ctx.block_context = block;
+        ctx.pre_statements = pre_statements;
+        ctx.post_statements = post_statements;
 
         let result = v.finish_if_statement(self, ctx);
         match result {
@@ -1642,12 +1628,12 @@ impl Visitable for IfStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ForStatement {
     pub variable: VariableDeclaration,
     pub iterable: Expression,
     pub body: Vec<Statement>,
-    pub ForBodyScopeContext: Option<ScopeContext>,
+    pub for_body_scope_context: Option<ScopeContext>,
 }
 
 impl Visitable for ForStatement {
@@ -1658,30 +1644,30 @@ impl Visitable for ForStatement {
 
         self.iterable.visit(v, ctx);
 
-        let scopeContext = ctx.ScopeContext.clone();
-        let blockContext = ctx.BlockContext.clone();
-        let PreStatements = ctx.PreStatements.clone();
-        let PostStatements = ctx.PostStatements.clone();
+        let original_scope_context = ctx.scope_context.clone();
+        let original_block_context = ctx.block_context.clone();
+        let original_pre_statements = ctx.pre_statements.clone();
+        let original_post_statements = ctx.post_statements.clone();
 
-        let blocks_scope = if self.ForBodyScopeContext.is_some() {
-            let temp = self.ForBodyScopeContext.clone();
+        let blocks_scope = if self.for_body_scope_context.is_some() {
+            let temp = self.for_body_scope_context.clone();
             temp.unwrap()
         } else {
-            let temp = ctx.ScopeContext.clone();
+            let temp = ctx.scope_context.clone();
             temp.unwrap()
         };
         let block_context = BlockContext {
-            ScopeContext: blocks_scope,
+            scope_context: blocks_scope,
         };
-        ctx.BlockContext = Some(block_context);
+        ctx.block_context = Some(block_context);
 
         let mut statements: Vec<Vec<Statement>> = vec![];
         for statement in &mut self.body {
-            ctx.PreStatements = vec![];
-            ctx.PostStatements = vec![];
+            ctx.pre_statements = vec![];
+            ctx.post_statements = vec![];
             statement.visit(v, ctx);
-            statements.push(ctx.PreStatements.clone());
-            statements.push(ctx.PostStatements.clone());
+            statements.push(ctx.pre_statements.clone());
+            statements.push(ctx.post_statements.clone());
         }
 
         let body = self.body.clone();
@@ -1695,10 +1681,10 @@ impl Visitable for ForStatement {
 
         self.body = statements;
 
-        ctx.ScopeContext = scopeContext;
-        ctx.BlockContext = blockContext;
-        ctx.PreStatements = PreStatements;
-        ctx.PostStatements = PostStatements;
+        ctx.scope_context = original_scope_context;
+        ctx.block_context = original_block_context;
+        ctx.pre_statements = original_pre_statements;
+        ctx.post_statements = original_post_statements;
 
         let result = v.finish_for_statement(self, ctx);
         match result {
@@ -1709,7 +1695,7 @@ impl Visitable for ForStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EmitStatement {
     pub function_call: FunctionCall,
 }
@@ -1722,13 +1708,13 @@ impl Visitable for EmitStatement {
             Err(e) => return Err(e),
         }
 
-        ctx.InEmit = true;
+        ctx.in_emit = true;
         let result = self.function_call.visit(v, ctx);
         match result {
             Ok(_) => {}
             Err(e) => return Err(e),
         }
-        ctx.InEmit = false;
+        ctx.in_emit = false;
 
         let result = v.finish_emit_statement(self, ctx);
         match result {
@@ -1739,7 +1725,7 @@ impl Visitable for EmitStatement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BecomeStatement {
     pub expression: Expression,
     pub line_info: LineInfo,
@@ -1747,14 +1733,14 @@ pub struct BecomeStatement {
 
 impl Visitable for BecomeStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        ctx.InBecome = true;
+        ctx.in_become = true;
         self.expression.visit(v, ctx);
-        ctx.InBecome = false;
+        ctx.in_become = false;
         Ok(())
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct ReturnStatement {
     pub expression: Option<Expression>,
     pub cleanup: Vec<Statement>,
@@ -1836,12 +1822,12 @@ impl Expression {
 
     pub fn enclosing_type(&self) -> Option<String> {
         match self.clone() {
-            Expression::Identifier(i) => return i.enclosing_type,
-            Expression::InoutExpression(i) => return i.expression.enclosing_type(),
-            Expression::BinaryExpression(b) => return b.lhs_expression.enclosing_type(),
-            Expression::VariableDeclaration(v) => return Option::from(v.identifier.token),
-            Expression::BracketedExpression(b) => return b.expression.enclosing_type(),
-            Expression::FunctionCall(f) => return f.identifier.enclosing_type,
+            Expression::Identifier(i) => i.enclosing_type,
+            Expression::InoutExpression(i) => i.expression.enclosing_type(),
+            Expression::BinaryExpression(b) => b.lhs_expression.enclosing_type(),
+            Expression::VariableDeclaration(v) => Option::from(v.identifier.token),
+            Expression::BracketedExpression(b) => b.expression.enclosing_type(),
+            Expression::FunctionCall(f) => f.identifier.enclosing_type,
             Expression::ExternalCall(e) => e.function_call.lhs_expression.enclosing_type(),
             Expression::SubscriptExpression(_) => unimplemented!(),
             _ => None,
@@ -1849,7 +1835,7 @@ impl Expression {
     }
 
     pub fn enclosing_identifier(&self) -> Option<Identifier> {
-        return match self.clone() {
+        match self.clone() {
             Expression::Identifier(i) => Some(i),
             Expression::BinaryExpression(b) => b.lhs_expression.enclosing_identifier(),
             Expression::InoutExpression(i) => i.expression.enclosing_identifier(),
@@ -1859,7 +1845,7 @@ impl Expression {
             Expression::BracketedExpression(b) => b.expression.enclosing_identifier(),
             Expression::SubscriptExpression(s) => Some(s.base_expression),
             _ => None,
-        };
+        }
     }
 
     pub fn get_line_info(&self) -> LineInfo {
@@ -1978,7 +1964,7 @@ pub struct RangeExpression {
 }
 
 impl Visitable for RangeExpression {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
@@ -1997,7 +1983,7 @@ impl Visitable for SubscriptExpression {
             Err(e) => return Err(e),
         }
 
-        let in_subscript = ctx.InSubscript;
+        let in_subscript = ctx.in_subscript;
 
         let result = self.base_expression.visit(v, ctx);
         match result {
@@ -2005,7 +1991,7 @@ impl Visitable for SubscriptExpression {
             Err(e) => return Err(e),
         }
 
-        ctx.InSubscript = true;
+        ctx.in_subscript = true;
 
         let result = self.index_expression.visit(v, ctx);
         match result {
@@ -2013,7 +1999,7 @@ impl Visitable for SubscriptExpression {
             Err(e) => return Err(e),
         }
 
-        ctx.InSubscript = in_subscript;
+        ctx.in_subscript = in_subscript;
 
         let result = v.finish_subscript_expression(self, ctx);
         match result {
@@ -2096,7 +2082,7 @@ pub enum Literal {
 }
 
 impl Visitable for Literal {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
@@ -2114,7 +2100,7 @@ impl AttemptExpression {
 }
 
 impl Visitable for AttemptExpression {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
@@ -2134,11 +2120,11 @@ impl Visitable for ExternalCall {
             Err(e) => return Err(e),
         }
 
-        let old_is_external_call = ctx.IsExternalFunctionCall.clone();
-        let old_external_call_context = ctx.ExternalCallContext.clone();
+        let old_is_external_call = ctx.is_external_function_call;
+        let old_external_call_context = ctx.external_call_context.clone();
 
-        ctx.IsExternalFunctionCall = true;
-        ctx.ExternalCallContext = Option::from(self.clone());
+        ctx.is_external_function_call = true;
+        ctx.external_call_context = Option::from(self.clone());
 
         let result = self.function_call.visit(v, ctx);
         match result {
@@ -2146,8 +2132,8 @@ impl Visitable for ExternalCall {
             Err(e) => return Err(e),
         }
 
-        ctx.IsExternalFunctionCall = old_is_external_call;
-        ctx.ExternalCallContext = old_external_call_context;
+        ctx.is_external_function_call = old_is_external_call;
+        ctx.external_call_context = old_external_call_context;
 
         let result = v.finish_external_call(self, ctx);
         match result {
@@ -2167,7 +2153,7 @@ pub struct Identifier {
 
 impl Identifier {
     pub fn is_self(&self) -> bool {
-        return self.token == "self";
+        self.token == "self"
     }
 }
 
@@ -2294,18 +2280,17 @@ impl Visitable for BinaryExpression {
         }
 
         if self.op.is_assignment() {
-            if let Expression::VariableDeclaration(_) = *self.lhs_expression {
-            } else {
-                ctx.IsLValue = true;
+            if let Expression::VariableDeclaration(_) = *self.lhs_expression {} else {
+                ctx.is_lvalue = true;
             }
         }
 
         if let BinOp::Dot = self.op {
-            ctx.IsEnclosing = true;
+            ctx.is_enclosing = true;
         }
 
-        let old_context = ctx.ExternalCallContext.clone();
-        ctx.ExternalCallContext = None;
+        let old_context = ctx.external_call_context.clone();
+        ctx.external_call_context = None;
 
         let result = self.lhs_expression.visit(v, ctx);
         match result {
@@ -2314,13 +2299,13 @@ impl Visitable for BinaryExpression {
         }
 
         if let BinOp::Dot = self.op.clone() {
-            ctx.IsLValue = false;
+            ctx.is_lvalue = false;
         }
 
-        ctx.ExternalCallContext = old_context;
-        ctx.IsEnclosing = false;
+        ctx.external_call_context = old_context;
+        ctx.is_enclosing = false;
 
-        let scope = ctx.ScopeContext.clone();
+        let scope = ctx.scope_context.clone();
         let scope = scope.unwrap_or_default();
 
         let enclosing = ctx.enclosing_type_identifier();
@@ -2340,14 +2325,14 @@ impl Visitable for BinaryExpression {
             Type::FixedSizedArrayType(_) => {}
             _ => {
                 if self.op.is_assignment() {
-                    ctx.InAssignment = true;
+                    ctx.in_assignment = true;
                 }
                 let result = self.rhs_expression.visit(v, ctx);
                 match result {
                     Ok(_) => {}
                     Err(e) => return Err(e),
                 }
-                ctx.InAssignment = false;
+                ctx.in_assignment = false;
             }
         };
 
@@ -2357,7 +2342,7 @@ impl Visitable for BinaryExpression {
             Ok(_) => {}
             Err(e) => return Err(e),
         }
-        ctx.IsLValue = false;
+        ctx.is_lvalue = false;
         Ok(())
     }
 }
@@ -2405,30 +2390,30 @@ impl Visitable for FunctionCall {
             Err(e) => return Err(e),
         }
 
-        ctx.IsFunctionCallContext = true;
+        ctx.is_function_call_context = true;
         let result = self.identifier.visit(v, ctx);
         match result {
             Ok(_) => {}
             Err(e) => return Err(e),
         }
-        ctx.IsFunctionCallContext = false;
+        ctx.is_function_call_context = false;
 
-        let old_context = ctx.ExternalCallContext.clone();
-        ctx.ExternalCallContext = None;
+        let old_context = ctx.external_call_context.clone();
+        ctx.external_call_context = None;
 
         let result = self.arguments.visit(v, ctx);
         match result {
             Ok(_) => {}
             Err(e) => return Err(e),
         }
-        ctx.ExternalCallContext = old_context;
+        ctx.external_call_context = old_context;
 
         let result = v.finish_function_call(self, ctx);
         match result {
             Ok(_) => {}
             Err(e) => return Err(e),
         }
-        ctx.ExternalCallContext = None;
+        ctx.external_call_context = None;
 
         Ok(())
     }
@@ -2464,7 +2449,7 @@ impl Visitable for FunctionArgument {
             Err(e) => return Err(e),
         }
 
-        ctx.IsFunctionCallArgumentLabel = true;
+        ctx.is_function_call_argument_label = true;
         if self.identifier.is_some() {
             let ident = self.identifier.clone();
             let mut ident = ident.unwrap();
@@ -2472,15 +2457,15 @@ impl Visitable for FunctionArgument {
             ident.visit(v, ctx);
             self.identifier = Option::from(ident);
         }
-        ctx.IsFunctionCallArgumentLabel = false;
+        ctx.is_function_call_argument_label = false;
 
-        ctx.IsFunctionCallArgument = true;
+        ctx.is_function_call_argument = true;
         let result = self.expression.visit(v, ctx);
         match result {
             Ok(_) => {}
             Err(e) => return Err(e),
         }
-        ctx.IsFunctionCallArgument = false;
+        ctx.is_function_call_argument = false;
 
         let result = v.finish_function_argument(self, ctx);
         match result {
@@ -2492,14 +2477,14 @@ impl Visitable for FunctionArgument {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct EventDeclaration {
     pub identifier: Identifier,
     pub parameter_list: Vec<Parameter>,
 }
 
 impl Visitable for EventDeclaration {
-    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }
@@ -2521,19 +2506,19 @@ impl Parameter {
         self.type_assignment.is_dynamic_type()
     }
     pub fn as_variable_declaration(&self) -> VariableDeclaration {
-        return VariableDeclaration {
+        VariableDeclaration {
             declaration_token: None,
             identifier: self.identifier.clone(),
             variable_type: self.type_assignment.clone(),
             expression: None,
-        };
+        }
     }
 
     pub fn is_inout(&self) -> bool {
         if self.type_assignment.is_inout_type() {
             return true;
         }
-        return false;
+        false
     }
 }
 
@@ -2571,14 +2556,14 @@ impl VariableDeclaration {
         if self.declaration_token.is_some() {
             return self.declaration_token.as_ref().unwrap() == "let";
         }
-        return false;
+        false
     }
 
     pub fn is_variable(&self) -> bool {
         if self.declaration_token.is_some() {
             return self.declaration_token.as_ref().unwrap() == "var";
         }
-        return false;
+        false
     }
 }
 
@@ -2604,23 +2589,23 @@ impl Visitable for VariableDeclaration {
         }
 
         if self.expression.is_some() {
-            let previous_scope = ctx.ScopeContext.clone();
-            ctx.ScopeContext = Option::from(ScopeContext {
+            let previous_scope = ctx.scope_context.clone();
+            ctx.scope_context = Option::from(ScopeContext {
                 parameters: vec![],
                 local_variables: vec![],
                 counter: 0,
             });
 
-            ctx.IsPropertyDefaultAssignment = true;
+            ctx.is_property_default_assignment = true;
             let expression = self.expression.clone();
             let mut expression = expression.unwrap();
 
             expression.visit(v, ctx);
 
             self.expression = Option::from(expression);
-            ctx.IsPropertyDefaultAssignment = false;
+            ctx.is_property_default_assignment = false;
 
-            ctx.ScopeContext = previous_scope;
+            ctx.scope_context = previous_scope;
         }
 
         let result = v.finish_variable_declaration(self, ctx);
@@ -2653,8 +2638,6 @@ pub enum Type {
 
 impl Type {
     pub fn type_from_identifier(identifier: Identifier) -> Type {
-        let name = identifier.token.clone();
-
         Type::UserDefinedType(identifier)
     }
 
@@ -2676,7 +2659,7 @@ impl Type {
     }
 
     pub fn is_currency_type(&self) -> bool {
-        let mut currency_type = self.clone();
+        let currency_type = self.clone();
 
         let identifier = match currency_type {
             Type::UserDefinedType(i) => i,
@@ -2686,11 +2669,7 @@ impl Type {
         let identifier = identifier.token.clone();
         println!("Is resource type");
         println!("{:?}", identifier.clone());
-        if identifier.eq("Wei") || identifier.eq("Libra") || identifier.eq("LibraCoin.T") {
-            return true;
-        } else {
-            return false;
-        }
+        identifier.eq("Wei") || identifier.eq("Libra") || identifier.eq("LibraCoin.T")
     }
 
     pub fn is_currency_original_type(&self) -> bool {
@@ -2700,20 +2679,16 @@ impl Type {
         };
 
         let identifier = identifier.token.clone();
-        if identifier.eq("Wei") || identifier.eq("Libra") {
-            return true;
-        } else {
-            return false;
-        }
+        identifier.eq("Wei") || identifier.eq("Libra")
     }
 
     pub fn is_dynamic_type(&self) -> bool {
         match self {
-            Type::Int => return false,
-            Type::Address => return false,
-            Type::Bool => return false,
-            Type::String => return false,
-            _ => return true,
+            Type::Int => false,
+            Type::Address => false,
+            Type::Bool => false,
+            Type::String => false,
+            _ => true,
         }
     }
 
@@ -2776,12 +2751,12 @@ impl Type {
             Type::FixedSizedArrayType(_) => unimplemented!(),
             Type::DictionaryType(_) => unimplemented!(),
             Type::UserDefinedType(i) => i.token.clone(),
-            Type::Bool => format!("Bool"),
-            Type::Int => format!("Int"),
-            Type::String => format!("String"),
-            Type::Address => format!("Address"),
-            Type::Error => format!("Quartz$ErrorType"),
-            Type::SelfType => format!("Self"),
+            Type::Bool => "Bool".to_string(),
+            Type::Int => "Int".to_string(),
+            Type::String => "String".to_string(),
+            Type::Address => "Address".to_string(),
+            Type::Error => "Quartz$ErrorType".to_string(),
+            Type::SelfType => "Self".to_string(),
             Type::Solidity(s) => format!("{:?}", s),
         }
     }
@@ -2811,7 +2786,7 @@ impl Type {
 
         println!("FLOPPED IT");
 
-        return input_type;
+        input_type
     }
 
     pub fn is_external_contract(&self, environment: Environment) -> bool {
@@ -2824,7 +2799,7 @@ impl Type {
         if let Type::UserDefinedType(u) = internal_type {
             let type_identifer = u.token.clone();
             if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer).clone();
+                let type_infos = environment.types.get(&type_identifer);
                 if type_infos.is_some() {
                     let type_infos = type_infos.unwrap();
                     let type_infos = type_infos.clone();
@@ -2837,7 +2812,7 @@ impl Type {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn is_external_resource(&self, environment: Environment) -> bool {
@@ -2850,7 +2825,7 @@ impl Type {
         if let Type::UserDefinedType(u) = internal_type {
             let type_identifer = u.token.clone();
             if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer).clone();
+                let type_infos = environment.types.get(&type_identifer);
                 if type_infos.is_some() {
                     let type_infos = type_infos.unwrap();
                     let type_infos = type_infos.clone();
@@ -2862,7 +2837,7 @@ impl Type {
                 return false;
             }
         }
-        return false;
+        false
     }
 
     pub fn is_external_module(&self, environment: Environment) -> bool {
@@ -2875,7 +2850,7 @@ impl Type {
         if let Type::UserDefinedType(u) = internal_type {
             let type_identifer = u.token.clone();
             if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer).clone();
+                let type_infos = environment.types.get(&type_identifer);
                 if type_infos.is_some() {
                     let type_infos = type_infos.unwrap();
                     let type_infos = type_infos.clone();
@@ -2887,7 +2862,7 @@ impl Type {
                 return false;
             }
         }
-        return false;
+        false
     }
 
     pub fn from_identifier(identifier: Identifier) -> Type {
@@ -2921,73 +2896,73 @@ impl Visitable for Type {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SolidityType {
-    address,
-    string,
-    bool,
-    int8,
-    int16,
-    int24,
-    int32,
-    int40,
-    int48,
-    int56,
-    int64,
-    int72,
-    int80,
-    int88,
-    int96,
-    int104,
-    int112,
-    int120,
-    int128,
-    int136,
-    int144,
-    int152,
-    int160,
-    int168,
-    int176,
-    int184,
-    int192,
-    int200,
-    int208,
-    int216,
-    int224,
-    int232,
-    int240,
-    int248,
-    int256,
-    uint8,
-    uint16,
-    uint24,
-    uint32,
-    uint40,
-    uint48,
-    uint56,
-    uint64,
-    uint72,
-    uint80,
-    uint88,
-    uint96,
-    uint104,
-    uint112,
-    uint120,
-    uint128,
-    uint136,
-    uint144,
-    uint152,
-    uint160,
-    uint168,
-    uint176,
-    uint184,
-    uint192,
-    uint200,
-    uint208,
-    uint216,
-    uint224,
-    uint232,
-    uint240,
-    uint248,
-    uint256,
+    ADDRESS,
+    STRING,
+    BOOL,
+    INT8,
+    INT16,
+    INT24,
+    INT32,
+    INT40,
+    INT48,
+    INT56,
+    INT64,
+    INT72,
+    INT80,
+    INT88,
+    INT96,
+    INT104,
+    INT112,
+    INT120,
+    INT128,
+    INT136,
+    INT144,
+    INT152,
+    INT160,
+    INT168,
+    INT176,
+    INT184,
+    INT192,
+    INT200,
+    INT208,
+    INT216,
+    INT224,
+    INT232,
+    INT240,
+    INT248,
+    INT256,
+    UINT8,
+    UINT16,
+    UINT24,
+    UINT32,
+    UINT40,
+    UINT48,
+    UINT56,
+    UINT64,
+    UINT72,
+    UINT80,
+    UINT88,
+    UINT96,
+    UINT104,
+    UINT112,
+    UINT120,
+    UINT128,
+    UINT136,
+    UINT144,
+    UINT152,
+    UINT160,
+    UINT168,
+    UINT176,
+    UINT184,
+    UINT192,
+    UINT200,
+    UINT208,
+    UINT216,
+    UINT224,
+    UINT232,
+    UINT240,
+    UINT248,
+    UINT256,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -3036,15 +3011,13 @@ pub struct Attribute {
 }
 
 pub fn is_redeclaration(identifier1: &Identifier, identifier2: &Identifier) -> bool {
-    if identifier1.token == identifier2.token {
-        if identifier1.line_info != identifier2.line_info {
-            return true;
-        }
+    if identifier1.token == identifier2.token && identifier1.line_info != identifier2.line_info {
+        return true;
     }
     false
 }
 
-pub fn isReturnOrBecomeStatement(statement: Statement) -> bool {
+pub fn is_return_or_become_statement(statement: Statement) -> bool {
     match statement {
         Statement::ReturnStatement(_) => true,
         Statement::BecomeStatement(_) => false,
@@ -3102,8 +3075,8 @@ pub struct CodeGen {
 
 impl CodeGen {
     pub fn add<S>(&mut self, code: S)
-    where
-        S: AsRef<str>,
+        where
+            S: AsRef<str>,
     {
         for line in code.as_ref().lines() {
             let line = line.trim();

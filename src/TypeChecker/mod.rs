@@ -1,5 +1,4 @@
 use super::context::*;
-use super::environment::*;
 use super::visitor::*;
 use super::AST::*;
 
@@ -13,17 +12,17 @@ impl Visitor for TypeChecker {
     ) -> VResult {
         if _ctx.in_function_or_special() {
             if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.ScopeContext.as_mut().unwrap();
+                let context_ref = _ctx.scope_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.FunctionDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
 
             if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.SpecialDeclarationContext.as_mut().unwrap();
+                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
                 context_ref.local_variables.push(_t.clone());
             }
         }
@@ -62,7 +61,7 @@ impl Visitor for TypeChecker {
             &enclosing,
             vec![],
             vec![],
-            _ctx.ScopeContext.clone().unwrap_or_default(),
+            _ctx.scope_context.clone().unwrap_or_default(),
         );
         match _t.op {
             BinOp::Dot => _t.rhs_expression.assign_enclosing_type(&lhs_type.name()),

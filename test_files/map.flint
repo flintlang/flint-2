@@ -1,0 +1,28 @@
+@contract 
+trait Map {
+    public func get(k: uint64) -> String 
+    public func insert(k: uint64, v: String)
+    public func is_present(k: uint64) -> bool 
+}
+
+contract Example {
+    visible var global_map: Map
+}
+
+Example :: sender <- (any) {
+    public init(address: Address) { 
+        global_map = Map(address)
+    }
+
+    public func get_value(key: Int) -> String {
+        return call global_map.get(k: cast key to uint64)
+    }
+
+    public func is_present(key: Int) -> Int {
+        return call global_map.is_present(k: cast key to uint64) 
+    }
+
+    public func insert(key: Int, value: String) {
+        call global_map.insert(k: cast key to uint64, v: cast value to String) 
+    }
+}
