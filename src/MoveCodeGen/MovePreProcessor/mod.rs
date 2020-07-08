@@ -1,8 +1,9 @@
-use crate::AST::*;
 use crate::context::*;
 use crate::environment::*;
-use crate::MoveCodeGen::{FunctionContext, MoveExpression, MoveIRBlock};
 use crate::visitor::Visitor;
+use crate::MoveCodeGen::{FunctionContext, MoveExpression, MoveIRBlock};
+use crate::TypeChecker::ExpressionCheck;
+use crate::AST::*;
 
 pub(crate) struct MovePreProcessor {}
 
@@ -262,7 +263,9 @@ impl Visitor for MovePreProcessor {
             }
         }
 
-        if _ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global".to_string() {
+        if _ctx.struct_declaration_context.is_some()
+            && enclosing_identifier != "Quartz_Global".to_string()
+        {
             let struct_ctx = _ctx.struct_declaration_context.clone();
             let struct_ctx = struct_ctx.unwrap();
             let struct_ctx_identifier = struct_ctx.identifier.clone();
@@ -292,7 +295,6 @@ impl Visitor for MovePreProcessor {
                 _ctx.scope_context = Some(scope);
             }
         }
-
 
         if _ctx.is_contract_behaviour_declaration_context() {
             let contract = _ctx.contract_behaviour_declaration_context.clone();
@@ -354,7 +356,8 @@ impl Visitor for MovePreProcessor {
         if function_declaration.is_void() {
             let statement = function_declaration.body.last();
             if !function_declaration.body.is_empty() {
-                if let Statement::ReturnStatement(_) = statement.unwrap() {} else {
+                if let Statement::ReturnStatement(_) = statement.unwrap() {
+                } else {
                     function_declaration
                         .body
                         .push(Statement::ReturnStatement(ReturnStatement {
@@ -415,8 +418,8 @@ impl Visitor for MovePreProcessor {
                     }
                 }
                 true
-            }).collect();
-
+            })
+            .collect();
 
         _t.body = members;
         if _ctx.contract_behaviour_declaration_context.is_some() {
@@ -547,7 +550,8 @@ impl Visitor for MovePreProcessor {
             _ctx.function_call_receiver_trail = trail;
             match *_t.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *_t.rhs_expression {} else {
+                    if let Expression::FunctionCall(_) = *_t.rhs_expression {
+                    } else {
                         let lhs = _t.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, _ctx, false);
@@ -621,8 +625,8 @@ impl Visitor for MovePreProcessor {
         let function_call = _t.clone();
         if !_ctx.environment.is_initiliase_call(function_call.clone())
             && !_ctx
-            .environment
-            .is_trait_declared(&function_call.identifier.token)
+                .environment
+                .is_trait_declared(&function_call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(function_call, _ctx);
 
@@ -662,8 +666,8 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_contract_declared(&declared_enclosing)
                 || _ctx.environment.is_trait_declared(&declared_enclosing)
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
-
-                && !is_global_function_call {
+                    && !is_global_function_call
+            {
                 let expresssions = receiver_trail.clone();
 
                 let mut expression = construct_expression(expresssions);
@@ -747,13 +751,14 @@ impl Visitor for MovePreProcessor {
                     let enclosing = _ctx.enclosing_type_identifier().clone();
                     let enclosing = enclosing.unwrap();
                     let enclosing = enclosing.token;
-                    let caller_protections = if _ctx.contract_behaviour_declaration_context.is_some() {
-                        let behaviour = _ctx.contract_behaviour_declaration_context.clone();
-                        let behaviour = behaviour.unwrap();
-                        behaviour.caller_protections
-                    } else {
-                        vec![]
-                    };
+                    let caller_protections =
+                        if _ctx.contract_behaviour_declaration_context.is_some() {
+                            let behaviour = _ctx.contract_behaviour_declaration_context.clone();
+                            let behaviour = behaviour.unwrap();
+                            behaviour.caller_protections
+                        } else {
+                            vec![]
+                        };
                     let expression_type = _ctx.environment.get_expression_type(
                         expression.clone(),
                         &enclosing,
@@ -1388,7 +1393,7 @@ pub fn generate_assertion(
             expression: or_expression,
             position: Default::default(),
         }
-            .generate(&function_context);
+        .generate(&function_context);
         let string = format!("assert({ex}, 1)", ex = expression);
         return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
     }
@@ -1401,7 +1406,7 @@ pub fn generate_assertion(
         expression,
         position: Default::default(),
     }
-        .generate(&function_context);
+    .generate(&function_context);
     let string = format!("assert({ex}, 1)", ex = expression);
     Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }

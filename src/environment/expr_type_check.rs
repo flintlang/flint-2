@@ -1,4 +1,7 @@
+use crate::context::*;
+use crate::environment::*;
 use crate::TypeChecker::ExpressionCheck;
+use crate::AST::*;
 
 impl ExpressionCheck for Environment {
     fn get_expression_type(
@@ -8,7 +11,7 @@ impl ExpressionCheck for Environment {
         type_states: Vec<TypeState>,
         caller_protections: Vec<CallerProtection>,
         scope: ScopeContext,
-        ) -> Type {
+    ) -> Type {
         match expression {
             Expression::Identifier(i) => {
                 if i.enclosing_type.is_none() {
@@ -33,13 +36,7 @@ impl ExpressionCheck for Environment {
                 self.get_property_type(i.token.clone(), enclosing_type, scope)
             }
             Expression::BinaryExpression(b) => {
-                self.get_binary_expression_type(
-                    b,
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                    )
+                self.get_binary_expression_type(b, t, type_states, caller_protections, scope)
             }
             Expression::InoutExpression(e) => {
                 let key_type = self.get_expression_type(
@@ -48,21 +45,19 @@ impl ExpressionCheck for Environment {
                     type_states,
                     caller_protections,
                     scope,
-                    );
+                );
 
                 Type::InoutType(InoutType {
                     key_type: Box::from(key_type),
                 })
             }
-            Expression::ExternalCall(e) => {
-                self.get_expression_type(
-                    Expression::BinaryExpression(e.function_call),
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                    )
-            }
+            Expression::ExternalCall(e) => self.get_expression_type(
+                Expression::BinaryExpression(e.function_call),
+                t,
+                type_states,
+                caller_protections,
+                scope,
+            ),
             Expression::FunctionCall(f) => {
                 let enclosing_type = if f.identifier.enclosing_type.is_some() {
                     let enclosing = f.identifier.enclosing_type.as_ref();
@@ -71,35 +66,16 @@ impl ExpressionCheck for Environment {
                     t
                 };
 
-                self.get_function_call_type(
-                    f.clone(),
-                    enclosing_type,
-                    caller_protections,
-                    scope,
-                    )
+                self.get_function_call_type(f.clone(), enclosing_type, caller_protections, scope)
             }
             Expression::VariableDeclaration(v) => v.variable_type,
             Expression::BracketedExpression(e) => {
-                self.get_expression_type(
-                    *e.expression,
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                    )
+                self.get_expression_type(*e.expression, t, type_states, caller_protections, scope)
             }
             Expression::AttemptExpression(a) => {
-                self.get_attempt_expression_type(
-                    a,
-                    t,
-                    type_states,
-                    caller_protections,
-                    scope,
-                    )
+                self.get_attempt_expression_type(a, t, type_states, caller_protections, scope)
             }
-            Expression::Literal(l) => {
-                self.get_literal_type(l)
-            }
+            Expression::Literal(l) => self.get_literal_type(l),
             Expression::ArrayLiteral(a) => {
                 self.get_array_literal_type(a, t, type_states, caller_protections, scope)
             }
@@ -117,7 +93,7 @@ impl ExpressionCheck for Environment {
                     vec![],
                     vec![],
                     scope,
-                    );
+                );
 
                 match identifer_type {
                     Type::ArrayType(a) => *a.key_type,
@@ -376,5 +352,3 @@ impl Environment {
         }
     }
 }
-
-

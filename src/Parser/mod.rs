@@ -1,14 +1,14 @@
-mod statements;
-mod utils;
-mod operators;
-mod literals;
-mod identifiers;
-mod parameters;
-mod types;
-mod expressions;
-mod declarations;
 mod calls;
+mod declarations;
+mod expressions;
+mod identifiers;
+mod literals;
 mod modifiers;
+mod operators;
+mod parameters;
+mod statements;
+mod types;
+mod utils;
 
 use nom_locate::LocatedSpan;
 
@@ -17,19 +17,17 @@ use std::collections::HashSet;
 use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
 
 use crate::environment::Environment;
-use crate::Parser::utils::*;
-use crate::Parser::statements::*;
-use crate::Parser::operators::*;
-use crate::Parser::literals::*;
-use crate::Parser::identifiers::*;
-use crate::Parser::parameters::*;
-use crate::Parser::types::*;
-use crate::Parser::expressions::*;
-use crate::Parser::declarations::*;
 use crate::Parser::calls::*;
+use crate::Parser::declarations::*;
+use crate::Parser::expressions::*;
+use crate::Parser::identifiers::*;
+use crate::Parser::literals::*;
 use crate::Parser::modifiers::*;
-
-
+use crate::Parser::operators::*;
+use crate::Parser::parameters::*;
+use crate::Parser::statements::*;
+use crate::Parser::types::*;
+use crate::Parser::utils::*;
 
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
@@ -67,14 +65,10 @@ fn parse_module(i: Span) -> nom::IResult<Span, Module> {
 
 #[cfg(test)]
 mod tests {
-    use nom_locate::{LocatedSpan};
+    use nom_locate::LocatedSpan;
     use sha3::Digest;
 
-    
     use crate::Parser::*;
-    
-
-    
 
     #[test]
     fn test_parse_module() {

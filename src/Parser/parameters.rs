@@ -1,5 +1,5 @@
-use crate::Parser::utils::*;
 use crate::Parser::types::*;
+use crate::Parser::utils::*;
 
 pub fn parse_parameter_list(i: Span) -> nom::IResult<Span, Vec<Parameter>> {
     let (i, _) = left_parens(i)?;

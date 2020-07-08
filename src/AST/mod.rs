@@ -1,3 +1,5 @@
+
+use crate::TypeChecker::ExpressionCheck;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::error::Error;
@@ -86,7 +88,8 @@ impl TypeInfo {
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
             .filter(|f| {
-                f.identifier.token == "resource".to_string() || f.identifier.token == "struct".to_string()
+                f.identifier.token == "resource".to_string()
+                    || f.identifier.token == "struct".to_string()
             })
             .collect();
 
@@ -2280,7 +2283,8 @@ impl Visitable for BinaryExpression {
         }
 
         if self.op.is_assignment() {
-            if let Expression::VariableDeclaration(_) = *self.lhs_expression {} else {
+            if let Expression::VariableDeclaration(_) = *self.lhs_expression {
+            } else {
                 ctx.is_lvalue = true;
             }
         }
@@ -3075,8 +3079,8 @@ pub struct CodeGen {
 
 impl CodeGen {
     pub fn add<S>(&mut self, code: S)
-        where
-            S: AsRef<str>,
+    where
+        S: AsRef<str>,
     {
         for line in code.as_ref().lines() {
             let line = line.trim();

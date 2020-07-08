@@ -1,5 +1,5 @@
-use super::AST::*;
 use super::environment::*;
+use super::AST::*;
 
 #[derive(Debug, Default)]
 pub struct Context {

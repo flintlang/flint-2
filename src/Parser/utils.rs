@@ -1,8 +1,10 @@
-pub use nom_locate::LocatedSpan;
-pub use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
 pub use crate::environment::Environment;
-pub use crate::AST::*;
 pub use crate::Parser::*;
+pub use crate::AST::*;
+pub use nom::{
+    branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded,
+};
+pub use nom_locate::LocatedSpan;
 
 pub type ParseResult = (Option<Module>, Environment);
 

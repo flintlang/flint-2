@@ -1,3 +1,6 @@
+
+use crate::TypeChecker::ExpressionCheck;
+
 use super::context::*;
 use super::visitor::*;
 use super::AST::*;

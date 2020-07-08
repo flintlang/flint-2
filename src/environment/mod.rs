@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+mod expr_type_check;
 
 use super::context::*;
 use super::AST::*;
 use crate::TypeChecker::ExpressionCheck;
+use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone)]
 pub struct Environment {

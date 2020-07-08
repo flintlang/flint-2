@@ -130,14 +130,12 @@ fn parse_return_statement(i: Span) -> nom::IResult<Span, Statement> {
 
 #[cfg(test)]
 mod tests {
-    use nom_locate::{LocatedSpan};
+    use nom_locate::LocatedSpan;
     use sha3::Digest;
 
-    use crate::AST::{*, BinOp::*, Literal::*};
-    
-    use crate::Parser::statements::*;
+    use crate::AST::{BinOp::*, Literal::*, *};
 
-    
+    use crate::Parser::statements::*;
 
     #[test]
     fn test_docatch_statement() {
@@ -153,7 +151,7 @@ mod tests {
                         line: 1,
                         offset: 24,
                     },
-                }, ),
+                },),
 
                 do_body: vec![Statement::ReturnStatement(ReturnStatement {
                     expression: Some(Expression::Identifier(Identifier {
@@ -252,7 +250,8 @@ mod tests {
     #[test]
     fn test_become_statement() {
         let input = LocatedSpan::new("become example");
-        let (_rest, result) = parse_become_statement(input).expect("Error parsing become statement");
+        let (_rest, result) =
+            parse_become_statement(input).expect("Error parsing become statement");
         assert_eq!(
             result,
             Statement::BecomeStatement(BecomeStatement {
@@ -301,7 +300,8 @@ mod tests {
     #[test]
     fn test_parse_return_statement() {
         let input = LocatedSpan::new("return");
-        let (_rest, result) = parse_return_statement(input).expect("Error parsing return statement");
+        let (_rest, result) =
+            parse_return_statement(input).expect("Error parsing return statement");
         assert_eq!(
             result,
             Statement::ReturnStatement(ReturnStatement {
@@ -328,5 +328,4 @@ mod tests {
             })
         );
     }
-
 }
