@@ -232,7 +232,7 @@ To run them please set "libraPath" in ~/.flint/flint_config.json to the root of 
 
 class TestRunner(NamedTuple):
     tests: List[BehaviourTest]
-    default_path = Path("tests/move_tests/tests")
+    default_path = Path("tests")
 
     @classmethod
     def from_all(cls, names=[], config=None):
