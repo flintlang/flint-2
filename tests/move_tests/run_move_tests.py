@@ -126,8 +126,13 @@ class FlintProgramme(Programme):
         if b"successfully wrote" not in output:
             raise FlintCompilationError(output.decode("utf8"))
 
+        output_name = re.search(r"successfully wrote to (.+\.mvir)", str(output))
+        if output_name:
+            output_name = str(output_name.group(1))
+        else:
+            raise FlintCompilationError(output.decode("utf-8"))
 
-        return MoveIRProgramme(Path("output/" + (str(self.path).split('/')[3]).replace("flint", "mvir")), config=self.config)
+        return MoveIRProgramme(Path(output_name), config=self.config)
 
 
 class BehaviourTest(NamedTuple):
