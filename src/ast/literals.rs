@@ -1,6 +1,6 @@
 use crate::ast::*;
-use crate::visitor::Visitor;
 use crate::context::Context;
+use crate::visitor::Visitor;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DictionaryLiteral {

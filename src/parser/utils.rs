@@ -1,7 +1,7 @@
+pub use crate::ast::*;
 pub use crate::environment::Environment;
 use crate::parser::statements::*;
 pub use crate::parser::*;
-pub use crate::ast::*;
 pub use nom::{
     branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded,
 };

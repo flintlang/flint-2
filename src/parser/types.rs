@@ -221,8 +221,8 @@ fn parse_basic_type(i: Span) -> nom::IResult<Span, Type> {
 #[cfg(test)]
 mod test {
 
-    use crate::parser::types::*;
     use crate::ast::*;
+    use crate::parser::types::*;
     use nom_locate::LocatedSpan;
 
     #[test]

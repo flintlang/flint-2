@@ -1,6 +1,6 @@
+use crate::ast::*;
 use crate::context::*;
 use crate::visitor::Visitor;
-use crate::ast::*;
 use hex::encode;
 
 #[derive(Debug, Clone, PartialEq)]

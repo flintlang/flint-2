@@ -556,8 +556,8 @@ fn parse_trait_member(i: Span) -> nom::IResult<Span, TraitMember> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::declarations::*;
     use crate::ast::*;
+    use crate::parser::declarations::*;
     use nom_locate::LocatedSpan;
 
     #[test]

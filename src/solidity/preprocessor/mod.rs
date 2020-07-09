@@ -1,8 +1,9 @@
-use crate::context::*;
-use crate::environment::*;
-use crate::visitor::Visitor;
 use crate::ast::Expression::SelfExpression;
 use crate::ast::*;
+use crate::context::*;
+use crate::environment::*;
+use crate::type_checker::ExpressionCheck;
+use crate::visitor::Visitor;
 
 pub(crate) struct SolidityPreProcessor {}
 

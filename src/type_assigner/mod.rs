@@ -1,6 +1,7 @@
+use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use super::ast::*;
+use crate::type_checker::ExpressionCheck;
 
 pub struct TypeAssigner {}
 

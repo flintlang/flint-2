@@ -1,6 +1,7 @@
-use crate::context::Context;
-use crate::visitor::*;
 use crate::ast::*;
+use crate::context::Context;
+use crate::type_checker::ExpressionCheck;
+use crate::visitor::*;
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]

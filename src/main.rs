@@ -1,13 +1,13 @@
 mod ast;
 mod ast_processor;
+mod context;
+mod environment;
 mod moveir;
 mod parser;
 mod semantic_analysis;
 mod solidity;
 mod type_assigner;
 mod type_checker;
-mod context;
-mod environment;
 mod visitor;
 use crate::ast_processor::Target;
 use std::env;

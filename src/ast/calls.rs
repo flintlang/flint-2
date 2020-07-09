@@ -1,6 +1,6 @@
+use crate::ast::*;
 use crate::context::Context;
 use crate::visitor::Visitor;
-use crate::ast::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExternalCall {

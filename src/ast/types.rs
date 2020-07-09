@@ -1,7 +1,7 @@
 use crate::ast::*;
+use crate::context::Context;
 use crate::environment::Environment;
 use crate::visitor::Visitor;
-use crate::context::Context;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {

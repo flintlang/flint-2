@@ -55,18 +55,18 @@ impl TypeInfo {
     pub fn trait_functions(&self) -> HashMap<String, Vec<FunctionInformation>> {
         let conformances = self.conformances.clone();
         conformances
-                .into_iter()
-                .map(|c| c.functions)
-                .flatten()
-                .collect()
+            .into_iter()
+            .map(|c| c.functions)
+            .flatten()
+            .collect()
     }
 
     pub fn is_external_module(&self) -> bool {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
-                .into_iter()
-                .filter(|f| f.identifier.token == "module".to_string())
-                .collect();
+            .into_iter()
+            .filter(|f| f.identifier.token == "module".to_string())
+            .collect();
 
         if modifiers.is_empty() {
             return false;
@@ -78,9 +78,9 @@ impl TypeInfo {
     pub fn is_external_resource(&self) -> bool {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
-                .into_iter()
-                .filter(|f| f.identifier.token == "resource".to_string())
-                .collect();
+            .into_iter()
+            .filter(|f| f.identifier.token == "resource".to_string())
+            .collect();
 
         if modifiers.is_empty() {
             return false;
@@ -92,12 +92,12 @@ impl TypeInfo {
     pub fn is_external_struct(&self) -> bool {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
-                .into_iter()
-                .filter(|f| {
-                    f.identifier.token == "resource".to_string()
-                            || f.identifier.token == "struct".to_string()
-                })
-                .collect();
+            .into_iter()
+            .filter(|f| {
+                f.identifier.token == "resource".to_string()
+                    || f.identifier.token == "struct".to_string()
+            })
+            .collect();
 
         if modifiers.is_empty() {
             return false;
@@ -173,12 +173,12 @@ pub struct SpecialInformation {
 impl SpecialInformation {
     pub fn parameter_types(&self) -> Vec<Type> {
         self.declaration
-                .head
-                .parameters
-                .clone()
-                .into_iter()
-                .map(|p| p.type_assignment)
-                .collect()
+            .head
+            .parameters
+            .clone()
+            .into_iter()
+            .map(|p| p.type_assignment)
+            .collect()
     }
 }
 
@@ -207,10 +207,10 @@ impl FunctionInformation {
     pub fn required_parameter_identifiers(&self) -> Vec<Identifier> {
         let identifiers = self.declaration.head.parameters.clone();
         identifiers
-                .into_iter()
-                .filter(|i| i.expression.is_none())
-                .map(|p| p.identifier.clone())
-                .collect()
+            .into_iter()
+            .filter(|i| i.expression.is_none())
+            .map(|p| p.identifier.clone())
+            .collect()
     }
 }
 
@@ -375,13 +375,13 @@ pub struct CodeGen {
 
 impl CodeGen {
     pub fn add<S>(&mut self, code: S)
-        where
-                S: AsRef<str>,
+    where
+        S: AsRef<str>,
     {
         for line in code.as_ref().lines() {
             let line = line.trim();
             let indent_change =
-                    (line.matches("{").count() as i32) - (line.matches("}").count() as i32);
+                (line.matches("{").count() as i32) - (line.matches("}").count() as i32);
             let new_indent_level = max(0, self.indent_level + indent_change);
 
             let this_line_indent = if line.starts_with("}") || line.ends_with(":") {

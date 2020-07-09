@@ -1,6 +1,6 @@
+use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use super::ast::*;
 
 pub struct SemanticAnalysis {}
 

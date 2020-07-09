@@ -53,8 +53,8 @@ pub fn parse_identifier_group(i: Span) -> nom::IResult<Span, Vec<Identifier>> {
 mod test {
     use nom_locate::LocatedSpan;
 
-    use crate::parser::identifiers::*;
     use crate::ast::*;
+    use crate::parser::identifiers::*;
 
     #[test]
     fn test_parse_identifier() {

@@ -1,3 +1,4 @@
+use super::ast::*;
 use super::context::*;
 use super::environment::*;
 use super::moveir;
@@ -5,7 +6,6 @@ use super::semantic_analysis::*;
 use super::solidity;
 use super::type_assigner::*;
 use super::type_checker::*;
-use super::ast::*;
 
 pub fn process_ast(mut module: Module, environment: Environment, target: Target) {
     let type_assigner = &mut TypeAssigner {};

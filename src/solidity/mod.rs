@@ -1,3 +1,4 @@
+use crate::type_checker::ExpressionCheck;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
@@ -6,9 +7,9 @@ use std::path::Path;
 use hex::encode;
 use sha3::{Digest, Keccak256};
 
+use super::ast::*;
 use super::context::*;
 use super::environment::*;
-use super::ast::*;
 
 pub mod preprocessor;
 

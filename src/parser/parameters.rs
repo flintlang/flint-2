@@ -43,8 +43,8 @@ fn parse_parameter(i: Span) -> nom::IResult<Span, Parameter> {
 mod test {
     use nom_locate::LocatedSpan;
 
-    use crate::parser::parameters::*;
     use crate::ast::*;
+    use crate::parser::parameters::*;
 
     #[test]
     fn test_parse_parameter() {

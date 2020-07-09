@@ -135,8 +135,8 @@ fn parse_return_statement(i: Span) -> nom::IResult<Span, Statement> {
 mod tests {
     use nom_locate::LocatedSpan;
 
-    use crate::parser::statements::*;
     use crate::ast::{BinOp::*, Literal::*, *};
+    use crate::parser::statements::*;
 
     #[test]
     fn test_docatch_statement() {
