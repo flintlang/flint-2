@@ -39,7 +39,7 @@ class Configuration(NamedTuple):
     @classmethod
     def from_flint_config(cls):
         # add own path to .json file and libra
-        with open(os.path.expanduser("/mnt/c/Users/jessw/urop/flint-2/flint_config.json")) as file:
+        with open(os.path.expanduser("flint_config.json")) as file:
             path = json.load(file).get("libraPath")  # .get defaults to None
             if path: # If libraPath is defined and not empty
                 return cls(path)
@@ -125,7 +125,9 @@ class FlintProgramme(Programme):
         output = process.stdout.read() + process.stderr.read()
         if b"successfully wrote" not in output:
             raise FlintCompilationError(output.decode("utf8"))
-        return MoveIRProgramme(Path("./output/" + (str(self.path).split('/')[3]).replace("flint", "mvir")), config=self.config)
+
+
+        return MoveIRProgramme(Path("output/" + (str(self.path).split('/')[3]).replace("flint", "mvir")), config=self.config)
 
 
 class BehaviourTest(NamedTuple):
@@ -258,7 +260,7 @@ class TestRunner(NamedTuple):
 
 
 if __name__ == '__main__':
-    os.chdir(os.path.expanduser("/mnt/c/Users/jessw/urop/flint-2"))
+    os.chdir(os.path.expanduser("~/Documents/flint-2"))
     
     config = Configuration.from_flint_config()
 
