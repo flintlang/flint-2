@@ -2420,7 +2420,7 @@ struct MoveRuntimeTypes {}
 
 impl MoveRuntimeTypes {
     pub fn get_all_declarations() -> Vec<String> {
-        let libra = "resource Libra_Coin {{ \n coin: LibraCoin.T  \n }}".to_string();
+        let libra = "resource Libra_Coin { \n coin: LibraCoin.T  \n }".to_string();
         vec![libra]
     }
 
@@ -2488,17 +2488,17 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_revert_if_greater() -> String {
-        "Quartz_RevertIfGreater(a: u64, b: u64): u64 {{  \n \
+        "Quartz_RevertIfGreater(a: u64, b: u64): u64 {  \n \
              assert(copy(a) <= move(b), 1); \n \
-             return move(a); \n }}"
+             return move(a); \n }"
             .to_string()
     }
 
     #[allow(dead_code)]
     pub fn get_deposit() -> String {
-        "Quartz_send(money: &mut LibraCoin.T, addr: address) {{ \n \
+        "Quartz_send(money: &mut LibraCoin.T, addr: address) { \n \
              LibraAccount.deposit(move(addr), Quartz_withdrawAll(move(money))); \n \
-             return; \n }}"
+             return; \n }"
             .to_string()
     }
 
