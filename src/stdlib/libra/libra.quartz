@@ -9,7 +9,7 @@ asset Libra {
   visible var libra: Libra_Coin
 
   public init() {
-    libra = Libra_Coin(0x0000000000000000000000000000000000000000)
+    libra = Libra_Coin(0x00000000000000000000000000000000)
   }
 
   public func balance() -> Int {

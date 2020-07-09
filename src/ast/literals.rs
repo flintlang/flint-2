@@ -39,7 +39,7 @@ impl Visitable for ArrayLiteral {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     BooleanLiteral(bool),
-    AddressLiteral(String),
+    AddressLiteral(String), // TODO make this a defined vec of size 32 to avoid bad addresses?
     StringLiteral(String),
     IntLiteral(u64),
     FloatLiteral(f64),

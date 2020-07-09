@@ -1964,10 +1964,6 @@ impl MoveInoutExpression {
     }
 }
 
-struct MoveLiteralToken {
-    pub token: Literal,
-}
-
 impl MoveLiteralToken {
     pub fn generate(&self) -> MoveIRLiteral {
         match self.token.clone() {
@@ -1978,6 +1974,10 @@ impl MoveLiteralToken {
             Literal::FloatLiteral(_) => panic!("Floats not currently supported"),
         }
     }
+}
+
+struct MoveLiteralToken {
+    pub token: Literal,
 }
 
 struct MoveIdentifier {
