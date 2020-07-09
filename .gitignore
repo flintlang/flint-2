@@ -1,4 +1,6 @@
 .idea/
+venv
+
 
 ### Rust ###
 tests/move_tests/tests/temp/
