@@ -1,6 +1,3 @@
-
-use crate::type_checker::ExpressionCheck;
-
 use super::context::*;
 use super::visitor::*;
 use super::ast::*;
@@ -70,3 +67,64 @@ impl Visitor for TypeAssigner {
         Ok(())
     }
 }
+
+/*
+#[cfg(test)]
+mod test {
+
+    use crate::context::*;
+    use crate::visitor::*;
+    use crate::AST::*;
+    use crate::TypeAssigner::TypeAssigner;
+    use std::collections::HashMap;
+
+    fn test_finish_binary_expression() {
+        let type_assigner = TypeAssigner {};
+        let bin_expr = BinaryExpression {
+            lhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(5))),
+            rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(3))),
+            op: BinOp::Plus,
+            line_info: LineInfo {line:1, offset:0}
+        };
+        let context = Context {
+            environment: Environment {
+                contract_declarations: vec![],
+                struct_declarations: vec![],
+                enum_declarations: vec![],
+                event_declarations: vec![],
+                trait_declarations: vec![],
+                asset_declarations: vec![],
+                types: HashMap::new()
+            },
+
+            contract_declaration_context: None,
+            contract_behaviour_declaration_context: None,
+            struct_declaration_context: None,
+            function_declaration_context: None,
+            special_declaration_context: None,
+            trait_declaration_context: None,
+            scope_context: None,
+            asset_context: None,
+            block_context: None,
+            function_call_receiver_trail: vec![],
+            is_property_default_assignment: false,
+            is_function_call_context: false,
+            is_function_call_argument: false,
+            is_function_call_argument_label: false,
+            external_call_context: None,
+            is_external_function_call: false,
+            in_assignment: false,
+            in_if_condition: false,
+            in_become: false,
+            is_lvalue: false,
+            in_subscript: false,
+            is_enclosing: false,
+            in_emit: false,
+            pre_statements: vec![],
+            post_statements: vec![]
+        };
+
+        assert_eq!(Ok(()), finish_binary_expression(type_assigner, bin_expr, context));
+    }
+}
+*/

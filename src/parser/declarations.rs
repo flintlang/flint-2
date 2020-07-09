@@ -1,3 +1,10 @@
+use crate::parser::calls::parse_function_call;
+use crate::parser::expressions::*;
+use crate::parser::identifiers::*;
+use crate::parser::modifiers::*;
+use crate::parser::operators::*;
+use crate::parser::parameters::*;
+use crate::parser::types::*;
 use crate::parser::utils::*;
 
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
@@ -146,7 +153,7 @@ fn parse_type_states(i: Span) -> nom::IResult<Span, Vec<TypeState>> {
     Ok((i, types_states))
 }
 
-//TODO: this function is never called
+#[allow(dead_code)]
 fn parse_protection_binding(i: Span) -> nom::IResult<Span, Identifier> {
     let (i, identifier) = parse_identifier(i)?;
     let (i, _) = left_arrow(i)?;
@@ -549,8 +556,9 @@ fn parse_trait_member(i: Span) -> nom::IResult<Span, TraitMember> {
 
 #[cfg(test)]
 mod test {
-
     use crate::parser::declarations::*;
+    use crate::ast::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_contract_member() {

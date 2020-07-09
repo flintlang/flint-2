@@ -1,6 +1,6 @@
 [package]
-name = "Quartz"
-version = "0.1.0"
+name = "flint"
+version = "0.0.1"
 authors = ["kac216 <kac216@ic.ac.uk>"]
 edition = "2018"
 

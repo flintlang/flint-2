@@ -1,5 +1,9 @@
 use crate::parser::calls::*;
+use crate::parser::types::*;
 use crate::parser::utils::*;
+use crate::parser::literals::*;
+use crate::parser::identifiers::parse_identifier;
+use crate::parser::operators::*;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
@@ -124,6 +128,7 @@ fn parse_bracketed_expression(i: Span) -> nom::IResult<Span, BracketedExpression
     Ok((i, bracketed_expression))
 }
 
+#[allow(dead_code)]
 fn parse_attempt_expression(i: Span) -> nom::IResult<Span, AttemptExpression> {
     let (i, _) = tag("try")(i)?;
     let (i, kind) = alt((bang, question))(i)?;
@@ -193,6 +198,8 @@ pub fn parse_binary_expression_precedence(
 mod test {
 
     use crate::parser::expressions::*;
+    use crate::ast::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_inout_expression() {
@@ -289,6 +296,38 @@ mod test {
                 rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(2))),
                 op: BinOp::Power,
                 line_info: LineInfo { line: 1, offset: 0 },
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_cast_expression() {
+        let input = LocatedSpan::new("cast x to Int");
+        let (_rest, result) = parse_expression(input).expect("Error parsing cast expression");
+        assert_eq!(
+            result,
+            Expression::CastExpression(CastExpression {
+                expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("x"),
+                    enclosing_type: None,
+                    line_info: LineInfo { line: 1, offset: 0 },
+                })),
+
+                cast_type: Type::Int
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_range_expression() {
+        let input = LocatedSpan::new("(0..<3)");
+        let (_rest, result) = parse_expression(input).expect("Error parsing range expression");
+        assert_eq!(
+            result,
+            Expression::RangeExpression(RangeExpression {
+                start_expression: Box::new(Expression::Literal(Literal::IntLiteral(0))),
+                end_expression: Box::new(Expression::Literal(Literal::IntLiteral(3))),
+                op: String::from("..<")
             })
         );
     }

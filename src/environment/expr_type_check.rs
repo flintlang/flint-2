@@ -1,7 +1,6 @@
 use crate::context::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
-use crate::ast::*;
 
 impl ExpressionCheck for Environment {
     fn get_expression_type(
@@ -143,7 +142,7 @@ impl Environment {
         Type::Error
     }
 
-    fn get_literal_type(&self, literal: Literal) -> Type {
+    pub fn get_literal_type(&self, literal: Literal) -> Type {
         match literal {
             Literal::BooleanLiteral(_) => Type::Bool,
             Literal::AddressLiteral(_) => Type::Address,
@@ -153,7 +152,7 @@ impl Environment {
         }
     }
 
-    fn get_attempt_expression_type(
+    pub fn get_attempt_expression_type(
         &self,
         expression: AttemptExpression,
         t: &TypeIdentifier,
@@ -183,7 +182,7 @@ impl Environment {
         )
     }
 
-    fn get_range_type(
+    pub fn get_range_type(
         &self,
         expression: RangeExpression,
         t: &TypeIdentifier,
@@ -214,7 +213,7 @@ impl Environment {
         })
     }
 
-    fn get_binary_expression_type(
+    pub fn get_binary_expression_type(
         &self,
         b: BinaryExpression,
         t: &TypeIdentifier,
@@ -281,7 +280,7 @@ impl Environment {
         self.get_expression_type(*b.rhs_expression, t, type_states, caller_protections, scope)
     }
 
-    fn get_array_literal_type(
+    pub fn get_array_literal_type(
         &self,
         a: ArrayLiteral,
         t: &TypeIdentifier,
@@ -322,7 +321,7 @@ impl Environment {
         })
     }
 
-    fn get_function_call_type(
+    pub fn get_function_call_type(
         &self,
         f: FunctionCall,
         t: &TypeIdentifier,

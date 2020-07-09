@@ -1,3 +1,6 @@
+use crate::parser::calls::parse_function_call;
+use crate::parser::declarations::parse_variable_declaration;
+use crate::parser::expressions::parse_expression;
 use crate::parser::utils::*;
 
 pub fn parse_statements(i: Span) -> nom::IResult<Span, Vec<Statement>> {
@@ -131,11 +134,9 @@ fn parse_return_statement(i: Span) -> nom::IResult<Span, Statement> {
 #[cfg(test)]
 mod tests {
     use nom_locate::LocatedSpan;
-    use sha3::Digest;
-
-    use crate::ast::{BinOp::*, Literal::*, *};
 
     use crate::parser::statements::*;
+    use crate::ast::{BinOp::*, Literal::*, *};
 
     #[test]
     fn test_docatch_statement() {

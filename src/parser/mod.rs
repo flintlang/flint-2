@@ -12,21 +12,12 @@ mod utils;
 
 use nom_locate::LocatedSpan;
 
-use std::collections::HashSet;
-
-use nom::{branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded};
+use nom::multi::many0;
 
 use crate::environment::Environment;
-use crate::parser::calls::*;
+
 use crate::parser::declarations::*;
-use crate::parser::expressions::*;
-use crate::parser::identifiers::*;
-use crate::parser::literals::*;
-use crate::parser::modifiers::*;
 use crate::parser::operators::*;
-use crate::parser::parameters::*;
-use crate::parser::statements::*;
-use crate::parser::types::*;
 use crate::parser::utils::*;
 
 pub fn parse_program(i: &str) -> ParseResult {
@@ -66,7 +57,6 @@ fn parse_module(i: Span) -> nom::IResult<Span, Module> {
 #[cfg(test)]
 mod tests {
     use nom_locate::LocatedSpan;
-    use sha3::Digest;
 
     use crate::parser::*;
 

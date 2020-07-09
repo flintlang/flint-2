@@ -1,3 +1,6 @@
+use crate::parser::expressions::*;
+use crate::parser::identifiers::*;
+use crate::parser::operators::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
 
@@ -38,8 +41,10 @@ fn parse_parameter(i: Span) -> nom::IResult<Span, Parameter> {
 
 #[cfg(test)]
 mod test {
+    use nom_locate::LocatedSpan;
 
     use crate::parser::parameters::*;
+    use crate::ast::*;
 
     #[test]
     fn test_parse_parameter() {

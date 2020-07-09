@@ -25,7 +25,6 @@ pub fn get_operator_precedence(op: &BinOp) -> i32 {
         BinOp::GreaterThanOrEqual => 15,
         BinOp::Or => 11,
         BinOp::And => 12,
-        BinOp::Implies => 10,
     }
 }
 
@@ -199,34 +198,42 @@ pub fn left_arrow(i: Span) -> nom::IResult<Span, Span> {
     tag("<-")(i)
 }
 
+#[allow(dead_code)]
 pub fn comma(i: Span) -> nom::IResult<Span, Span> {
     tag(",")(i)
 }
 
+#[allow(dead_code)]
 pub fn semi_colon(i: Span) -> nom::IResult<Span, Span> {
     tag(";")(i)
 }
 
+#[allow(dead_code)]
 pub fn double_slash(i: Span) -> nom::IResult<Span, Span> {
     tag("//")(i)
 }
 
+#[allow(dead_code)]
 pub fn percent(i: Span) -> nom::IResult<Span, Span> {
     tag("//")(i)
 }
 
+#[allow(dead_code)]
 pub fn double_dot(i: Span) -> nom::IResult<Span, Span> {
     tag("..")(i)
 }
 
+#[allow(dead_code)]
 pub fn ampersand(i: Span) -> nom::IResult<Span, Span> {
     tag("&")(i)
 }
 
+#[allow(dead_code)]
 pub fn bang(i: Span) -> nom::IResult<Span, Span> {
     tag("!")(i)
 }
 
+#[allow(dead_code)]
 pub fn question(i: Span) -> nom::IResult<Span, Span> {
     tag("?")(i)
 }
@@ -237,8 +244,4 @@ pub fn half_open_range(i: Span) -> nom::IResult<Span, Span> {
 
 pub fn closed_range(i: Span) -> nom::IResult<Span, Span> {
     tag("...")(i)
-}
-
-pub fn implies(i: Span) -> nom::IResult<Span, Span> {
-    tag("==>")(i)
 }

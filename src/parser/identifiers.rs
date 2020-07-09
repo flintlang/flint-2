@@ -1,3 +1,4 @@
+use crate::parser::operators::*;
 use crate::parser::utils::*;
 
 pub fn parse_enclosing_identifier(i: Span) -> nom::IResult<Span, Identifier> {
@@ -50,8 +51,10 @@ pub fn parse_identifier_group(i: Span) -> nom::IResult<Span, Vec<Identifier>> {
 
 #[cfg(test)]
 mod test {
+    use nom_locate::LocatedSpan;
 
     use crate::parser::identifiers::*;
+    use crate::ast::*;
 
     #[test]
     fn test_parse_identifier() {

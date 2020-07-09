@@ -1,9 +1,8 @@
-mod expr_type_check;
-
-use super::context::*;
-use super::ast::*;
-use crate::type_checker::ExpressionCheck;
+use crate::context::ScopeContext;
+use crate::ast::*;
 use std::collections::HashMap;
+
+mod expr_type_check;
 
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
@@ -16,6 +15,7 @@ pub struct Environment {
     pub types: HashMap<TypeIdentifier, TypeInfo>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum FunctionCallMatchResult {
     MatchedFunction(FunctionInformation),
@@ -1236,6 +1236,7 @@ impl Environment {
         FunctionCallMatchResult::Failure(candidates)
     }
 
+    #[allow(dead_code)]
     fn match_fallback_function(&self, f: FunctionCall, c: Vec<CallerProtection>) {
         let mut candidates = Vec::new();
         let type_info = self.types.get(&f.identifier.token.clone());
@@ -1363,6 +1364,113 @@ impl Environment {
         ident.starts_with("Quartz_")
     }
 
+    pub fn get_expression_type(
+        &self,
+        expression: Expression,
+        t: &TypeIdentifier,
+        type_states: Vec<TypeState>,
+        caller_protections: Vec<CallerProtection>,
+        scope: ScopeContext,
+    ) -> Type {
+        match expression {
+            Expression::Identifier(i) => {
+                if i.enclosing_type.is_none() {
+                    let result_type = scope.type_for(i.token.clone());
+                    if result_type.is_some() {
+                        let result_type = result_type.unwrap();
+                        return if let Type::InoutType(inout) = result_type {
+                            *inout.key_type
+                        } else {
+                            result_type
+                        };
+                    }
+                }
+
+                let enclosing_type = if i.enclosing_type.is_some() {
+                    let enclosing = i.enclosing_type.as_ref();
+                    enclosing.unwrap()
+                } else {
+                    t
+                };
+
+                self.get_property_type(i.token.clone(), enclosing_type, scope)
+            }
+            Expression::BinaryExpression(b) => {
+                self.get_binary_expression_type(b, t, type_states, caller_protections, scope)
+            }
+            Expression::InoutExpression(e) => {
+                let key_type = self.get_expression_type(
+                    *e.expression,
+                    t,
+                    type_states,
+                    caller_protections,
+                    scope,
+                );
+
+                Type::InoutType(InoutType {
+                    key_type: Box::from(key_type),
+                })
+            }
+            Expression::ExternalCall(e) => self.get_expression_type(
+                Expression::BinaryExpression(e.function_call),
+                t,
+                type_states,
+                caller_protections,
+                scope,
+            ),
+            Expression::FunctionCall(f) => {
+                let enclosing_type = if f.identifier.enclosing_type.is_some() {
+                    let enclosing = f.identifier.enclosing_type.as_ref();
+                    enclosing.unwrap()
+                } else {
+                    t
+                };
+
+                self.get_function_call_type(f.clone(), enclosing_type, caller_protections, scope)
+            }
+            Expression::VariableDeclaration(v) => v.variable_type,
+            Expression::BracketedExpression(e) => {
+                self.get_expression_type(*e.expression, t, type_states, caller_protections, scope)
+            }
+            Expression::AttemptExpression(a) => {
+                self.get_attempt_expression_type(a, t, type_states, caller_protections, scope)
+            }
+            Expression::Literal(l) => self.get_literal_type(l),
+            Expression::ArrayLiteral(a) => {
+                self.get_array_literal_type(a, t, type_states, caller_protections, scope)
+            }
+            Expression::DictionaryLiteral(_) => unimplemented!(),
+            Expression::SelfExpression => Type::UserDefinedType(Identifier {
+                token: t.clone(),
+                enclosing_type: None,
+                line_info: Default::default(),
+            }),
+            Expression::SubscriptExpression(s) => {
+                //    Get Identifier Type
+                let identifer_type = self.get_expression_type(
+                    Expression::Identifier(s.base_expression.clone()),
+                    t,
+                    vec![],
+                    vec![],
+                    scope,
+                );
+
+                match identifer_type {
+                    Type::ArrayType(a) => *a.key_type,
+                    Type::FixedSizedArrayType(a) => *a.key_type,
+                    Type::DictionaryType(d) => *d.key_type,
+                    _ => Type::Error,
+                }
+            }
+            Expression::RangeExpression(r) => {
+                self.get_range_type(r, t, type_states, caller_protections, scope)
+            }
+            Expression::RawAssembly(_, _) => unimplemented!(),
+            Expression::CastExpression(c) => c.cast_type,
+            Expression::Sequence(_) => unimplemented!(),
+        }
+    }
+
     pub fn property_offset(&self, property: String, t: &TypeIdentifier) -> u64 {
         let mut offset_map: HashMap<String, u64> = HashMap::new();
         let mut offset: u64 = 0;
@@ -1420,7 +1528,6 @@ impl Environment {
             Type::Int => 1,
             Type::String => 1,
             Type::Address => 1,
-            Type::QuartzType(_) => unimplemented!(),
             Type::InoutType(_) => unimplemented!(),
             Type::ArrayType(_) => 1,
             Type::RangeType(_) => unimplemented!(),

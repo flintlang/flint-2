@@ -9,7 +9,6 @@ use sha3::{Digest, Keccak256};
 use super::context::*;
 use super::environment::*;
 use super::ast::*;
-use crate::type_checker::ExpressionCheck;
 
 pub mod preprocessor;
 
@@ -547,7 +546,6 @@ pub enum SolidityIRType {
 impl SolidityIRType {
     pub fn map_to_solidity_type(input: Type) -> SolidityIRType {
         match input {
-            Type::QuartzType(_) => panic!("Can not convert this type to Solidity Type"),
             Type::InoutType(i) => SolidityIRType::map_to_solidity_type(*i.key_type),
             Type::ArrayType(_) => panic!("Can not convert this type to Solidity Type"),
             Type::RangeType(_) => panic!("Can not convert this type to Solidity Type"),
@@ -1779,6 +1777,7 @@ impl SolidityPropertyOffset {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum SolidityRuntimeFunction {
     Selector,
@@ -2515,7 +2514,6 @@ impl SolidityBinaryExpression {
             BinOp::MinusEqual => panic!("Unexpected Operator"),
             BinOp::TimesEqual => panic!("Unexpected Operator"),
             BinOp::DivideEqual => panic!("Unexpected Operator"),
-            BinOp::Implies => panic!("Unexpected Operator"),
         }
     }
 }
@@ -2594,6 +2592,7 @@ impl fmt::Display for YulBlock {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulExpression {
     FunctionCall(YulFunctionCall),
@@ -2676,6 +2675,7 @@ impl fmt::Display for YulFunctionCall {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulStatement {
     Block(YulBlock),
@@ -2778,6 +2778,7 @@ impl fmt::Display for YulForLoop {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulLiteral {
     Num(u64),
@@ -2821,7 +2822,7 @@ impl fmt::Display for YulVariableDeclaration {
             )
         };
         if self.expression.is_none() {
-            write!(f, "let {declarations}", declarations = declarations);
+            write!(f, "let {declarations}", declarations = declarations)?;
         }
         let expression = self.expression.clone();
         let expression = expression.unwrap();
@@ -2834,6 +2835,7 @@ impl fmt::Display for YulVariableDeclaration {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum YulType {
     Bool,

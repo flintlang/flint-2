@@ -2,7 +2,6 @@ use crate::context::*;
 use crate::environment::*;
 use crate::visitor::Visitor;
 use crate::moveir::{FunctionContext, MoveExpression, MoveIRBlock};
-use crate::type_checker::ExpressionCheck;
 use crate::ast::*;
 
 pub(crate) struct MovePreProcessor {}

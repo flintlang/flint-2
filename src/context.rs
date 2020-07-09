@@ -1,5 +1,5 @@
-use super::environment::*;
-use super::ast::*;
+use crate::environment::*;
+use crate::ast::*;
 
 #[derive(Debug, Default)]
 pub struct Context {

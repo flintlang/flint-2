@@ -1,4 +1,5 @@
 pub use crate::environment::Environment;
+use crate::parser::statements::*;
 pub use crate::parser::*;
 pub use crate::ast::*;
 pub use nom::{
@@ -41,12 +42,13 @@ mod test {
 
     #[test]
     fn test_parse_whitespace() {
-        let input = "";
-        let input = LocatedSpan::new(input);
-        let result = whitespace(input);
-        match result {
-            Ok((c, _b)) => assert_eq!(c, LocatedSpan::new("")),
-            Err(_) => assert_eq!(1, 0),
-        }
+        let input = LocatedSpan::new("");
+        let (rest, result) = whitespace(input).expect("Error parsing whitespace");
+        assert_eq!(rest, LocatedSpan::new(""));
+        assert_eq!(result, LocatedSpan::new(""));
+
+        let input = LocatedSpan::new("   ");
+        let (_rest, result) = whitespace(input).expect("Error parsing whitespace");
+        assert_eq!(result, LocatedSpan::new(""));
     }
 }

@@ -4,9 +4,8 @@ use std::io::Write;
 use std::path::Path;
 
 use super::context::*;
+use super::environment::*;
 use super::ast::*;
-use crate::environment::*;
-use crate::type_checker::ExpressionCheck;
 
 pub mod preprocessor;
 
@@ -2113,7 +2112,6 @@ impl MoveBinaryExpression {
             BinOp::Plus => {
                 MoveIRExpression::Operation(MoveIROperation::Add(Box::from(lhs), Box::from(rhs)))
             }
-            BinOp::Implies => panic!("operator not supported"),
             BinOp::GreaterThan => MoveIRExpression::Operation(MoveIROperation::GreaterThan(
                 Box::from(lhs),
                 Box::from(rhs),
@@ -2442,6 +2440,7 @@ impl MoveRuntimeTypes {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 enum MoveRuntimeFunction {
     AppendToArrayInt,
@@ -2494,6 +2493,7 @@ impl MoveRuntimeFunction {
             .to_string()
     }
 
+    #[allow(dead_code)]
     pub fn get_deposit() -> String {
         "Quartz_send(money: &mut LibraCoin.T, addr: address) {{ \n \
              LibraAccount.deposit(move(addr), Quartz_withdrawAll(move(money))); \n \
@@ -2757,7 +2757,6 @@ impl MoveType {
             Type::Int => MoveType::U64,
             Type::String => MoveType::ByteArray,
             Type::Address => MoveType::Address,
-            Type::QuartzType(_) => panic!("Cannot convert type to move equivalent"),
             Type::RangeType(_) => panic!("Cannot convert type to move equivalent"),
             Type::SelfType => panic!("Cannot convert type to move equivalent"),
             Type::Error => panic!("Cannot convert type error to move equivalent"),
@@ -2854,6 +2853,7 @@ impl fmt::Display for MoveIRIdentifier {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum MoveIRExpression {
     FunctionCall(MoveIRFunctionCall),
@@ -2952,6 +2952,7 @@ impl fmt::Display for MoveIRFunctionCall {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum MoveIRLiteral {
     Num(u64),
@@ -3083,6 +3084,7 @@ impl fmt::Display for MoveIRModuleImport {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum MoveIRStatement {
     Block(MoveIRBlock),
@@ -3145,6 +3147,7 @@ impl fmt::Display for MoveIRType {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum MoveIROperation {
     Add(Box<MoveIRExpression>, Box<MoveIRExpression>),

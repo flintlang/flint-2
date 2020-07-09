@@ -16,6 +16,26 @@ pub trait ExpressionCheck {
 }
 
 impl Visitor for TypeChecker {
+    fn start_contract_behaviour_declaration(
+        &mut self,
+        _t: &mut ContractBehaviourDeclaration,
+        _ctx: &mut Context,
+    ) -> VResult {
+        let states = _t.states.clone();
+        for state in states {
+            if _ctx
+                .environment
+                .is_state_declared(&state.identifier.token, &_t.identifier.token)
+                || state.is_any()
+            {
+            } else {
+                println!("Invalid state used")
+            }
+        }
+
+        Ok(())
+    }
+
     fn start_variable_declaration(
         &mut self,
         _t: &mut VariableDeclaration,
@@ -37,26 +57,6 @@ impl Visitor for TypeChecker {
                 context_ref.local_variables.push(_t.clone());
             }
         }
-        Ok(())
-    }
-
-    fn start_contract_behaviour_declaration(
-        &mut self,
-        _t: &mut ContractBehaviourDeclaration,
-        _ctx: &mut Context,
-    ) -> VResult {
-        let states = _t.states.clone();
-        for state in states {
-            if _ctx
-                .environment
-                .is_state_declared(&state.identifier.token, &_t.identifier.token)
-                || state.is_any()
-            {
-            } else {
-                println!("Invalid state used")
-            }
-        }
-
         Ok(())
     }
 
