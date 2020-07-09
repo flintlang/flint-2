@@ -38,6 +38,7 @@ class Configuration(NamedTuple):
     
     @classmethod
     def from_flint_config(cls):
+        # add own path to .json file and libra
         with open(os.path.expanduser("/mnt/c/Users/jessw/urop/flint-2/flint_config.json")) as file:
             path = json.load(file).get("libraPath")  # .get defaults to None
             if path: # If libraPath is defined and not empty

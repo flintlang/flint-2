@@ -1,6 +1,10 @@
 .idea/
 
 ### Rust ###
+tests/move_tests/tests/temp/
 
 # Created by Cargo #
 target/
+output/
+
+
