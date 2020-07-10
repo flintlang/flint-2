@@ -4,7 +4,7 @@ venv
 
 ### Rust ###
 tests/move_tests/tests/temp/
-
+flint_config.json
 # Created by Cargo #
 target/
 output/
