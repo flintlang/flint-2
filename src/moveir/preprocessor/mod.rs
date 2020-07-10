@@ -163,7 +163,7 @@ impl Visitor for MovePreProcessor {
             let mut payable_param = payable_param.unwrap();
             let payable_param_name = payable_param.identifier.token.clone();
             let new_param_type = Type::UserDefinedType(Identifier {
-                token: "LBR.T".to_string(),
+                token: "LBR.LBR".to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
             });

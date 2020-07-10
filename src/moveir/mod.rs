@@ -2420,12 +2420,12 @@ struct MoveRuntimeTypes {}
 
 impl MoveRuntimeTypes {
     pub fn get_all_declarations() -> Vec<String> {
-        let libra = "resource Libra_Coin { \n coin: LBR.T  \n }".to_string();
+        let libra = "resource Libra_Coin { \n coin: LBR.LBR  \n }".to_string();
         vec![libra]
     }
 
     pub fn get_all_imports() -> Vec<MoveIRStatement> {
-        let libra = MoveIRStatement::Import(MoveIRModuleImport {
+        let lbr = MoveIRStatement::Import(MoveIRModuleImport {
             name: "LBR".to_string(),
             address: "0x1".to_string(),
         });
@@ -2437,7 +2437,11 @@ impl MoveRuntimeTypes {
             name: "Vector".to_string(),
             address: "0x1".to_string(),
         });
-        vec![libra, libra_account, vector]
+        let libra = MoveIRStatement::Import(MoveIRModuleImport {
+            name: "Libra".to_string(),
+            address: "0x1".to_string(),
+        });
+        vec![lbr, libra_account, vector, libra]
     }
 }
 
@@ -2496,7 +2500,7 @@ impl MoveRuntimeFunction {
 
     #[allow(dead_code)]
     pub fn get_deposit() -> String {
-        "Quartz_send(money: &mut LBR.T, addr: address) { \n \
+        "Quartz_send(money: &mut LBR.LBR, addr: address) { \n \
              LibraAccount.deposit(move(addr), Quartz_withdrawAll(move(money))); \n \
              return; \n }"
             .to_string()
@@ -2542,7 +2546,7 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_libra_internal() -> String {
-        "Quartz_Self_Create_Libra(input: LBR.T) : Self.Libra {
+        "Quartz_Self_Create_Libra(input: LBR.LBR) : Self.Libra {
             return Self.Libra_produce(move(input));
         }
 
@@ -2551,63 +2555,63 @@ impl MoveRuntimeFunction {
           assert(false, 9001);
         }
         return Libra_Coin {
-          coin: LBR.zero()
+          coin: Libra.zero()
         };
       }
 
       public Libra_Coin_getValue(this: &mut Self.Libra_Coin): u64 {
-        let coin: &LBR.T;
+        let coin: &LBR.LBR;
         coin = &move(this).coin;
-        return LBR.value(move(coin));
+        return Libra.value(move(coin));
       }
 
       public Libra_Coin_withdraw(this: &mut Self.Libra_Coin, \
       amount: u64): Self.Libra_Coin {
-        let coin: &mut LBR.T;
+        let coin: &mut LBR.LBR;
         coin = &mut move(this).coin;
         return Libra_Coin {
-          coin: LBR.withdraw(move(coin), move(amount))
+          coin: Libra.withdraw(move(coin), move(amount))
         };
       }
 
       public Libra_Coin_transfer(this: &mut Self.Libra_Coin, \
       other: &mut Self.Libra_Coin, amount: u64) {
-        let coin: &mut LBR.T;
-        let other_coin: &mut LBR.T;
-        let temporary: LBR.T;
+        let coin: &mut LBR.LBR;
+        let other_coin: &mut LBR.LBR;
+        let temporary: LBR.LBR;
         coin = &mut move(this).coin;
-        temporary = LBR.withdraw(move(coin), move(amount));
+        temporary = Libra.withdraw(move(coin), move(amount));
         other_coin = &mut move(other).coin;
-        LBR.deposit(move(other_coin), move(temporary));
+        Libra.deposit(move(other_coin), move(temporary));
         return;
       }
       public Libra_Coin_transfer_value(this: &mut Self.Libra_Coin, other: Self.Libra) {
-        let coin: &mut LBR.T;
+        let coin: &mut LBR.LBR;
         let temp: Self.Libra_Coin;
-        let temporary: LBR.T;
+        let temporary: LBR.LBR;
         coin = &mut move(this).coin;
         Libra {temp} = move(other);
         Libra_Coin {temporary} = move(temp);
-        LBR.deposit(move(coin), move(temporary));
+        Libra.deposit(move(coin), move(temporary));
         return;
     }
 
     public Libra_Coin_send(coin: &mut Self.Libra_Coin, payee: address, amount: u64) {
-    let temporary: LBR.T;
-    let coin_ref: &mut LBR.T;
+    let temporary: LBR.LBR;
+    let coin_ref: &mut LBR.LBR;
     coin_ref = &mut move(coin).coin;
-    temporary = LBR.withdraw(move(coin_ref), move(amount));
+    temporary = Libra.withdraw(move(coin_ref), move(amount));
     LibraAccount.deposit(copy(payee), move(temporary));
     return;
   }
 
-    Libra_Coin_produce (input: LBR.T): Self.Libra_Coin {
+    Libra_Coin_produce (input: LBR.LBR): Self.Libra_Coin {
         return Libra_Coin {
             coin: move(input)
         };
     }
 
-    Libra_produce (input: LBR.T): Self.Libra {
+    Libra_produce (input: LBR.LBR): Self.Libra {
     return Libra {
       libra: Self.Libra_Coin_produce(move(input))
     };
@@ -2681,7 +2685,7 @@ impl MoveType {
             }
             MoveType::StructType(s) => {
                 let string = s.clone();
-                if string == "LBR.T".to_string() {
+                if string == "LBR.LBR".to_string() {
                     return MoveIRType::StructType(string);
                 }
                 let string = format!("Self.{}", string);
