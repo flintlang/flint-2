@@ -1,0 +1,18 @@
+@contract
+external trait GlobalDB {
+    public func get() -> uint64
+}
+
+contract Shop {
+  visible var db: GlobalDB
+}
+
+Shop :: sender <- (any) {
+  public init() {
+    db = GlobalDB(0x53FA95c4C7A58d5aC43BD5D9317223eB9C29dE59)
+  }
+
+  public func getValue() -> Int {
+    return cast (call db.get()) to Int
+  }
+}
