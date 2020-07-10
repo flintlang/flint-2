@@ -7,6 +7,8 @@ import json
 
 
 class CompilationError(Exception): ...
+
+
 class FlintCompilationError(CompilationError): ...
 
 
@@ -35,13 +37,13 @@ def run_at_path(path):
 
 class Configuration(NamedTuple):
     libra_path: Path
-    
+
     @classmethod
     def from_flint_config(cls):
         # add own path to .json file and libra
         with open(os.path.expanduser("flint_config.json")) as file:
             path = json.load(file).get("libraPath")  # .get defaults to None
-            if path: # If libraPath is defined and not empty
+            if path:  # If libraPath is defined and not empty
                 return cls(path)
             else:
                 return None
@@ -89,13 +91,13 @@ class MoveIRProgramme(Programme):
             testsuite_contents = testsuite.contents().split("//! provide module")
             for module in testsuite_contents[1:]:
                 file.write(f"""
-{ module !s}
+{module !s}
 //! new-transaction
 """)
             file.write(f"""\
-{ self.contents().replace("import 0x00.", "import Transaction.") !s}
+{self.contents().replace("import 0x0.", "import Transaction.") !s}
 //! new-transaction
-{ testsuite_contents[0] !s}
+{testsuite_contents[0] !s}
 """)
         self.path = new
 
@@ -117,11 +119,11 @@ class FlintProgramme(Programme):
         return "//! disable stdlib" not in self.contents()
 
     def compile(self) -> MoveIRProgramme:
-        process = subprocess.Popen(["cargo", "run", "libra", str(self.path)] + 
-                (["--no-stdlib"] if not self.using_stdlib else []),
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE
-        )
+        process = subprocess.Popen(["cargo", "run", "libra", str(self.path)] +
+                                   (["--no-stdlib"] if not self.using_stdlib else []),
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE
+                                   )
         output = process.stdout.read() + process.stderr.read()
         if b"successfully wrote" not in output:
             raise FlintCompilationError(output.decode("utf8"))
@@ -183,13 +185,13 @@ class BehaviourTest(NamedTuple):
             test.run()
         except MoveRuntimeError as e:
             line, message = e.line or 0, f"Move Runtime Error: " \
-                f"Error in {self.programme.path.name} line {e.line}: {e !s}"
+                                         f"Error in {self.programme.path.name} line {e.line}: {e !s}"
         else:
             line = message = None
         if self.expected_fail_line != line:
             TestFormatter.failed(self.programme.name,
                                  message or f"Move Missing Error: "
-                                 f"No error raised in {self.programme.path.name} line {self.expected_fail_line}"
+                                            f"No error raised in {self.programme.path.name} line {self.expected_fail_line}"
                                  )
             return False
 
@@ -201,6 +203,7 @@ class TestFormatter:
     FAIL = "\033[1;38;5;196m"
     SUCCESS = "\033[1;38;5;114m"
     END = "\033[m"
+
     @classmethod
     def failed(cls, test, message):
         print(f"""\
@@ -253,7 +256,8 @@ class TestRunner(NamedTuple):
         try:
             shutil.rmtree(MoveIRProgramme.libra_path / MoveIRProgramme.temporary_test_path)
             shutil.rmtree(self.default_path / "temp")
-        except: pass
+        except:
+            pass
 
         failed = set(self.tests) - passed
         if failed:
@@ -265,13 +269,12 @@ class TestRunner(NamedTuple):
 
 
 if __name__ == '__main__':
-    os.chdir(os.path.expanduser("~/Documents/flint-2"))
-    
+    os.path.dirname(os.path.realpath(__file__))
     config = Configuration.from_flint_config()
 
     if not config:
         TestFormatter.not_configured()
         sys.exit(0)
-    
+
     # Run all, or run the given arguments (empty list is falsey)
     sys.exit(TestRunner.from_all(sys.argv[1:], config=config).run())
