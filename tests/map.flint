@@ -1,5 +1,5 @@
 @contract 
-trait Map {
+external trait Map {
     public func get(k: uint64) -> String 
     public func insert(k: uint64, v: String)
     public func is_present(k: uint64) -> bool 

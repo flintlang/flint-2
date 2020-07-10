@@ -3143,7 +3143,7 @@ impl fmt::Display for MoveIRType {
             MoveIRType::U64 => write!(f, "u64"),
             MoveIRType::Address => write!(f, "address"),
             MoveIRType::Bool => write!(f, "bool"),
-            MoveIRType::ByteArray => write!(f, "bytearray"),
+            MoveIRType::ByteArray => write!(f, "vector<u8>"),
             MoveIRType::Resource(s) => write!(f, "{}", s),
             MoveIRType::StructType(s) => write!(f, "{}", s),
             MoveIRType::MutableReference(base) => write!(f, "&mut {base}", base = base),
