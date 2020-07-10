@@ -265,7 +265,7 @@ class TestRunner(NamedTuple):
 
 
 if __name__ == '__main__':
-    os.chdir(os.path.expanduser("/mnt/c/Users/jessw/urop/flint-2"))
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
     
     config = Configuration.from_flint_config()
 
