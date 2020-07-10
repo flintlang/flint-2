@@ -1181,7 +1181,7 @@ impl MoveStructInitialiser {
         };
 
         format!(
-            "{modifiers}{name}({parameters}): {result_type} {{ \n\n {body} \n\n }}",
+            "{modifiers} {name}_init({parameters}): {result_type} {{ \n\n {body} \n\n }}",
             modifiers = modifiers,
             result_type = result_type,
             name = self.identifier.token,
