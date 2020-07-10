@@ -1,7 +1,7 @@
+mod conflicts;
 mod declarations;
 mod functions;
 mod properties;
-mod conflicts;
 
 use crate::ast::*;
 use crate::context::ScopeContext;

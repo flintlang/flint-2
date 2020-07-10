@@ -1,19 +1,19 @@
 mod move_asset;
-mod move_contract;
-mod move_struct;
-mod move_statement;
-mod move_function;
-mod move_call;
-mod move_expression;
-mod move_type;
-mod move_ir;
 mod move_assignment;
-mod move_runtime_function;
+mod move_call;
+mod move_contract;
 mod move_declaration;
+mod move_expression;
+mod move_function;
 mod move_identifier;
-mod move_self;
-mod move_property_access;
+mod move_ir;
 mod move_literal;
+mod move_property_access;
+mod move_runtime_function;
+mod move_self;
+mod move_statement;
+mod move_struct;
+mod move_type;
 
 use crate::type_checker::ExpressionCheck;
 use std::fmt;
@@ -28,21 +28,21 @@ use super::environment::*;
 pub mod preprocessor;
 
 use crate::moveir::move_asset::*;
-use crate::moveir::move_contract::*;
-use crate::moveir::move_struct::*;
-use crate::moveir::move_statement::*;
-use crate::moveir::move_function::*;
-use crate::moveir::move_call::*;
-use crate::moveir::move_expression::*;
-use crate::moveir::move_type::*;
 use crate::moveir::move_assignment::*;
-use crate::moveir::move_runtime_function::*;
+use crate::moveir::move_call::*;
+use crate::moveir::move_contract::*;
 use crate::moveir::move_declaration::*;
+use crate::moveir::move_expression::*;
+use crate::moveir::move_function::*;
 use crate::moveir::move_identifier::*;
 use crate::moveir::move_ir::*;
-use crate::moveir::move_self::*;
-use crate::moveir::move_property_access::*;
 use crate::moveir::move_literal::*;
+use crate::moveir::move_property_access::*;
+use crate::moveir::move_runtime_function::*;
+use crate::moveir::move_self::*;
+use crate::moveir::move_statement::*;
+use crate::moveir::move_struct::*;
+use crate::moveir::move_type::*;
 
 #[derive(Debug, Clone)]
 pub enum MovePosition {
@@ -143,6 +143,3 @@ pub fn generate(module: Module, context: &mut Context) {
         }
     }
 }
-
-
-

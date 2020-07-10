@@ -193,4 +193,3 @@ impl fmt::Display for MoveRuntimeFunction {
         write!(f, "{:?}", self)
     }
 }
-
