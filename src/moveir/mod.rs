@@ -2203,6 +2203,8 @@ impl MovePropertyAccess {
                 }
             }
         }
+        println!("{:?}", self.left);
+        println!("{:?}", self.right);
         let rhs_enclosing = self.right.enclosing_identifier();
         if rhs_enclosing.is_some() {
             if function_context.is_constructor {
@@ -2618,7 +2620,7 @@ impl MoveRuntimeFunction {
   }
 
   Libra_init (): Self.Libra {
-    return Self.publicLibra();
+    return Self.Libra_init();
   }
 
   Quartz_Libra_send (this: &mut Self.Libra, _payee: address, _amount: u64)  {

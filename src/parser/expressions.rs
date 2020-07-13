@@ -301,6 +301,37 @@ mod test {
     }
 
     #[test]
+    fn test_parse_self_expression() {
+        let input = LocatedSpan::new("self.rectangle.width");
+        let (_rest, result) = parse_expression(input).expect("Error parsing self expression");
+        assert_eq!(
+            result,
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::SelfExpression),
+                    rhs_expression: Box::new(Expression::Identifier(Identifier {
+                        token: String::from("rectangle"),
+                        enclosing_type: None,
+                        line_info: LineInfo { line: 1, offset: 5 }
+                    })),
+                    op: BinOp::Dot,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                })),
+                rhs_expression: Box::new(Expression::Identifier(Identifier {
+                    token: String::from("width"),
+                    enclosing_type: None,
+                    line_info: LineInfo {
+                        line: 1,
+                        offset: 15
+                    }
+                })),
+                op: BinOp::Dot,
+                line_info: LineInfo { line: 1, offset: 0 }
+            })
+        );
+    }
+
+    #[test]
     fn test_parse_cast_expression() {
         let input = LocatedSpan::new("cast x to Int");
         let (_rest, result) = parse_expression(input).expect("Error parsing cast expression");
