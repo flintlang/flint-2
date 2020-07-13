@@ -2032,9 +2032,11 @@ impl MoveIdentifier {
                 return ir_identifier;
             }
             if !unwrapped_type.is_inout_type() && unwrapped_type.is_user_defined_type() {
-                return MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::from(
-                    ir_identifier,
-                )));
+                if f_call {
+                    return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
+                } else {
+                    return ir_identifier;
+                }
             }
         }
 
@@ -2203,8 +2205,7 @@ impl MovePropertyAccess {
                 }
             }
         }
-        println!("{:?}", self.left);
-        println!("{:?}", self.right);
+
         let rhs_enclosing = self.right.enclosing_identifier();
         if rhs_enclosing.is_some() {
             if function_context.is_constructor {

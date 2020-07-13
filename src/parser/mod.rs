@@ -23,7 +23,7 @@ use crate::parser::utils::*;
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
     let result = parse_module(input);
-
+    println!("{:?}", result.clone());
     let module = match result {
         Ok((i, module)) => {
             if !i.fragment().is_empty() {

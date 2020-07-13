@@ -329,6 +329,69 @@ mod test {
                 line_info: LineInfo { line: 1, offset: 0 }
             })
         );
+
+        /*let input = LocatedSpan::new("self.rectangle.width * self.rectangle.height");
+        let (_rest, result) = parse_expression(input).expect("Error parsing self expression");
+        assert_eq!(
+            result,
+            BinaryExpression(BinaryExpression {
+                lhs_expression: BinaryExpression(BinaryExpression {
+                    lhs_expression: BinaryExpression(BinaryExpression {
+                        lhs_expression: SelfExpression,
+                        rhs_expression: Identifier(Identifier {
+                            token: "rectangle",
+                            enclosing_type: None,
+                            line_info: LineInfo { line: 1, offset: 5 }
+                        }),
+                        op: Dot,
+                        line_info: LineInfo { line: 1, offset: 0 }
+                    }),
+                    rhs_expression: Identifier(Identifier {
+                        token: "width",
+                        enclosing_type: None,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 15
+                        }
+                    }),
+                    op: Dot,
+                    line_info: LineInfo { line: 1, offset: 0 }
+                }),
+                rhs_expression: BinaryExpression(BinaryExpression {
+                    lhs_expression: BinaryExpression(BinaryExpression {
+                        lhs_expression: SelfExpression,
+                        rhs_expression: Identifier(Identifier {
+                            token: "rectangle",
+                            enclosing_type: None,
+                            line_info: LineInfo {
+                                line: 1,
+                                offset: 28
+                            }
+                        }),
+                        op: Dot,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 23
+                        }
+                    }),
+                    rhs_expression: Identifier(Identifier {
+                        token: "height",
+                        enclosing_type: None,
+                        line_info: LineInfo {
+                            line: 1,
+                            offset: 38
+                        }
+                    }),
+                    op: Dot,
+                    line_info: LineInfo {
+                        line: 1,
+                        offset: 23
+                    }
+                }),
+                op: Times,
+                line_info: LineInfo { line: 1, offset: 0 }
+            })
+        );*/
     }
 
     #[test]
