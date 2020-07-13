@@ -673,6 +673,7 @@ impl Visitor for MovePreProcessor {
                 let mut expression = construct_expression(expresssions);
 
                 if expression.enclosing_type().is_some() {
+                    // TODO temp__6 happens here
                     expression = expand_properties(expression, _ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression.clone() {
                     expression = expand_properties(expression, _ctx, false);
@@ -1190,8 +1191,10 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             return if let BinOp::Dot = b.op {
                 let mut binary = b.clone();
                 let lhs = b.lhs_expression.clone();
+                // TODO temp__4 created here
                 let lhs = expand_properties(*lhs, ctx, borrow);
                 binary.lhs_expression = Box::from(lhs);
+                // TODO temp__6 created here
                 pre_assign(Expression::BinaryExpression(binary), ctx, borrow, true)
             } else {
                 let mut binary = b.clone();
@@ -1273,6 +1276,7 @@ pub fn pre_assign(
         .collect();
     let declaration;
     if statements.is_empty() {
+        // TODO temp_identifier is temp__6, so it is created here
         temp_identifier = scope.fresh_identifier(expression.clone().get_line_info());
         declaration = if expression_type.is_built_in_type() || borrow {
             VariableDeclaration {
@@ -1349,7 +1353,7 @@ pub fn pre_assign(
             temp_identifier = i.clone()
         }
     }
-
+    // TODO temp__6 created in scope before here
     ctx.scope_context = Option::from(scope);
     if borrow {
         return Expression::InoutExpression(InoutExpression {
