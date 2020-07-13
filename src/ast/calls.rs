@@ -38,7 +38,6 @@ pub struct FunctionCall {
 
 impl Visitable for FunctionCall {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
-        // TODO temp__6 in here (make sure it takes you to the version used at runtime)
         v.start_function_call(self, ctx)?;
 
         ctx.is_function_call_context = true;

@@ -27,7 +27,6 @@ impl Visitable for Statement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_statement(self, ctx)?;
         match self {
-            // TODO temp6 in this return
             Statement::ReturnStatement(r) => r.visit(v, ctx),
             Statement::Expression(e) => e.visit(v, ctx),
             Statement::BecomeStatement(b) => b.visit(v, ctx),
@@ -316,7 +315,6 @@ impl Visitable for ReturnStatement {
         if self.expression.is_some() {
             let expression = self.expression.clone();
             let mut expression = expression.unwrap();
-            // TODO the temp__6 comes from in here
             expression.visit(v, ctx)?;
             self.expression = Option::from(expression);
         }

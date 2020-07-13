@@ -602,6 +602,11 @@ impl Visitor for MovePreProcessor {
     }
 
     fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
+        // TODO remove when done
+        if _t.identifier.token.contains("semiPerimeter") {
+            println!("Remove when done");
+        }
+        // TODO function call expression is fine here. Seems to be issue with receiver trail
         let mut receiver_trail = _ctx.function_call_receiver_trail.clone();
 
         if Environment::is_runtime_function_call(_t) {
@@ -668,12 +673,15 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
                     && !is_global_function_call
             {
-                let expresssions = receiver_trail.clone();
+                // TODO this is where the expression becomes strange about dotting rectangles
+                let expressions = receiver_trail.clone();
+                // TODO remove this
+                println!("Remove this: \n{:#?}", expressions);
 
-                let mut expression = construct_expression(expresssions);
+                let mut expression = construct_expression(expressions);
 
                 if expression.enclosing_type().is_some() {
-                    // TODO temp__6 happens here
+                    // TODO temp__6 happens here but it is now understandable why
                     expression = expand_properties(expression, _ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression.clone() {
                     expression = expand_properties(expression, _ctx, false);
@@ -1188,6 +1196,7 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             }
         }
         Expression::BinaryExpression(b) => {
+            println!("The expression is {:#?}", b);
             return if let BinOp::Dot = b.op {
                 let mut binary = b.clone();
                 let lhs = b.lhs_expression.clone();
@@ -1353,7 +1362,6 @@ pub fn pre_assign(
             temp_identifier = i.clone()
         }
     }
-    // TODO temp__6 created in scope before here
     ctx.scope_context = Option::from(scope);
     if borrow {
         return Expression::InoutExpression(InoutExpression {
