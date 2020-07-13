@@ -571,6 +571,12 @@ impl FunctionDeclaration {
 
 impl Visitable for FunctionDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+        // TODO start of temp__6 trail
+        if self.head.identifier.token.contains("perimeter") {
+            // TODO the 4th time the debugger gets here is the correct place
+            println!("Remove this statement when finished");
+        }
+
         v.start_function_declaration(self, ctx)?;
         self.head.visit(v, ctx)?;
 
@@ -600,9 +606,11 @@ impl Visitable for FunctionDeclaration {
 
         let mut statements: Vec<Vec<Statement>> = vec![];
 
+        // TODO temp__6 happens in here in second iteration
         for statement in &mut self.body {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
+            // TODO temp__6 happens in visit here in second iteration of the loop
             statement.visit(v, ctx)?;
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
@@ -628,7 +636,6 @@ impl Visitable for FunctionDeclaration {
             ctx.scope_context = Some(scope);
         }
         ctx.function_declaration_context = None;
-
         v.finish_function_declaration(self, ctx)?;
 
         ctx.pre_statements = vec![];

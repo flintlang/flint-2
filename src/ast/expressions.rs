@@ -107,9 +107,11 @@ impl Visitable for Expression {
 
         match self {
             Expression::Identifier(i) => i.visit(v, ctx),
+            // TODO temp__6 in here (first time this function called)
             Expression::BinaryExpression(b) => b.visit(v, ctx),
             Expression::InoutExpression(i) => i.visit(v, ctx),
             Expression::ExternalCall(e) => e.visit(v, ctx),
+            // TODO temp__6 in here (second time this function called)
             Expression::FunctionCall(f) => f.visit(v, ctx),
             Expression::VariableDeclaration(d) => d.visit(v, ctx),
             Expression::BracketedExpression(b) => b.visit(v, ctx),
@@ -290,6 +292,7 @@ impl Visitable for BinaryExpression {
                 if self.op.is_assignment() {
                     ctx.in_assignment = true;
                 }
+                // TODO temp__6 comes from here
                 self.rhs_expression.visit(v, ctx)?;
                 ctx.in_assignment = false;
             }

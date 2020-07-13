@@ -40,6 +40,7 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
     }
 
     if let Target::Move = target {
+        println!("\n\nvvv BLEEEP BLORP vvv\n\n{:#?}\n\n^^^ BLEEEP BLORP ^^^\n\n", module);
         let result = module.visit(move_preprocessor, context);
 
         match result {
