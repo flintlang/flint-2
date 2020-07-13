@@ -23,7 +23,7 @@ use crate::parser::utils::*;
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
     let result = parse_module(input);
-
+    println!("{:?}", result.clone());
     let module = match result {
         Ok((i, module)) => {
             if !i.fragment().is_empty() {
@@ -59,6 +59,167 @@ mod tests {
     use nom_locate::LocatedSpan;
 
     use crate::parser::*;
+
+    #[test]
+    fn test_parse() {
+        let input = LocatedSpan::new(
+            "contract MoneyPot {
+                visible var value: Libra
+                var owner: Address
+              }
+              
+              MoneyPot :: sender <- (any) {
+                public init(initiliaser: Address) {
+                  value = Libra()
+                  owner = initiliaser
+                }
+              
+                public func getBalance() -> Int {
+                  return value.balance()
+                }
+              
+                public func getOwner() -> Address {
+                  return owner
+                }
+              
+                @payable
+                public func deposit(amount: Libra) mutates(owner) {
+                  var oldBalance: Int
+                  oldBalance = getBalance()
+                  value.transfer_value(source: amount)
+                  if (getBalance() - oldBalance) > oldBalance {
+                      owner = sender
+                  }
+                }
+              }
+              
+              MoneyPot :: (owner) {
+                  public func withdraw() mutates(value) {
+                      var balance: Int
+                      balance = value.balance()
+                      send(owner, balance, &value)
+                  }
+              }"
+        );
+        let (_rest, result) = parse_module(input).expect("Error");
+        assert_eq!(
+            result,
+            Module {
+                declarations: vec![TopLevelDeclaration::ContractDeclaration(
+                    ContractDeclaration {
+                        identifier: Identifier {
+                            token: String::from("Coin"),
+                            enclosing_type: None,
+                            line_info: LineInfo { line: 1, offset: 9 },
+                        },
+
+                        contract_members: vec![
+                            ContractMember::VariableDeclaration(VariableDeclaration {
+                                declaration_token: Some(String::from("var")),
+
+                                identifier: Identifier {
+                                    token: String::from("minter"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 2,
+                                        offset: 36,
+                                    },
+                                },
+
+                                variable_type: Type::Address,
+                                expression: None,
+                            }),
+                            ContractMember::VariableDeclaration(VariableDeclaration {
+                                declaration_token: Some(String::from("var")),
+
+                                identifier: Identifier {
+                                    token: String::from("balance"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 3,
+                                        offset: 80,
+                                    },
+                                },
+
+                                variable_type: Type::DictionaryType(DictionaryType {
+                                    key_type: Box::new(Type::Address),
+                                    value_type: Box::new(Type::Int),
+                                }),
+
+                                expression: Some(Box::new(Expression::DictionaryLiteral(
+                                    DictionaryLiteral { elements: vec![] }
+                                ))),
+                            }),
+                            ContractMember::EventDeclaration(EventDeclaration {
+                                identifier: Identifier {
+                                    token: String::from("Sent"),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 4,
+                                        offset: 144,
+                                    },
+                                },
+
+                                parameter_list: vec![
+                                    Parameter {
+                                        identifier: Identifier {
+                                            token: String::from("from"),
+                                            enclosing_type: None,
+                                            line_info: LineInfo {
+                                                line: 4,
+                                                offset: 149,
+                                            },
+                                        },
+
+                                        type_assignment: Type::Address,
+                                        expression: None,
+                                        line_info: LineInfo {
+                                            line: 4,
+                                            offset: 149,
+                                        },
+                                    },
+                                    Parameter {
+                                        identifier: Identifier {
+                                            token: String::from("to"),
+                                            enclosing_type: None,
+                                            line_info: LineInfo {
+                                                line: 4,
+                                                offset: 164,
+                                            },
+                                        },
+                                        type_assignment: Type::Address,
+                                        expression: None,
+                                        line_info: LineInfo {
+                                            line: 4,
+                                            offset: 164,
+                                        },
+                                    },
+                                    Parameter {
+                                        identifier: Identifier {
+                                            token: String::from("amount"),
+                                            enclosing_type: None,
+                                            line_info: LineInfo {
+                                                line: 4,
+                                                offset: 177,
+                                            },
+                                        },
+                                        type_assignment: Type::Int,
+                                        expression: None,
+                                        line_info: LineInfo {
+                                            line: 4,
+                                            offset: 177,
+                                        },
+                                    }
+                                ],
+                            })
+                        ],
+
+                        conformances: vec![],
+                    }
+                )]
+            }
+        );
+    }
 
     #[test]
     fn test_parse_module() {

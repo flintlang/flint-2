@@ -11,16 +11,16 @@ Shapes :: caller <- (any) {
     }
 
     public func area() -> Int {
-        return rectangle.width * rectangle.height
+        return self.rectangle.width * self.rectangle.height
     }
 
     public func semiPerimeter() -> Int {
-        return rectangle.width + rectangle.height
+        return self.rectangle.width + self.rectangle.height
     }
-
+    
     public func perimeter() -> Int { 
         return 2 * semiPerimeter()
-    }
+    }        
 
     public func smallerWidth(otherRectWidth: Int) -> Bool { 
         return self.rectangle.width < otherRectWidth

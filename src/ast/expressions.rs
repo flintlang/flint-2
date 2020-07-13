@@ -67,7 +67,7 @@ impl Expression {
     pub fn enclosing_identifier(&self) -> Option<Identifier> {
         match self.clone() {
             Expression::Identifier(i) => Some(i),
-            Expression::BinaryExpression(b) => b.lhs_expression.enclosing_identifier(),
+            Expression::BinaryExpression(b) => b.rhs_expression.enclosing_identifier(),
             Expression::InoutExpression(i) => i.expression.enclosing_identifier(),
             Expression::ExternalCall(e) => e.function_call.lhs_expression.enclosing_identifier(),
             Expression::FunctionCall(f) => Some(f.identifier),
