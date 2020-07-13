@@ -2047,7 +2047,7 @@ impl MoveIdentifier {
         if f_call {
             if let MovePosition::Accessed = self.position.clone() {
                 let expression =
-                    MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
+                MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
                 let expression = MoveIRExpression::Operation(MoveIROperation::MutableReference(
                     Box::from(expression),
                 ));
@@ -2620,7 +2620,7 @@ impl MoveRuntimeFunction {
     };
   }
 
-  Libra_init (): Self.Libra {
+  init (): Self.Libra {
     return Self.Libra_init();
   }
 

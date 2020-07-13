@@ -1246,7 +1246,7 @@ pub fn pre_assign(
         expression.clone()
     } else {
         Expression::InoutExpression(InoutExpression {
-            ampersand_token: "".to_string(),
+            ampersand_token: "this".to_string(),
             expression: Box::new(expression.clone()),
         })
     };
