@@ -617,9 +617,7 @@ impl Visitor for MovePreProcessor {
             receiver_trail = vec![Expression::SelfExpression]
         }
 
-        let mangled = mangle_function_call_name(_t, _ctx);
-        if mangled.is_some() {
-            let mangled = mangled.unwrap();
+        if let Some(mangled) = mangle_function_call_name(_t, _ctx) {
             _t.mangled_identifier = Option::from(Identifier {
                 token: mangled,
                 enclosing_type: None,
@@ -635,9 +633,10 @@ impl Visitor for MovePreProcessor {
         {
             let is_global_function_call = is_global_function_call(function_call, _ctx);
 
-            let enclosing_type = _ctx.enclosing_type_identifier();
-            let enclosing_type = enclosing_type.unwrap_or_default();
-            let enclosing_type = enclosing_type.token;
+            let enclosing_type = _ctx
+                .enclosing_type_identifier()
+                .unwrap_or_default()
+                .token;
 
             let caller_protections = if _ctx.contract_behaviour_declaration_context.is_some() {
                 let behaviour = _ctx.contract_behaviour_declaration_context.clone();
@@ -647,20 +646,18 @@ impl Visitor for MovePreProcessor {
                 vec![]
             };
 
-            let scope = _ctx.scope_context.clone();
-            let scope = scope.unwrap_or_default();
+            let scope = _ctx.scope_context.clone().unwrap_or_default();
 
             let declared_enclosing = if is_global_function_call {
                 "Quartz_Global".to_string()
             } else {
-                let receiver = receiver_trail.last();
-                let receiver = receiver.unwrap();
-                let receivier = receiver.clone();
-                // TODO remove this
-                println!("Remove this. \n{:#?}", receiver);
+                let receiver = receiver_trail
+                    .last()
+                    .unwrap()
+                    .clone();
                 _ctx.environment
                     .get_expression_type(
-                        receivier,
+                        receiver,
                         &enclosing_type,
                         vec![],
                         caller_protections,
@@ -685,19 +682,19 @@ impl Visitor for MovePreProcessor {
                 if expression.enclosing_type().is_some() {
                     // TODO temp__6 happens here but it is now understandable why
                     expression = expand_properties(expression, _ctx, false);
-                } else if let Expression::BinaryExpression(_) = expression.clone() {
+                } else if let Expression::BinaryExpression(_) = expression {
                     expression = expand_properties(expression, _ctx, false);
                 }
 
-                let enclosing_type = _ctx.enclosing_type_identifier();
-                let enclosing_type = enclosing_type.unwrap_or_default();
-                let enclosing_type = enclosing_type.token;
+                let enclosing_type = _ctx
+                    .enclosing_type_identifier()
+                    .unwrap_or_default()
+                    .token;
 
                 let result_type = match expression.clone() {
                     Expression::Identifier(i) => {
-                        if scope.type_for(i.token.clone()).is_some() {
-                            let result = scope.type_for(i.token).clone();
-                            result.unwrap()
+                        if let Some(ref result) = scope.type_for(i.token) {
+                            result.clone()
                         } else {
                             _ctx.environment.get_expression_type(
                                 expression.clone(),
@@ -754,14 +751,10 @@ impl Visitor for MovePreProcessor {
         if let Expression::InoutExpression(i) = function_argument.expression.clone() {
             expression = *i.expression.clone();
 
-            if _ctx.scope_context.is_some() {
-                let scope = _ctx.scope_context.clone();
-                let scope = scope.unwrap();
+            if let Some(ref scope) = _ctx.scope_context {
 
-                if _ctx.enclosing_type_identifier().is_some() {
-                    let enclosing = _ctx.enclosing_type_identifier().clone();
-                    let enclosing = enclosing.unwrap();
-                    let enclosing = enclosing.token;
+                if let Some(ref enclosing) = _ctx.enclosing_type_identifier() {
+                    let enclosing = &enclosing.token;
                     let caller_protections =
                         if _ctx.contract_behaviour_declaration_context.is_some() {
                             let behaviour = _ctx.contract_behaviour_declaration_context.clone();
@@ -772,10 +765,10 @@ impl Visitor for MovePreProcessor {
                         };
                     let expression_type = _ctx.environment.get_expression_type(
                         expression.clone(),
-                        &enclosing,
+                        enclosing,
                         vec![],
                         caller_protections,
-                        scope,
+                        scope.clone(),
                     );
 
                     if !expression_type.is_currency_type()
@@ -1561,16 +1554,15 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
 }
 
 pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
-    let mut expression = expressions.clone();
-    if expression.len() > 1 {
-        let first = expression.remove(0);
-        Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(first),
-            rhs_expression: Box::new(construct_expression(expression)),
-            op: BinOp::Dot,
-            line_info: Default::default(),
-        })
-    } else {
-        expression.remove(0)
+    match expressions.first() {
+        Some(first) if expressions.len() > 1 =>
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(first.clone()),
+                rhs_expression: Box::new(construct_expression(expressions[1..].to_vec())),
+                op: BinOp::Dot,
+                line_info: Default::default(),
+            }),
+        Some(first) => first.clone(),
+        None => panic!("Cannot construct expression from no expressions")
     }
 }
