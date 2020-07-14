@@ -653,12 +653,13 @@ impl Visitor for MovePreProcessor {
             let declared_enclosing = if is_global_function_call {
                 "Quartz_Global".to_string()
             } else {
-                let receiver = receiver_trail.last();
-                let receiver = receiver.unwrap();
-                let receivier = receiver.clone();
+                let receiver = receiver_trail
+                    .last()
+                    .unwrap()
+                    .clone();
                 _ctx.environment
                     .get_expression_type(
-                        receivier,
+                        receiver,
                         &enclosing_type,
                         vec![],
                         caller_protections,
@@ -683,13 +684,14 @@ impl Visitor for MovePreProcessor {
                 if expression.enclosing_type().is_some() {
                     // TODO temp__6 happens here but it is now understandable why
                     expression = expand_properties(expression, _ctx, false);
-                } else if let Expression::BinaryExpression(_) = expression.clone() {
+                } else if let Expression::BinaryExpression(_) = expression {
                     expression = expand_properties(expression, _ctx, false);
                 }
 
-                let enclosing_type = _ctx.enclosing_type_identifier();
-                let enclosing_type = enclosing_type.unwrap_or_default();
-                let enclosing_type = enclosing_type.token;
+                let enclosing_type = _ctx
+                    .enclosing_type_identifier()
+                    .unwrap_or_default()
+                    .token;
 
                 let result_type = match expression.clone() {
                     Expression::Identifier(i) => {
@@ -1559,16 +1561,15 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
 }
 
 pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
-    let mut expression = expressions.clone();
-    if expression.len() > 1 {
-        let first = expression.remove(0);
-        Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(first),
-            rhs_expression: Box::new(construct_expression(expression)),
-            op: BinOp::Dot,
-            line_info: Default::default(),
-        })
-    } else {
-        expression.remove(0)
+    match expressions.first() {
+        Some(first) if expressions.len() > 1 =>
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(first.clone()),
+                rhs_expression: Box::new(construct_expression(expressions[1..].to_vec())),
+                op: BinOp::Dot,
+                line_info: Default::default(),
+            }),
+        Some(first) => first.clone(),
+        None => panic!("Cannot construct expression from no expressions")
     }
 }
