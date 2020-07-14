@@ -1402,7 +1402,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
             if let Some(ref enclosing) = function_call.identifier.enclosing_type {
                 enclosing.clone()
             } else {
-                let enclosing = ctx.enclosing_type_identifier().clone().unwrap();
+                let enclosing = ctx.enclosing_type_identifier().unwrap();
                 enclosing.token
             };
 
