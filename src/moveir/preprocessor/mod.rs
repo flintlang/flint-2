@@ -163,7 +163,7 @@ impl Visitor for MovePreProcessor {
             let mut payable_param = payable_param.unwrap();
             let payable_param_name = payable_param.identifier.token.clone();
             let new_param_type = Type::UserDefinedType(Identifier {
-                token: "LBR.LBR".to_string(),
+                token: "Libra.Libra<LBR.LBR>".to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
             });
@@ -1246,7 +1246,7 @@ pub fn pre_assign(
         expression.clone()
     } else {
         Expression::InoutExpression(InoutExpression {
-            ampersand_token: "this".to_string(),
+            ampersand_token: "".to_string(),
             expression: Box::new(expression.clone()),
         })
     };

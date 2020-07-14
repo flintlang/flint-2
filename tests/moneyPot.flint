@@ -9,7 +9,7 @@ MoneyPot :: sender <- (any) {
     owner = initiliaser
   }
 
-  public func getBalance() -> Int {
+ public func getBalance() -> Int {
     return value.balance()
   }
 
@@ -25,7 +25,7 @@ MoneyPot :: sender <- (any) {
     if (getBalance() - oldBalance) > oldBalance {
         owner = sender
     }
-  }
+  } 
 }
 
 MoneyPot :: (owner) {
