@@ -23,7 +23,7 @@ impl Visitor for MovePreProcessor {
                         convert_default_parameter_functions(fd, &_t.identifier.token, _ctx);
                     functions
                         .into_iter()
-                        .map(|f| ContractBehaviourMember::FunctionDeclaration(f))
+                        .map(ContractBehaviourMember::FunctionDeclaration)
                         .collect()
                 } else {
                     vec![f]
@@ -43,15 +43,14 @@ impl Visitor for MovePreProcessor {
             .clone()
             .into_iter()
             .flat_map(|m| {
-                if let ContractBehaviourMember::FunctionDeclaration(f) = m.clone() {
-                    let wrapper = generate_contract_wrapper(f.clone(), _t, _ctx);
+                if let ContractBehaviourMember::FunctionDeclaration(function) = m.clone() {
+                    let wrapper = generate_contract_wrapper(function.clone(), _t, _ctx);
                     let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
-                    let mut function = f.clone();
+                    let mut function = function;
                     function.head.modifiers.retain(|x| *x != "public");
-                    let function = ContractBehaviourMember::FunctionDeclaration(function);
-                    return vec![function, wrapper.clone()];
+                    return vec![ContractBehaviourMember::FunctionDeclaration(function), wrapper];
                 } else {
-                    return vec![m.clone()];
+                    return vec![m];
                 }
             })
             .collect();
@@ -144,8 +143,7 @@ impl Visitor for MovePreProcessor {
                 enclosing_type: None,
                 line_info: Default::default(),
             })
-            .token
-            .clone();
+            .token;
 
         let mangled_name = mangle_function_move(
             _t.head.identifier.token.clone(),
@@ -155,7 +153,7 @@ impl Visitor for MovePreProcessor {
         _t.mangled_identifier = Some(mangled_name);
 
         if _t.is_payable() {
-            let payable_param = _t.first_payable_param().clone();
+            let payable_param = _t.first_payable_param();
 
             if payable_param.is_none() {
                 panic!("lol")
@@ -171,11 +169,11 @@ impl Visitor for MovePreProcessor {
             let mut ident = payable_param.identifier.clone();
             ident.token = mangle(payable_param_name.clone());
             payable_param.identifier = ident;
-            let parameters = _t.head.parameters.clone();
-            let parameters = parameters
+            let parameters = _t.head.parameters
+                .clone()
                 .into_iter()
                 .map(|p| {
-                    if p.identifier.token.clone() == payable_param_name {
+                    if p.identifier.token == payable_param_name {
                         payable_param.clone()
                     } else {
                         p
@@ -200,7 +198,7 @@ impl Visitor for MovePreProcessor {
                 expression: None,
             };
 
-            let lhs_expression = Expression::VariableDeclaration(lhs.clone());
+            let lhs_expression = Expression::VariableDeclaration(lhs);
 
             let _lhs = Expression::Identifier(Identifier {
                 token: "amount".to_string(),
@@ -232,10 +230,10 @@ impl Visitor for MovePreProcessor {
             );
         }
 
-        if _ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global".to_string() {
+        if _ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global" {
             let asset_ctx = _ctx.asset_context.clone();
             let asset_ctx = asset_ctx.unwrap();
-            let asset_ctx_identifier = asset_ctx.identifier.clone();
+            let asset_ctx_identifier = asset_ctx.identifier;
             let param_type = Type::UserDefinedType(asset_ctx_identifier);
             let param_type = Type::InoutType(InoutType {
                 key_type: Box::new(param_type),
@@ -254,9 +252,8 @@ impl Visitor for MovePreProcessor {
             };
 
             _t.head.parameters.insert(0, parameter.clone());
-            if _ctx.scope_context.is_some() {
-                let scope = _ctx.scope_context.clone();
-                let mut scope = scope.unwrap();
+            if let Some(ref scope) = _ctx.scope_context {
+                let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
 
                 _ctx.scope_context = Some(scope);
@@ -264,11 +261,13 @@ impl Visitor for MovePreProcessor {
         }
 
         if _ctx.struct_declaration_context.is_some()
-            && enclosing_identifier != "Quartz_Global".to_string()
+            && enclosing_identifier != "Quartz_Global"
         {
-            let struct_ctx = _ctx.struct_declaration_context.clone();
-            let struct_ctx = struct_ctx.unwrap();
-            let struct_ctx_identifier = struct_ctx.identifier.clone();
+            let struct_ctx = _ctx
+                .struct_declaration_context
+                .clone()
+                .unwrap();
+            let struct_ctx_identifier = struct_ctx.identifier;
             let param_type = Type::UserDefinedType(struct_ctx_identifier);
             let param_type = Type::InoutType(InoutType {
                 key_type: Box::new(param_type),
@@ -287,9 +286,8 @@ impl Visitor for MovePreProcessor {
             };
 
             _t.head.parameters.insert(0, parameter.clone());
-            if _ctx.scope_context.is_some() {
-                let scope = _ctx.scope_context.clone();
-                let mut scope = scope.unwrap();
+            if let Some(ref scope) = _ctx.scope_context {
+                let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
 
                 _ctx.scope_context = Some(scope);
@@ -297,8 +295,10 @@ impl Visitor for MovePreProcessor {
         }
 
         if _ctx.is_contract_behaviour_declaration_context() {
-            let contract = _ctx.contract_behaviour_declaration_context.clone();
-            let contract = contract.unwrap();
+            let contract = _ctx
+                .contract_behaviour_declaration_context
+                .clone()
+                .unwrap();
             let identifier = contract.identifier.clone();
             let parameter_type = Type::UserDefinedType(identifier);
             let parameter_type = Type::InoutType(InoutType {
@@ -317,23 +317,19 @@ impl Visitor for MovePreProcessor {
 
             _t.head.parameters.insert(0, parameter.clone());
 
-            if _ctx.scope_context().is_some() {
-                let scope = _ctx.scope_context.clone();
-                let mut scope = scope.unwrap();
-                scope.parameters.insert(0, parameter.clone());
+            if let Some(scope) = _ctx.scope_context() {
+                let mut scope = scope.clone();
+                scope.parameters.insert(0, parameter);
                 _ctx.scope_context = Some(scope);
             }
 
-            if contract.caller.is_some() {
-                let caller = contract.caller.unwrap();
-
+            if let Some(caller) = contract.caller {
                 _t.body.insert(0, generate_caller_statement(caller))
             }
         }
 
-        let scope = _t.scope_context.clone();
-        if scope.is_some() {
-            let mut scope = scope.unwrap();
+        if let Some(ref scope) = _t.scope_context {
+            let mut scope = scope.clone();
             scope.parameters = _t.head.parameters.clone();
             _t.scope_context = Some(scope);
         }
@@ -356,8 +352,7 @@ impl Visitor for MovePreProcessor {
         if function_declaration.is_void() {
             let statement = function_declaration.body.last();
             if !function_declaration.body.is_empty() {
-                if let Statement::ReturnStatement(_) = statement.unwrap() {
-                } else {
+                if let Statement::ReturnStatement(_) = statement.unwrap() {} else {
                     function_declaration
                         .body
                         .push(Statement::ReturnStatement(ReturnStatement {
@@ -410,7 +405,7 @@ impl Visitor for MovePreProcessor {
             .filter(|m| {
                 if let Statement::Expression(e) = m.clone() {
                     if let Expression::BinaryExpression(b) = e {
-                        if let BinOp::Equal = b.op.clone() {
+                        if let BinOp::Equal = b.op {
                             if let Expression::DictionaryLiteral(_) = *b.rhs_expression {
                                 return false;
                             }
@@ -422,12 +417,9 @@ impl Visitor for MovePreProcessor {
             .collect();
 
         _t.body = members;
-        if _ctx.contract_behaviour_declaration_context.is_some() {
-            let b_ctx = _ctx.contract_behaviour_declaration_context.clone();
-            let b_ctx = b_ctx.unwrap();
+        if let Some(ref b_ctx) = _ctx.contract_behaviour_declaration_context {
             let caller_binding = b_ctx.caller.clone();
-            if caller_binding.is_some() {
-                let caller_binding = caller_binding.unwrap();
+            if let Some(caller_binding) = caller_binding {
                 _t.body.insert(0, generate_caller_statement(caller_binding))
             }
         }
@@ -488,35 +480,31 @@ impl Visitor for MovePreProcessor {
                     });
                     *_t = expression.clone();
                     if _ctx.is_function_declaration_context() {
-                        let context = _ctx.function_declaration_context.clone();
-                        let mut context = context.unwrap();
+                        let mut context =
+                            _ctx.function_declaration_context.clone().unwrap();
                         context.local_variables.push(variable.clone());
 
                         let scope = context.declaration.scope_context.clone();
                         let mut scope = scope.unwrap();
-                        scope.local_variables.push(variable.clone());
+                        scope.local_variables.push(variable);
 
                         context.declaration.scope_context = Some(scope);
                         _ctx.function_declaration_context = Some(context)
-                    }
-
-                    if _ctx.is_special_declaration_context() {
+                    } else if _ctx.is_special_declaration_context() {
                         let context = _ctx.special_declaration_context.clone();
                         let mut context = context.unwrap();
                         context.local_variables.push(variable.clone());
 
                         let scope = context.declaration.scope_context.clone();
                         let mut scope = scope;
-                        scope.local_variables.push(variable.clone());
+                        scope.local_variables.push(variable);
 
                         context.declaration.scope_context = scope;
                         _ctx.special_declaration_context = Some(context);
-                    }
-
-                    if _ctx.has_scope_context() {
+                    } else if _ctx.has_scope_context() {
                         let scope = _ctx.scope_context.clone();
                         let mut scope = scope.unwrap();
-                        scope.local_variables.push(variable.clone());
+                        scope.local_variables.push(variable);
 
                         _ctx.scope_context = Some(scope)
                     }
@@ -550,8 +538,7 @@ impl Visitor for MovePreProcessor {
             _ctx.function_call_receiver_trail = trail;
             match *_t.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *_t.rhs_expression {
-                    } else {
+                    if let Expression::FunctionCall(_) = *_t.rhs_expression {} else {
                         let lhs = _t.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, _ctx, false);
@@ -587,9 +574,8 @@ impl Visitor for MovePreProcessor {
         if _ctx.enclosing_type_identifier().is_none() {
             panic!("Not Enough Information To Workout External Trait name")
         }
-        let scope = _ctx.scope_context.clone();
-        let scope = scope.unwrap();
-        let enclosing = _ctx.enclosing_type_identifier().clone();
+        let scope = _ctx.scope_context.clone().unwrap();
+        let enclosing = _ctx.enclosing_type_identifier();
         let enclosing = enclosing.unwrap();
         let enclosing = enclosing.token;
         let receiver = _t.function_call.lhs_expression.clone();
@@ -628,8 +614,8 @@ impl Visitor for MovePreProcessor {
         let function_call = _t.clone();
         if !_ctx.environment.is_initiliase_call(function_call.clone())
             && !_ctx
-                .environment
-                .is_trait_declared(&function_call.identifier.token)
+            .environment
+            .is_trait_declared(&function_call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(function_call, _ctx);
 
@@ -638,10 +624,8 @@ impl Visitor for MovePreProcessor {
                 .unwrap_or_default()
                 .token;
 
-            let caller_protections = if _ctx.contract_behaviour_declaration_context.is_some() {
-                let behaviour = _ctx.contract_behaviour_declaration_context.clone();
-                let behaviour = behaviour.unwrap();
-                behaviour.caller_protections
+            let caller_protections = if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
+                behaviour.caller_protections.clone()
             } else {
                 vec![]
             };
@@ -670,10 +654,10 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_contract_declared(&declared_enclosing)
                 || _ctx.environment.is_trait_declared(&declared_enclosing)
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
-                    && !is_global_function_call
+                && !is_global_function_call
             {
                 // TODO this is where the expression becomes strange about dotting rectangles
-                let expressions = receiver_trail.clone();
+                let expressions = receiver_trail;
                 // TODO remove this
                 println!("Remove this: \n{:#?}", expressions);
 
@@ -701,7 +685,7 @@ impl Visitor for MovePreProcessor {
                                 &enclosing_type,
                                 vec![],
                                 vec![],
-                                scope.clone(),
+                                scope,
                             )
                         }
                     }
@@ -710,7 +694,7 @@ impl Visitor for MovePreProcessor {
                         &enclosing_type,
                         vec![],
                         vec![],
-                        scope.clone(),
+                        scope,
                     ),
                 };
 
@@ -749,17 +733,14 @@ impl Visitor for MovePreProcessor {
         let function_argument = _t.clone();
         let mut expression;
         if let Expression::InoutExpression(i) = function_argument.expression.clone() {
-            expression = *i.expression.clone();
+            expression = *i.expression;
 
             if let Some(ref scope) = _ctx.scope_context {
-
                 if let Some(ref enclosing) = _ctx.enclosing_type_identifier() {
                     let enclosing = &enclosing.token;
                     let caller_protections =
-                        if _ctx.contract_behaviour_declaration_context.is_some() {
-                            let behaviour = _ctx.contract_behaviour_declaration_context.clone();
-                            let behaviour = behaviour.unwrap();
-                            behaviour.caller_protections
+                        if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
+                            behaviour.caller_protections.clone()
                         } else {
                             vec![]
                         };
@@ -789,7 +770,6 @@ impl Visitor for MovePreProcessor {
         match expression.clone() {
             Expression::Identifier(ident) => {
                 if ident.enclosing_type.is_some() {
-                    let _ident_enclosing = ident.enclosing_type.clone();
                     expression = pre_assign(expression, _ctx, borrow_local, true);
                 }
             }
@@ -799,7 +779,7 @@ impl Visitor for MovePreProcessor {
                 }
             }
             _ => {
-                if let Expression::InoutExpression(_) = function_argument.expression.clone() {
+                if let Expression::InoutExpression(_) = function_argument.expression {
                     expression = function_argument.expression.clone()
                 }
             }
@@ -871,13 +851,12 @@ pub fn convert_default_parameter_functions(
 
             _ctx.environment.remove_function(f, t);
 
-            let protections = if _ctx.contract_behaviour_declaration_context.is_some() {
-                let temp = _ctx.contract_behaviour_declaration_context.clone();
-                let temp = temp.unwrap();
-                temp.caller_protections.clone()
-            } else {
-                vec![]
-            };
+            let protections =
+                if let Some(ref context) = _ctx.contract_behaviour_declaration_context {
+                    context.caller_protections.clone()
+                } else {
+                    vec![]
+                };
             _ctx.environment
                 .add_function(&removed, t, protections.clone());
 
@@ -893,13 +872,13 @@ pub fn convert_default_parameter_functions(
                         let mut expression = parameter.expression.as_ref().unwrap().clone();
                         expression.assign_enclosing_type(t);
                         FunctionArgument {
-                            identifier: Some(p.identifier.clone()),
+                            identifier: Some(p.identifier),
                             expression,
                         }
                     } else {
                         FunctionArgument {
                             identifier: Some(p.identifier.clone()),
-                            expression: Expression::Identifier(p.identifier.clone()),
+                            expression: Expression::Identifier(p.identifier),
                         }
                     }
                 })
@@ -939,14 +918,12 @@ pub fn convert_default_parameter_functions(
 }
 
 pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
-    let scope = ctx.scope_context.clone();
-    if scope.is_some() {
+    if let Some(ref scope) = ctx.scope_context {
         let declarations = scope
-            .unwrap()
-            .local_variables
+            .local_variables.clone()
             .into_iter()
             .map(|v| {
-                let mut declaration = v.clone();
+                let mut declaration = v;
                 if !declaration.identifier.is_self() {
                     let name = declaration.identifier.token.clone();
                     declaration.identifier = Identifier {
@@ -965,7 +942,6 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
 
 pub fn delete_declarations(statements: Vec<Statement>) -> Vec<Statement> {
     statements
-        .clone()
         .into_iter()
         .filter(|s| {
             if let Statement::Expression(e) = s.clone() {
@@ -990,7 +966,7 @@ pub fn generate_contract_wrapper(
     wrapper.body = vec![];
     wrapper.tags.push("acquires T".to_string());
 
-    if !function.is_void() & &!function.body.is_empty() {
+    if !function.is_void() && !function.body.is_empty() {
         let mut func = function.clone();
         wrapper.body.push(func.body.remove(0));
     }
@@ -1035,9 +1011,9 @@ pub fn generate_contract_wrapper(
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "borrow_global_mut<T>(move({param}))",
-                param = mangle(contract_address_parameter.identifier.token.clone())
+                param = mangle(contract_address_parameter.identifier.token)
             ),
-            Some(original_parameter.type_assignment.clone()),
+            Some(original_parameter.type_assignment),
         )),
         op: BinOp::Equal,
         line_info: Default::default(),
@@ -1055,7 +1031,7 @@ pub fn generate_contract_wrapper(
         .filter(|c| c.is_any())
         .collect();
     if !contract_behaviour_declaration.caller_protections.is_empty()
-        & &caller_protections.is_empty()
+        && caller_protections.is_empty()
     {
         let caller = Identifier {
             token: "_caller".to_string(),
@@ -1084,7 +1060,7 @@ pub fn generate_contract_wrapper(
         let predicates: Vec<Expression> = predicates
             .into_iter()
             .map(|c| {
-                let mut ident = c.identifier.clone();
+                let mut ident = c.identifier;
                 ident.enclosing_type =
                     Option::from(contract_behaviour_declaration.identifier.token.clone());
                 let en_ident = contract_behaviour_declaration.identifier.clone();
@@ -1102,7 +1078,7 @@ pub fn generate_contract_wrapper(
 
                 match c_type {
                     Type::Address => Expression::BinaryExpression(BinaryExpression {
-                        lhs_expression: Box::new(Expression::Identifier(ident.clone())),
+                        lhs_expression: Box::new(Expression::Identifier(ident)),
                         rhs_expression: Box::new(Expression::Identifier(caller.clone())),
                         op: BinOp::DoubleEqual,
                         line_info: Default::default(),
@@ -1134,7 +1110,7 @@ pub fn generate_contract_wrapper(
         .into_iter()
         .map(|p| FunctionArgument {
             identifier: None,
-            expression: Expression::Identifier(p.identifier.clone()),
+            expression: Expression::Identifier(p.identifier),
         })
         .collect();
 
@@ -1162,7 +1138,7 @@ pub fn generate_contract_wrapper(
                 if function.is_void() {
                     None
                 } else {
-                    Some(function_call.clone())
+                    Some(function_call)
                 }
             },
             ..Default::default()
@@ -1177,9 +1153,7 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             if ctx.has_scope_context() {
                 let scope = ctx.scope_context.clone();
                 let scope = scope.unwrap();
-                let identifier_type = scope.type_for(i.token);
-                if identifier_type.is_some() {
-                    let identifier_type = identifier_type.unwrap();
+                if let Some(identifier_type) = scope.type_for(i.token) {
                     if !identifier_type.is_inout_type() {
                         return pre_assign(expression, ctx, borrow, false);
                     }
@@ -1194,9 +1168,8 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             println!("The expression is {:#?}", b);
             return if let BinOp::Dot = b.op {
                 let mut binary = b.clone();
-                let lhs = b.lhs_expression.clone();
                 // TODO temp__4 created here
-                let lhs = expand_properties(*lhs, ctx, borrow);
+                let lhs = expand_properties(*b.lhs_expression, ctx, borrow);
                 binary.lhs_expression = Box::from(lhs);
                 // TODO temp__6 created here
                 pre_assign(Expression::BinaryExpression(binary), ctx, borrow, true)
@@ -1242,7 +1215,7 @@ pub fn pre_assign(
     } else {
         Expression::InoutExpression(InoutExpression {
             ampersand_token: "".to_string(),
-            expression: Box::new(expression.clone()),
+            expression: Box::new(expression),
         })
     };
 
@@ -1281,7 +1254,7 @@ pub fn pre_assign(
     let declaration;
     if statements.is_empty() {
         // TODO temp_identifier is temp__6, so it is created here
-        temp_identifier = scope.fresh_identifier(expression.clone().get_line_info());
+        temp_identifier = scope.fresh_identifier(expression.get_line_info());
         declaration = if expression_type.is_built_in_type() || borrow {
             VariableDeclaration {
                 declaration_token: None,
@@ -1325,9 +1298,8 @@ pub fn pre_assign(
             let mut context = context.unwrap();
             context.local_variables.push(declaration.clone());
 
-            if context.declaration.scope_context.is_some() {
-                let scope_ctx = context.declaration.scope_context.clone();
-                let mut scope_ctx = scope_ctx.unwrap();
+            if let Some(ref scope_ctx) = context.declaration.scope_context {
+                let mut scope_ctx = scope_ctx.clone();
                 scope_ctx.local_variables.push(declaration.clone());
 
                 context.declaration.scope_context = Some(scope_ctx);
@@ -1359,12 +1331,13 @@ pub fn pre_assign(
     }
     ctx.scope_context = Option::from(scope);
     if borrow {
-        return Expression::InoutExpression(InoutExpression {
+        Expression::InoutExpression(InoutExpression {
             ampersand_token: "&".to_string(),
             expression: Box::new(Expression::Identifier(temp_identifier)),
-        });
+        })
+    } else {
+        Expression::Identifier(temp_identifier)
     }
-    Expression::Identifier(temp_identifier)
 }
 
 pub fn generate_caller_statement(caller: Identifier) -> Statement {
@@ -1385,7 +1358,7 @@ pub fn generate_assertion(
     predicate: Vec<Expression>,
     function_context: FunctionContext,
 ) -> Statement {
-    let mut predicates = predicate.clone();
+    let mut predicates = predicate;
     if predicates.len() >= 2 {
         let or_expression = Expression::BinaryExpression(BinaryExpression {
             lhs_expression: Box::new(predicates.remove(0)),
@@ -1400,7 +1373,7 @@ pub fn generate_assertion(
             expression: or_expression,
             position: Default::default(),
         }
-        .generate(&function_context);
+            .generate(&function_context);
         let string = format!("assert({ex}, 1)", ex = expression);
         return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
     }
@@ -1413,7 +1386,7 @@ pub fn generate_assertion(
         expression,
         position: Default::default(),
     }
-    .generate(&function_context);
+        .generate(&function_context);
     let string = format!("assert({ex}, 1)", ex = expression);
     Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }
@@ -1426,20 +1399,19 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
         )),
         rhs_expression: Box::new(expression.clone()),
         op: BinOp::Equal,
-        line_info: expression.get_line_info().clone(),
+        line_info: expression.get_line_info(),
     }))
 }
 
 pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) -> Option<String> {
-    if !Environment::is_runtime_function_call(function_call) & &!ctx.is_external_function_call {
-        let enclosing_type = if function_call.identifier.enclosing_type.is_some() {
-            let enclosing = function_call.identifier.enclosing_type.clone();
-            enclosing.unwrap()
-        } else {
-            let enclosing = ctx.enclosing_type_identifier().clone();
-            let enclosing = enclosing.unwrap();
-            enclosing.token.clone()
-        };
+    if !Environment::is_runtime_function_call(function_call) && !ctx.is_external_function_call {
+        let enclosing_type =
+            if let Some(ref enclosing) = function_call.identifier.enclosing_type {
+                enclosing.clone()
+            } else {
+                let enclosing = ctx.enclosing_type_identifier().clone().unwrap();
+                enclosing.token.clone()
+            };
 
         let call = function_call.clone();
 
@@ -1458,7 +1430,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
             call,
             &enclosing_type,
             caller_protections,
-            scope.clone(),
+            scope,
         );
 
         match match_result {
@@ -1466,7 +1438,6 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 let declaration = fi.declaration;
                 let param_types = declaration.head.parameters;
                 let _param_types: Vec<Type> = param_types
-                    .clone()
                     .into_iter()
                     .map(|p| p.type_assignment)
                     .collect();
@@ -1481,7 +1452,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     panic!("Unable to find function declaration")
                 }
 
-                let candidate = c.candidates.clone().remove(0);
+                let candidate = c.candidates[0].clone();
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = fi.declaration;
@@ -1528,19 +1499,14 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 }
 
 pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bool {
-    let enclosing = ctx.enclosing_type_identifier().clone();
-    let enclosing = enclosing.unwrap();
-    let enclosing = enclosing.token.clone();
-    let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
-        let behaviour = ctx.contract_behaviour_declaration_context.clone();
-        let behaviour = behaviour.unwrap();
-        behaviour.caller_protections
+    let enclosing = ctx.enclosing_type_identifier().clone().unwrap().token;
+    let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+        behaviour.caller_protections.clone()
     } else {
         vec![]
     };
 
-    let scope = ctx.scope_context.clone();
-    let scope = scope.unwrap_or_default();
+    let scope = ctx.scope_context.clone().unwrap_or_default();
 
     let result =
         ctx.environment
