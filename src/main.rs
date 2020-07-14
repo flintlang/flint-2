@@ -42,6 +42,7 @@ fn main() {
     let mut program = contents.clone();
 
     if let Target::Move = target {
+        /* TURN OFF LIBRA
         let mut file =
             File::open("src/stdlib/libra/libra.quartz").expect("Unable to open libra stdlib file ");
         let mut libra = String::new();
@@ -53,13 +54,13 @@ fn main() {
         let mut global = String::new();
         file.read_to_string(&mut global)
             .expect("Unable to read the stdlib global file");
-
         program = format!(
             "{libra} \n {global} \n {program}",
             libra = libra,
             global = global,
             program = program
         )
+        */
     } else {
         let mut file =
             File::open("src/stdlib/ether/wei.quartz").expect("Unable to open libra stdlib file ");

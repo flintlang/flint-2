@@ -18,7 +18,7 @@ Shapes :: caller <- (any) {
         return self.rectangle.width + self.rectangle.height
     }
     
-    public func perimeter() -> Int { 
+    public func perimeter() -> Int {
         return 2 * semiPerimeter()
     }        
 
