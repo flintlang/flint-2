@@ -113,8 +113,7 @@ impl Visitor for MovePreProcessor {
         _ctx: &mut Context,
     ) -> VResult {
         if _ctx.in_function_or_special() {
-            if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.scope_context.as_mut().unwrap();
+            if let Some(context_ref) = &mut _ctx.scope_context {
                 context_ref.local_variables.push(_t.clone());
             }
 
@@ -1408,10 +1407,8 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
         let call = function_call.clone();
 
-        let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
-            let behaviour = ctx.contract_behaviour_declaration_context.clone();
-            let behaviour = behaviour.unwrap();
-            behaviour.caller_protections
+        let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+            behaviour.caller_protections.clone()
         } else {
             vec![]
         };
