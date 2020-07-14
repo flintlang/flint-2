@@ -432,7 +432,6 @@ impl MoveContract {
         let parameters = parameters.join(", ");
 
         let mut statements = initialiser_declaration.body.clone();
-
         let properties = self
             .contract_declaration
             .get_variable_declarations_without_dict();
@@ -2442,11 +2441,16 @@ struct MoveRuntimeTypes {}
 
 impl MoveRuntimeTypes {
     pub fn get_all_declarations() -> Vec<String> {
+        vec![]
+        /* TURN OFF LIBRA
         let libra = "resource Libra_Coin { \n coin: Libra.Libra<LBR.LBR>  \n }".to_string();
         vec![libra]
+        */
     }
 
     pub fn get_all_imports() -> Vec<MoveIRStatement> {
+        vec![]
+        /* TURN OFF LIBRA
         let lbr = MoveIRStatement::Import(MoveIRModuleImport {
             name: "LBR".to_string(),
             address: "0x1".to_string(),
@@ -2464,6 +2468,7 @@ impl MoveRuntimeTypes {
             address: "0x1".to_string(),
         });
         vec![lbr, libra_account, vector, libra]
+        */
     }
 }
 
@@ -2506,13 +2511,17 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_all_functions() -> Vec<String> {
+        vec![]
+        /* TURN OFF LIBRA
         vec![
             MoveRuntimeFunction::get_revert_if_greater(),
             MoveRuntimeFunction::get_array_funcs(),
             MoveRuntimeFunction::get_libra_internal(),
         ]
+        */
     }
 
+    /* TURN OFF LIBRA
     pub fn get_revert_if_greater() -> String {
         "Quartz_RevertIfGreater(a: u64, b: u64): u64 {  \n \
              assert(copy(a) <= move(b), 1); \n \
@@ -2653,6 +2662,7 @@ impl MoveRuntimeFunction {
   }"
         .to_string()
     }
+    */
 }
 
 impl fmt::Display for MoveRuntimeFunction {
