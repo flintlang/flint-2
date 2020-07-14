@@ -68,26 +68,25 @@ impl Visitor for TypeAssigner {
         Ok(())
     }
 }
-
 /*
 #[cfg(test)]
 mod test {
 
-    use crate::context::*;
-    use crate::visitor::*;
-    use crate::AST::*;
-    use crate::TypeAssigner::TypeAssigner;
+    use super::*;
     use std::collections::HashMap;
+    use crate::environment::*;
+    use crate::type_assigner::TypeAssigner;
 
+    #[test]
     fn test_finish_binary_expression() {
-        let type_assigner = TypeAssigner {};
-        let bin_expr = BinaryExpression {
+        let mut type_assigner = TypeAssigner {};
+        let mut bin_expr = BinaryExpression {
             lhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(5))),
             rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(3))),
             op: BinOp::Plus,
             line_info: LineInfo {line:1, offset:0}
         };
-        let context = Context {
+        let mut context = Context {
             environment: Environment {
                 contract_declarations: vec![],
                 struct_declarations: vec![],
@@ -125,7 +124,7 @@ mod test {
             post_statements: vec![]
         };
 
-        assert_eq!(Ok(()), finish_binary_expression(type_assigner, bin_expr, context));
+        assert!(type_assigner.finish_binary_expression(&mut bin_expr, &mut context).is_ok());
     }
 }
 */

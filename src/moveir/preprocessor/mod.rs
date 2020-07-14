@@ -656,6 +656,8 @@ impl Visitor for MovePreProcessor {
                 let receiver = receiver_trail.last();
                 let receiver = receiver.unwrap();
                 let receivier = receiver.clone();
+                // TODO remove this
+                println!("Remove this. \n{:#?}", receiver);
                 _ctx.environment
                     .get_expression_type(
                         receivier,

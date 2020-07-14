@@ -432,6 +432,7 @@ impl MoveContract {
         let parameters = parameters.join(", ");
 
         let mut statements = initialiser_declaration.body.clone();
+
         let properties = self
             .contract_declaration
             .get_variable_declarations_without_dict();
@@ -453,12 +454,28 @@ impl MoveContract {
                 Option::from(self.environment.clone()),
             );
             let property_type = property_type.generate(&function_context);
+            let identifier = format!("__this_{}", property.identifier.token);
             function_context.emit(MoveIRStatement::Expression(
                 MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                    identifier: format!("__this_{}", property.identifier.token),
+                    identifier: identifier.clone(),
                     declaration_type: property_type,
                 }),
             ));
+
+            if let Some(expr) = property.expression {
+                function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                    MoveIRAssignment {
+                        identifier,
+                        expression: Box::from(
+                            MoveExpression {
+                                expression: *expr,
+                                position: Default::default(),
+                            }
+                            .generate(&function_context),
+                        ),
+                    },
+                )))
+            }
         }
 
         let unassigned = self
@@ -914,7 +931,7 @@ impl MoveReturnStatement {
         .generate(&function_context);
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
-            expresion: Box::from(expression),
+            expression: Box::from(expression),
         });
         function_context.emit(MoveIRStatement::Expression(assignment));
 
@@ -2033,7 +2050,9 @@ impl MoveIdentifier {
             }
             if !unwrapped_type.is_inout_type() && unwrapped_type.is_user_defined_type() {
                 if f_call {
-                    return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
+                    return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
+                        ir_identifier,
+                    )));
                 } else {
                     return ir_identifier;
                 }
@@ -2047,7 +2066,7 @@ impl MoveIdentifier {
         if f_call {
             if let MovePosition::Accessed = self.position.clone() {
                 let expression =
-                MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
+                    MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
                 let expression = MoveIRExpression::Operation(MoveIROperation::MutableReference(
                     Box::from(expression),
                 ));
@@ -2290,7 +2309,7 @@ impl MoveAssignment {
                             let rhs_ir = MoveIRExpression::Vector(vector);
                             return MoveIRExpression::Assignment(MoveIRAssignment {
                                 identifier: format!("{lhs}", lhs = lhs_ir),
-                                expresion: Box::new(rhs_ir),
+                                expression: Box::new(rhs_ir),
                             });
                         }
                     } else {
@@ -2314,7 +2333,7 @@ impl MoveAssignment {
             if i.enclosing_type.is_none() {
                 return MoveIRExpression::Assignment(MoveIRAssignment {
                     identifier: mangle(i.token.clone()),
-                    expresion: Box::new(rhs_ir),
+                    expression: Box::new(rhs_ir),
                 });
             }
         }
@@ -2333,7 +2352,7 @@ impl MoveAssignment {
                 if let Expression::Identifier(i) = &self.rhs {
                     return MoveIRExpression::Assignment(MoveIRAssignment {
                         identifier: "_".to_string(),
-                        expresion: Box::new(
+                        expression: Box::new(
                             MoveIdentifier {
                                 identifier: i.clone(),
                                 position: Default::default(),
@@ -2354,7 +2373,7 @@ impl MoveAssignment {
         if function_context.in_struct_function {
             return MoveIRExpression::Assignment(MoveIRAssignment {
                 identifier: format!("{lhs}", lhs = lhs_ir),
-                expresion: Box::new(rhs_ir),
+                expression: Box::new(rhs_ir),
             });
         } else if self.lhs.enclosing_identifier().is_some()
             && function_context
@@ -2363,13 +2382,13 @@ impl MoveAssignment {
         {
             return MoveIRExpression::Assignment(MoveIRAssignment {
                 identifier: self.lhs.enclosing_identifier().unwrap().token,
-                expresion: Box::new(rhs_ir),
+                expression: Box::new(rhs_ir),
             });
         }
 
         MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: format!("{lhs}", lhs = lhs_ir),
-            expresion: Box::new(rhs_ir),
+            expression: Box::new(rhs_ir),
         })
     }
 }
@@ -3000,7 +3019,7 @@ impl fmt::Display for MoveIRTransfer {
 #[derive(Debug, Clone)]
 pub struct MoveIRAssignment {
     pub identifier: String,
-    pub expresion: Box<MoveIRExpression>,
+    pub expression: Box<MoveIRExpression>,
 }
 
 impl fmt::Display for MoveIRAssignment {
@@ -3009,7 +3028,7 @@ impl fmt::Display for MoveIRAssignment {
             f,
             "{identifier} = {expression}",
             identifier = self.identifier,
-            expression = self.expresion
+            expression = self.expression
         )
     }
 }
