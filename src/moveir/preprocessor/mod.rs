@@ -72,7 +72,7 @@ impl Visitor for MovePreProcessor {
                         convert_default_parameter_functions(fd, &_t.identifier.token, _ctx);
                     functions
                         .into_iter()
-                        .map(|f| StructMember::FunctionDeclaration(f))
+                        .map(StructMember::FunctionDeclaration)
                         .collect()
                 } else {
                     vec![f]
@@ -97,7 +97,7 @@ impl Visitor for MovePreProcessor {
                         convert_default_parameter_functions(fd, &_t.identifier.token, _ctx);
                     functions
                         .into_iter()
-                        .map(|f| AssetMember::FunctionDeclaration(f))
+                        .map(AssetMember::FunctionDeclaration)
                         .collect()
                 } else {
                     vec![f]
@@ -478,7 +478,7 @@ impl Visitor for MovePreProcessor {
                         op: BinOp::Equal,
                         line_info: b.line_info.clone(),
                     });
-                    *_t = expression.clone();
+                    *_t = expression;
                     if _ctx.is_function_declaration_context() {
                         let mut context =
                             _ctx.function_declaration_context.clone().unwrap();
@@ -780,7 +780,7 @@ impl Visitor for MovePreProcessor {
             }
             _ => {
                 if let Expression::InoutExpression(_) = function_argument.expression {
-                    expression = function_argument.expression.clone()
+                    expression = function_argument.expression
                 }
             }
         }
@@ -1211,7 +1211,7 @@ pub fn pre_assign(
     }
 
     let expression = if borrow || !is_reference || expression_type.is_built_in_type() {
-        expression.clone()
+        expression
     } else {
         Expression::InoutExpression(InoutExpression {
             ampersand_token: "".to_string(),
@@ -1225,23 +1225,16 @@ pub fn pre_assign(
         line_info: Default::default(),
     };
 
-    let statements = ctx.pre_statements.clone();
-    let statements: Vec<Expression> = statements
+    let statements: Vec<BinaryExpression> = ctx.pre_statements.clone()
         .into_iter()
         .filter_map(|s| match s {
             Statement::Expression(e) => Some(e),
             _ => None,
         })
-        .collect();
-    let statements: Vec<BinaryExpression> = statements
-        .into_iter()
         .filter_map(|s| match s {
             Expression::BinaryExpression(e) => Some(e),
             _ => None,
         })
-        .collect();
-    let statements: Vec<BinaryExpression> = statements
-        .into_iter()
         .filter(|b| {
             if let BinOp::Equal = b.op {
                 if let Expression::Identifier(_) = *b.lhs_expression {
@@ -1348,7 +1341,7 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
             Option::from(Type::Address),
         )),
         op: BinOp::Equal,
-        line_info: caller.line_info.clone(),
+        line_info: caller.line_info,
     };
 
     Statement::Expression(Expression::BinaryExpression(assignment))
@@ -1410,7 +1403,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 enclosing.clone()
             } else {
                 let enclosing = ctx.enclosing_type_identifier().clone().unwrap();
-                enclosing.token.clone()
+                enclosing.token
             };
 
         let call = function_call.clone();
@@ -1458,7 +1451,6 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     let declaration = fi.declaration;
                     let param_types = declaration.head.parameters;
                     let _param_types: Vec<Type> = param_types
-                        .clone()
                         .into_iter()
                         .map(|p| p.type_assignment)
                         .collect();
@@ -1499,7 +1491,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 }
 
 pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bool {
-    let enclosing = ctx.enclosing_type_identifier().clone().unwrap().token;
+    let enclosing = ctx.enclosing_type_identifier().unwrap().token;
     let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
         behaviour.caller_protections.clone()
     } else {

@@ -14,6 +14,7 @@ Counter :: (any) {
     }
 
     public func decrement() mutates (value) {
-        value -= 1 
+        value -= 1
+        self.decrement()
     }
 }
