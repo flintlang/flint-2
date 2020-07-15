@@ -205,5 +205,3 @@ pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
         })
         .collect()
 }
-
-

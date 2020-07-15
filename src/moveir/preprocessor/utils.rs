@@ -179,11 +179,7 @@ pub fn generate_contract_wrapper(
     }
 
     let contract_address_parameter = Parameter {
-        identifier: Identifier {
-            token: "_address_this".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        },
+        identifier: Identifier::generated("_address_this"),
         type_assignment: Type::Address,
         expression: None,
         line_info: Default::default(),
@@ -199,11 +195,7 @@ pub fn generate_contract_wrapper(
 
     let self_declaration = VariableDeclaration {
         declaration_token: None,
-        identifier: Identifier {
-            token: "self".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        },
+        identifier: Identifier::generated(Identifier::SELF),
         variable_type: original_parameter.type_assignment.clone(),
         expression: None,
     };
@@ -240,11 +232,7 @@ pub fn generate_contract_wrapper(
     if !contract_behaviour_declaration.caller_protections.is_empty()
         & &caller_protections.is_empty()
     {
-        let caller = Identifier {
-            token: "_caller".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        };
+        let caller = Identifier::generated("_caller");
 
         wrapper.body.insert(
             0,
@@ -426,11 +414,7 @@ pub fn pre_assign(
         })
     };
 
-    let mut temp_identifier = Identifier {
-        token: "LOL".to_string(),
-        enclosing_type: None,
-        line_info: Default::default(),
-    };
+    let mut temp_identifier = Identifier::generated("LOL");
 
     let statements = ctx.pre_statements.clone();
     let statements: Vec<Expression> = statements

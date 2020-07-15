@@ -4,9 +4,9 @@ use crate::ast::Expression::SelfExpression;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
+use crate::solidity::preprocessor::utils::*;
 use crate::type_checker::ExpressionCheck;
 use crate::visitor::Visitor;
-use crate::solidity::preprocessor::utils::*;
 
 pub(crate) struct SolidityPreProcessor {}
 
@@ -42,11 +42,9 @@ impl Visitor for SolidityPreProcessor {
                 let param = construct_parameter(
                     "QuartzSelf".to_string(),
                     Type::InoutType(InoutType {
-                        key_type: Box::new(Type::UserDefinedType(Identifier {
-                            token: s_ctx.identifier.token.clone(),
-                            enclosing_type: None,
-                            line_info: Default::default(),
-                        })),
+                        key_type: Box::new(Type::UserDefinedType(Identifier::generated(
+                            &s_ctx.identifier.token,
+                        ))),
                     }),
                 );
 
@@ -384,11 +382,9 @@ impl Visitor for SolidityPreProcessor {
                     if scope.contains_variable_declaration(arg_enclosing.token.clone()) {
                         is_mem = Expression::Literal(Literal::BooleanLiteral(true));
                     } else if scope.contains_parameter_declaration(arg_enclosing.token.clone()) {
-                        is_mem = Expression::Identifier(Identifier {
-                            token: mangle_mem(arg_enclosing.token.clone()),
-                            enclosing_type: None,
-                            line_info: Default::default(),
-                        });
+                        is_mem = Expression::Identifier(Identifier::generated(&mangle_mem(
+                            arg_enclosing.token.clone(),
+                        )));
                     }
                 } else if let Expression::InoutExpression(i) = arg.expression.clone() {
                     if let Expression::SelfExpression = *i.expression.clone() {

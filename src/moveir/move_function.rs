@@ -226,7 +226,7 @@ impl FunctionContext {
     }
 
     pub fn self_type(&self) -> Type {
-        let result = self.scope_context.type_for("self".to_string());
+        let result = self.scope_context.type_for(Identifier::SELF.to_string());
         if result.is_some() {
             result.unwrap()
         } else {

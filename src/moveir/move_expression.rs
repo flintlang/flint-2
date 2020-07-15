@@ -66,7 +66,7 @@ impl MoveExpression {
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => MoveSelf {
-                token: "self".to_string(),
+                token: Identifier::SELF.to_string(),
                 position: self.position.clone(),
             }
             .generate(function_context, false),

@@ -48,7 +48,10 @@ impl Visitor for MovePreProcessor {
                     let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
                     let mut function = function;
                     function.head.modifiers.retain(|x| *x != "public");
-                    return vec![ContractBehaviourMember::FunctionDeclaration(function), wrapper];
+                    return vec![
+                        ContractBehaviourMember::FunctionDeclaration(function),
+                        wrapper,
+                    ];
                 } else {
                     return vec![m];
                 }
@@ -159,16 +162,15 @@ impl Visitor for MovePreProcessor {
             }
             let mut payable_param = payable_param.unwrap();
             let payable_param_name = payable_param.identifier.token.clone();
-            let new_param_type = Type::UserDefinedType(Identifier {
-                token: "Libra.Libra<LBR.LBR>".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            });
+            let new_param_type =
+                Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
             let mut ident = payable_param.identifier.clone();
             ident.token = mangle(payable_param_name.clone());
             payable_param.identifier = ident;
-            let parameters = _t.head.parameters
+            let parameters = _t
+                .head
+                .parameters
                 .clone()
                 .into_iter()
                 .map(|p| {
@@ -184,33 +186,17 @@ impl Visitor for MovePreProcessor {
 
             let lhs = VariableDeclaration {
                 declaration_token: None,
-                identifier: Identifier {
-                    token: "amount".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                variable_type: Type::UserDefinedType(Identifier {
-                    token: "Libra".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
+                identifier: Identifier::generated("amount"),
+                variable_type: Type::UserDefinedType(Identifier::generated("Libra")),
                 expression: None,
             };
 
             let lhs_expression = Expression::VariableDeclaration(lhs);
 
-            let _lhs = Expression::Identifier(Identifier {
-                token: "amount".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            });
+            let _lhs = Expression::Identifier(Identifier::generated("amount"));
 
             let rhs = Expression::FunctionCall(FunctionCall {
-                identifier: Identifier {
-                    token: "Quartz_Self_Create_Libra".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
+                identifier: Identifier::generated("Quartz_Self_Create_Libra"),
                 arguments: vec![FunctionArgument {
                     identifier: None,
                     expression: Expression::Identifier(payable_param.identifier),
@@ -237,11 +223,7 @@ impl Visitor for MovePreProcessor {
             let param_type = Type::InoutType(InoutType {
                 key_type: Box::new(param_type),
             });
-            let param_self_identifier = Identifier {
-                token: "self".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            };
+            let param_self_identifier = Identifier::generated(Identifier::SELF);
 
             let parameter = Parameter {
                 identifier: param_self_identifier,
@@ -259,23 +241,14 @@ impl Visitor for MovePreProcessor {
             }
         }
 
-        if _ctx.struct_declaration_context.is_some()
-            && enclosing_identifier != "Quartz_Global"
-        {
-            let struct_ctx = _ctx
-                .struct_declaration_context
-                .clone()
-                .unwrap();
+        if _ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global" {
+            let struct_ctx = _ctx.struct_declaration_context.clone().unwrap();
             let struct_ctx_identifier = struct_ctx.identifier;
             let param_type = Type::UserDefinedType(struct_ctx_identifier);
             let param_type = Type::InoutType(InoutType {
                 key_type: Box::new(param_type),
             });
-            let param_self_identifier = Identifier {
-                token: "self".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            };
+            let param_self_identifier = Identifier::generated(Identifier::SELF);
 
             let parameter = Parameter {
                 identifier: param_self_identifier,
@@ -294,21 +267,14 @@ impl Visitor for MovePreProcessor {
         }
 
         if _ctx.is_contract_behaviour_declaration_context() {
-            let contract = _ctx
-                .contract_behaviour_declaration_context
-                .clone()
-                .unwrap();
+            let contract = _ctx.contract_behaviour_declaration_context.clone().unwrap();
             let identifier = contract.identifier.clone();
             let parameter_type = Type::UserDefinedType(identifier);
             let parameter_type = Type::InoutType(InoutType {
                 key_type: Box::new(parameter_type),
             });
             let parameter = Parameter {
-                identifier: Identifier {
-                    token: "self".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
+                identifier: Identifier::generated(Identifier::SELF),
                 type_assignment: parameter_type,
                 expression: None,
                 line_info: Default::default(),
@@ -351,7 +317,8 @@ impl Visitor for MovePreProcessor {
         if function_declaration.is_void() {
             let statement = function_declaration.body.last();
             if !function_declaration.body.is_empty() {
-                if let Statement::ReturnStatement(_) = statement.unwrap() {} else {
+                if let Statement::ReturnStatement(_) = statement.unwrap() {
+                } else {
                     function_declaration
                         .body
                         .push(Statement::ReturnStatement(ReturnStatement {
@@ -370,11 +337,7 @@ impl Visitor for MovePreProcessor {
         } else {
             let variable_declaration = VariableDeclaration {
                 declaration_token: None,
-                identifier: Identifier {
-                    token: "ret".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
+                identifier: Identifier::generated("ret"),
                 variable_type: function_declaration
                     .head
                     .result_type
@@ -479,8 +442,7 @@ impl Visitor for MovePreProcessor {
                     });
                     *_t = expression;
                     if _ctx.is_function_declaration_context() {
-                        let mut context =
-                            _ctx.function_declaration_context.clone().unwrap();
+                        let mut context = _ctx.function_declaration_context.clone().unwrap();
                         context.local_variables.push(variable.clone());
 
                         let scope = context.declaration.scope_context.clone();
@@ -537,7 +499,8 @@ impl Visitor for MovePreProcessor {
             _ctx.function_call_receiver_trail = trail;
             match *_t.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *_t.rhs_expression {} else {
+                    if let Expression::FunctionCall(_) = *_t.rhs_expression {
+                    } else {
                         let lhs = _t.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, _ctx, false);
@@ -613,31 +576,26 @@ impl Visitor for MovePreProcessor {
         let function_call = _t.clone();
         if !_ctx.environment.is_initiliase_call(function_call.clone())
             && !_ctx
-            .environment
-            .is_trait_declared(&function_call.identifier.token)
+                .environment
+                .is_trait_declared(&function_call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(function_call, _ctx);
 
-            let enclosing_type = _ctx
-                .enclosing_type_identifier()
-                .unwrap_or_default()
-                .token;
+            let enclosing_type = _ctx.enclosing_type_identifier().unwrap_or_default().token;
 
-            let caller_protections = if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
-                behaviour.caller_protections.clone()
-            } else {
-                vec![]
-            };
+            let caller_protections =
+                if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
+                    behaviour.caller_protections.clone()
+                } else {
+                    vec![]
+                };
 
             let scope = _ctx.scope_context.clone().unwrap_or_default();
 
             let declared_enclosing = if is_global_function_call {
                 "Quartz_Global".to_string()
             } else {
-                let receiver = receiver_trail
-                    .last()
-                    .unwrap()
-                    .clone();
+                let receiver = receiver_trail.last().unwrap().clone();
                 _ctx.environment
                     .get_expression_type(
                         receiver,
@@ -653,7 +611,7 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_contract_declared(&declared_enclosing)
                 || _ctx.environment.is_trait_declared(&declared_enclosing)
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
-                && !is_global_function_call
+                    && !is_global_function_call
             {
                 // TODO this is where the expression becomes strange about dotting rectangles
                 let expressions = receiver_trail;
@@ -669,10 +627,7 @@ impl Visitor for MovePreProcessor {
                     expression = expand_properties(expression, _ctx, false);
                 }
 
-                let enclosing_type = _ctx
-                    .enclosing_type_identifier()
-                    .unwrap_or_default()
-                    .token;
+                let enclosing_type = _ctx.enclosing_type_identifier().unwrap_or_default().token;
 
                 let result_type = match expression.clone() {
                     Expression::Identifier(i) => {
@@ -850,12 +805,12 @@ pub fn convert_default_parameter_functions(
 
             _ctx.environment.remove_function(f, t);
 
-            let protections =
-                if let Some(ref context) = _ctx.contract_behaviour_declaration_context {
-                    context.caller_protections.clone()
-                } else {
-                    vec![]
-                };
+            let protections = if let Some(ref context) = _ctx.contract_behaviour_declaration_context
+            {
+                context.caller_protections.clone()
+            } else {
+                vec![]
+            };
             _ctx.environment
                 .add_function(&removed, t, protections.clone());
 
@@ -919,7 +874,8 @@ pub fn convert_default_parameter_functions(
 pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
     if let Some(ref scope) = ctx.scope_context {
         let declarations = scope
-            .local_variables.clone()
+            .local_variables
+            .clone()
             .into_iter()
             .map(|v| {
                 let mut declaration = v;
@@ -971,11 +927,7 @@ pub fn generate_contract_wrapper(
     }
 
     let contract_address_parameter = Parameter {
-        identifier: Identifier {
-            token: "_address_this".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        },
+        identifier: Identifier::generated("_address_this"),
         type_assignment: Type::Address,
         expression: None,
         line_info: Default::default(),
@@ -991,11 +943,7 @@ pub fn generate_contract_wrapper(
 
     let self_declaration = VariableDeclaration {
         declaration_token: None,
-        identifier: Identifier {
-            token: "self".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        },
+        identifier: Identifier::generated(Identifier::SELF),
         variable_type: original_parameter.type_assignment.clone(),
         expression: None,
     };
@@ -1032,11 +980,7 @@ pub fn generate_contract_wrapper(
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
-        let caller = Identifier {
-            token: "_caller".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        };
+        let caller = Identifier::generated("_caller");
 
         wrapper.body.insert(
             0,
@@ -1218,20 +1162,14 @@ pub fn pre_assign(
         })
     };
 
-    let mut temp_identifier = Identifier {
-        token: "LOL".to_string(),
-        enclosing_type: None,
-        line_info: Default::default(),
-    };
+    let mut temp_identifier = Identifier::generated("_temp_move_preassign");
 
-    let statements: Vec<BinaryExpression> = ctx.pre_statements.clone()
+    let statements: Vec<BinaryExpression> = ctx
+        .pre_statements
+        .clone()
         .into_iter()
         .filter_map(|s| match s {
-            Statement::Expression(e) => Some(e),
-            _ => None,
-        })
-        .filter_map(|s| match s {
-            Expression::BinaryExpression(e) => Some(e),
+            Statement::Expression(Expression::BinaryExpression(e)) => Some(e),
             _ => None,
         })
         .filter(|b| {
@@ -1243,11 +1181,10 @@ pub fn pre_assign(
             false
         })
         .collect();
-    let declaration;
     if statements.is_empty() {
         // TODO temp_identifier is temp__6, so it is created here
         temp_identifier = scope.fresh_identifier(expression.get_line_info());
-        declaration = if expression_type.is_built_in_type() || borrow {
+        let declaration = if expression_type.is_built_in_type() || borrow {
             VariableDeclaration {
                 declaration_token: None,
                 identifier: temp_identifier.clone(),
@@ -1365,7 +1302,7 @@ pub fn generate_assertion(
             expression: or_expression,
             position: Default::default(),
         }
-            .generate(&function_context);
+        .generate(&function_context);
         let string = format!("assert({ex}, 1)", ex = expression);
         return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
     }
@@ -1378,7 +1315,7 @@ pub fn generate_assertion(
         expression,
         position: Default::default(),
     }
-        .generate(&function_context);
+    .generate(&function_context);
     let string = format!("assert({ex}, 1)", ex = expression);
     Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }
@@ -1397,40 +1334,35 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
 
 pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) -> Option<String> {
     if !Environment::is_runtime_function_call(function_call) && !ctx.is_external_function_call {
-        let enclosing_type =
-            if let Some(ref enclosing) = function_call.identifier.enclosing_type {
-                enclosing.clone()
-            } else {
-                let enclosing = ctx.enclosing_type_identifier().unwrap();
-                enclosing.token
-            };
+        let enclosing_type = if let Some(ref enclosing) = function_call.identifier.enclosing_type {
+            enclosing.clone()
+        } else {
+            let enclosing = ctx.enclosing_type_identifier().unwrap();
+            enclosing.token
+        };
 
         let call = function_call.clone();
 
-        let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
-            behaviour.caller_protections.clone()
-        } else {
-            vec![]
-        };
+        let caller_protections =
+            if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+                behaviour.caller_protections.clone()
+            } else {
+                vec![]
+            };
 
         let scope = ctx.scope_context.clone();
         let scope = scope.unwrap_or_default();
 
-        let match_result = ctx.environment.match_function_call(
-            call,
-            &enclosing_type,
-            caller_protections,
-            scope,
-        );
+        let match_result =
+            ctx.environment
+                .match_function_call(call, &enclosing_type, caller_protections, scope);
 
         match match_result {
             FunctionCallMatchResult::MatchedFunction(fi) => {
                 let declaration = fi.declaration;
                 let param_types = declaration.head.parameters;
-                let _param_types: Vec<Type> = param_types
-                    .into_iter()
-                    .map(|p| p.type_assignment)
-                    .collect();
+                let _param_types: Vec<Type> =
+                    param_types.into_iter().map(|p| p.type_assignment).collect();
                 Some(mangle_function_move(
                     declaration.head.identifier.token,
                     &enclosing_type,
@@ -1447,10 +1379,8 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = fi.declaration;
                     let param_types = declaration.head.parameters;
-                    let _param_types: Vec<Type> = param_types
-                        .into_iter()
-                        .map(|p| p.type_assignment)
-                        .collect();
+                    let _param_types: Vec<Type> =
+                        param_types.into_iter().map(|p| p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         declaration.head.identifier.token,
@@ -1489,7 +1419,8 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
 pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bool {
     let enclosing = ctx.enclosing_type_identifier().unwrap().token;
-    let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+    let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context
+    {
         behaviour.caller_protections.clone()
     } else {
         vec![]
@@ -1510,14 +1441,13 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
 
 pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
     match expressions.first() {
-        Some(first) if expressions.len() > 1 =>
-            Expression::BinaryExpression(BinaryExpression {
-                lhs_expression: Box::new(first.clone()),
-                rhs_expression: Box::new(construct_expression(expressions[1..].to_vec())),
-                op: BinOp::Dot,
-                line_info: Default::default(),
-            }),
+        Some(first) if expressions.len() > 1 => Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(first.clone()),
+            rhs_expression: Box::new(construct_expression(expressions[1..].to_vec())),
+            op: BinOp::Dot,
+            line_info: Default::default(),
+        }),
         Some(first) => first.clone(),
-        None => panic!("Cannot construct expression from no expressions")
+        None => panic!("Cannot construct expression from no expressions"),
     }
 }

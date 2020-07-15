@@ -414,11 +414,7 @@ impl MoveContract {
             })
             .collect();
         let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
-            identifier: Identifier {
-                token: "T".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            },
+            identifier: Identifier::generated("T"),
             fields,
         });
 
@@ -447,7 +443,7 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let self_identifier = MoveSelf {
-                token: "self".to_string(),
+                token: Identifier::SELF.to_string(),
                 position: Default::default(),
             };
             let self_identifier = Identifier {

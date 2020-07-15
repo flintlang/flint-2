@@ -224,11 +224,7 @@ impl Environment {
             modifiers: vec![],
             mutates: vec![],
             parameters: vec![Parameter {
-                identifier: Identifier {
-                    token: "address".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
+                identifier: Identifier::generated("address"),
                 type_assignment: Type::Address,
                 expression: None,
                 line_info: Default::default(),
