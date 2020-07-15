@@ -119,8 +119,7 @@ class FlintProgramme(Programme):
         return "//! disable stdlib" not in self.contents()
 
     def compile(self) -> MoveIRProgramme:
-        process = subprocess.Popen(["cargo", "run", "libra", str(self.path)] +
-                                   (["--no-stdlib"] if not self.using_stdlib else []),
+        process = subprocess.Popen(["cargo", "run", "libra", str(self.path)],
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE
                                    )
@@ -254,8 +253,9 @@ class TestRunner(NamedTuple):
                 print(f"Unexpected error `{e}`. Assuming failure")
 
         try:
-            shutil.rmtree(MoveIRProgramme.libra_path / MoveIRProgramme.temporary_test_path)
-            shutil.rmtree(self.default_path / "temp")
+            pass
+            # shutil.rmtree(MoveIRProgramme.libra_path / MoveIRProgramme.temporary_test_path)
+            # shutil.rmtree(self.default_path / "temp")
         except:
             pass
 

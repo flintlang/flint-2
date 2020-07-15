@@ -102,7 +102,6 @@ impl fmt::Display for YulFunctionCall {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct YulAssignment {
     pub identifiers: Vec<String>,
