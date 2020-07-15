@@ -36,7 +36,7 @@ impl MoveRuntimeFunction {
     }
 
     pub fn mangle_runtime(&self) -> String {
-        let string = mangle(format!("{}", self));
+        let string = mangle(&format!("{}", self));
         format!("Self.{}", string)
     }
 

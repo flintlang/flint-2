@@ -4,10 +4,8 @@ mod functions;
 mod properties;
 
 use crate::ast::*;
-use crate::context::ScopeContext;
 use std::collections::HashMap;
 
-use crate::type_checker::ExpressionCheck;
 mod expr_type_check;
 
 #[derive(Debug, Default, Clone)]

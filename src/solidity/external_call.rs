@@ -17,15 +17,14 @@ impl SolidityExternalCall {
             panic!("Solidity External Call RHS not function call")
         }
 
-        let enclosing = if f_call.identifier.enclosing_type.is_some() {
-            let i = f_call.identifier.enclosing_type.clone();
-            i.unwrap()
+        let enclosing = if let Some(ref identifier) = f_call.identifier.enclosing_type {
+            identifier
         } else {
-            function_context.enclosing_type.clone()
+            &function_context.enclosing_type
         };
         let matched = function_context.environment.match_function_call(
             f_call.clone(),
-            &enclosing,
+            enclosing,
             vec![],
             function_context.scope_context.clone(),
         );

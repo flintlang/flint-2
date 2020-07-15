@@ -12,9 +12,8 @@ impl Visitor for TypeAssigner {
         _ctx: &mut Context,
     ) -> VResult {
         if _ctx.in_function_or_special() {
-            if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.scope_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            if let Some(ref mut context) = _ctx.scope_context {
+                context.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {
@@ -54,12 +53,10 @@ impl Visitor for TypeAssigner {
                     _t.rhs_expression.assign_enclosing_type(&lhs_type.name());
                 }
             } else if let Type::SelfType = lhs_type {
-                if _ctx.trait_declaration_context.is_some() {
-                    let trait_ctx = _ctx.trait_declaration_context.clone();
-                    let trait_ctx = trait_ctx.unwrap();
-                    let trait_name = trait_ctx.identifier.token;
+                if let Some(ref trait_ctx) = _ctx.trait_declaration_context {
+                    let trait_name = &trait_ctx.identifier.token;
 
-                    _t.rhs_expression.assign_enclosing_type(&trait_name);
+                    _t.rhs_expression.assign_enclosing_type(trait_name);
                 }
             } else {
                 _t.rhs_expression.assign_enclosing_type(&lhs_type.name());

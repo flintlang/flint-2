@@ -1,4 +1,7 @@
 use crate::environment::*;
+use crate::ast::{FunctionDeclaration, TypeIdentifier, CallerProtection, FunctionInformation, do_vecs_match, FunctionSignatureDeclaration, TypeInfo, FunctionCall, Type, VariableDeclaration, FunctionArgument};
+use crate::context::ScopeContext;
+use crate::type_checker::ExpressionCheck;
 
 impl Environment {
     pub fn add_function(
@@ -14,30 +17,8 @@ impl Environment {
             caller_protection: caller_protections,
             ..Default::default()
         };
-        let type_info = &self.types.get(t);
-        if type_info.is_some() {
-            if self
-                .types
-                .get_mut(t)
-                .unwrap()
-                .functions
-                .get_mut(&name)
-                .is_some()
-            {
-                self.types
-                    .get_mut(t)
-                    .unwrap()
-                    .functions
-                    .get_mut(&name)
-                    .unwrap()
-                    .push(function_information);
-            } else {
-                self.types
-                    .get_mut(t)
-                    .unwrap()
-                    .functions
-                    .insert(name, vec![function_information]);
-            }
+        let type_info = if let Some(type_info) = self.types.get_mut(t) {
+            type_info
         } else {
             self.types.insert(
                 t.to_string(),
@@ -52,66 +33,40 @@ impl Environment {
                     modifiers: vec![],
                 },
             );
-            if self
-                .types
-                .get_mut(t)
-                .unwrap()
+            self.types
+                .get_mut(t).unwrap()
+        };
+
+        if let Some(function_set) = type_info
+            .functions
+            .get_mut(&name)
+        {
+            function_set
+                .push(function_information);
+        } else {
+            type_info
                 .functions
-                .get_mut(&name)
-                .is_some()
-            {
-                self.types
-                    .get_mut(t)
-                    .unwrap()
-                    .functions
-                    .get_mut(&name)
-                    .unwrap()
-                    .push(function_information);
-            } else {
-                self.types
-                    .get_mut(t)
-                    .unwrap()
-                    .functions
-                    .insert(name, vec![function_information]);
-            }
+                .insert(name, vec![function_information]);
         }
     }
 
     pub fn remove_function(&mut self, function: &FunctionDeclaration, t: &TypeIdentifier) {
         let name = function.head.identifier.token.clone();
-        let type_info = &self.types.get(t);
-        if type_info.is_some()
-            && self
-                .types
-                .get_mut(t)
-                .unwrap()
-                .functions
-                .get_mut(&name)
-                .is_some()
-        {
-            let functions: Vec<FunctionInformation> = self
-                .types
-                .get(t)
-                .unwrap()
-                .functions
-                .clone()
-                .remove(&name)
-                .unwrap()
-                .into_iter()
-                .filter(|f| {
-                    f.declaration.head.identifier.token == name
-                        && do_vecs_match(
+        if let Some(type_info) = self.types.get_mut(t) {
+            if let Some(function_set) = type_info.functions.remove(&name) {
+                let function_set = function_set.into_iter()
+                    .filter(|f| {
+                        /* The original code had this without the !(..), it was added
+                            as it seems to be the desired intent */
+                        !(f.declaration.head.identifier.token == name
+                            && do_vecs_match(
                             &f.declaration.parameters_and_types(),
                             &function.parameters_and_types(),
-                        )
-                })
-                .collect();
-
-            self.types
-                .get_mut(t)
-                .unwrap()
-                .functions
-                .insert(name, functions);
+                        ))
+                    })
+                    .collect();
+                type_info.functions.insert(name, function_set);
+            }
         }
     }
 
@@ -139,27 +94,12 @@ impl Environment {
             is_signature: true,
             ..Default::default()
         };
-        let type_info = &self.types.get(t);
-        if type_info.is_some() {
-            if self
-                .types
-                .get_mut(t)
-                .unwrap()
-                .functions
-                .get_mut(&name)
-                .is_some()
-            {
-                self.types
-                    .get_mut(t)
-                    .unwrap()
-                    .functions
-                    .get_mut(&name)
-                    .unwrap()
-                    .push(function_information);
+        if let Some(type_info) = self.types.get_mut(t) {
+            if let Some(function_set) = type_info.functions
+                    .get_mut(&name) {
+                    function_set.push(function_information);
             } else {
-                self.types
-                    .get_mut(t)
-                    .unwrap()
+                type_info
                     .functions
                     .insert(name, vec![function_information]);
             }
@@ -177,7 +117,7 @@ impl Environment {
                     modifiers: vec![],
                 },
             );
-
+            // TODO consider using a map literal crate
             self.types
                 .get_mut(t)
                 .unwrap()
@@ -204,32 +144,20 @@ impl Environment {
             })
             .collect();
 
-        let type_info = self.types.get(t);
-
-        println!("{:?}", t);
-        if type_info.is_some() {
-            println!("Type Info is some");
-
-            let functions = self.types.get(t).unwrap().all_functions();
-            // println!("{:?}", functions.clone());
-            let functions = functions.get(&f.identifier.token);
-            if functions.is_some() {
-                let functions = functions.unwrap();
+        if let Some(type_info) = self.types.get(t) {
+            if let Some(functions) = type_info.all_functions().get(&f.identifier.token) {
                 for function in functions {
-                    let current_function = function.clone();
-                    println!("Function Present");
-                    println!("{:?}", f.clone());
                     if self.function_call_arguments_compatible(
-                        current_function.clone(),
+                        function.clone(),
                         f.clone(),
                         t,
                         scope.clone(),
                     ) {
                         if self.compatible_caller_protections(
                             c.clone(),
-                            current_function.caller_protection.clone(),
+                            function.caller_protection.clone(),
                         ) {
-                            return FunctionCallMatchResult::MatchedFunction(current_function);
+                            return FunctionCallMatchResult::MatchedFunction(function.clone());
                         }
                     }
                     candidates.push(function.clone());
@@ -308,13 +236,10 @@ impl Environment {
 
         let type_info = self.types.get(&f.identifier.token.clone());
         if type_info.is_some() {
-            println!("{:?}", f.identifier.token.clone());
-            println!("{:?}", f.arguments.clone());
             let initialisers = &type_info.unwrap().initialisers;
             for initialiser in initialisers {
 
                 let parameter_types = initialiser.parameter_types();
-                println!("{:?}", parameter_types.clone());
                 let mut equal_types = true;
                 for argument_type in argument_types.clone() {
                     if !parameter_types.contains(&argument_type) {
@@ -322,7 +247,6 @@ impl Environment {
                     }
                 }
 
-                println!("{:?}", equal_types.clone());
                 if equal_types
                     && self.compatible_caller_protections(
                         c.clone(),
@@ -388,7 +312,6 @@ impl Environment {
             .map(|i| CallableInformation::FunctionInformation(i.clone()))
             .collect();
         let candidates = Candidates { candidates };
-        println!("{:?}", f.identifier.token.clone());
         // println!("{:?}", candidates.clone());
         if token == "fatalError".to_string() {
             unimplemented!()
@@ -520,13 +443,9 @@ impl Environment {
                     .clone();
 
                 if argument_name != parameters[index].identifier.token {
-                    println!("FLOP ONE");
-                    println!("{:?}", argument_name.clone());
-                    println!("{:?}", parameters[index].identifier.token.clone());
                     return false;
                 }
             } else {
-                println!("FLOP TWO");
                 return false;
             }
 
@@ -540,10 +459,6 @@ impl Environment {
                 vec![],
                 scope.clone(),
             );
-
-            println!("TYPE CHECKING");
-            println!("{:?}", argument_type);
-            println!("{:?}", declared_type);
 
             if declared_type != argument_type {
                 return false;

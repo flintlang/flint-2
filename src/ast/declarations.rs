@@ -141,12 +141,10 @@ impl Visitable for ContractBehaviourDeclaration {
         });
 
         let mut local_variables: Vec<VariableDeclaration> = vec![];
-        if self.caller_binding.is_some() {
-            let caller_binding = self.caller_binding.clone();
-            let caller_binding = caller_binding.unwrap();
+        if let Some(ref caller_binding) = self.caller_binding {
             local_variables.push(VariableDeclaration {
                 declaration_token: None,
-                identifier: caller_binding,
+                identifier: caller_binding.clone(),
                 variable_type: Type::Address,
                 expression: None,
             })
@@ -162,13 +160,8 @@ impl Visitable for ContractBehaviourDeclaration {
 
         self.identifier.visit(v, ctx)?;
 
-        if self.caller_binding.is_some() {
-            let caller = self.caller_binding.clone();
-            let mut caller = caller.unwrap();
-
+        if let Some(ref mut caller) = self.caller_binding {
             caller.visit(v, ctx)?;
-
-            self.caller_binding = Some(caller);
         }
 
         self.caller_protections.visit(v, ctx)?;
@@ -405,34 +398,23 @@ pub struct TraitDeclaration {
 
 impl TraitDeclaration {
     pub fn get_module_address(&self) -> Option<String> {
-        let modifiers = self.modifiers.clone();
-        let mut modifiers: Vec<FunctionCall> = modifiers
+        let modifiers: Vec<FunctionCall> = self.modifiers.clone()
             .into_iter()
             .filter(|f| f.identifier.token == "module".to_string())
             .collect();
 
-        if modifiers.is_empty() {
-            return None;
-        }
-
-        let modifier = modifiers.remove(0);
-        let mut argument = modifier.arguments.clone();
-        if !argument.is_empty() {
-            let argument = argument.remove(0);
-            if argument.identifier.is_some() {
-                let identifier = argument.identifier.clone();
-                let identifier = identifier.unwrap();
-                let name = identifier.token;
-                if name == "address".to_string() {
-                    if let Expression::Literal(l) = argument.expression {
+        if let Some(argument) = modifiers.first().and_then(|m| m.arguments.first()) {
+            if let Some(ref identifier) = argument.identifier {
+                let name = &identifier.token;
+                if name == "address" {
+                    if let Expression::Literal(ref l) = argument.expression {
                         if let Literal::AddressLiteral(a) = l {
-                            return Option::from(a);
+                            return Option::from(a.clone());
                         }
                     }
                 }
             }
         }
-
         None
     }
 }
@@ -588,11 +570,9 @@ impl Visitable for FunctionDeclaration {
             local_variables,
         });
 
-        if ctx.scope_context.is_some() {
+        if let Some(ref mut scope_context) = ctx.scope_context {
             for parameter in &self.head.parameters {
-                ctx.scope_context
-                    .as_mut()
-                    .unwrap()
+                scope_context
                     .parameters
                     .push(parameter.clone());
             }
@@ -706,11 +686,8 @@ impl Visitable for FunctionSignatureDeclaration {
 
         self.parameters.visit(v, ctx)?;
 
-        if self.result_type.is_some() {
-            let result_type = self.result_type.clone();
-            let mut result_type = result_type.unwrap();
+        if let Some(ref mut result_type) = self.result_type {
             result_type.visit(v, ctx)?;
-            self.result_type = Some(result_type);
         }
 
         v.finish_function_signature_declaration(self, ctx)?;
@@ -795,11 +772,9 @@ impl Visitable for SpecialDeclaration {
             local_variables,
         });
 
-        if ctx.scope_context.is_some() {
+        if let Some(ref mut scope_context) = ctx.scope_context {
             for parameter in &self.head.parameters {
-                ctx.scope_context
-                    .as_mut()
-                    .unwrap()
+                scope_context
                     .parameters
                     .push(parameter.clone());
             }
@@ -929,18 +904,18 @@ pub struct VariableDeclaration {
 
 impl VariableDeclaration {
     pub fn is_constant(&self) -> bool {
-        if self.declaration_token.is_some() {
-            return self.declaration_token.as_ref().unwrap() == "let";
+        match &self.declaration_token {
+            Some(t) => t == "let",
+            _ => false
         }
-        false
     }
 
     #[allow(dead_code)]
     pub fn is_variable(&self) -> bool {
-        if self.declaration_token.is_some() {
-            return self.declaration_token.as_ref().unwrap() == "var";
+        match &self.declaration_token {
+            Some(t) => t == "var",
+            _ => false
         }
-        false
     }
 }
 
@@ -952,7 +927,7 @@ impl Visitable for VariableDeclaration {
 
         self.variable_type.visit(v, ctx)?;
 
-        if self.expression.is_some() {
+        if let Some(ref mut expression) = self.expression {
             let previous_scope = ctx.scope_context.clone();
             ctx.scope_context = Option::from(ScopeContext {
                 parameters: vec![],
@@ -961,12 +936,9 @@ impl Visitable for VariableDeclaration {
             });
 
             ctx.is_property_default_assignment = true;
-            let expression = self.expression.clone();
-            let mut expression = expression.unwrap();
 
             expression.visit(v, ctx)?;
 
-            self.expression = Option::from(expression);
             ctx.is_property_default_assignment = false;
 
             ctx.scope_context = previous_scope;

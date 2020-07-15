@@ -187,8 +187,8 @@ impl fmt::Display for YulSwitch {
             .collect();
         let cases = cases.join("\n");
 
-        let default = if self.default.is_some() {
-            format!("\n default {d}", d = self.default.clone().unwrap())
+        let default = if let Some(ref default) = self.default {
+            format!("\n default {d}", d = default)
         } else {
             format!("")
         };

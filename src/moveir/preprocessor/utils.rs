@@ -54,7 +54,7 @@ pub fn convert_default_parameter_functions(
                 })
                 .collect();
 
-            if assigned_function.scope_context.is_some() {
+            if assigned_function.scope_context.is_some() {//REMOVEBEFOREFLIGHT
                 let scope = ScopeContext {
                     parameters: assigned_function.head.parameters.clone(),
                     local_variables: vec![],
@@ -98,7 +98,7 @@ pub fn convert_default_parameter_functions(
                 })
                 .collect();
 
-            if assigned_function.head.result_type.is_some() {
+            if assigned_function.head.result_type.is_some() {//REMOVEBEFOREFLIGHT
                 let function_call = FunctionCall {
                     identifier: f.head.identifier.clone(),
                     arguments,
@@ -140,9 +140,8 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
             .map(|v| {
                 let mut declaration = v;
                 if !declaration.identifier.is_self() {
-                    let name = declaration.identifier.token.clone();
                     declaration.identifier = Identifier {
-                        token: mangle(name),
+                        token: mangle(&declaration.identifier.token),
                         enclosing_type: None,
                         line_info: Default::default(),
                     };
@@ -175,8 +174,7 @@ pub fn generate_contract_wrapper(
     context: &mut Context,
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
-    let name = function.head.identifier.token.clone();
-    wrapper.mangled_identifier = Option::from(mangle_function_move(name, &"".to_string(), true));
+    wrapper.mangled_identifier = Option::from(mangle_function_move(&function.head.identifier.token, &"".to_string(), true));
 
     wrapper.body = vec![];
     wrapper.tags.push("acquires T".to_string());
@@ -225,7 +223,7 @@ pub fn generate_contract_wrapper(
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "Signer.address_of(move({param}))",
-                param = mangle(contract_address_parameter.identifier.token)
+                param = mangle(&contract_address_parameter.identifier.token)
             ),
             None,
         )),
@@ -270,7 +268,7 @@ pub fn generate_contract_wrapper(
             Statement::Expression(Expression::VariableDeclaration(VariableDeclaration {
                 declaration_token: None,
                 identifier: Identifier {
-                    token: mangle(caller.token.clone()),
+                    token: mangle(&caller.token),
                     enclosing_type: None,
                     line_info: Default::default(),
                 },
@@ -379,25 +377,22 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             if ctx.has_scope_context() {
                 let scope = ctx.scope_context.clone();
                 let scope = scope.unwrap();
-                if let Some(identifier_type) = scope.type_for(i.token) {
+                if let Some(identifier_type) = scope.type_for(&i.token) {
                     if !identifier_type.is_inout_type() {
                         return pre_assign(expression, ctx, borrow, false);
                     }
                 }
 
-                if i.enclosing_type.is_some() {
+                if i.enclosing_type.is_some() {//REMOVEBEFOREFLIGHT
                     return pre_assign(expression, ctx, borrow, true);
                 }
             }
         }
         Expression::BinaryExpression(b) => {
-            println!("The expression is {:#?}", b);
             return if let BinOp::Dot = b.op {
                 let mut binary = b.clone();
-                // TODO temp__4 created here
                 let lhs = expand_properties(*b.lhs_expression, ctx, borrow);
                 binary.lhs_expression = Box::from(lhs);
-                // TODO temp__6 created here
                 pre_assign(Expression::BinaryExpression(binary), ctx, borrow, true)
             } else {
                 let mut binary = b.clone();
@@ -647,7 +642,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 let _param_types: Vec<Type> =
                     param_types.into_iter().map(|p| p.type_assignment).collect();
                 Some(mangle_function_move(
-                    declaration.head.identifier.token,
+                    &declaration.head.identifier.token,
                     &enclosing_type,
                     false,
                 ))
@@ -666,7 +661,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                         param_types.into_iter().map(|p| p.type_assignment).collect();
 
                     Some(mangle_function_move(
-                        declaration.head.identifier.token,
+                        &declaration.head.identifier.token,
                         &enclosing_type,
                         false,
                     ))
@@ -676,7 +671,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
             }
 
             FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
-                "init".to_string(),
+                "init",
                 &function_call.identifier.token,
                 false,
             )),
@@ -686,7 +681,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                 let declaration = fi.declaration;
 
                 Some(mangle_function_move(
-                    declaration.head.identifier.token,
+                    &declaration.head.identifier.token,
                     &"Quartz_Global".to_string(),
                     false,
                 ))

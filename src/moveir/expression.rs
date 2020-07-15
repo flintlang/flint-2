@@ -221,7 +221,7 @@ impl MoveSubscriptExpression {
                 Type::DictionaryType(_) => {
                     let f_name = format!(
                         "Self._insert_{}",
-                        mangle_dictionary(self.expression.base_expression.token.clone())
+                        mangle_dictionary(&self.expression.base_expression.token)
                     );
                     MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                         identifier: f_name,
@@ -247,7 +247,7 @@ impl MoveSubscriptExpression {
             Type::DictionaryType(_) => {
                 let f_name = format!(
                     "Self._get_{}",
-                    mangle_dictionary(self.expression.base_expression.token.clone())
+                    mangle_dictionary(&self.expression.base_expression.token)
                 );
                 MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                     identifier: f_name,

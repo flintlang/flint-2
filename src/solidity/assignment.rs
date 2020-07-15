@@ -15,7 +15,7 @@ impl SolidityAssignment {
 
         match self.lhs.clone() {
             Expression::VariableDeclaration(v) => {
-                let mangle = mangle(v.identifier.token);
+                let mangle = mangle(&v.identifier.token);
                 YulExpression::VariableDeclaration(YulVariableDeclaration {
                     declaration: mangle,
                     declaration_type: YulType::Any,
@@ -24,7 +24,7 @@ impl SolidityAssignment {
             }
             Expression::Identifier(i) if i.enclosing_type.is_none() => {
                 YulExpression::Assignment(YulAssignment {
-                    identifiers: vec![mangle(i.token)],
+                    identifiers: vec![mangle(&i.token)],
                     expression: Box::from(rhs_code),
                 })
             }
@@ -37,27 +37,19 @@ impl SolidityAssignment {
                 .generate(function_context);
 
                 if function_context.in_struct_function {
-                    let enclosing_name = if function_context
+                    let enclosing_name = function_context
                         .scope_context
-                        .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type)
-                        .is_some()
-                    {
-                        function_context
-                            .scope_context
-                            .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type)
-                            .unwrap()
-                    } else {
-                        "QuartzSelf".to_string()
-                    };
+                        .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type);
+                    let enclosing_name = if let Some(ref enclosing_name) = enclosing_name {
+                        enclosing_name
+                    } else { "QuartzSelf" };
 
                     return SolidityRuntimeFunction::store(
                         lhs_code,
                         rhs_code,
-                        mangle(mangle_mem(enclosing_name)),
+                        mangle(&mangle_mem(enclosing_name)),
                     );
-                } else if self.lhs.enclosing_identifier().is_some() {
-                    let enclosing = self.lhs.enclosing_identifier().clone();
-                    let enclosing = enclosing.unwrap();
+                } else if let Some(enclosing) = self.lhs.enclosing_identifier() {
                     if function_context
                         .scope_context
                         .contains_variable_declaration(enclosing.token.clone())

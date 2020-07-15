@@ -80,7 +80,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                         .collect();
 
                     Some(mangle_function_move(
-                        declaration.head.identifier.token,
+                        &declaration.head.identifier.token,
                         &enclosing_type,
                         false,
                     ))
@@ -166,12 +166,9 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
     let scope = ctx.scope_context.clone();
     let scope = scope.unwrap_or_default();
 
-    println!("MATCH THE GLOBAL TING");
     let result =
         ctx.environment
             .match_function_call(function_call, &enclosing, caller_protections, scope);
-    println!("AFTER MATCHING ");
-    println!("{:?}", result.clone());
 
     if let FunctionCallMatchResult::MatchedGlobalFunction(_) = result {
         return true;

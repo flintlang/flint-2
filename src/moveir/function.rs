@@ -242,7 +242,7 @@ impl FunctionContext {
     }
 
     pub fn self_type(&self) -> Type {
-        if let Some(self_type) = self.scope_context.type_for(Identifier::SELF.to_string()) {
+        if let Some(self_type) = self.scope_context.type_for(Identifier::SELF) {
             self_type
         } else {
             self.environment.get_expression_type(

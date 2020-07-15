@@ -52,8 +52,6 @@ impl Type {
         };
 
         let identifier = identifier.token.clone();
-        println!("Is resource type");
-        println!("{:?}", identifier.clone());
         identifier.eq("Wei") || identifier.eq("Libra") || identifier.eq("LibraCoin.T")
     }
 
@@ -168,8 +166,6 @@ impl Type {
             }
         }
 
-        println!("FLOPPED IT");
-
         input_type
     }
 
@@ -181,21 +177,14 @@ impl Type {
         }
 
         if let Type::UserDefinedType(u) = internal_type {
-            let type_identifer = u.token.clone();
-            if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer);
-                if type_infos.is_some() {
-                    let type_infos = type_infos.unwrap();
-                    let type_infos = type_infos.clone();
+            if environment.is_trait_declared(&u.token) {
+                if let Some(type_infos) = environment.types.get(&u.token) {
                     if !type_infos.is_external_struct() {
                         return true;
                     }
                 }
-            } else {
-                return false;
             }
         }
-
         false
     }
 
@@ -207,18 +196,12 @@ impl Type {
         }
 
         if let Type::UserDefinedType(u) = internal_type {
-            let type_identifer = u.token.clone();
-            if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer);
-                if type_infos.is_some() {
-                    let type_infos = type_infos.unwrap();
-                    let type_infos = type_infos.clone();
+            if environment.is_trait_declared(&u.token) {
+                if let Some(type_infos) = environment.types.get(&u.token) {
                     if type_infos.is_external_resource() {
                         return true;
                     }
                 }
-            } else {
-                return false;
             }
         }
         false
@@ -232,39 +215,25 @@ impl Type {
         }
 
         if let Type::UserDefinedType(u) = internal_type {
-            let type_identifer = u.token.clone();
-            if environment.is_trait_declared(&type_identifer) {
-                let type_infos = environment.types.get(&type_identifer);
-                if type_infos.is_some() {
-                    let type_infos = type_infos.unwrap();
-                    let type_infos = type_infos.clone();
+            if environment.is_trait_declared(&u.token) {
+                if let Some(type_infos) = environment.types.get(&u.token) {
                     if type_infos.is_external_module() {
                         return true;
                     }
                 }
-            } else {
-                return false;
             }
         }
         false
     }
 
     pub fn from_identifier(identifier: Identifier) -> Type {
-        let name = identifier.token.clone();
-        if name == "Address" {
-            return Type::Address;
+        match identifier.token.as_str() {
+            "Address" => Type::Address,
+            "Bool" => Type::Bool,
+            "Int" => Type::Int,
+            "String" => Type::String,
+            _ => Type::UserDefinedType(identifier)
         }
-        if name == "Bool" {
-            return Type::Bool;
-        }
-        if name == "Int" {
-            return Type::Int;
-        }
-        if name == "String" {
-            return Type::String;
-        }
-
-        Type::UserDefinedType(identifier)
     }
 }
 

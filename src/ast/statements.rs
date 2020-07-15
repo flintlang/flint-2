@@ -89,13 +89,9 @@ impl Visitable for IfStatement {
         let scope = ctx.scope_context.clone();
         let block = ctx.block_context.clone();
 
-        let blocks_scope = if self.if_body_scope_context.is_some() {
-            let temp = self.if_body_scope_context.clone();
-            temp.unwrap()
-        } else {
-            let temp = ctx.scope_context.clone();
-            temp.unwrap()
-        };
+        let blocks_scope = self.if_body_scope_context.clone()
+            .or_else(|| ctx.scope_context.clone())
+            .unwrap();
         let block_context = BlockContext {
             scope_context: blocks_scope,
         };
@@ -123,46 +119,29 @@ impl Visitable for IfStatement {
 
         if self.if_body_scope_context.is_none() {
             self.if_body_scope_context = ctx.scope_context.clone();
-        } else if ctx.block_context.is_some() {
-            let block = ctx.block_context.clone();
-            let block = block.unwrap();
+        } else if let Some(ref block) = ctx.block_context {
             self.if_body_scope_context = Option::from(block.scope_context.clone());
         }
 
-        if scope.is_some() {
-            let temp_scope = scope.clone();
-            let mut temp_scope = temp_scope.unwrap();
-
-            temp_scope.counter = if ctx.scope_context().is_some() {
-                let ctx_scope = ctx.scope_context.clone();
-                let ctx_scope = ctx_scope.unwrap();
-
-                temp_scope.counter + ctx_scope.local_variables.len() as u64
+        let ctx_scope = ctx.scope_context().cloned();
+        if let Some(ref mut scope) = ctx.scope_context {
+            scope.counter += if let Some(ctx_scope) = ctx_scope {
+                ctx_scope.local_variables.len() as u64
             } else {
-                temp_scope.counter + 1
+                1
             };
 
-            temp_scope.counter = if ctx.block_context.is_some() {
-                let ctx_block = ctx.block_context.clone();
-                let ctx_scope = ctx_block.unwrap();
-                let ctx_scope = ctx_scope.scope_context;
-                temp_scope.counter + ctx_scope.local_variables.len() as u64
+            scope.counter += if let Some(ref ctx_scope) = ctx.block_context {
+                let ctx_scope = &ctx_scope.scope_context;
+                ctx_scope.local_variables.len() as u64
             } else {
-                temp_scope.counter + 1
+                1
             };
-
-            ctx.scope_context = Option::from(temp_scope);
         }
 
-        let blocks_scope = if self.else_body_scope_context.is_some() {
-            let temp = self.else_body_scope_context.clone();
-            temp.unwrap()
-        } else {
-            let temp = ctx.scope_context.clone();
-            temp.unwrap()
-        };
+        let block_scope = self.else_body_scope_context.as_ref().or_else(|| ctx.scope_context.as_ref()).unwrap();
         let block_context = BlockContext {
-            scope_context: blocks_scope,
+            scope_context: block_scope.clone(),
         };
 
         ctx.block_context = Some(block_context);
@@ -187,13 +166,9 @@ impl Visitable for IfStatement {
 
         self.else_body = statements;
 
-        if self.else_body_scope_context.is_none() {
-            self.else_body_scope_context = ctx.scope_context.clone();
-        } else if ctx.block_context.is_some() {
-            let block = ctx.block_context.clone();
-            let block = block.unwrap();
-            self.else_body_scope_context = Option::from(block.scope_context.clone());
-        }
+        self.else_body_scope_context = if let Some(ref block_ctx) = ctx.block_context {
+            Some(block_ctx.scope_context.clone())
+        } else { ctx.scope_context.clone() };
 
         ctx.scope_context = scope;
         ctx.block_context = block;
@@ -226,15 +201,9 @@ impl Visitable for ForStatement {
         let initial_pre_statements = ctx.pre_statements.clone();
         let initial_post_statements = ctx.post_statements.clone();
 
-        let blocks_scope = if self.for_body_scope_context.is_some() {
-            let temp = self.for_body_scope_context.clone();
-            temp.unwrap()
-        } else {
-            let temp = ctx.scope_context.clone();
-            temp.unwrap()
-        };
+        let blocks_scope = self.for_body_scope_context.as_ref().or(ctx.scope_context());
         let block_context = BlockContext {
-            scope_context: blocks_scope,
+            scope_context: blocks_scope.unwrap().clone(),
         };
         ctx.block_context = Some(block_context);
 

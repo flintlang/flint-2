@@ -7,7 +7,7 @@ pub struct SolidityIdentifier {
 
 impl SolidityIdentifier {
     pub fn generate(&self, function_context: &mut FunctionContext) -> YulExpression {
-        if self.identifier.enclosing_type.is_some() {
+        if self.identifier.enclosing_type.is_some() {//REMOVEBEFOREFLIGHT
             return SolidityPropertyAccess {
                 lhs: Expression::SelfExpression,
                 rhs: Expression::Identifier(self.identifier.clone()),
@@ -16,6 +16,6 @@ impl SolidityIdentifier {
             .generate(function_context);
         }
 
-        YulExpression::Identifier(mangle(self.identifier.token.clone()))
+        YulExpression::Identifier(mangle(&self.identifier.token))
     }
 }

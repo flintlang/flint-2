@@ -68,29 +68,23 @@ impl SolidityPropertyAccess {
         };
 
         let offset = if function_context.in_struct_function {
-            let enclosing_parameter = function_context
+            let enclosing_name = function_context
                 .scope_context
-                .enclosing_parameter(self.lhs.clone(), &type_identifier);
-            let enclosing_name = if enclosing_parameter.is_some() {
-                enclosing_parameter.unwrap()
-            } else {
-                "QuartzSelf".to_string()
-            };
+                .enclosing_parameter(self.lhs.clone(), &type_identifier)
+                .unwrap_or_else(|| "QuartzSelf".to_string());
 
-            let lhs_offset = YulExpression::Identifier(mangle(enclosing_name.clone()));
+            let lhs_offset = YulExpression::Identifier(mangle(&enclosing_name));
             SolidityRuntimeFunction::add_offset(
                 lhs_offset,
                 rhs_offset,
-                mangle(mangle_mem(enclosing_name)),
+                mangle(&mangle_mem(&enclosing_name)),
             )
         } else {
             let lhs_offset = if let Expression::Identifier(i) = self.lhs.clone() {
-                if i.enclosing_type.is_some() {
-                    let enclosing_type = i.enclosing_type.clone();
-                    let enclosing_type = enclosing_type.unwrap();
+                if let Some(ref enclosing_type) = i.enclosing_type {
                     let offset = function_context
                         .environment
-                        .property_offset(i.token.clone(), &enclosing_type);
+                        .property_offset(i.token.clone(), enclosing_type);
                     YulExpression::Literal(YulLiteral::Num(offset))
                 } else {
                     unimplemented!()
@@ -111,15 +105,13 @@ impl SolidityPropertyAccess {
         }
 
         if function_context.in_struct_function && !is_mem_access {
-            let lhs_enclosing = if self.lhs.enclosing_identifier().is_some() {
-                let ident = self.lhs.enclosing_identifier().clone();
-                let ident = ident.unwrap();
-                mangle(ident.token)
+            let lhs_enclosing = if let Some(ident) = self.lhs.enclosing_identifier() {
+                mangle(&ident.token)
             } else {
-                mangle("QuartzSelf".to_string())
+                mangle("QuartzSelf")
             };
 
-            return SolidityRuntimeFunction::load(offset, mangle_mem(lhs_enclosing));
+            return SolidityRuntimeFunction::load(offset, mangle_mem(&lhs_enclosing));
         }
 
         SolidityRuntimeFunction::load_bool(offset, is_mem_access)

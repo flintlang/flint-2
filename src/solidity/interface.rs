@@ -42,7 +42,7 @@ impl SolidityInterface {
                 .map(|p| {
                     let param_type =
                         SolidityIRType::map_to_solidity_type(p.type_assignment.clone()).generate();
-                    let mangled_name = mangle(p.identifier.token.clone());
+                    let mangled_name = mangle(&p.identifier.token);
                     format!(
                         "{param_type} {mangled_name}",
                         param_type = param_type,
@@ -58,9 +58,7 @@ impl SolidityInterface {
                 attribute = "view ".to_string();
             }
 
-            let return_string = if function_declaration.get_result_type().is_some() {
-                let result = function_declaration.get_result_type().clone();
-                let result = result.unwrap();
+            let return_string = if let Some(result) = function_declaration.get_result_type() {
                 let result = SolidityIRType::map_to_solidity_type(result).generate();
                 format!(" returns ( {result} ret)", result = result)
             } else {

@@ -174,16 +174,11 @@ impl ScopeContext {
             .into_iter()
             .filter(|v| v.identifier.token == name)
             .collect();
-        let result = identifiers.first();
-        if result.is_some() {
-            let declaration = identifiers.first().unwrap().clone();
-            return Some(declaration);
-        }
-        None
+        identifiers.first().cloned()
     }
 
-    pub fn type_for(&self, variable: String) -> Option<Type> {
-        let mut identifiers: Vec<VariableDeclaration> = self
+    pub fn type_for(&self, variable: &str) -> Option<Type> {
+        self
             .local_variables
             .clone()
             .into_iter()
@@ -193,20 +188,11 @@ impl ScopeContext {
                     .into_iter()
                     .map(|p| p.as_variable_declaration()),
             )
-            .collect();
-        identifiers = identifiers
-            .into_iter()
             .filter(|v| {
-                v.identifier.token == variable || mangle(variable.clone()) == v.identifier.token
+                v.identifier.token == variable || mangle(variable) == v.identifier.token
             })
-            .collect();
-        let result = identifiers.first();
-        if result.is_some() {
-            let result_type = identifiers.first().unwrap().clone().variable_type;
-
-            return Some(result_type);
-        }
-        None
+            .next() // Next gets the first element
+            .map(|i| i.variable_type)
     }
 
     pub fn contains_variable_declaration(&self, name: String) -> bool {
@@ -247,7 +233,7 @@ impl ScopeContext {
     ) -> Option<String> {
         let expression_enclosing = expression.enclosing_type();
         let expression_enclosing = expression_enclosing.unwrap_or_default();
-        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {
+        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {//REMOVEBEFOREFLIGHT
             let enclosing_identifier = expression.enclosing_identifier().clone();
             let enclosing_identifier = enclosing_identifier.unwrap();
             if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {

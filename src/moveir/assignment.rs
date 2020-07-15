@@ -72,7 +72,7 @@ impl MoveAssignment {
         if let Expression::Identifier(ref i) = lhs {
             if i.enclosing_type.is_none() {
                 return MoveIRExpression::Assignment(MoveIRAssignment {
-                    identifier: mangle(i.token.clone()),
+                    identifier: mangle(&i.token),
                     expression: Box::new(rhs_ir),
                 });
             }

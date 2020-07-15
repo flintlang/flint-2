@@ -12,17 +12,17 @@ impl SolidityExpression {
                 identifier: i,
                 is_lvalue: self.is_lvalue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::BinaryExpression(b) => SolidityBinaryExpression {
                 expression: b,
                 is_lvalue: self.is_lvalue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::InoutExpression(i) => SolidityExpression {
                 expression: *i.expression.clone(),
                 is_lvalue: true,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::ExternalCall(e) => {
                 SolidityExternalCall { call: e }.generate(function_context)
             }
@@ -36,7 +36,7 @@ impl SolidityExpression {
                 expression: *e.expression,
                 is_lvalue: false,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::AttemptExpression(_) => {
                 panic!("Attempt Expression Not Currently Supported")
             }
@@ -45,8 +45,7 @@ impl SolidityExpression {
             }
             Expression::ArrayLiteral(a) => {
                 for e in a.elements {
-                    if let Expression::ArrayLiteral(_) = e {
-                    } else {
+                    if let Expression::ArrayLiteral(_) = e {} else {
                         panic!("Does not support Non-empty array literals")
                     }
                 }
@@ -56,12 +55,12 @@ impl SolidityExpression {
             Expression::SelfExpression => SoliditySelfExpression {
                 is_lvalue: self.is_lvalue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::SubscriptExpression(s) => SoliditySubscriptExpression {
                 expression: s,
                 is_lvalue: self.is_lvalue,
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::RangeExpression(_) => unimplemented!(),
             Expression::RawAssembly(a, _) => YulExpression::Inline(a),
             Expression::CastExpression(c) => {
@@ -74,7 +73,7 @@ impl SolidityExpression {
                         expression,
                         is_lvalue: self.is_lvalue,
                     }
-                    .generate(function_context);
+                        .generate(function_context);
                     sequence.push(result);
                 }
 
@@ -95,16 +94,12 @@ struct SolidityCastExpression {
 impl SolidityCastExpression {
     pub fn generate(&self, function_context: &mut FunctionContext) -> YulExpression {
         let exp = *self.expression.expression.clone();
-        let enclosing = if exp.enclosing_type().is_some() {
-            let i = exp.enclosing_type().clone();
-            i.unwrap()
-        } else {
-            function_context.enclosing_type.clone()
-        };
+        let enclosing = exp.enclosing_type();
+        let enclosing = if let Some(ref enclosing) = enclosing { enclosing } else { &function_context.enclosing_type };
 
         let original_type = function_context.environment.get_expression_type(
             *self.expression.expression.clone(),
-            &enclosing,
+            enclosing,
             vec![],
             vec![],
             function_context.scope_context.clone(),
@@ -118,7 +113,7 @@ impl SolidityCastExpression {
             expression: *self.expression.expression.clone(),
             is_lvalue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         if original_type_info.0 <= target_type_info.0 {
             return expression_ir;
@@ -279,7 +274,7 @@ impl SoliditySubscriptExpression {
             expression: *expression.index_expression.clone(),
             is_lvalue: false,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         let base_type = function_context.environment.get_expression_type(
             Expression::Identifier(expression.base_expression.clone()),
@@ -343,7 +338,7 @@ impl SolidityBinaryExpression {
                 rhs: *self.expression.rhs_expression.clone(),
                 is_left: self.is_lvalue,
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         if let BinOp::Equal = self.expression.op {
@@ -353,7 +348,7 @@ impl SolidityBinaryExpression {
                 lhs: *lhs,
                 rhs: *rhs,
             }
-            .generate(function_context);
+                .generate(function_context);
         }
 
         let lhs = self.expression.lhs_expression.clone();
@@ -362,12 +357,12 @@ impl SolidityBinaryExpression {
             expression: *lhs,
             is_lvalue: self.is_lvalue,
         }
-        .generate(function_context);
+            .generate(function_context);
         let rhs = SolidityExpression {
             expression: *rhs,
             is_lvalue: self.is_lvalue,
         }
-        .generate(function_context);
+            .generate(function_context);
 
         match self.expression.op {
             BinOp::Plus => SolidityRuntimeFunction::add(lhs, rhs),
@@ -443,7 +438,7 @@ impl SolidityVariableDeclaration {
                 * 32,
         );
         YulExpression::VariableDeclaration(YulVariableDeclaration {
-            declaration: mangle(self.declaration.identifier.token.clone()),
+            declaration: mangle(&self.declaration.identifier.token),
             declaration_type: YulType::Any,
             expression: Option::from(Box::from(allocate)),
         })

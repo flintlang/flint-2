@@ -516,9 +516,7 @@ fn parse_trait_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
 fn parse_trait_modifier(i: Span) -> nom::IResult<Span, FunctionCall> {
     let (i, _) = tag("@")(i)?;
     let (i, fc) = nom::combinator::opt(parse_function_call)(i)?;
-    if fc.is_some() {
-        let fc = fc.clone();
-        let fc = fc.unwrap();
+    if let Some(fc) = fc {
         return Ok((i, fc));
     }
     let (i, identifier) = parse_identifier(i)?;

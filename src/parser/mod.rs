@@ -14,8 +14,6 @@ use nom_locate::LocatedSpan;
 
 use nom::multi::many0;
 
-use crate::environment::Environment;
-
 use crate::parser::declarations::*;
 use crate::parser::operators::*;
 use crate::parser::utils::*;
@@ -23,7 +21,6 @@ use crate::parser::utils::*;
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
     let result = parse_module(input);
-    println!("{:?}", result.clone());
     let module = match result {
         Ok((i, module)) => {
             if !i.fragment().is_empty() {
@@ -34,15 +31,13 @@ pub fn parse_program(i: &str) -> ParseResult {
         Err(_) => (None),
     };
 
-    let mut environment = Environment {
-        ..Default::default()
-    };
-    if module.is_some() {
-        let module = module.unwrap();
+    let mut environment: Environment = Default::default();
+    if let Some(module) = module {
         environment.build(module.clone());
-        return (Option::from(module), environment);
+        (Option::from(module), environment)
+    } else {
+        (module, environment)
     }
-    (module, environment)
 }
 
 fn parse_module(i: Span) -> nom::IResult<Span, Module> {

@@ -37,16 +37,14 @@ impl SolidityFunctionCall {
             })
             .collect();
 
-        let identifier = if self.function_call.mangled_identifier.is_some() {
-            let ident = self.function_call.mangled_identifier.clone();
-            let ident = ident.unwrap();
-            ident.token
+        let identifier = if let Some(ref ident) = self.function_call.mangled_identifier {
+            &ident.token
         } else {
-            self.function_call.identifier.token.clone()
+            &self.function_call.identifier.token
         };
 
         YulExpression::FunctionCall(YulFunctionCall {
-            name: identifier,
+            name: identifier.clone(),
             arguments: args,
         })
     }

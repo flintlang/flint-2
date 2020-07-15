@@ -121,15 +121,11 @@ impl SolidityContract {
             local_variables: vec![],
             counter: 0,
         };
-        let caller_binding = contract_behaviour_declaration.caller_binding.clone();
 
-        if caller_binding.is_some() {
-            let caller_binding = caller_binding.clone();
-            let caller_binding = caller_binding.unwrap();
-
+        if let Some(ref caller_binding) = contract_behaviour_declaration.caller_binding {
             let variable_declaration = VariableDeclaration {
                 declaration_token: None,
-                identifier: caller_binding,
+                identifier: caller_binding.clone(),
                 variable_type: Type::Address,
                 expression: None,
             };
@@ -191,10 +187,8 @@ impl SolidityContract {
             counter: 0,
         };
 
-        let caller_binding = if caller_binding.is_some() {
-            let binding = caller_binding.clone();
-            let binding = binding.unwrap();
-            let binding = mangle(binding.token);
+        let caller_binding = if let Some(ref binding) = contract_behaviour_declaration.caller_binding {
+            let binding = mangle(&binding.token);
             format!("let {binding} := caller()\n", binding = binding)
         } else {
             "".to_string()

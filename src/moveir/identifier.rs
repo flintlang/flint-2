@@ -16,7 +16,7 @@ impl MoveIdentifier {
         force: bool,
         f_call: bool,
     ) -> MoveIRExpression {
-        if self.identifier.enclosing_type.is_some() {
+        if self.identifier.enclosing_type.is_some() {//REMOVEBEFOREFLIGHT
             return if function_context.is_constructor {
                 let name = "__this_".to_owned() + &self.identifier.token.clone();
                 MoveIRExpression::Identifier(name)
@@ -38,7 +38,7 @@ impl MoveIdentifier {
             .generate(function_context, force);
         }
 
-        let ir_identifier = MoveIRExpression::Identifier(mangle(self.identifier.token.clone()));
+        let ir_identifier = MoveIRExpression::Identifier(mangle(&self.identifier.token));
 
         if force {
             return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
@@ -46,7 +46,7 @@ impl MoveIdentifier {
 
         if let Some(identifier_type) = function_context
             .scope_context
-            .type_for(self.identifier.token.clone())
+            .type_for(&self.identifier.token)
         {
             if identifier_type.is_currency_type() && f_call {
                 return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));

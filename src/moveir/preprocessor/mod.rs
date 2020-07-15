@@ -150,7 +150,7 @@ impl Visitor for MovePreProcessor {
             .token;
 
         let mangled_name = mangle_function_move(
-            _t.head.identifier.token.clone(),
+            &_t.head.identifier.token,
             &enclosing_identifier,
             false,
         );
@@ -167,9 +167,7 @@ impl Visitor for MovePreProcessor {
             let new_param_type =
                 Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
-            let mut ident = payable_param.identifier.clone();
-            ident.token = mangle(payable_param_name.clone());
-            payable_param.identifier = ident;
+            payable_param.identifier.token = mangle(&payable_param_name);
             let parameters = _t
                 .head
                 .parameters
@@ -301,7 +299,6 @@ impl Visitor for MovePreProcessor {
             _t.scope_context = Some(scope);
         }
 
-        _ctx.function_call_receiver_trail.clear(); // TODO find the cause of the leak that requires this
         Ok(())
     }
 
@@ -523,6 +520,18 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
+    fn finish_binary_expression(
+        &mut self,
+        _t: &mut BinaryExpression,
+        _ctx: &mut Context
+    ) -> VResult {
+        if let BinOp::Dot = _t.op {
+            _ctx.function_call_receiver_trail.clear();
+        }
+
+        Ok(())
+    }
+
     fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(_t) {
             return Ok(());
@@ -598,7 +607,7 @@ impl Visitor for MovePreProcessor {
 
                 let result_type = match expression.clone() {
                     Expression::Identifier(i) => {
-                        if let Some(ref result) = scope.type_for(i.token) {
+                        if let Some(ref result) = scope.type_for(&i.token) {
                             result.clone()
                         } else {
                             _ctx.environment.get_expression_type(

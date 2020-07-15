@@ -146,7 +146,7 @@ impl MoveContract {
                 let result_type = result_type.generate(&function_context);
                 format!(
                     "resource {name} {{ \n value: {dic_type} \n }}",
-                    name = mangle_dictionary(d.identifier.token),
+                    name = mangle_dictionary(&d.identifier.token),
                     dic_type = result_type
                 )
             })
@@ -157,7 +157,7 @@ impl MoveContract {
         let dict_runtime: Vec<String> = dict_runtime
             .into_iter()
             .map(|d| {
-                let r_name = mangle_dictionary(d.identifier.token);
+                let r_name = mangle_dictionary(&d.identifier.token);
                 let result_type =
                     MoveType::move_type(d.variable_type, Option::from(self.environment.clone()));
                 let result_type = result_type.generate(&function_context);
@@ -449,7 +449,7 @@ impl MoveContract {
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = "Quartz$self".to_string();
+            let shadow = "Quartz$self";
 
             let self_type = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),

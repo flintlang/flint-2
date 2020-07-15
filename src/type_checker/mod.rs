@@ -42,9 +42,8 @@ impl Visitor for TypeChecker {
         _ctx: &mut Context,
     ) -> VResult {
         if _ctx.in_function_or_special() {
-            if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.scope_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            if let Some(context) = _ctx.scope_context.as_mut() {
+                context.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {

@@ -68,12 +68,8 @@ impl Visitable for FunctionArgument {
         v.start_function_argument(self, ctx)?;
 
         ctx.is_function_call_argument_label = true;
-        if self.identifier.is_some() {
-            let ident = self.identifier.clone();
-            let mut ident = ident.unwrap();
-
+        if let Some(ref mut ident) = self.identifier {
             ident.visit(v, ctx)?;
-            self.identifier = Option::from(ident);
         }
         ctx.is_function_call_argument_label = false;
 

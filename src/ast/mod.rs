@@ -336,16 +336,16 @@ pub fn do_vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
     matching == a.len() && matching == b.len()
 }
 
-pub fn mangle(string: String) -> String {
+pub fn mangle(string: &str) -> String {
     format!("_{}", string)
 }
 
-pub fn mangle_dictionary(string: String) -> String {
+pub fn mangle_dictionary(string: &str) -> String {
     format!("_dictionary_{}", string)
 }
 
 #[allow(dead_code)]
-pub fn mangle_function(string: String, t: &TypeIdentifier, is_contract: bool) -> String {
+pub fn mangle_function(string: &str, t: &TypeIdentifier, is_contract: bool) -> String {
     let func_type = if is_contract {
         "".to_string()
     } else {
@@ -354,7 +354,7 @@ pub fn mangle_function(string: String, t: &TypeIdentifier, is_contract: bool) ->
     format!("{func_type}{name}", name = string, func_type = func_type)
 }
 
-pub fn mangle_function_move(string: String, t: &TypeIdentifier, is_contract: bool) -> String {
+pub fn mangle_function_move(string: &str, t: &TypeIdentifier, is_contract: bool) -> String {
     let func_type = if is_contract {
         "".to_string()
     } else {
@@ -363,7 +363,7 @@ pub fn mangle_function_move(string: String, t: &TypeIdentifier, is_contract: boo
     format!("{func_type}{name}", name = string, func_type = func_type)
 }
 
-pub fn mangle_mem(string: String) -> String {
+pub fn mangle_mem(string: &str) -> String {
     format!("{}$isMem", string)
 }
 

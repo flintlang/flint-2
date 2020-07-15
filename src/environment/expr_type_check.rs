@@ -15,9 +15,7 @@ impl ExpressionCheck for Environment {
         match expression {
             Expression::Identifier(i) => {
                 if i.enclosing_type.is_none() {
-                    let result_type = scope.type_for(i.token.clone());
-                    if result_type.is_some() {
-                        let result_type = result_type.unwrap();
+                    if let Some(result_type) = scope.type_for(&i.token) {
                         return if let Type::InoutType(inout) = result_type {
                             *inout.key_type
                         } else {
@@ -26,12 +24,7 @@ impl ExpressionCheck for Environment {
                     }
                 }
 
-                let enclosing_type = if i.enclosing_type.is_some() {
-                    let enclosing = i.enclosing_type.as_ref();
-                    enclosing.unwrap()
-                } else {
-                    t
-                };
+                let enclosing_type = i.enclosing_type.as_ref().unwrap_or(t);
 
                 self.get_property_type(i.token.clone(), enclosing_type, scope)
             }
@@ -137,7 +130,7 @@ impl Environment {
             }
         }
 
-        if scope.type_for(name.clone()).is_some() {
+        if scope.type_for(&name).is_some() {
             unimplemented!()
         }
         Type::Error

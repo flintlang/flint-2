@@ -73,10 +73,8 @@ impl SolidityFunction {
             counter: 0,
         };
 
-        let caller_binding = if self.caller_binding.is_some() {
-            let binding = self.caller_binding.clone();
-            let binding = binding.unwrap();
-            let binding = mangle(binding.token);
+        let caller_binding = if let Some(ref binding) = self.caller_binding {
+            let binding = mangle(&binding.token);
             format!("let {binding} := caller()\n", binding = binding)
         } else {
             "".to_string()

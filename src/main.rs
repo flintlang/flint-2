@@ -83,12 +83,9 @@ fn main() {
     }
     let (module, environment) = parser::parse_program(&program);
 
-    if module.is_none() {
-        println!("Parse Error");
-    }
-
-    if module.is_some() {
-        let module = module.unwrap();
+    if let Some(module) = module {
         let _process_result = ast_processor::process_ast(module, environment, target);
+    } else {
+        println!("Parse Error");
     }
 }

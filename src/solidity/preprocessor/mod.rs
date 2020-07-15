@@ -34,16 +34,13 @@ impl Visitor for SolidityPreProcessor {
         );
         _t.mangled_identifier = Some(mangled_name);
 
-        if _ctx.struct_declaration_context.is_some() {
-            let s_ctx = _ctx.struct_declaration_context.clone();
-            let s_ctx = s_ctx.unwrap();
-
+        if let Some(ref struct_ctx) = _ctx.struct_declaration_context {
             if enclosing_identifier != "Quartz_Global".to_string() {
                 let param = construct_parameter(
                     "QuartzSelf".to_string(),
                     Type::InoutType(InoutType {
                         key_type: Box::new(Type::UserDefinedType(Identifier::generated(
-                            &s_ctx.identifier.token,
+                            &struct_ctx.identifier.token,
                         ))),
                     }),
                 );
@@ -60,7 +57,7 @@ impl Visitor for SolidityPreProcessor {
 
         for (index, (offset, p)) in dynamic_params.into_iter().enumerate().enumerate() {
             let ismem_param =
-                construct_parameter(mangle_mem(p.identifier.token.clone()), Type::Bool);
+                construct_parameter(mangle_mem(&p.identifier.token), Type::Bool);
             _t.head.parameters.insert(index + offset + 1, ismem_param);
         }
 
@@ -198,9 +195,8 @@ impl Visitor for SolidityPreProcessor {
         _ctx: &mut Context,
     ) -> VResult {
         if _ctx.in_function_or_special() {
-            if _ctx.scope_context().is_some() {
-                let context_ref = _ctx.scope_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            if let Some(ref mut context) = _ctx.scope_context {
+                context.local_variables.push(_t.clone());
             }
 
             if _ctx.is_function_declaration_context() {
@@ -236,7 +232,6 @@ impl Visitor for SolidityPreProcessor {
 
             let mangled = mangle_function_call_name(&temp, _ctx);
             if mangled.is_some() {
-                println!("Mangled");
                 let mangled = mangled.unwrap();
                 _t.mangled_identifier = Option::from(Identifier {
                     token: mangled.clone(),
@@ -343,9 +338,8 @@ impl Visitor for SolidityPreProcessor {
             is_external = m.declaration.is_external;
         }
 
-        println!("{:?}", f_call.mangled_identifier);
         let mut f_call = f_call.clone();
-        println!("{:?}", f_call.mangled_identifier);
+
         if !is_external {
             let mut offset = 0;
             let mut index = 0;
@@ -383,13 +377,13 @@ impl Visitor for SolidityPreProcessor {
                         is_mem = Expression::Literal(Literal::BooleanLiteral(true));
                     } else if scope.contains_parameter_declaration(arg_enclosing.token.clone()) {
                         is_mem = Expression::Identifier(Identifier::generated(&mangle_mem(
-                            arg_enclosing.token.clone(),
+                            &arg_enclosing.token,
                         )));
                     }
                 } else if let Expression::InoutExpression(i) = arg.expression.clone() {
                     if let Expression::SelfExpression = *i.expression.clone() {
                         is_mem = Expression::Identifier(Identifier {
-                            token: mangle_mem("QuartzSelf".to_string()),
+                            token: mangle_mem("QuartzSelf"),
                             enclosing_type: None,
                             line_info: Default::default(),
                         });
@@ -408,14 +402,10 @@ impl Visitor for SolidityPreProcessor {
                 offset += 1;
                 index += 1;
             }
-            println!("{:?}", _t.mangled_identifier);
             *_t = f_call;
-            println!("{:?}", _t.mangled_identifier);
         }
 
         _ctx.function_call_receiver_trail = vec![];
-
-        println!("{:?}", _t.mangled_identifier);
 
         Ok(())
     }
