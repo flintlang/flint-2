@@ -18,10 +18,6 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
         ..Default::default()
     };
 
-    println!(
-        "\n\nvvv BLEEEP BLORP vvv\n\n{:#?}\n\n^^^ BLEEEP BLORP ^^^\n\n",
-        module
-    );
     let result = module.visit(type_assigner, context);
 
     match result {
