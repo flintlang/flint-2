@@ -178,8 +178,7 @@ impl ScopeContext {
     }
 
     pub fn type_for(&self, variable: &str) -> Option<Type> {
-        self
-            .local_variables
+        self.local_variables
             .clone()
             .into_iter()
             .chain(
@@ -188,9 +187,7 @@ impl ScopeContext {
                     .into_iter()
                     .map(|p| p.as_variable_declaration()),
             )
-            .find(|v| {
-                v.identifier.token == variable || mangle(variable) == v.identifier.token
-            })
+            .find(|v| v.identifier.token == variable || mangle(variable) == v.identifier.token)
             .map(|i| i.variable_type)
     }
 
@@ -232,7 +229,8 @@ impl ScopeContext {
     ) -> Option<String> {
         let expression_enclosing = expression.enclosing_type();
         let expression_enclosing = expression_enclosing.unwrap_or_default();
-        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {//REMOVEBEFOREFLIGHT
+        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {
+            //REMOVEBEFOREFLIGHT
             let enclosing_identifier = expression.enclosing_identifier().clone();
             let enclosing_identifier = enclosing_identifier.unwrap();
             if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {

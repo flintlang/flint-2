@@ -54,7 +54,8 @@ pub fn convert_default_parameter_functions(
                 })
                 .collect();
 
-            if assigned_function.scope_context.is_some() {//REMOVEBEFOREFLIGHT
+            if assigned_function.scope_context.is_some() {
+                //REMOVEBEFOREFLIGHT
                 let scope = ScopeContext {
                     parameters: assigned_function.head.parameters.clone(),
                     local_variables: vec![],
@@ -98,7 +99,8 @@ pub fn convert_default_parameter_functions(
                 })
                 .collect();
 
-            if assigned_function.head.result_type.is_some() {//REMOVEBEFOREFLIGHT
+            if assigned_function.head.result_type.is_some() {
+                //REMOVEBEFOREFLIGHT
                 let function_call = FunctionCall {
                     identifier: f.head.identifier.clone(),
                     arguments,
@@ -174,7 +176,11 @@ pub fn generate_contract_wrapper(
     context: &mut Context,
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
-    wrapper.mangled_identifier = Option::from(mangle_function_move(&function.head.identifier.token, &"".to_string(), true));
+    wrapper.mangled_identifier = Option::from(mangle_function_move(
+        &function.head.identifier.token,
+        &"".to_string(),
+        true,
+    ));
 
     wrapper.body = vec![];
     wrapper.tags.push("acquires T".to_string());
@@ -383,7 +389,8 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
                     }
                 }
 
-                if i.enclosing_type.is_some() {//REMOVEBEFOREFLIGHT
+                if i.enclosing_type.is_some() {
+                    //REMOVEBEFOREFLIGHT
                     return pre_assign(expression, ctx, borrow, true);
                 }
             }

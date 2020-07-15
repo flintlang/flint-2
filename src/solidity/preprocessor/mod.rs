@@ -56,8 +56,7 @@ impl Visitor for SolidityPreProcessor {
             .collect();
 
         for (index, (offset, p)) in dynamic_params.into_iter().enumerate().enumerate() {
-            let ismem_param =
-                construct_parameter(mangle_mem(&p.identifier.token), Type::Bool);
+            let ismem_param = construct_parameter(mangle_mem(&p.identifier.token), Type::Bool);
             _t.head.parameters.insert(index + offset + 1, ismem_param);
         }
 

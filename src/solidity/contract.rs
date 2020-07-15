@@ -187,12 +187,13 @@ impl SolidityContract {
             counter: 0,
         };
 
-        let caller_binding = if let Some(ref binding) = contract_behaviour_declaration.caller_binding {
-            let binding = mangle(&binding.token);
-            format!("let {binding} := caller()\n", binding = binding)
-        } else {
-            "".to_string()
-        };
+        let caller_binding =
+            if let Some(ref binding) = contract_behaviour_declaration.caller_binding {
+                let binding = mangle(&binding.token);
+                format!("let {binding} := caller()\n", binding = binding)
+            } else {
+                "".to_string()
+            };
 
         let mut statements = initialiser_declaration.body.clone();
         while !statements.is_empty() {

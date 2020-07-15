@@ -16,7 +16,8 @@ impl MoveIdentifier {
         force: bool,
         f_call: bool,
     ) -> MoveIRExpression {
-        if self.identifier.enclosing_type.is_some() {//REMOVEBEFOREFLIGHT
+        if self.identifier.enclosing_type.is_some() {
+            //REMOVEBEFOREFLIGHT
             return if function_context.is_constructor {
                 let name = "__this_".to_owned() + &self.identifier.token.clone();
                 MoveIRExpression::Identifier(name)

@@ -89,7 +89,9 @@ impl Visitable for IfStatement {
         let scope = ctx.scope_context.clone();
         let block = ctx.block_context.clone();
 
-        let blocks_scope = self.if_body_scope_context.clone()
+        let blocks_scope = self
+            .if_body_scope_context
+            .clone()
             .or_else(|| ctx.scope_context.clone())
             .unwrap();
         let block_context = BlockContext {
@@ -139,7 +141,11 @@ impl Visitable for IfStatement {
             };
         }
 
-        let block_scope = self.else_body_scope_context.as_ref().or_else(|| ctx.scope_context.as_ref()).unwrap();
+        let block_scope = self
+            .else_body_scope_context
+            .as_ref()
+            .or_else(|| ctx.scope_context.as_ref())
+            .unwrap();
         let block_context = BlockContext {
             scope_context: block_scope.clone(),
         };
@@ -168,7 +174,9 @@ impl Visitable for IfStatement {
 
         self.else_body_scope_context = if let Some(ref block_ctx) = ctx.block_context {
             Some(block_ctx.scope_context.clone())
-        } else { ctx.scope_context.clone() };
+        } else {
+            ctx.scope_context.clone()
+        };
 
         ctx.scope_context = scope;
         ctx.block_context = block;

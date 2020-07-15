@@ -149,11 +149,8 @@ impl Visitor for MovePreProcessor {
             })
             .token;
 
-        let mangled_name = mangle_function_move(
-            &_t.head.identifier.token,
-            &enclosing_identifier,
-            false,
-        );
+        let mangled_name =
+            mangle_function_move(&_t.head.identifier.token, &enclosing_identifier, false);
         _t.mangled_identifier = Some(mangled_name);
 
         if _t.is_payable() {
@@ -494,7 +491,8 @@ impl Visitor for MovePreProcessor {
             };
             _t.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         } else if let BinOp::Dot = _t.op {
-            _ctx.function_call_receiver_trail.push(*_t.lhs_expression.clone());
+            _ctx.function_call_receiver_trail
+                .push(*_t.lhs_expression.clone());
             match *_t.lhs_expression.clone() {
                 Expression::Identifier(_) => {
                     if let Expression::FunctionCall(_) = *_t.rhs_expression {
@@ -523,7 +521,7 @@ impl Visitor for MovePreProcessor {
     fn finish_binary_expression(
         &mut self,
         _t: &mut BinaryExpression,
-        _ctx: &mut Context
+        _ctx: &mut Context,
     ) -> VResult {
         if let BinOp::Dot = _t.op {
             _ctx.function_call_receiver_trail.clear();

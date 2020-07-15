@@ -398,7 +398,9 @@ pub struct TraitDeclaration {
 
 impl TraitDeclaration {
     pub fn get_module_address(&self) -> Option<String> {
-        let modifiers: Vec<FunctionCall> = self.modifiers.clone()
+        let modifiers: Vec<FunctionCall> = self
+            .modifiers
+            .clone()
             .into_iter()
             .filter(|f| f.identifier.token == "module".to_string())
             .collect();
@@ -572,9 +574,7 @@ impl Visitable for FunctionDeclaration {
 
         if let Some(ref mut scope_context) = ctx.scope_context {
             for parameter in &self.head.parameters {
-                scope_context
-                    .parameters
-                    .push(parameter.clone());
+                scope_context.parameters.push(parameter.clone());
             }
         }
 
@@ -774,9 +774,7 @@ impl Visitable for SpecialDeclaration {
 
         if let Some(ref mut scope_context) = ctx.scope_context {
             for parameter in &self.head.parameters {
-                scope_context
-                    .parameters
-                    .push(parameter.clone());
+                scope_context.parameters.push(parameter.clone());
             }
         }
 
@@ -906,7 +904,7 @@ impl VariableDeclaration {
     pub fn is_constant(&self) -> bool {
         match &self.declaration_token {
             Some(t) => t == "let",
-            _ => false
+            _ => false,
         }
     }
 
@@ -914,7 +912,7 @@ impl VariableDeclaration {
     pub fn is_variable(&self) -> bool {
         match &self.declaration_token {
             Some(t) => t == "var",
-            _ => false
+            _ => false,
         }
     }
 }

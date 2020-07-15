@@ -42,7 +42,9 @@ impl SolidityAssignment {
                         .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type);
                     let enclosing_name = if let Some(ref enclosing_name) = enclosing_name {
                         enclosing_name
-                    } else { "QuartzSelf" };
+                    } else {
+                        "QuartzSelf"
+                    };
 
                     return SolidityRuntimeFunction::store(
                         lhs_code,

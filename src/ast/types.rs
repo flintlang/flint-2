@@ -232,7 +232,7 @@ impl Type {
             "Bool" => Type::Bool,
             "Int" => Type::Int,
             "String" => Type::String,
-            _ => Type::UserDefinedType(identifier)
+            _ => Type::UserDefinedType(identifier),
         }
     }
 }

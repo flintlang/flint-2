@@ -1,6 +1,10 @@
-use crate::environment::*;
-use crate::ast::{FunctionDeclaration, TypeIdentifier, CallerProtection, FunctionInformation, do_vecs_match, FunctionSignatureDeclaration, TypeInfo, FunctionCall, Type, VariableDeclaration, FunctionArgument};
+use crate::ast::{
+    do_vecs_match, CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration,
+    FunctionInformation, FunctionSignatureDeclaration, Type, TypeIdentifier, TypeInfo,
+    VariableDeclaration,
+};
 use crate::context::ScopeContext;
+use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
 
 impl Environment {
@@ -33,20 +37,13 @@ impl Environment {
                     modifiers: vec![],
                 },
             );
-            self.types
-                .get_mut(t).unwrap()
+            self.types.get_mut(t).unwrap()
         };
 
-        if let Some(function_set) = type_info
-            .functions
-            .get_mut(&name)
-        {
-            function_set
-                .push(function_information);
+        if let Some(function_set) = type_info.functions.get_mut(&name) {
+            function_set.push(function_information);
         } else {
-            type_info
-                .functions
-                .insert(name, vec![function_information]);
+            type_info.functions.insert(name, vec![function_information]);
         }
     }
 
@@ -54,15 +51,16 @@ impl Environment {
         let name = function.head.identifier.token.clone();
         if let Some(type_info) = self.types.get_mut(t) {
             if let Some(function_set) = type_info.functions.remove(&name) {
-                let function_set = function_set.into_iter()
+                let function_set = function_set
+                    .into_iter()
                     .filter(|f| {
                         /* The original code had this without the !(..), it was added
-                            as it seems to be the desired intent */
+                        as it seems to be the desired intent */
                         !(f.declaration.head.identifier.token == name
                             && do_vecs_match(
-                            &f.declaration.parameters_and_types(),
-                            &function.parameters_and_types(),
-                        ))
+                                &f.declaration.parameters_and_types(),
+                                &function.parameters_and_types(),
+                            ))
                     })
                     .collect();
                 type_info.functions.insert(name, function_set);
@@ -95,13 +93,10 @@ impl Environment {
             ..Default::default()
         };
         if let Some(type_info) = self.types.get_mut(t) {
-            if let Some(function_set) = type_info.functions
-                    .get_mut(&name) {
-                    function_set.push(function_information);
+            if let Some(function_set) = type_info.functions.get_mut(&name) {
+                function_set.push(function_information);
             } else {
-                type_info
-                    .functions
-                    .insert(name, vec![function_information]);
+                type_info.functions.insert(name, vec![function_information]);
             }
         } else {
             self.types.insert(
@@ -238,7 +233,6 @@ impl Environment {
         if type_info.is_some() {
             let initialisers = &type_info.unwrap().initialisers;
             for initialiser in initialisers {
-
                 let parameter_types = initialiser.parameter_types();
                 let mut equal_types = true;
                 for argument_type in argument_types.clone() {
@@ -343,7 +337,6 @@ impl Environment {
                 self.get_expression_type(a.expression.clone(), t, vec![], vec![], scope.clone())
             })
             .collect();
-
 
         let regular_match =
             self.match_regular_function(f.clone(), t, caller_protections.clone(), scope.clone());
