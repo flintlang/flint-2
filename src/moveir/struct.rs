@@ -1,12 +1,21 @@
-use crate::moveir::*;
+use crate::ast::{StructDeclaration, StructMember, Type, SpecialDeclaration, FunctionDeclaration, Identifier, VariableDeclaration, Statement, Expression, BinOp};
+use crate::environment::Environment;
+use crate::context::ScopeContext;
+use super::function::{FunctionContext, MoveFunction};
+use super::ir::{MoveIRBlock, MoveIRExpression, MoveIRStatement, MoveIRVariableDeclaration, MoveIRTransfer, MoveIRStructConstructor, MoveIRType};
+use super::MovePosition;
+use super::statement::MoveStatement;
+use super::r#type::MoveType;
+use super::declaration::MoveFieldDeclaration;
+use super::identifier::MoveIdentifier;
 
-pub struct MoveStruct {
+pub(crate) struct MoveStruct {
     pub struct_declaration: StructDeclaration,
     pub environment: Environment,
 }
 
 impl MoveStruct {
-    pub fn generate(&self) -> String {
+    pub(crate) fn generate(&self) -> String {
         let function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: Default::default(),
@@ -74,12 +83,12 @@ impl MoveStruct {
             .into_iter()
             .map(|i| {
                 MoveStructInitialiser {
-                    declaration: i.clone(),
+                    declaration: i,
                     identifier: self.struct_declaration.identifier.clone(),
                     environment: self.environment.clone(),
                     properties: self.struct_declaration.get_variable_declarations(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
         initialisers.join("\n\n")
@@ -102,19 +111,19 @@ impl MoveStruct {
             .into_iter()
             .map(|f| {
                 MoveFunction {
-                    function_declaration: f.clone(),
+                    function_declaration: f,
                     environment: self.environment.clone(),
                     is_contract_function: false,
                     enclosing_type: self.struct_declaration.identifier.clone(),
                 }
-                .generate(true)
+                    .generate(true)
             })
             .collect();
         functions.join("\n\n")
     }
 }
 
-pub struct MoveStructInitialiser {
+pub(crate) struct MoveStructInitialiser {
     pub declaration: SpecialDeclaration,
     pub identifier: Identifier,
     pub environment: Environment,
@@ -168,7 +177,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
 
@@ -213,7 +222,7 @@ impl MoveStructInitialiser {
                     property.variable_type,
                     Option::from(self.environment.clone()),
                 )
-                .generate(&function_context);
+                    .generate(&function_context);
                 let name = format!("__this_{}", property.identifier.token);
                 function_context.emit(MoveIRStatement::Expression(
                     MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
@@ -237,10 +246,8 @@ impl MoveStructInitialiser {
                         if let BinOp::Equal = b.op {
                             match *b.lhs_expression {
                                 Expression::Identifier(i) => {
-                                    if i.enclosing_type.is_some() {
-                                        let enclosing = i.enclosing_type.clone();
-                                        let enclosing = enclosing.unwrap();
-                                        if enclosing == self.identifier.token.clone() {
+                                    if let Some(ref enclosing) = i.enclosing_type {
+                                        if self.identifier.token == *enclosing {
                                             unassigned = unassigned
                                                 .into_iter()
                                                 .filter(|u| u.token != i.token)
@@ -277,13 +284,11 @@ impl MoveStructInitialiser {
             let fields = fields
                 .into_iter()
                 .map(|f| {
+                    let name = format!("__this_{}", f.identifier.token);
                     (
-                        f.identifier.token.clone(),
+                        f.identifier.token,
                         MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
-                            MoveIRExpression::Identifier(format!(
-                                "__this_{}",
-                                f.identifier.token.clone()
-                            )),
+                            MoveIRExpression::Identifier(name),
                         ))),
                     )
                 })
@@ -307,7 +312,7 @@ impl MoveStructInitialiser {
                     Type::type_from_identifier(self.identifier.clone()),
                     Option::from(self.environment.clone()),
                 )
-                .generate(&function_context);
+                    .generate(&function_context);
 
                 let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier: "this".to_string(),
@@ -326,7 +331,7 @@ impl MoveStructInitialiser {
         };
 
         format!(
-            "{modifiers}{name}({parameters}): {result_type} {{ \n\n {body} \n\n }}",
+            "{modifiers} {name}_init({parameters}): {result_type} {{ \n\n {body} \n\n }}",
             modifiers = modifiers,
             result_type = result_type,
             name = self.identifier.token,

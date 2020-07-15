@@ -1,4 +1,5 @@
-use crate::moveir::*;
+use core::fmt;
+use crate::ast::{Identifier, Expression};
 
 #[derive(Debug, Clone)]
 pub struct MoveIRBlock {
@@ -129,10 +130,8 @@ pub struct MoveIRVector {
 
 impl fmt::Display for MoveIRVector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.vec_type.is_some() {
-            let move_type = self.vec_type.clone();
-            let move_type = move_type.unwrap();
-            write!(f, "Vector.empty<{move_type}>()", move_type = move_type)
+        if let Some(ref move_type) = self.vec_type {
+            write!(f, "Vector.empty<{move_type}>()", move_type = *move_type)
         } else {
             write!(f, "Vector.empty<>()")
         }
@@ -209,7 +208,7 @@ impl fmt::Display for MoveIRTransfer {
 #[derive(Debug, Clone)]
 pub struct MoveIRAssignment {
     pub identifier: String,
-    pub expresion: Box<MoveIRExpression>,
+    pub expression: Box<MoveIRExpression>,
 }
 
 impl fmt::Display for MoveIRAssignment {
@@ -218,7 +217,7 @@ impl fmt::Display for MoveIRAssignment {
             f,
             "{identifier} = {expression}",
             identifier = self.identifier,
-            expression = self.expresion
+            expression = self.expression
         )
     }
 }
@@ -267,9 +266,7 @@ pub struct MoveIRIf {
 
 impl fmt::Display for MoveIRIf {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let else_block = if self.else_block.is_some() {
-            let block = self.else_block.clone();
-            let block = block.unwrap();
+        let else_block = if let Some(ref block) = self.else_block {
             block.to_string()
         } else {
             "{}".to_string()
@@ -355,7 +352,7 @@ impl fmt::Display for MoveIRType {
             MoveIRType::U64 => write!(f, "u64"),
             MoveIRType::Address => write!(f, "address"),
             MoveIRType::Bool => write!(f, "bool"),
-            MoveIRType::ByteArray => write!(f, "bytearray"),
+            MoveIRType::ByteArray => write!(f, "vector<u8>"),
             MoveIRType::Resource(s) => write!(f, "{}", s),
             MoveIRType::StructType(s) => write!(f, "{}", s),
             MoveIRType::MutableReference(base) => write!(f, "&mut {base}", base = base),

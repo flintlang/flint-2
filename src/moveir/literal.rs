@@ -1,8 +1,5 @@
-use crate::moveir::*;
-
-pub struct MoveLiteralToken {
-    pub token: Literal,
-}
+use crate::ast::Literal;
+use super::ir::MoveIRLiteral;
 
 impl MoveLiteralToken {
     pub fn generate(&self) -> MoveIRLiteral {
@@ -14,4 +11,8 @@ impl MoveLiteralToken {
             Literal::FloatLiteral(_) => panic!("Floats not currently supported"),
         }
     }
+}
+
+pub(crate) struct MoveLiteralToken {
+    pub token: Literal,
 }

@@ -1,6 +1,9 @@
-use crate::moveir::*;
+use crate::ast::VariableDeclaration;
+use super::function::FunctionContext;
+use super::ir::{MoveIRExpression, MoveIRFieldDeclaration, MoveIRVariableDeclaration};
+use super::r#type::MoveType;
 
-pub struct MoveFieldDeclaration {
+pub(crate) struct MoveFieldDeclaration {
     pub declaration: VariableDeclaration,
 }
 
@@ -10,7 +13,7 @@ impl MoveFieldDeclaration {
             self.declaration.variable_type.clone(),
             Option::from(function_context.environment.clone()),
         )
-        .generate(function_context);
+            .generate(function_context);
 
         MoveIRExpression::FieldDeclaration(MoveIRFieldDeclaration {
             identifier: self.declaration.identifier.token.clone(),
@@ -20,7 +23,7 @@ impl MoveFieldDeclaration {
     }
 }
 
-pub struct MoveVariableDeclaration {
+pub(crate) struct MoveVariableDeclaration {
     pub declaration: VariableDeclaration,
 }
 
@@ -30,7 +33,7 @@ impl MoveVariableDeclaration {
             self.declaration.variable_type.clone(),
             Option::from(function_context.environment.clone()),
         )
-        .generate(function_context);
+            .generate(function_context);
 
         if self.declaration.identifier.is_self() {
             return MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {

@@ -1,7 +1,10 @@
-use crate::moveir::*;
+use super::function::FunctionContext;
+use super::ir::MoveIRType;
+use crate::ast::{Identifier, Type, FunctionCall, TypeIdentifier};
+use crate::environment::Environment;
 
 #[derive(Debug, Clone)]
-pub enum MoveType {
+pub(crate) enum MoveType {
     U64,
     Address,
     Bool,
@@ -34,7 +37,7 @@ impl MoveType {
                     let string = format!("Self.{}", s);
                     return MoveIRType::Resource(string);
                 }
-                if function_context.enclosing_type == s.to_string() {
+                if function_context.enclosing_type == *s {
                     let string = "Self.T".to_string();
                     return MoveIRType::Resource(string);
                 }
@@ -46,7 +49,7 @@ impl MoveType {
             }
             MoveType::StructType(s) => {
                 let string = s.clone();
-                if string == "LibraCoin.T".to_string() {
+                if string == "Libra.Libra<LBR.LBR>" {
                     return MoveIRType::StructType(string);
                 }
                 let string = format!("Self.{}", string);
@@ -82,38 +85,36 @@ impl MoveType {
             }
             Type::DictionaryType(d) => MoveType::move_type(*d.value_type, None),
             Type::UserDefinedType(i) => {
-                if environment.is_some() {
-                    let environment_value = environment.unwrap();
-                    if MoveType::is_resource_type(original.clone(), &i.token, &environment_value) {
-                        return MoveType::Resource(i.token.clone());
-                    } else if original.is_external_contract(environment_value.clone()) {
+                if let Some(environment) = environment {
+                    if MoveType::is_resource_type(original.clone(), &i.token, &environment) {
+                        return MoveType::Resource(i.token);
+                    } else if original.is_external_contract(environment.clone()) {
                         return MoveType::Address;
-                    } else if original.is_external_module(environment_value.clone()) {
-                        let type_info = environment_value.types.get(&i.token);
-                        if type_info.is_some() {
-                            let type_info = type_info.unwrap();
-                            let modifiers = type_info.modifiers.clone();
-                            let modifiers: Vec<FunctionCall> = modifiers
+                    } else if original.is_external_module(environment.clone()) {
+                        if let Some(type_info) = environment.types.get(&i.token) {
+                            let modifiers: Vec<FunctionCall> = type_info
+                                .modifiers
+                                .clone()
                                 .into_iter()
-                                .filter(|m| m.identifier.token == "resource".to_string())
+                                .filter(|m| m.identifier.token == "resource")
                                 .collect();
-                            if modifiers.is_empty() {
-                                return MoveType::External(
-                                    i.token.clone(),
+                            return if modifiers.is_empty() {
+                                MoveType::External(
+                                    i.token,
                                     Box::from(MoveType::StructType("T".to_string())),
-                                );
+                                )
                             } else {
-                                return MoveType::External(
-                                    i.token.clone(),
+                                MoveType::External(
+                                    i.token,
                                     Box::from(MoveType::Resource("T".to_string())),
-                                );
-                            }
+                                )
+                            };
                         }
                     }
-                    if environment_value.is_enum_declared(&i.token) {
+                    if environment.is_enum_declared(&i.token) {
                         unimplemented!()
                     } else {
-                        MoveType::StructType(i.token.clone())
+                        MoveType::StructType(i.token)
                     }
                 } else {
                     MoveType::StructType(i.token)
@@ -138,8 +139,7 @@ impl MoveType {
         match self {
             MoveType::Resource(_) => true,
             MoveType::External(_, v) => {
-                let ext = v.clone();
-                if let MoveType::Resource(_) = *ext {
+                if let MoveType::Resource(_) = **v {
                     return true;
                 }
                 false
@@ -149,27 +149,37 @@ impl MoveType {
     }
 }
 
-pub struct MoveRuntimeTypes {}
+pub(crate) mod move_runtime_types {
+    use crate::moveir::ir::MoveIRStatement;
 
-impl MoveRuntimeTypes {
     pub fn get_all_declarations() -> Vec<String> {
-        let libra = "resource Libra_Coin {{ \n coin: LibraCoin.T  \n }}".to_string();
+        vec![]
+        /* TURN OFF LIBRA
+        let libra = "resource Libra_Coin { \n coin: Libra.Libra<LBR.LBR>  \n }".to_string();
         vec![libra]
+        */
     }
 
     pub fn get_all_imports() -> Vec<MoveIRStatement> {
-        let libra = MoveIRStatement::Import(MoveIRModuleImport {
-            name: "LibraCoin".to_string(),
-            address: "0x0".to_string(),
+        vec![]
+        /* TURN OFF LIBRA
+        let lbr = MoveIRStatement::Import(MoveIRModuleImport {
+            name: "LBR".to_string(),
+            address: "0x1".to_string(),
         });
         let libra_account = MoveIRStatement::Import(MoveIRModuleImport {
             name: "LibraAccount".to_string(),
-            address: "0x0".to_string(),
+            address: "0x1".to_string(),
         });
         let vector = MoveIRStatement::Import(MoveIRModuleImport {
             name: "Vector".to_string(),
-            address: "0x0".to_string(),
+            address: "0x1".to_string(),
         });
-        vec![libra, libra_account, vector]
+        let libra = MoveIRStatement::Import(MoveIRModuleImport {
+            name: "Libra".to_string(),
+            address: "0x1".to_string(),
+        });
+        vec![lbr, libra_account, vector, libra]
+        */
     }
 }

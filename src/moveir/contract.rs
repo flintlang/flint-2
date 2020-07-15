@@ -1,4 +1,18 @@
-use crate::moveir::*;
+use crate::ast::{ContractDeclaration, ContractBehaviourDeclaration, StructDeclaration, AssetDeclaration, TraitDeclaration, FunctionDeclaration, ContractBehaviourMember, VariableDeclaration, ContractMember, mangle_dictionary, Identifier, Statement, Expression, BinOp, Type, InoutType, mangle};
+use crate::environment::Environment;
+use super::ir::{MoveIRModuleImport, MoveIRStatement, MoveIRExpression, MoveIRType, MoveIRBlock, MoveIRVariableDeclaration, MoveIRAssignment, MoveIRTransfer, MoveIRStructConstructor};
+use super::function::{FunctionContext, MoveFunction};
+use super::asset::MoveAsset;
+use crate::context::ScopeContext;
+use super::MovePosition;
+use super::statement::MoveStatement;
+use super::r#type::{move_runtime_types, MoveType};
+use super::runtime_function::MoveRuntimeFunction;
+use super::identifier::MoveIdentifier;
+use super::declaration::MoveFieldDeclaration;
+use super::expression::MoveExpression;
+use super::r#struct::MoveStruct;
+use crate::moveir::identifier::MoveSelf;
 
 pub struct MoveContract {
     pub contract_declaration: ContractDeclaration,
@@ -10,32 +24,29 @@ pub struct MoveContract {
 }
 
 impl MoveContract {
-    pub fn generate(&self) -> String {
+    pub(crate) fn generate(&self) -> String {
         let imports = self.external_traits.clone();
-        let imports: Vec<TraitDeclaration> = imports
-            .into_iter()
-            .filter(|i| i.get_module_address().is_some())
-            .collect();
         let mut imports: Vec<MoveIRStatement> = imports
             .into_iter()
-            .map(|i| {
-                let module_address = i.get_module_address();
-                let module_address = module_address.unwrap();
-                MoveIRStatement::Import(MoveIRModuleImport {
-                    name: i.identifier.token,
-                    address: module_address,
+            .filter_map(|i| {
+                i.get_module_address().map(|module_address| {
+                    MoveIRStatement::Import(MoveIRModuleImport {
+                        name: i.identifier.token,
+                        address: module_address,
+                    })
                 })
             })
             .collect();
-        let mut runtime_imports = MoveRuntimeTypes::get_all_imports();
+        let mut runtime_imports = move_runtime_types::get_all_imports();
         imports.append(&mut runtime_imports);
-        let imports = imports.clone();
 
-        let import_code: Vec<String> = imports.into_iter().map(|a| format!("{}", a)).collect();
-        let import_code = import_code.join("\n");
+        let import_code = imports
+            .into_iter()
+            .map(|a| format!("{}", a))
+            .collect::<Vec<String>>()
+            .join("\n");
 
-        let runtime_funcions = MoveRuntimeFunction::get_all_functions();
-        let runtime_functions = runtime_funcions.join("\n\n");
+        let runtime_functions = MoveRuntimeFunction::get_all_functions().join("\n\n");
 
         let functions: Vec<FunctionDeclaration> = self
             .contract_behaviour_declarations
@@ -127,7 +138,7 @@ impl MoveContract {
                 let result_type = result_type.generate(&function_context);
                 format!(
                     "resource {name} {{ \n value: {dic_type} \n }}",
-                    name = mangle_dictionary(d.identifier.token.clone()),
+                    name = mangle_dictionary(d.identifier.token),
                     dic_type = result_type
                 )
             })
@@ -138,11 +149,9 @@ impl MoveContract {
         let dict_runtime: Vec<String> = dict_runtime
             .into_iter()
             .map(|d| {
-                let r_name = mangle_dictionary(d.identifier.token.clone());
-                let result_type = MoveType::move_type(
-                    d.variable_type.clone(),
-                    Option::from(self.environment.clone()),
-                );
+                let r_name = mangle_dictionary(d.identifier.token);
+                let result_type =
+                    MoveType::move_type(d.variable_type, Option::from(self.environment.clone()));
                 let result_type = result_type.generate(&function_context);
                 format!(
                     "_get_{r_name}(__address_this: address): {r_type} acquires {r_name} {{
@@ -183,7 +192,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != "Quartz_Global".to_string())
+            .filter(|s| s.identifier.token != "Quartz_Global")
             .collect();
         let mut structs: Vec<String> = structs
             .into_iter()
@@ -192,12 +201,11 @@ impl MoveContract {
                     struct_declaration: s,
                     environment: self.environment.clone(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
-        let mut runtime_structs = MoveRuntimeTypes::get_all_declarations();
+        let mut runtime_structs = move_runtime_types::get_all_declarations();
         structs.append(&mut runtime_structs);
-        let structs = structs.clone();
         let structs = structs.join("\n\n");
 
         let struct_functions: Vec<String> = self
@@ -209,7 +217,7 @@ impl MoveContract {
                     struct_declaration: s,
                     environment: self.environment.clone(),
                 }
-                .generate_all_functions()
+                    .generate_all_functions()
             })
             .collect();
         let struct_functions = struct_functions.join("\n\n");
@@ -223,7 +231,7 @@ impl MoveContract {
                     declaration: a,
                     environment: self.environment.clone(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
         let assets = assets.join("\n");
@@ -237,7 +245,7 @@ impl MoveContract {
                     declaration: s,
                     environment: self.environment.clone(),
                 }
-                .generate_all_functions()
+                    .generate_all_functions()
             })
             .collect();
         let asset_functions = asset_functions.join("\n\n");
@@ -281,7 +289,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
         let params: Vec<String> = params.into_iter().map(|i| format!("{}", i)).collect();
@@ -294,7 +302,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, true, false)
+                    .generate(&function_context, true, false)
             })
             .collect();
         let params_values: Vec<String> = params_values
@@ -321,7 +329,7 @@ impl MoveContract {
 
         let parameters = parameters.join(", ");
 
-        let mut statements = initialiser_declaration.body.clone();
+        let mut statements = initialiser_declaration.body;
         let properties = self
             .contract_declaration
             .get_variable_declarations_without_dict();
@@ -343,12 +351,28 @@ impl MoveContract {
                 Option::from(self.environment.clone()),
             );
             let property_type = property_type.generate(&function_context);
+            let identifier = format!("__this_{}", property.identifier.token);
             function_context.emit(MoveIRStatement::Expression(
                 MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                    identifier: format!("__this_{}", property.identifier.token),
+                    identifier: identifier.clone(),
                     declaration_type: property_type,
                 }),
             ));
+
+            if let Some(expr) = property.expression {
+                function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                    MoveIRAssignment {
+                        identifier,
+                        expression: Box::from(
+                            MoveExpression {
+                                expression: *expr,
+                                position: Default::default(),
+                            }
+                                .generate(&function_context),
+                        ),
+                    },
+                )))
+            }
         }
 
         let unassigned = self
@@ -363,10 +387,8 @@ impl MoveContract {
                 if let Expression::BinaryExpression(b) = e {
                     if let BinOp::Equal = b.op {
                         if let Expression::Identifier(i) = *b.lhs_expression.clone() {
-                            if i.enclosing_type.is_some() {
-                                let enclosing = i.enclosing_type.clone();
-                                let enclosing = enclosing.unwrap();
-                                if enclosing == self.contract_declaration.identifier.token.clone() {
+                            if let Some(ref enclosing) = i.enclosing_type {
+                                if *enclosing == self.contract_declaration.identifier.token {
                                     unassigned = unassigned
                                         .into_iter()
                                         .filter(|u| u.token != i.token)
@@ -394,7 +416,7 @@ impl MoveContract {
                 let move_statement = MoveStatement {
                     statement: statement.clone(),
                 }
-                .generate(&mut function_context);
+                    .generate(&mut function_context);
                 function_context.emit(move_statement);
             }
         }
@@ -427,7 +449,7 @@ impl MoveContract {
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
             )
-            .generate(&function_context);
+                .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                 identifier: "this".to_string(),
@@ -436,7 +458,7 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: mangle(shadow.clone()),
+                identifier: mangle(shadow),
                 declaration_type: self_type,
             });
 
@@ -447,7 +469,7 @@ impl MoveContract {
                 position: Default::default(),
             };
             let self_identifier = Identifier {
-                token: self_identifier.token.clone(),
+                token: self_identifier.token,
                 enclosing_type: None,
                 line_info: Default::default(),
             };

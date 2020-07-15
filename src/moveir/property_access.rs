@@ -1,7 +1,12 @@
-use crate::moveir::*;
+use super::MovePosition;
+use super::ir::{MoveIRExpression, MoveIROperation};
+use super::function::FunctionContext;
+use crate::ast::Expression;
+use super::expression::MoveExpression;
+use super::identifier::MoveIdentifier;
 
 #[derive(Debug)]
-pub struct MovePropertyAccess {
+pub(crate) struct MovePropertyAccess {
     pub left: Expression,
     pub right: Expression,
     pub position: MovePosition,
@@ -12,25 +17,25 @@ impl MovePropertyAccess {
         if let Expression::Identifier(e) = self.left.clone() {
             if let Expression::Identifier(p) = self.right.clone() {
                 if function_context.environment.is_enum_declared(&e.token) {
-                    let property = function_context.environment.property(p.token, &e.token);
-                    if property.is_some() {
+                    if let Some(property) = function_context.environment.property(p.token, &e.token)
+                    {
                         return MoveExpression {
-                            expression: property.unwrap().property.get_value().unwrap(),
+                            expression: property.property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                        .generate(function_context);
+                            .generate(function_context);
                     }
                 }
             }
         }
-        let rhs_enclosing = self.right.enclosing_identifier();
-        if rhs_enclosing.is_some() {
+
+        if let Some(rhs_enclosing) = self.right.enclosing_identifier() {
             if function_context.is_constructor {
                 return MoveIdentifier {
-                    identifier: rhs_enclosing.unwrap(),
+                    identifier: rhs_enclosing,
                     position: self.position.clone(),
                 }
-                .generate(function_context, false, false);
+                    .generate(function_context, false, false);
             }
             let position = if let MovePosition::Inout = self.position {
                 MovePosition::Inout
@@ -41,23 +46,24 @@ impl MovePropertyAccess {
                 expression: self.left.clone(),
                 position,
             }
-            .generate(function_context);
+                .generate(function_context);
             if f_call {
                 let exp = lhs.clone();
                 if let MoveIRExpression::Operation(o) = exp {
                     if let MoveIROperation::Dereference(e) = o {
                         return MoveIRExpression::Operation(MoveIROperation::Access(
                             e,
-                            rhs_enclosing.unwrap().token,
+                            rhs_enclosing.token,
                         ));
                     }
                 }
             }
-            return MoveIRExpression::Operation(MoveIROperation::Access(
+            MoveIRExpression::Operation(MoveIROperation::Access(
                 Box::from(lhs),
-                rhs_enclosing.unwrap().token,
-            ));
+                rhs_enclosing.token,
+            ))
+        } else {
+            panic!("Fatal Error: {:?}", self)
         }
-        panic!("Fatal Error: {:?}", self.right.clone())
     }
 }

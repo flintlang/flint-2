@@ -1,4 +1,9 @@
-use crate::moveir::*;
+use crate::ast::{AssetDeclaration, AssetMember, SpecialDeclaration, FunctionDeclaration};
+use crate::environment::Environment;
+use super::function::{FunctionContext, MoveFunction};
+use super::ir::{MoveIRBlock, MoveIRExpression};
+use super::declaration::MoveFieldDeclaration;
+use super::r#struct::MoveStructInitialiser;
 
 pub struct MoveAsset {
     pub declaration: AssetDeclaration,
@@ -6,7 +11,7 @@ pub struct MoveAsset {
 }
 
 impl MoveAsset {
-    pub fn generate(&self) -> String {
+    pub(crate) fn generate(&self) -> String {
         let function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: Default::default(),
@@ -65,12 +70,12 @@ impl MoveAsset {
             .into_iter()
             .map(|i| {
                 MoveStructInitialiser {
-                    declaration: i.clone(),
+                    declaration: i,
                     identifier: self.declaration.identifier.clone(),
                     environment: self.environment.clone(),
                     properties: self.declaration.get_variable_declarations(),
                 }
-                .generate()
+                    .generate()
             })
             .collect();
         initialisers.join("\n\n")
@@ -84,21 +89,22 @@ impl MoveAsset {
             .into_iter()
             .filter_map(|m| {
                 if let AssetMember::FunctionDeclaration(f) = m {
-                    return Some(f);
+                    Some(f)
+                } else {
+                    None
                 }
-                None
             })
             .collect();
         let functions: Vec<String> = functions
             .into_iter()
             .map(|f| {
                 MoveFunction {
-                    function_declaration: f.clone(),
+                    function_declaration: f,
                     environment: self.environment.clone(),
                     is_contract_function: false,
                     enclosing_type: self.declaration.identifier.clone(),
                 }
-                .generate(true)
+                    .generate(true)
             })
             .collect();
         functions.join("\n\n")

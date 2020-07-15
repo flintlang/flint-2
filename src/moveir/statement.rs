@@ -1,11 +1,15 @@
-use crate::moveir::*;
+use super::function::FunctionContext;
+use super::ir::{MoveIRStatement, MoveIRIf, MoveIRExpression, MoveIRAssignment};
+use crate::ast::{EmitStatement, ForStatement, BecomeStatement, ReturnStatement, IfStatement, Statement, Identifier};
+use super::expression::MoveExpression;
+use super::call::MoveFunctionCall;
 
 pub struct MoveStatement {
     pub statement: Statement,
 }
 
 impl MoveStatement {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
+    pub(crate) fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
         match self.statement.clone() {
             Statement::ReturnStatement(r) => {
                 MoveReturnStatement { statement: r }.generate(function_context)
@@ -15,7 +19,7 @@ impl MoveStatement {
                     expression: e,
                     position: Default::default(),
                 }
-                .generate(function_context),
+                    .generate(function_context),
             ),
             Statement::BecomeStatement(b) => {
                 MoveBecomeStatement { statement: b }.generate(function_context)
@@ -44,7 +48,7 @@ impl MoveIfStatement {
             expression: self.statement.condition.clone(),
             position: Default::default(),
         }
-        .generate(function_context);
+            .generate(function_context);
         println!("With new block");
         let count = function_context.push_block();
         for statement in self.statement.body.clone() {
@@ -81,10 +85,10 @@ impl MoveReturnStatement {
             expression,
             position: Default::default(),
         }
-        .generate(&function_context);
+            .generate(&function_context);
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
-            expresion: Box::from(expression),
+            expression: Box::from(expression),
         });
         function_context.emit(MoveIRStatement::Expression(assignment));
 
@@ -134,7 +138,7 @@ impl MoveEmitStatement {
                 function_call: self.statement.function_call.clone(),
                 module_name: "Self".to_string(),
             }
-            .generate(function_context)
+                .generate(function_context)
         ))
     }
 }

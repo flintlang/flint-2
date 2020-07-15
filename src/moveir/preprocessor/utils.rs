@@ -1,4 +1,10 @@
-use crate::moveir::preprocessor::*;
+use crate::ast::{Expression, InoutExpression, Identifier, Statement, BinaryExpression, Type, BinOp, FunctionCall, mangle_function_move, FunctionDeclaration, TypeIdentifier, Parameter, FunctionArgument, ReturnStatement, mangle, ContractBehaviourDeclaration, VariableDeclaration, CallerProtection, InoutType};
+use crate::moveir::function::FunctionContext;
+use crate::context::{Context, ScopeContext};
+use crate::environment::{FunctionCallMatchResult, Environment, CallableInformation};
+use crate::type_checker::ExpressionCheck;
+use crate::moveir::ir::MoveIRBlock;
+use crate::moveir::expression::MoveExpression;
 
 pub fn convert_default_parameter_functions(
     base: FunctionDeclaration,
@@ -54,10 +60,9 @@ pub fn convert_default_parameter_functions(
 
             _ctx.environment.remove_function(f, t);
 
-            let protections = if _ctx.contract_behaviour_declaration_context.is_some() {
-                let temp = _ctx.contract_behaviour_declaration_context.clone();
-                let temp = temp.unwrap();
-                temp.caller_protections.clone()
+            let protections = if let Some(ref context) = _ctx.contract_behaviour_declaration_context
+            {
+                context.caller_protections.clone()
             } else {
                 vec![]
             };
@@ -76,13 +81,13 @@ pub fn convert_default_parameter_functions(
                         let mut expression = parameter.expression.as_ref().unwrap().clone();
                         expression.assign_enclosing_type(t);
                         FunctionArgument {
-                            identifier: Some(p.identifier.clone()),
+                            identifier: Some(p.identifier),
                             expression,
                         }
                     } else {
                         FunctionArgument {
                             identifier: Some(p.identifier.clone()),
-                            expression: Expression::Identifier(p.identifier.clone()),
+                            expression: Expression::Identifier(p.identifier),
                         }
                     }
                 })
@@ -122,14 +127,13 @@ pub fn convert_default_parameter_functions(
 }
 
 pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
-    let scope = ctx.scope_context.clone();
-    if scope.is_some() {
+    if let Some(ref scope) = ctx.scope_context {
         let declarations = scope
-            .unwrap()
             .local_variables
+            .clone()
             .into_iter()
             .map(|v| {
-                let mut declaration = v.clone();
+                let mut declaration = v;
                 if !declaration.identifier.is_self() {
                     let name = declaration.identifier.token.clone();
                     declaration.identifier = Identifier {
@@ -148,7 +152,6 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
 
 pub fn delete_declarations(statements: Vec<Statement>) -> Vec<Statement> {
     statements
-        .clone()
         .into_iter()
         .filter(|s| {
             if let Statement::Expression(e) = s.clone() {
@@ -173,7 +176,7 @@ pub fn generate_contract_wrapper(
     wrapper.body = vec![];
     wrapper.tags.push("acquires T".to_string());
 
-    if !function.is_void() & &!function.body.is_empty() {
+    if !function.is_void() && !function.body.is_empty() {
         let mut func = function.clone();
         wrapper.body.push(func.body.remove(0));
     }
@@ -210,9 +213,9 @@ pub fn generate_contract_wrapper(
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "borrow_global_mut<T>(move({param}))",
-                param = mangle(contract_address_parameter.identifier.token.clone())
+                param = mangle(contract_address_parameter.identifier.token)
             ),
-            Some(original_parameter.type_assignment.clone()),
+            Some(original_parameter.type_assignment),
         )),
         op: BinOp::Equal,
         line_info: Default::default(),
@@ -230,7 +233,7 @@ pub fn generate_contract_wrapper(
         .filter(|c| c.is_any())
         .collect();
     if !contract_behaviour_declaration.caller_protections.is_empty()
-        & &caller_protections.is_empty()
+        && caller_protections.is_empty()
     {
         let caller = Identifier::generated("_caller");
 
@@ -255,7 +258,7 @@ pub fn generate_contract_wrapper(
         let predicates: Vec<Expression> = predicates
             .into_iter()
             .map(|c| {
-                let mut ident = c.identifier.clone();
+                let mut ident = c.identifier;
                 ident.enclosing_type =
                     Option::from(contract_behaviour_declaration.identifier.token.clone());
                 let en_ident = contract_behaviour_declaration.identifier.clone();
@@ -273,7 +276,7 @@ pub fn generate_contract_wrapper(
 
                 match c_type {
                     Type::Address => Expression::BinaryExpression(BinaryExpression {
-                        lhs_expression: Box::new(Expression::Identifier(ident.clone())),
+                        lhs_expression: Box::new(Expression::Identifier(ident)),
                         rhs_expression: Box::new(Expression::Identifier(caller.clone())),
                         op: BinOp::DoubleEqual,
                         line_info: Default::default(),
@@ -305,7 +308,7 @@ pub fn generate_contract_wrapper(
         .into_iter()
         .map(|p| FunctionArgument {
             identifier: None,
-            expression: Expression::Identifier(p.identifier.clone()),
+            expression: Expression::Identifier(p.identifier),
         })
         .collect();
 
@@ -333,7 +336,7 @@ pub fn generate_contract_wrapper(
                 if function.is_void() {
                     None
                 } else {
-                    Some(function_call.clone())
+                    Some(function_call)
                 }
             },
             ..Default::default()
@@ -348,9 +351,7 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             if ctx.has_scope_context() {
                 let scope = ctx.scope_context.clone();
                 let scope = scope.unwrap();
-                let identifier_type = scope.type_for(i.token);
-                if identifier_type.is_some() {
-                    let identifier_type = identifier_type.unwrap();
+                if let Some(identifier_type) = scope.type_for(i.token) {
                     if !identifier_type.is_inout_type() {
                         return pre_assign(expression, ctx, borrow, false);
                     }
@@ -362,11 +363,13 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
             }
         }
         Expression::BinaryExpression(b) => {
+            println!("The expression is {:#?}", b);
             return if let BinOp::Dot = b.op {
                 let mut binary = b.clone();
-                let lhs = b.lhs_expression.clone();
-                let lhs = expand_properties(*lhs, ctx, borrow);
+                // TODO temp__4 created here
+                let lhs = expand_properties(*b.lhs_expression, ctx, borrow);
                 binary.lhs_expression = Box::from(lhs);
+                // TODO temp__6 created here
                 pre_assign(Expression::BinaryExpression(binary), ctx, borrow, true)
             } else {
                 let mut binary = b.clone();
@@ -406,33 +409,24 @@ pub fn pre_assign(
     }
 
     let expression = if borrow || !is_reference || expression_type.is_built_in_type() {
-        expression.clone()
+        expression
     } else {
         Expression::InoutExpression(InoutExpression {
             ampersand_token: "".to_string(),
-            expression: Box::new(expression.clone()),
+            expression: Box::new(expression),
         })
     };
 
-    let mut temp_identifier = Identifier::generated("LOL");
+    let mut temp_identifier = Identifier::generated("_temp_move_preassign");
 
-    let statements = ctx.pre_statements.clone();
-    let statements: Vec<Expression> = statements
+    let statements: Vec<BinaryExpression> = ctx
+        .pre_statements
+        .clone()
         .into_iter()
         .filter_map(|s| match s {
-            Statement::Expression(e) => Some(e),
+            Statement::Expression(Expression::BinaryExpression(e)) => Some(e),
             _ => None,
         })
-        .collect();
-    let statements: Vec<BinaryExpression> = statements
-        .into_iter()
-        .filter_map(|s| match s {
-            Expression::BinaryExpression(e) => Some(e),
-            _ => None,
-        })
-        .collect();
-    let statements: Vec<BinaryExpression> = statements
-        .into_iter()
         .filter(|b| {
             if let BinOp::Equal = b.op {
                 if let Expression::Identifier(_) = *b.lhs_expression {
@@ -442,10 +436,10 @@ pub fn pre_assign(
             false
         })
         .collect();
-    let declaration;
     if statements.is_empty() {
-        temp_identifier = scope.fresh_identifier(expression.clone().get_line_info());
-        declaration = if expression_type.is_built_in_type() || borrow {
+        // TODO temp_identifier is temp__6, so it is created here
+        temp_identifier = scope.fresh_identifier(expression.get_line_info());
+        let declaration = if expression_type.is_built_in_type() || borrow {
             VariableDeclaration {
                 declaration_token: None,
                 identifier: temp_identifier.clone(),
@@ -488,9 +482,8 @@ pub fn pre_assign(
             let mut context = context.unwrap();
             context.local_variables.push(declaration.clone());
 
-            if context.declaration.scope_context.is_some() {
-                let scope_ctx = context.declaration.scope_context.clone();
-                let mut scope_ctx = scope_ctx.unwrap();
+            if let Some(ref scope_ctx) = context.declaration.scope_context {
+                let mut scope_ctx = scope_ctx.clone();
                 scope_ctx.local_variables.push(declaration.clone());
 
                 context.declaration.scope_context = Some(scope_ctx);
@@ -520,15 +513,15 @@ pub fn pre_assign(
             temp_identifier = i.clone()
         }
     }
-
     ctx.scope_context = Option::from(scope);
     if borrow {
-        return Expression::InoutExpression(InoutExpression {
+        Expression::InoutExpression(InoutExpression {
             ampersand_token: "&".to_string(),
             expression: Box::new(Expression::Identifier(temp_identifier)),
-        });
+        })
+    } else {
+        Expression::Identifier(temp_identifier)
     }
-    Expression::Identifier(temp_identifier)
 }
 
 pub fn generate_caller_statement(caller: Identifier) -> Statement {
@@ -539,7 +532,7 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
             Option::from(Type::Address),
         )),
         op: BinOp::Equal,
-        line_info: caller.line_info.clone(),
+        line_info: caller.line_info,
     };
 
     Statement::Expression(Expression::BinaryExpression(assignment))
@@ -549,7 +542,7 @@ pub fn generate_assertion(
     predicate: Vec<Expression>,
     function_context: FunctionContext,
 ) -> Statement {
-    let mut predicates = predicate.clone();
+    let mut predicates = predicate;
     if predicates.len() >= 2 {
         let or_expression = Expression::BinaryExpression(BinaryExpression {
             lhs_expression: Box::new(predicates.remove(0)),
@@ -564,7 +557,7 @@ pub fn generate_assertion(
             expression: or_expression,
             position: Default::default(),
         }
-        .generate(&function_context);
+            .generate(&function_context);
         let string = format!("assert({ex}, 1)", ex = expression);
         return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
     }
@@ -577,7 +570,7 @@ pub fn generate_assertion(
         expression,
         position: Default::default(),
     }
-    .generate(&function_context);
+        .generate(&function_context);
     let string = format!("assert({ex}, 1)", ex = expression);
     Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }
@@ -590,50 +583,41 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
         )),
         rhs_expression: Box::new(expression.clone()),
         op: BinOp::Equal,
-        line_info: expression.get_line_info().clone(),
+        line_info: expression.get_line_info(),
     }))
 }
 
 pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) -> Option<String> {
-    if !Environment::is_runtime_function_call(function_call) & &!ctx.is_external_function_call {
-        let enclosing_type = if function_call.identifier.enclosing_type.is_some() {
-            let enclosing = function_call.identifier.enclosing_type.clone();
-            enclosing.unwrap()
+    if !Environment::is_runtime_function_call(function_call) && !ctx.is_external_function_call {
+        let enclosing_type = if let Some(ref enclosing) = function_call.identifier.enclosing_type {
+            enclosing.clone()
         } else {
-            let enclosing = ctx.enclosing_type_identifier().clone();
-            let enclosing = enclosing.unwrap();
-            enclosing.token.clone()
+            let enclosing = ctx.enclosing_type_identifier().unwrap();
+            enclosing.token
         };
 
         let call = function_call.clone();
 
-        let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
-            let behaviour = ctx.contract_behaviour_declaration_context.clone();
-            let behaviour = behaviour.unwrap();
-            behaviour.caller_protections
-        } else {
-            vec![]
-        };
+        let caller_protections =
+            if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+                behaviour.caller_protections.clone()
+            } else {
+                vec![]
+            };
 
         let scope = ctx.scope_context.clone();
         let scope = scope.unwrap_or_default();
 
-        let match_result = ctx.environment.match_function_call(
-            call,
-            &enclosing_type,
-            caller_protections,
-            scope.clone(),
-        );
+        let match_result =
+            ctx.environment
+                .match_function_call(call, &enclosing_type, caller_protections, scope);
 
         match match_result {
             FunctionCallMatchResult::MatchedFunction(fi) => {
                 let declaration = fi.declaration;
                 let param_types = declaration.head.parameters;
-                let _param_types: Vec<Type> = param_types
-                    .clone()
-                    .into_iter()
-                    .map(|p| p.type_assignment)
-                    .collect();
+                let _param_types: Vec<Type> =
+                    param_types.into_iter().map(|p| p.type_assignment).collect();
                 Some(mangle_function_move(
                     declaration.head.identifier.token,
                     &enclosing_type,
@@ -645,16 +629,13 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     panic!("Unable to find function declaration")
                 }
 
-                let candidate = c.candidates.clone().remove(0);
+                let candidate = c.candidates[0].clone();
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = fi.declaration;
                     let param_types = declaration.head.parameters;
-                    let _param_types: Vec<Type> = param_types
-                        .clone()
-                        .into_iter()
-                        .map(|p| p.type_assignment)
-                        .collect();
+                    let _param_types: Vec<Type> =
+                        param_types.into_iter().map(|p| p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         declaration.head.identifier.token,
@@ -692,19 +673,15 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 }
 
 pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bool {
-    let enclosing = ctx.enclosing_type_identifier().clone();
-    let enclosing = enclosing.unwrap();
-    let enclosing = enclosing.token.clone();
-    let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
-        let behaviour = ctx.contract_behaviour_declaration_context.clone();
-        let behaviour = behaviour.unwrap();
-        behaviour.caller_protections
+    let enclosing = ctx.enclosing_type_identifier().unwrap().token;
+    let caller_protections = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context
+    {
+        behaviour.caller_protections.clone()
     } else {
         vec![]
     };
 
-    let scope = ctx.scope_context.clone();
-    let scope = scope.unwrap_or_default();
+    let scope = ctx.scope_context.clone().unwrap_or_default();
 
     let result =
         ctx.environment
@@ -718,16 +695,14 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
 }
 
 pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
-    let mut expression = expressions.clone();
-    if expression.len() > 1 {
-        let first = expression.remove(0);
-        Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(first),
-            rhs_expression: Box::new(construct_expression(expression)),
+    match expressions.first() {
+        Some(first) if expressions.len() > 1 => Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(first.clone()),
+            rhs_expression: Box::new(construct_expression(expressions[1..].to_vec())),
             op: BinOp::Dot,
             line_info: Default::default(),
-        })
-    } else {
-        expression.remove(0)
+        }),
+        Some(first) => first.clone(),
+        None => panic!("Cannot construct expression from no expressions"),
     }
 }

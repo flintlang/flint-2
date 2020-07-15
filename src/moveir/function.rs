@@ -1,7 +1,15 @@
-use crate::moveir::*;
+use super::*;
+use super::ir::{MoveIRStatement, MoveIRBlock, MoveIRExpression};
+use crate::ast::{Identifier, Type, Expression, VariableDeclaration, Statement, FunctionDeclaration};
+use crate::environment::Environment;
+use crate::context::ScopeContext;
+use crate::type_checker::ExpressionCheck;
+use super::statement::MoveStatement;
+use super::r#type::MoveType;
+use super::identifier::MoveIdentifier;
 
 #[derive(Debug)]
-pub struct MoveFunction {
+pub(crate) struct MoveFunction {
     pub function_declaration: FunctionDeclaration,
     pub environment: Environment,
     pub is_contract_function: bool,
@@ -9,9 +17,12 @@ pub struct MoveFunction {
 }
 
 impl MoveFunction {
-    pub fn generate(&self, _return: bool) -> String {
-        let scope = self.function_declaration.scope_context.clone();
-        let scope = scope.unwrap_or(Default::default());
+    pub(crate) fn generate(&self, _return: bool) -> String {
+        let scope = self
+            .function_declaration
+            .scope_context
+            .clone()
+            .unwrap_or_default();
 
         let function_context = FunctionContext {
             environment: self.environment.clone(),
@@ -53,10 +64,10 @@ impl MoveFunction {
             .into_iter()
             .map(|p| {
                 MoveIdentifier {
-                    identifier: p.identifier.clone(),
+                    identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
         let parameters: Vec<String> = parameters
@@ -72,23 +83,26 @@ impl MoveFunction {
             .collect();
         let parameters = parameters.join(", ");
 
-        let result_type = if self.function_declaration.get_result_type().is_some() && _return {
-            let result = self.function_declaration.get_result_type().clone();
-            let result = result.unwrap();
-            let result = MoveType::move_type(result, Option::from(self.environment.clone()));
-            format!("{}", result.generate(&function_context))
-        } else {
-            "".to_string()
+        let result_type = match self.function_declaration.get_result_type() {
+            Some(ref result) if _return => {
+                let result =
+                    MoveType::move_type(result.clone(), Option::from(self.environment.clone()));
+                format!("{}", result.generate(&function_context))
+            }
+            _ => "".to_string(),
         };
-        let tags = self.function_declaration.tags.clone();
-        let tags = tags.join("");
+        let tags = self.function_declaration.tags.join("");
 
-        let scope = self.function_declaration.scope_context.clone();
+        let mut scope = self
+            .function_declaration
+            .scope_context
+            .clone()
+            .unwrap_or_default();
 
-        let mut scope = scope.unwrap_or(Default::default());
-
-        let variables = self.function_declaration.body.clone();
-        let variables: Vec<Expression> = variables
+        let variables: Vec<Expression> = self
+            .function_declaration
+            .body
+            .clone()
             .into_iter()
             .filter_map(|v| {
                 if let Statement::Expression(e) = v {
@@ -220,15 +234,14 @@ impl FunctionContext {
                 identifier: reference,
                 position: Default::default(),
             }
-            .generate(self, true, false);
+                .generate(self, true, false);
             self.emit(MoveIRStatement::Inline(format!("_ = {}", expression)))
         }
     }
 
     pub fn self_type(&self) -> Type {
-        let result = self.scope_context.type_for(Identifier::SELF.to_string());
-        if result.is_some() {
-            result.unwrap()
+        if let Some(self_type) = self.scope_context.type_for(Identifier::SELF.to_string()) {
+            self_type
         } else {
             self.environment.get_expression_type(
                 Expression::SelfExpression,
