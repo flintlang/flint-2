@@ -188,10 +188,9 @@ impl ScopeContext {
                     .into_iter()
                     .map(|p| p.as_variable_declaration()),
             )
-            .filter(|v| {
+            .find(|v| {
                 v.identifier.token == variable || mangle(variable) == v.identifier.token
             })
-            .next() // Next gets the first element
             .map(|i| i.variable_type)
     }
 
