@@ -242,7 +242,7 @@ pub fn generate_contract_wrapper(
     let self_assignment = BinaryExpression {
         lhs_expression: Box::new(Expression::SelfExpression),
         rhs_expression: Box::new(Expression::RawAssembly(
-            format!("borrow_global_mut<T>(move(_sender))",),
+            "borrow_global_mut<T>(move(_sender))".to_string(),
             Some(original_parameter.type_assignment),
         )),
         op: BinOp::Equal,
