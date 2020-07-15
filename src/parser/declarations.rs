@@ -587,14 +587,7 @@ mod test {
         let input = LocatedSpan::new(input);
         let result = parse_caller_binding(input);
         match result {
-            Ok((_c, b)) => assert_eq!(
-                b,
-                Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }
-            ),
+            Ok((_c, b)) => assert_eq!(b, Identifier::generated("caller")),
             Err(_) => assert_eq!(1, 0),
         }
     }

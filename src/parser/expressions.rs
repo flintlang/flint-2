@@ -15,7 +15,7 @@ pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
         map(parse_binary_expression, |be| {
             Expression::BinaryExpression(be)
         }),
-        map(tag("self"), |_| Expression::SelfExpression),
+        map(tag(Identifier::SELF), |_| Expression::SelfExpression),
         map(parse_subscript_expression, |s| {
             Expression::SubscriptExpression(s)
         }),
@@ -46,7 +46,7 @@ pub fn parse_expression_left(i: Span) -> nom::IResult<Span, Expression> {
         }),
         map(parse_external_call, |e| Expression::ExternalCall(e)),
         map(parse_cast_expression, |c| Expression::CastExpression(c)),
-        map(tag("self"), |_| Expression::SelfExpression),
+        map(tag(Identifier::SELF), |_| Expression::SelfExpression),
         map(parse_subscript_expression, |s| {
             Expression::SubscriptExpression(s)
         }),

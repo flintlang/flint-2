@@ -215,8 +215,18 @@ pub struct Identifier {
 }
 
 impl Identifier {
+    pub const SELF: &'static str = "self";
+
     pub fn is_self(&self) -> bool {
-        self.token == "self"
+        self.token == Identifier::SELF
+    }
+
+    pub fn generated<T: ToString + ?Sized>(name: &T) -> Identifier {
+        Identifier {
+            token: name.to_string(),
+            enclosing_type: None,
+            line_info: Default::default(),
+        }
     }
 }
 
