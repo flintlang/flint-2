@@ -406,7 +406,7 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
                 binary.lhs_expression = Box::from(lhs);
                 let rhs = b.rhs_expression.clone();
                 let rhs = expand_properties(*rhs, ctx, borrow);
-                binary.lhs_expression = Box::from(rhs);
+                binary.rhs_expression = Box::from(rhs);
                 pre_assign(Expression::BinaryExpression(binary), ctx, borrow, true)
             };
         }

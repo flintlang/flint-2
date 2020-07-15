@@ -18,6 +18,10 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
         ..Default::default()
     };
 
+    println!(
+        "\n\nvvv BLEEEP BLORP vvv\n\n{:#?}\n\n^^^ BLEEEP BLORP ^^^\n\n",
+        module
+    );
     let result = module.visit(type_assigner, context);
 
     match result {
@@ -40,15 +44,8 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
     }
 
     if let Target::Move = target {
-        println!(
-            "\n\nvvv BLEEEP BLORP vvv\n\n{:#?}\n\n^^^ BLEEEP BLORP ^^^\n\n",
-            module
-        );
         let result = module.visit(move_preprocessor, context);
-        println!(
-            "\n\nvvv BLORP BLEEP vvv\n\n{:#?}\n\n^^^ BLORP BLEEP ^^^\n\n",
-            module
-        );
+
         match result {
             Ok(_) => {}
             Err(_) => return,
