@@ -1,9 +1,9 @@
-use crate::ast::{AssetDeclaration, AssetMember, SpecialDeclaration, FunctionDeclaration};
-use crate::environment::Environment;
+use super::declaration::MoveFieldDeclaration;
 use super::function::{FunctionContext, MoveFunction};
 use super::ir::{MoveIRBlock, MoveIRExpression};
-use super::declaration::MoveFieldDeclaration;
 use super::r#struct::MoveStructInitialiser;
+use crate::ast::{AssetDeclaration, AssetMember, FunctionDeclaration, SpecialDeclaration};
+use crate::environment::Environment;
 
 pub struct MoveAsset {
     pub declaration: AssetDeclaration,
@@ -75,7 +75,7 @@ impl MoveAsset {
                     environment: self.environment.clone(),
                     properties: self.declaration.get_variable_declarations(),
                 }
-                    .generate()
+                .generate()
             })
             .collect();
         initialisers.join("\n\n")
@@ -104,7 +104,7 @@ impl MoveAsset {
                     is_contract_function: false,
                     enclosing_type: self.declaration.identifier.clone(),
                 }
-                    .generate(true)
+                .generate(true)
             })
             .collect();
         functions.join("\n\n")

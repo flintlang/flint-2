@@ -1,11 +1,11 @@
-use crate::ast::{Expression, mangle, Type};
-use super::function::FunctionContext;
-use super::ir::{MoveIRExpression, MoveIRAssignment};
-use super::MovePosition;
-use super::r#type::MoveType;
-use crate::type_checker::ExpressionCheck;
-use super::identifier::MoveIdentifier;
 use super::expression::{MoveExpression, MoveSubscriptExpression};
+use super::function::FunctionContext;
+use super::identifier::MoveIdentifier;
+use super::ir::{MoveIRAssignment, MoveIRExpression};
+use super::r#type::MoveType;
+use super::MovePosition;
+use crate::ast::{mangle, Expression, Type};
+use crate::type_checker::ExpressionCheck;
 
 #[derive(Debug)]
 pub(crate) struct MoveAssignment {
@@ -30,21 +30,21 @@ impl MoveAssignment {
                         expression: self.lhs.clone(),
                         position: MovePosition::Left,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
 
                     if let Expression::ArrayLiteral(_) = self.rhs {
                         let rhs_ir = MoveExpression {
                             expression: self.rhs.clone(),
                             position: Default::default(),
                         }
-                            .generate(function_context);
+                        .generate(function_context);
 
                         if let MoveIRExpression::Vector(mut vector) = rhs_ir {
                             let vec_type = MoveType::move_type(
                                 *a.key_type,
                                 Option::from(function_context.environment.clone()),
                             )
-                                .generate(function_context);
+                            .generate(function_context);
                             vector.vec_type = Option::from(vec_type);
                             let rhs_ir = MoveIRExpression::Vector(vector);
                             return MoveIRExpression::Assignment(MoveIRAssignment {
@@ -63,7 +63,7 @@ impl MoveAssignment {
             expression: self.rhs.clone(),
             position: Default::default(),
         }
-            .generate(function_context);
+        .generate(function_context);
 
         if let Expression::VariableDeclaration(_) = lhs {
             unimplemented!()
@@ -84,7 +84,7 @@ impl MoveAssignment {
                 position: MovePosition::Left,
                 rhs: Option::from(rhs_ir),
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         if let Expression::RawAssembly(s, _) = lhs {
@@ -97,7 +97,7 @@ impl MoveAssignment {
                                 identifier: i.clone(),
                                 position: Default::default(),
                             }
-                                .generate(function_context, true, false),
+                            .generate(function_context, true, false),
                         ),
                     });
                 }
@@ -108,7 +108,7 @@ impl MoveAssignment {
             expression: self.lhs.clone(),
             position: MovePosition::Left,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         if function_context.in_struct_function {
             return MoveIRExpression::Assignment(MoveIRAssignment {
@@ -117,8 +117,8 @@ impl MoveAssignment {
             });
         } else if self.lhs.enclosing_identifier().is_some()
             && function_context
-            .scope_context
-            .contains_variable_declaration(self.lhs.enclosing_identifier().unwrap().token)
+                .scope_context
+                .contains_variable_declaration(self.lhs.enclosing_identifier().unwrap().token)
         {
             return MoveIRExpression::Assignment(MoveIRAssignment {
                 identifier: self.lhs.enclosing_identifier().unwrap().token,

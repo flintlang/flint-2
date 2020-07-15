@@ -1,8 +1,11 @@
-use super::function::FunctionContext;
-use super::ir::{MoveIRStatement, MoveIRIf, MoveIRExpression, MoveIRAssignment};
-use crate::ast::{EmitStatement, ForStatement, BecomeStatement, ReturnStatement, IfStatement, Statement, Identifier};
-use super::expression::MoveExpression;
 use super::call::MoveFunctionCall;
+use super::expression::MoveExpression;
+use super::function::FunctionContext;
+use super::ir::{MoveIRAssignment, MoveIRExpression, MoveIRIf, MoveIRStatement};
+use crate::ast::{
+    BecomeStatement, EmitStatement, ForStatement, Identifier, IfStatement, ReturnStatement,
+    Statement,
+};
 
 pub struct MoveStatement {
     pub statement: Statement,
@@ -19,7 +22,7 @@ impl MoveStatement {
                     expression: e,
                     position: Default::default(),
                 }
-                    .generate(function_context),
+                .generate(function_context),
             ),
             Statement::BecomeStatement(b) => {
                 MoveBecomeStatement { statement: b }.generate(function_context)
@@ -48,7 +51,7 @@ impl MoveIfStatement {
             expression: self.statement.condition.clone(),
             position: Default::default(),
         }
-            .generate(function_context);
+        .generate(function_context);
         println!("With new block");
         let count = function_context.push_block();
         for statement in self.statement.body.clone() {
@@ -85,7 +88,7 @@ impl MoveReturnStatement {
             expression,
             position: Default::default(),
         }
-            .generate(&function_context);
+        .generate(&function_context);
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
             expression: Box::from(expression),
@@ -138,7 +141,7 @@ impl MoveEmitStatement {
                 function_call: self.statement.function_call.clone(),
                 module_name: "Self".to_string(),
             }
-                .generate(function_context)
+            .generate(function_context)
         ))
     }
 }

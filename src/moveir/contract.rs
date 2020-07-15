@@ -1,17 +1,25 @@
-use crate::ast::{ContractDeclaration, ContractBehaviourDeclaration, StructDeclaration, AssetDeclaration, TraitDeclaration, FunctionDeclaration, ContractBehaviourMember, VariableDeclaration, ContractMember, mangle_dictionary, Identifier, Statement, Expression, BinOp, Type, InoutType, mangle};
-use crate::environment::Environment;
-use super::ir::{MoveIRModuleImport, MoveIRStatement, MoveIRExpression, MoveIRType, MoveIRBlock, MoveIRVariableDeclaration, MoveIRAssignment, MoveIRTransfer, MoveIRStructConstructor};
-use super::function::{FunctionContext, MoveFunction};
 use super::asset::MoveAsset;
-use crate::context::ScopeContext;
-use super::MovePosition;
-use super::statement::MoveStatement;
-use super::r#type::{move_runtime_types, MoveType};
-use super::runtime_function::MoveRuntimeFunction;
-use super::identifier::MoveIdentifier;
 use super::declaration::MoveFieldDeclaration;
 use super::expression::MoveExpression;
+use super::function::{FunctionContext, MoveFunction};
+use super::identifier::MoveIdentifier;
+use super::ir::{
+    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRModuleImport, MoveIRStatement,
+    MoveIRStructConstructor, MoveIRTransfer, MoveIRType, MoveIRVariableDeclaration,
+};
 use super::r#struct::MoveStruct;
+use super::r#type::{move_runtime_types, MoveType};
+use super::runtime_function::MoveRuntimeFunction;
+use super::statement::MoveStatement;
+use super::MovePosition;
+use crate::ast::{
+    mangle, mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
+    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, FunctionDeclaration,
+    Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type,
+    VariableDeclaration,
+};
+use crate::context::ScopeContext;
+use crate::environment::Environment;
 use crate::moveir::identifier::MoveSelf;
 
 pub struct MoveContract {
@@ -201,7 +209,7 @@ impl MoveContract {
                     struct_declaration: s,
                     environment: self.environment.clone(),
                 }
-                    .generate()
+                .generate()
             })
             .collect();
         let mut runtime_structs = move_runtime_types::get_all_declarations();
@@ -217,7 +225,7 @@ impl MoveContract {
                     struct_declaration: s,
                     environment: self.environment.clone(),
                 }
-                    .generate_all_functions()
+                .generate_all_functions()
             })
             .collect();
         let struct_functions = struct_functions.join("\n\n");
@@ -231,7 +239,7 @@ impl MoveContract {
                     declaration: a,
                     environment: self.environment.clone(),
                 }
-                    .generate()
+                .generate()
             })
             .collect();
         let assets = assets.join("\n");
@@ -245,7 +253,7 @@ impl MoveContract {
                     declaration: s,
                     environment: self.environment.clone(),
                 }
-                    .generate_all_functions()
+                .generate_all_functions()
             })
             .collect();
         let asset_functions = asset_functions.join("\n\n");
@@ -289,7 +297,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
+                .generate(&function_context, false, false)
             })
             .collect();
         let params: Vec<String> = params.into_iter().map(|i| format!("{}", i)).collect();
@@ -302,7 +310,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, true, false)
+                .generate(&function_context, true, false)
             })
             .collect();
         let params_values: Vec<String> = params_values
@@ -321,13 +329,11 @@ impl MoveContract {
             .collect();
         let param_types: Vec<String> = param_types.into_iter().map(|i| format!("{}", i)).collect();
 
-        let parameters: Vec<String> = params
+        let mut parameters: Vec<String> = params
             .into_iter()
             .zip(param_types)
             .map(|(k, v)| format!("{name}: {t}", name = k, t = v))
             .collect();
-
-        let parameters = parameters.join(", ");
 
         let mut statements = initialiser_declaration.body;
         let properties = self
@@ -368,7 +374,7 @@ impl MoveContract {
                                 expression: *expr,
                                 position: Default::default(),
                             }
-                                .generate(&function_context),
+                            .generate(&function_context),
                         ),
                     },
                 )))
@@ -416,7 +422,7 @@ impl MoveContract {
                 let move_statement = MoveStatement {
                     statement: statement.clone(),
                 }
-                    .generate(&mut function_context);
+                .generate(&mut function_context);
                 function_context.emit(move_statement);
             }
         }
@@ -449,7 +455,7 @@ impl MoveContract {
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
             )
-                .generate(&function_context);
+            .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                 identifier: "this".to_string(),
@@ -502,18 +508,24 @@ impl MoveContract {
             body = function_context.generate()
         }
 
+        let params_without_signer = parameters.join(", ");
         let initialiser = format!(
-            "new({params}): Self.T {{ {body} }} \n\n \
-             public publish({params}) {{ \n move_to_sender<T>(Self.new({values})); \n return; \n }}",
-            params = parameters,
+            "new({params}): Self.T {{ \n{body}\n }} \n",
+            params = params_without_signer,
             body = body,
-            values = params_values
         );
 
-        return format!("module {name} {{ \n  {imports} \n resource T {{ \n {members} \n }} {dict_resources} \n {assets}  \n {structs} \n {init} \n \n {asset_functions} \n \n {struct_functions} \n {functions} \n {runtime} \n {dict_runtime} }}"
+        parameters.push("account: &signer".to_string());
+        let parameters = parameters.join(", ");
+
+        let publisher = format!("public publish({params}) {{ \n let t: Self.T; \nt = Self.new({values});\n move_to<T>(move(account), move(t)); \nreturn; \n }}",
+                                params = parameters,
+                                values = params_values);
+
+        return format!("module {name} {{ \n  {imports} \n resource T {{ \n {members} \n }} {dict_resources} \n {assets}  \n {structs} \n {init} \n {publish}\n {asset_functions} \n \n {struct_functions} \n {functions} \n {runtime} \n {dict_runtime} }}"
                        , name = self.contract_declaration.identifier.token, functions = functions, members = members,
                        assets = assets, asset_functions = asset_functions, structs = structs, dict_resources = dict_resources,
-                       init = initialiser, struct_functions = struct_functions, imports = import_code,
+                       init = initialiser, publish = publisher, struct_functions = struct_functions, imports = import_code,
                        runtime = runtime_functions, dict_runtime = dict_runtime
         );
     }

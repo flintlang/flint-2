@@ -1,6 +1,6 @@
 use super::function::FunctionContext;
 use super::ir::MoveIRType;
-use crate::ast::{Identifier, Type, FunctionCall, TypeIdentifier};
+use crate::ast::{FunctionCall, Identifier, Type, TypeIdentifier};
 use crate::environment::Environment;
 
 #[derive(Debug, Clone)]
@@ -150,7 +150,7 @@ impl MoveType {
 }
 
 pub(crate) mod move_runtime_types {
-    use crate::moveir::ir::MoveIRStatement;
+    use crate::moveir::ir::{MoveIRModuleImport, MoveIRStatement};
 
     pub fn get_all_declarations() -> Vec<String> {
         vec![]
@@ -161,7 +161,11 @@ pub(crate) mod move_runtime_types {
     }
 
     pub fn get_all_imports() -> Vec<MoveIRStatement> {
-        vec![]
+        let signer = MoveIRStatement::Import(MoveIRModuleImport {
+            name: "Signer".to_string(),
+            address: "0x1".to_string(),
+        });
+        vec![signer]
         /* TURN OFF LIBRA
         let lbr = MoveIRStatement::Import(MoveIRModuleImport {
             name: "LBR".to_string(),

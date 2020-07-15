@@ -1,8 +1,8 @@
-use crate::ast::{Identifier, Expression, mangle};
-use super::MovePosition;
 use super::function::FunctionContext;
-use super::ir::{MoveIRExpression, MoveIRTransfer, MoveIROperation};
+use super::ir::{MoveIRExpression, MoveIROperation, MoveIRTransfer};
 use super::property_access::MovePropertyAccess;
+use super::MovePosition;
+use crate::ast::{mangle, Expression, Identifier};
 
 pub(crate) struct MoveIdentifier {
     pub identifier: Identifier,
@@ -26,7 +26,7 @@ impl MoveIdentifier {
                     right: Expression::Identifier(self.identifier.clone()),
                     position: self.position.clone(),
                 }
-                    .generate(function_context, f_call)
+                .generate(function_context, f_call)
             };
         };
 
@@ -35,7 +35,7 @@ impl MoveIdentifier {
                 token: self.identifier.token.clone(),
                 position: self.position.clone(),
             }
-                .generate(function_context, force);
+            .generate(function_context, force);
         }
 
         let ir_identifier = MoveIRExpression::Identifier(mangle(self.identifier.token.clone()));

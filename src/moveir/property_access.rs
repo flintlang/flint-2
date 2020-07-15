@@ -1,9 +1,9 @@
-use super::MovePosition;
-use super::ir::{MoveIRExpression, MoveIROperation};
-use super::function::FunctionContext;
-use crate::ast::Expression;
 use super::expression::MoveExpression;
+use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
+use super::ir::{MoveIRExpression, MoveIROperation};
+use super::MovePosition;
+use crate::ast::Expression;
 
 #[derive(Debug)]
 pub(crate) struct MovePropertyAccess {
@@ -23,7 +23,7 @@ impl MovePropertyAccess {
                             expression: property.property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                            .generate(function_context);
+                        .generate(function_context);
                     }
                 }
             }
@@ -35,7 +35,7 @@ impl MovePropertyAccess {
                     identifier: rhs_enclosing,
                     position: self.position.clone(),
                 }
-                    .generate(function_context, false, false);
+                .generate(function_context, false, false);
             }
             let position = if let MovePosition::Inout = self.position {
                 MovePosition::Inout
@@ -46,7 +46,7 @@ impl MovePropertyAccess {
                 expression: self.left.clone(),
                 position,
             }
-                .generate(function_context);
+            .generate(function_context);
             if f_call {
                 let exp = lhs.clone();
                 if let MoveIRExpression::Operation(o) = exp {

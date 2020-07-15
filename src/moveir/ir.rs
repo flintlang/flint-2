@@ -1,5 +1,5 @@
+use crate::ast::{Expression, Identifier};
 use core::fmt;
-use crate::ast::{Identifier, Expression};
 
 #[derive(Debug, Clone)]
 pub struct MoveIRBlock {
@@ -350,7 +350,7 @@ impl fmt::Display for MoveIRType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             MoveIRType::U64 => write!(f, "u64"),
-            MoveIRType::Address => write!(f, "address"),
+            MoveIRType::Address => write!(f, "&signer"),
             MoveIRType::Bool => write!(f, "bool"),
             MoveIRType::ByteArray => write!(f, "vector<u8>"),
             MoveIRType::Resource(s) => write!(f, "{}", s),

@@ -1,9 +1,9 @@
+use self::utils::*;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
 use crate::visitor::Visitor;
-use self::utils::*;
 
 mod utils;
 
@@ -551,8 +551,8 @@ impl Visitor for MovePreProcessor {
         let function_call = _t.clone();
         if !_ctx.environment.is_initiliase_call(function_call.clone())
             && !_ctx
-            .environment
-            .is_trait_declared(&function_call.identifier.token)
+                .environment
+                .is_trait_declared(&function_call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(function_call, _ctx);
 
@@ -586,7 +586,7 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_contract_declared(&declared_enclosing)
                 || _ctx.environment.is_trait_declared(&declared_enclosing)
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
-                && !is_global_function_call
+                    && !is_global_function_call
             {
                 // TODO this is where the expression becomes strange about dotting rectangles
                 let expressions = receiver_trail;

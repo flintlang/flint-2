@@ -1,12 +1,14 @@
-use super::*;
-use super::ir::{MoveIRStatement, MoveIRBlock, MoveIRExpression};
-use crate::ast::{Identifier, Type, Expression, VariableDeclaration, Statement, FunctionDeclaration};
-use crate::environment::Environment;
-use crate::context::ScopeContext;
-use crate::type_checker::ExpressionCheck;
-use super::statement::MoveStatement;
-use super::r#type::MoveType;
 use super::identifier::MoveIdentifier;
+use super::ir::{MoveIRBlock, MoveIRExpression, MoveIRStatement};
+use super::r#type::MoveType;
+use super::statement::MoveStatement;
+use super::*;
+use crate::ast::{
+    Expression, FunctionDeclaration, Identifier, Statement, Type, VariableDeclaration,
+};
+use crate::context::ScopeContext;
+use crate::environment::Environment;
+use crate::type_checker::ExpressionCheck;
 
 #[derive(Debug)]
 pub(crate) struct MoveFunction {
@@ -67,7 +69,7 @@ impl MoveFunction {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
+                .generate(&function_context, false, false)
             })
             .collect();
         let parameters: Vec<String> = parameters
@@ -234,7 +236,7 @@ impl FunctionContext {
                 identifier: reference,
                 position: Default::default(),
             }
-                .generate(self, true, false);
+            .generate(self, true, false);
             self.emit(MoveIRStatement::Inline(format!("_ = {}", expression)))
         }
     }

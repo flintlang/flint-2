@@ -1,13 +1,19 @@
-use crate::ast::{StructDeclaration, StructMember, Type, SpecialDeclaration, FunctionDeclaration, Identifier, VariableDeclaration, Statement, Expression, BinOp};
-use crate::environment::Environment;
-use crate::context::ScopeContext;
-use super::function::{FunctionContext, MoveFunction};
-use super::ir::{MoveIRBlock, MoveIRExpression, MoveIRStatement, MoveIRVariableDeclaration, MoveIRTransfer, MoveIRStructConstructor, MoveIRType};
-use super::MovePosition;
-use super::statement::MoveStatement;
-use super::r#type::MoveType;
 use super::declaration::MoveFieldDeclaration;
+use super::function::{FunctionContext, MoveFunction};
 use super::identifier::MoveIdentifier;
+use super::ir::{
+    MoveIRBlock, MoveIRExpression, MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer,
+    MoveIRType, MoveIRVariableDeclaration,
+};
+use super::r#type::MoveType;
+use super::statement::MoveStatement;
+use super::MovePosition;
+use crate::ast::{
+    BinOp, Expression, FunctionDeclaration, Identifier, SpecialDeclaration, Statement,
+    StructDeclaration, StructMember, Type, VariableDeclaration,
+};
+use crate::context::ScopeContext;
+use crate::environment::Environment;
 
 pub(crate) struct MoveStruct {
     pub struct_declaration: StructDeclaration,
@@ -88,7 +94,7 @@ impl MoveStruct {
                     environment: self.environment.clone(),
                     properties: self.struct_declaration.get_variable_declarations(),
                 }
-                    .generate()
+                .generate()
             })
             .collect();
         initialisers.join("\n\n")
@@ -116,7 +122,7 @@ impl MoveStruct {
                     is_contract_function: false,
                     enclosing_type: self.struct_declaration.identifier.clone(),
                 }
-                    .generate(true)
+                .generate(true)
             })
             .collect();
         functions.join("\n\n")
@@ -177,7 +183,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
+                .generate(&function_context, false, false)
             })
             .collect();
 
@@ -222,7 +228,7 @@ impl MoveStructInitialiser {
                     property.variable_type,
                     Option::from(self.environment.clone()),
                 )
-                    .generate(&function_context);
+                .generate(&function_context);
                 let name = format!("__this_{}", property.identifier.token);
                 function_context.emit(MoveIRStatement::Expression(
                     MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
@@ -312,7 +318,7 @@ impl MoveStructInitialiser {
                     Type::type_from_identifier(self.identifier.clone()),
                     Option::from(self.environment.clone()),
                 )
-                    .generate(&function_context);
+                .generate(&function_context);
 
                 let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier: "this".to_string(),

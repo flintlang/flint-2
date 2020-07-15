@@ -1,10 +1,15 @@
-use crate::ast::{Expression, InoutExpression, Identifier, Statement, BinaryExpression, Type, BinOp, FunctionCall, mangle_function_move, FunctionDeclaration, TypeIdentifier, Parameter, FunctionArgument, ReturnStatement, mangle, ContractBehaviourDeclaration, VariableDeclaration, CallerProtection, InoutType};
-use crate::moveir::function::FunctionContext;
+use crate::ast::{
+    mangle, mangle_function_move, BinOp, BinaryExpression, CallerProtection,
+    ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
+    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
+    TypeIdentifier, VariableDeclaration,
+};
 use crate::context::{Context, ScopeContext};
-use crate::environment::{FunctionCallMatchResult, Environment, CallableInformation};
-use crate::type_checker::ExpressionCheck;
-use crate::moveir::ir::MoveIRBlock;
+use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::expression::MoveExpression;
+use crate::moveir::function::FunctionContext;
+use crate::moveir::ir::MoveIRBlock;
+use crate::type_checker::ExpressionCheck;
 
 pub fn convert_default_parameter_functions(
     base: FunctionDeclaration,
@@ -208,13 +213,36 @@ pub fn generate_contract_wrapper(
             self_declaration,
         )));
 
+    let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
+    wrapper.body.push(Statement::Expression(sender_declaration));
+
+    let sender_assignment = BinaryExpression {
+        lhs_expression: Box::new(Expression::Identifier(Identifier {
+            token: "sender".to_string(),
+            enclosing_type: None,
+            line_info: Default::default(),
+        })),
+        rhs_expression: Box::new(Expression::RawAssembly(
+            format!(
+                "Signer.address_of(move({param}))",
+                param = mangle(contract_address_parameter.identifier.token)
+            ),
+            None,
+        )),
+        op: BinOp::Equal,
+        line_info: Default::default(),
+    };
+
+    wrapper
+        .body
+        .push(Statement::Expression(Expression::BinaryExpression(
+            sender_assignment,
+        )));
+
     let self_assignment = BinaryExpression {
         lhs_expression: Box::new(Expression::SelfExpression),
         rhs_expression: Box::new(Expression::RawAssembly(
-            format!(
-                "borrow_global_mut<T>(move({param}))",
-                param = mangle(contract_address_parameter.identifier.token)
-            ),
+            format!("borrow_global_mut<T>(move(_sender))",),
             Some(original_parameter.type_assignment),
         )),
         op: BinOp::Equal,
@@ -557,7 +585,7 @@ pub fn generate_assertion(
             expression: or_expression,
             position: Default::default(),
         }
-            .generate(&function_context);
+        .generate(&function_context);
         let string = format!("assert({ex}, 1)", ex = expression);
         return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
     }
@@ -570,7 +598,7 @@ pub fn generate_assertion(
         expression,
         position: Default::default(),
     }
-        .generate(&function_context);
+    .generate(&function_context);
     let string = format!("assert({ex}, 1)", ex = expression);
     Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }

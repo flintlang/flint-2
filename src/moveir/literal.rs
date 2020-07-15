@@ -1,5 +1,5 @@
-use crate::ast::Literal;
 use super::ir::MoveIRLiteral;
+use crate::ast::Literal;
 
 impl MoveLiteralToken {
     pub fn generate(&self) -> MoveIRLiteral {

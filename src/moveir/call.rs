@@ -1,9 +1,9 @@
-use crate::ast::{ExternalCall, Expression, Identifier, FunctionCall};
-use super::function::FunctionContext;
-use super::ir::{MoveIRExpression, MoveIRFunctionCall};
-use crate::environment::{FunctionCallMatchResult, CallableInformation};
 use super::expression::MoveExpression;
+use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
+use super::ir::{MoveIRExpression, MoveIRFunctionCall};
+use crate::ast::{Expression, ExternalCall, FunctionCall, Identifier};
+use crate::environment::{CallableInformation, FunctionCallMatchResult};
 
 pub(crate) struct MoveExternalCall {
     pub external_call: ExternalCall,
@@ -12,7 +12,7 @@ pub(crate) struct MoveExternalCall {
 impl MoveExternalCall {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         if let Expression::FunctionCall(f) =
-        *self.external_call.function_call.rhs_expression.clone()
+            *self.external_call.function_call.rhs_expression.clone()
         {
             let mut lookup = f.clone();
             if !lookup.arguments.is_empty() {
@@ -56,7 +56,7 @@ impl MoveExternalCall {
                             function_call: f,
                             module_name: external_trait_name.clone(),
                         }
-                            .generate(function_context);
+                        .generate(function_context);
                     }
                 }
             }
@@ -69,7 +69,7 @@ impl MoveExternalCall {
                 } else {
                     &function_call.identifier
                 }
-                    .token;
+                .token;
                 function_call.mangled_identifier = Option::from(Identifier {
                     token: format!("{ext}_{i}", ext = *external_trait_name, i = *ident),
                     enclosing_type: None,
@@ -81,7 +81,7 @@ impl MoveExternalCall {
                 function_call,
                 module_name: "Self".to_string(),
             }
-                .generate(function_context)
+            .generate(function_context)
         } else {
             panic!("Cannot match external call with function")
         }
@@ -132,7 +132,7 @@ impl MoveFunctionCall {
                         expression: external_address,
                         position: Default::default(),
                     }
-                        .generate(function_context);
+                    .generate(function_context);
                 }
             }
         }
@@ -148,13 +148,13 @@ impl MoveFunctionCall {
                         identifier: i,
                         position: Default::default(),
                     }
-                        .generate(function_context, false, true)
+                    .generate(function_context, false, true)
                 } else {
                     MoveExpression {
                         expression: a.expression,
                         position: Default::default(),
                     }
-                        .generate(function_context)
+                    .generate(function_context)
                 }
             })
             .collect();

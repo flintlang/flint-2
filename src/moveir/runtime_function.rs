@@ -1,6 +1,6 @@
-use core::fmt;
 use super::ir::{MoveIRExpression, MoveIRFunctionCall};
 use crate::ast::mangle;
+use core::fmt;
 
 #[allow(dead_code)]
 #[derive(Debug)]

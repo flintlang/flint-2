@@ -3,11 +3,10 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
+use self::contract::MoveContract;
 use super::ast::*;
 use super::context::*;
-use self::contract::MoveContract;
 
-pub mod preprocessor;
 mod asset;
 mod assignment;
 mod call;
@@ -18,6 +17,7 @@ mod function;
 mod identifier;
 mod ir;
 mod literal;
+pub mod preprocessor;
 mod property_access;
 mod runtime_function;
 mod statement;
