@@ -234,7 +234,7 @@ impl MoveContract {
                 let result_type = result_type.generate(&function_context);
                 format!(
                     "resource {name} {{ \n value: {dic_type} \n }}",
-                    name = mangle_dictionary(d.identifier.token.clone()),
+                    name = mangle_dictionary(d.identifier.token),
                     dic_type = result_type
                 )
             })
@@ -427,7 +427,7 @@ impl MoveContract {
 
         let parameters = parameters.join(", ");
 
-        let mut statements = initialiser_declaration.body.clone();
+        let mut statements = initialiser_declaration.body;
         let properties = self
             .contract_declaration
             .get_variable_declarations_without_dict();
@@ -1490,12 +1490,13 @@ impl MoveExternalCall {
             let mut function_call = f.clone();
 
             if let Some(ref external_trait_name) = self.external_call.external_trait_name {
-                let ident = function_call
-                    .mangled_identifier.clone()
-                    .unwrap_or(function_call.identifier.clone())
-                    .token;
+                let ident = &if let Some(ref mangled) = function_call.mangled_identifier {
+                    mangled
+                } else {
+                    &function_call.identifier
+                }.token;
                 function_call.mangled_identifier = Option::from(Identifier {
-                    token: format!("{ext}_{i}", ext = *external_trait_name, i = ident),
+                    token: format!("{ext}_{i}", ext = *external_trait_name, i = *ident),
                     enclosing_type: None,
                     line_info: Default::default(),
                 });
