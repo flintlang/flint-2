@@ -6,8 +6,7 @@ main(account: &signer) {
     Counter.increment(copy(account));
     Counter.increment(copy(account));
     assert(Counter.getValue(copy(account)) == 2, 1);
-    // Fails here because of infinite recursion
-    // Counter.decrement(copy(account));
-    // assert(Counter.getValue(copy(account)) == 1, 1);
+    Counter.decrement(copy(account));
+    assert(Counter.getValue(copy(account)) == 1, 1);
     return;
 }

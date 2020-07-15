@@ -41,6 +41,7 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
 
     if let Target::Move = target {
         let result = module.visit(move_preprocessor, context);
+
         match result {
             Ok(_) => {}
             Err(_) => return,
