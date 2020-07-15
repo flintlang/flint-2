@@ -312,11 +312,8 @@ pub struct ReturnStatement {
 impl Visitable for ReturnStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_return_statement(self, ctx)?;
-        if self.expression.is_some() {
-            let expression = self.expression.clone();
-            let mut expression = expression.unwrap();
+        if let Some(ref mut expression) = self.expression {
             expression.visit(v, ctx)?;
-            self.expression = Option::from(expression);
         }
 
         v.finish_return_statement(self, ctx)?;

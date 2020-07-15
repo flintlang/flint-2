@@ -300,6 +300,8 @@ impl Visitor for MovePreProcessor {
             scope.parameters = _t.head.parameters.clone();
             _t.scope_context = Some(scope);
         }
+
+        _ctx.function_call_receiver_trail.clear(); // TODO find the cause of the leak that requires this
         Ok(())
     }
 
@@ -495,10 +497,7 @@ impl Visitor for MovePreProcessor {
             };
             _t.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         } else if let BinOp::Dot = _t.op {
-            let mut trail = _ctx.function_call_receiver_trail.clone();
-            trail.push(*_t.lhs_expression.clone());
-
-            _ctx.function_call_receiver_trail = trail;
+            _ctx.function_call_receiver_trail.push(*_t.lhs_expression.clone());
             match *_t.lhs_expression.clone() {
                 Expression::Identifier(_) => {
                     if let Expression::FunctionCall(_) = *_t.rhs_expression {
@@ -525,19 +524,8 @@ impl Visitor for MovePreProcessor {
     }
 
     fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
-        // TODO remove when done
-        if _t.identifier.token.contains("semiPerimeter") {
-            println!("Remove when done");
-        }
-        // TODO function call expression is fine here. Seems to be issue with receiver trail
-        let mut receiver_trail = _ctx.function_call_receiver_trail.clone();
-
         if Environment::is_runtime_function_call(_t) {
             return Ok(());
-        }
-
-        if receiver_trail.is_empty() {
-            receiver_trail = vec![Expression::SelfExpression]
         }
 
         if let Some(mangled) = mangle_function_call_name(_t, _ctx) {
@@ -567,6 +555,13 @@ impl Visitor for MovePreProcessor {
 
             let scope = _ctx.scope_context.clone().unwrap_or_default();
 
+            // TODO function call expression is fine here. Seems to be issue with receiver trail
+            let receiver_trail = &mut _ctx.function_call_receiver_trail;
+
+            if receiver_trail.is_empty() {
+                *receiver_trail = vec![Expression::SelfExpression]
+            }
+
             let declared_enclosing = if is_global_function_call {
                 "Quartz_Global".to_string()
             } else {
@@ -588,12 +583,9 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
                     && !is_global_function_call
             {
-                // TODO this is where the expression becomes strange about dotting rectangles
                 let expressions = receiver_trail;
-                // TODO remove this
-                println!("Remove this: \n{:#?}", expressions);
 
-                let mut expression = construct_expression(expressions);
+                let mut expression = construct_expression(expressions.clone());
 
                 if expression.enclosing_type().is_some() {
                     // TODO temp__6 happens here but it is now understandable why
@@ -647,7 +639,6 @@ impl Visitor for MovePreProcessor {
                 _t.arguments = arguments;
             }
         }
-
         _ctx.function_call_receiver_trail = vec![];
 
         Ok(())

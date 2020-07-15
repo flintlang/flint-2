@@ -293,9 +293,7 @@ impl Visitable for BinaryExpression {
         );
 
         match lhs_type {
-            Type::DictionaryType(_) => {}
-            Type::ArrayType(_) => {}
-            Type::FixedSizedArrayType(_) => {}
+            Type::DictionaryType(_) | Type::ArrayType(_) | Type::FixedSizedArrayType(_) => {}
             _ => {
                 if self.op.is_assignment() {
                     ctx.in_assignment = true;

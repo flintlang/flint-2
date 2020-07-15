@@ -229,12 +229,9 @@ impl Environment {
                             c.clone(),
                             current_function.caller_protection.clone(),
                         ) {
-                            println!("SUCEEDED>");
                             return FunctionCallMatchResult::MatchedFunction(current_function);
                         }
-                        println!("FLOOOPPPPPED HERE");
                     }
-                    println!("FLOOOPPPPPED HERE");
                     candidates.push(function.clone());
                     continue;
                 }
@@ -310,15 +307,11 @@ impl Environment {
         let mut candidates = Vec::new();
 
         let type_info = self.types.get(&f.identifier.token.clone());
-        // println!("initititititiiititiitititititititADddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd some");
-        // println!("{:?}", f.identifier.token.clone());
         if type_info.is_some() {
-            println!("TYpe is some");
             println!("{:?}", f.identifier.token.clone());
             println!("{:?}", f.arguments.clone());
             let initialisers = &type_info.unwrap().initialisers;
             for initialiser in initialisers {
-                println!("ADddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd some");
 
                 let parameter_types = initialiser.parameter_types();
                 println!("{:?}", parameter_types.clone());
@@ -358,7 +351,6 @@ impl Environment {
         argument_types: Vec<Type>,
         c: Vec<CallerProtection>,
     ) -> FunctionCallMatchResult {
-        println!("ENTER MATCHING GLOBAL");
         let token = f.identifier.token.clone();
         let mut candidates = Vec::new();
         let type_info = self.types.get(&"Quartz_Global".to_string());
@@ -429,7 +421,6 @@ impl Environment {
             })
             .collect();
 
-        println!("BEfore REgular MAtch");
 
         let regular_match =
             self.match_regular_function(f.clone(), t, caller_protections.clone(), scope.clone());
@@ -478,8 +469,6 @@ impl Environment {
     ) -> bool {
         let no_self_declaration_type = Environment::replace_self(source.get_parameter_types(), t);
 
-        println!("SELF SUPPOSEDLY REPLACED");
-        println!("{:?}", no_self_declaration_type);
         let parameters: Vec<VariableDeclaration> = source
             .declaration
             .head
@@ -488,11 +477,6 @@ impl Environment {
             .into_iter()
             .map(|p| p.as_variable_declaration())
             .collect();
-
-        println!("Parameter Types = ");
-        println!("{:?}", parameters.clone());
-        println!("Target Types = ");
-        println!("{:?}", target.arguments.clone());
 
         if target.arguments.len() <= source.parameter_identifiers().len()
             && target.arguments.len() >= source.required_parameter_identifiers().len()
