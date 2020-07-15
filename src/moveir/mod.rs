@@ -1,14 +1,14 @@
 use crate::type_checker::ExpressionCheck;
-use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
+pub mod preprocessor;
+use preprocessor::*;
 use super::ast::*;
 use super::context::*;
-use super::environment::*;
-
-pub mod preprocessor;
+use crate::environment::*;
+use core::fmt;
 
 #[derive(Debug, Clone)]
 pub enum MovePosition {
