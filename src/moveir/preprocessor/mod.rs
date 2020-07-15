@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
-use crate::moveir::{FunctionContext, MoveExpression, MoveIRBlock, MoveIRStatement};
+use crate::moveir::{FunctionContext, MoveExpression, MoveIRBlock};
 use crate::type_checker::ExpressionCheck;
 use crate::visitor::Visitor;
 
@@ -999,22 +999,15 @@ pub fn generate_contract_wrapper(
     // This needs to be RawAssembley because an address type in flint maps to a
     // signer type in the newer libra (2020 July). But here we need to use Move's
     // built in address type which we get FROM a signer. Needless to say this is not ideal
-    let sender_declaration = Expression::RawAssembly(
-        "let _sender: address".to_string(),
-        None
-    );
+    let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
 
-    wrapper
-        .body
-        .push(Statement::Expression(
-            sender_declaration,
-        ));
+    wrapper.body.push(Statement::Expression(sender_declaration));
 
     let sender_assignment = BinaryExpression {
         lhs_expression: Box::new(Expression::Identifier(Identifier {
             token: "sender".to_string(),
             enclosing_type: None,
-            line_info: Default::default()
+            line_info: Default::default(),
         })),
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
@@ -1024,7 +1017,7 @@ pub fn generate_contract_wrapper(
             None,
         )),
         op: BinOp::Equal,
-        line_info: Default::default()
+        line_info: Default::default(),
     };
     wrapper
         .body
