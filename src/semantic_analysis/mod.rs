@@ -50,9 +50,9 @@ impl Visitor for SemanticAnalysis {
             return Err(Box::from("".to_owned()));
         }
 
-        let statefull = _ctx.environment.is_contract_stateful(&_t.identifier.token);
-        let states = _t.states.clone();
-        if statefull != (!states.is_empty()) {
+        let stateful = _ctx.environment.is_contract_stateful(&_t.identifier.token);
+        let states = _t.type_states.clone();
+        if stateful != (!states.is_empty()) {
             println!("Contract Behaviour Declaration has mismatched states");
             return Err(Box::from("".to_owned()));
         }

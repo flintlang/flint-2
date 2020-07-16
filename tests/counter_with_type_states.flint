@@ -1,0 +1,21 @@
+contract Counter (Decrementable, Zero) {
+    var value: Int = 0
+}
+
+Counter @(any) :: (any) {
+    public init() {}
+
+    public func getValue() -> Int {
+        return value
+    }
+
+    public func increment() mutates (value) {
+        value += 1
+    }
+}
+
+Counter @(Decrementable) :: (any) {
+    public func decrement() mutates (value) {
+        value -= 1
+    }
+}

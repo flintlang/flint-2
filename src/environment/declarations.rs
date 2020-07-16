@@ -1,3 +1,4 @@
+use crate::ast::*;
 use crate::environment::*;
 
 impl Environment {
@@ -21,6 +22,10 @@ impl Environment {
                 &c.identifier.token.clone(),
                 &conformance.identifier.token.clone(),
             )
+        }
+
+        for type_state in &c.type_states {
+            self.add_type_state(&c.identifier.token, type_state.clone());
         }
 
         let members = &c.contract_members;
@@ -56,10 +61,10 @@ impl Environment {
                     &s.identifier.token,
                 ),
                 StructMember::FunctionDeclaration(f) => {
-                    self.add_function(f, &s.identifier.token, vec![])
+                    self.add_function(f, &s.identifier.token, vec![], vec![])
                 }
                 StructMember::SpecialDeclaration(sd) => {
-                    self.add_special(sd, &s.identifier.token, Vec::new())
+                    self.add_special(sd, &s.identifier.token, Vec::new(), vec![])
                 }
             }
         }
@@ -85,10 +90,10 @@ impl Environment {
                     &a.identifier.token,
                 ),
                 AssetMember::FunctionDeclaration(f) => {
-                    self.add_function(f, &a.identifier.token, vec![])
+                    self.add_function(f, &a.identifier.token, vec![], vec![])
                 }
                 AssetMember::SpecialDeclaration(sd) => {
-                    self.add_special(sd, &a.identifier.token, Vec::new())
+                    self.add_special(sd, &a.identifier.token, Vec::new(), vec![])
                 }
             }
         }
@@ -99,7 +104,7 @@ impl Environment {
         self.trait_declarations.push(identifier);
 
         let special = Environment::external_trait_init();
-        self.add_init_sig(special, &t.identifier.token.clone(), vec![], true);
+        self.add_init_sig(special, &t.identifier.token.clone(), vec![], vec![], true);
 
         if !t.modifiers.is_empty() {
             if self.types.get(&t.identifier.token).is_none() {
@@ -113,6 +118,7 @@ impl Environment {
                         fallbacks: vec![],
                         public_initializer: None,
                         conformances: vec![],
+                        type_states: vec![],
                         modifiers: vec![],
                     },
                 );
@@ -128,10 +134,10 @@ impl Environment {
         for member in t.members.clone() {
             match member {
                 TraitMember::FunctionDeclaration(f) => {
-                    self.add_function(&f, &t.identifier.token, vec![])
+                    self.add_function(&f, &t.identifier.token, vec![], vec![])
                 }
                 TraitMember::SpecialDeclaration(s) => {
-                    self.add_special(&s, &t.identifier.token, vec![])
+                    self.add_special(&s, &t.identifier.token, vec![], vec![])
                 }
                 TraitMember::FunctionSignatureDeclaration(f) => {
                     self.add_function_signature(&f, &t.identifier.token, vec![], true)
@@ -145,15 +151,20 @@ impl Environment {
 
     pub fn add_contract_behaviour_declaration(&mut self, c: &ContractBehaviourDeclaration) {
         let members = &c.members;
-        let caller_protections = &c.caller_protections.clone();
         for member in members {
             match member {
-                ContractBehaviourMember::FunctionDeclaration(f) => {
-                    self.add_function(f, &c.identifier.token, c.caller_protections.clone())
-                }
-                ContractBehaviourMember::SpecialDeclaration(s) => {
-                    self.add_special(s, &c.identifier.token, caller_protections.clone())
-                }
+                ContractBehaviourMember::FunctionDeclaration(f) => self.add_function(
+                    f,
+                    &c.identifier.token,
+                    c.caller_protections.clone(),
+                    c.type_states.clone(),
+                ),
+                ContractBehaviourMember::SpecialDeclaration(s) => self.add_special(
+                    s,
+                    &c.identifier.token,
+                    c.caller_protections.clone(),
+                    c.type_states.clone(),
+                ),
                 ContractBehaviourMember::SpecialSignatureDeclaration(_) => continue,
                 ContractBehaviourMember::FunctionSignatureDeclaration(_) => continue,
             }
@@ -177,6 +188,7 @@ impl Environment {
         sig: SpecialSignatureDeclaration,
         enclosing: &TypeIdentifier,
         caller_protections: Vec<CallerProtection>,
+        type_states: Vec<TypeState>,
         generated: bool,
     ) {
         let special = SpecialDeclaration {
@@ -194,6 +206,7 @@ impl Environment {
                 .push(SpecialInformation {
                     declaration: special.clone(),
                     caller_protections,
+                    type_states,
                 });
         } else {
             self.types.insert(
@@ -206,6 +219,7 @@ impl Environment {
                     fallbacks: vec![],
                     public_initializer: None,
                     conformances: vec![],
+                    type_states: vec![],
                     modifiers: vec![],
                 },
             );
@@ -215,6 +229,7 @@ impl Environment {
                 .initialisers
                 .push(SpecialInformation {
                     declaration: special.clone(),
+                    type_states,
                     caller_protections,
                 });
         }

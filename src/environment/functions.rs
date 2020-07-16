@@ -1,6 +1,6 @@
 use crate::ast::{
     do_vecs_match, CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration,
-    FunctionInformation, FunctionSignatureDeclaration, Type, TypeIdentifier, TypeInfo,
+    FunctionInformation, FunctionSignatureDeclaration, Type, TypeIdentifier, TypeInfo, TypeState,
     VariableDeclaration,
 };
 use crate::context::ScopeContext;
@@ -13,12 +13,14 @@ impl Environment {
         f: &FunctionDeclaration,
         t: &TypeIdentifier,
         caller_protections: Vec<CallerProtection>,
+        type_states: Vec<TypeState>,
     ) {
         let name = f.head.identifier.token.clone();
         let function_information = FunctionInformation {
             declaration: f.clone(),
             mutating: f.is_mutating(),
             caller_protection: caller_protections,
+            type_states,
             ..Default::default()
         };
         let type_info = if let Some(type_info) = self.types.get_mut(t) {
@@ -34,6 +36,7 @@ impl Environment {
                     fallbacks: vec![],
                     public_initializer: None,
                     conformances: vec![],
+                    type_states: vec![],
                     modifiers: vec![],
                 },
             );
@@ -109,6 +112,7 @@ impl Environment {
                     fallbacks: vec![],
                     public_initializer: None,
                     conformances: vec![],
+                    type_states: vec![],
                     modifiers: vec![],
                 },
             );

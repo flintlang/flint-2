@@ -44,6 +44,7 @@ pub struct TypeInfo {
     pub fallbacks: Vec<SpecialInformation>,
     pub public_initializer: Option<SpecialDeclaration>,
     pub conformances: Vec<TypeInfo>,
+    pub type_states: Vec<TypeState>,
     pub modifiers: Vec<FunctionCall>,
 }
 
@@ -167,6 +168,7 @@ impl Property {
 #[derive(Debug, Clone)]
 pub struct SpecialInformation {
     pub declaration: SpecialDeclaration,
+    pub type_states: Vec<TypeState>,
     pub caller_protections: Vec<CallerProtection>,
 }
 

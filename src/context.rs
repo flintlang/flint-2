@@ -108,12 +108,14 @@ impl Context {
 #[derive(Debug)]
 pub struct ContractDeclarationContext {
     pub identifier: Identifier,
+    pub type_states: Vec<TypeState>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ContractBehaviourDeclarationContext {
     pub identifier: Identifier,
     pub caller: Option<Identifier>,
+    pub type_states: Vec<TypeState>,
     pub caller_protections: Vec<CallerProtection>,
 }
 

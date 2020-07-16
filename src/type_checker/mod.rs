@@ -1,6 +1,9 @@
+mod type_error;
+
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
+use type_error::StateTypeError;
 
 pub struct TypeChecker {}
 
@@ -21,15 +24,17 @@ impl Visitor for TypeChecker {
         _t: &mut ContractBehaviourDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        let states = _t.states.clone();
+        let states = _t.type_states.clone();
         for state in states {
-            if _ctx
+            if !_ctx
                 .environment
-                .is_state_declared(&state.identifier.token, &_t.identifier.token)
-                || state.is_any()
+                .is_state_declared(&state, &_t.identifier.token)
+                && !state.is_any()
             {
-            } else {
-                println!("Invalid state used")
+                return Err(Box::from(StateTypeError::new(
+                    state.identifier.token,
+                    state.identifier.line_info.line,
+                )));
             }
         }
 

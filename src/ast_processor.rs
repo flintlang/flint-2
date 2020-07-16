@@ -7,7 +7,7 @@ use super::solidity;
 use super::type_assigner::*;
 use super::type_checker::*;
 
-pub fn process_ast(mut module: Module, environment: Environment, target: Target) {
+pub fn process_ast(mut module: Module, environment: Environment, target: Target) -> VResult {
     let type_assigner = &mut TypeAssigner {};
     let semantic_analysis = &mut SemanticAnalysis {};
     let type_checker = &mut TypeChecker {};
@@ -18,46 +18,19 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
         ..Default::default()
     };
 
-    let result = module.visit(type_assigner, context);
-
-    match result {
-        Ok(_) => {}
-        Err(_) => return,
-    }
-
-    let result = module.visit(semantic_analysis, context);
-
-    match result {
-        Ok(_) => {}
-        Err(_) => return,
-    }
-
-    let result = module.visit(type_checker, context);
-
-    match result {
-        Ok(_) => {}
-        Err(_) => return,
-    }
+    module.visit(type_assigner, context)?;
+    module.visit(semantic_analysis, context)?;
+    module.visit(type_checker, context)?;
 
     if let Target::Move = target {
-        let result = module.visit(move_preprocessor, context);
-
-        match result {
-            Ok(_) => {}
-            Err(_) => return,
-        }
-
-        let _result = moveir::generate(module, context);
+        module.visit(move_preprocessor, context)?;
+        moveir::generate(module, context);
     } else {
-        let result = module.visit(solidity_preprocessor, context);
-
-        match result {
-            Ok(_) => {}
-            Err(_) => return,
-        }
-
-        let _result = solidity::generate(module, context);
+        module.visit(solidity_preprocessor, context)?;
+        solidity::generate(module, context);
     }
+
+    Ok(())
 }
 
 pub enum Target {

@@ -53,12 +53,14 @@ fn parse_module(i: Span) -> nom::IResult<Span, Module> {
 mod tests {
     use nom_locate::LocatedSpan;
 
-    use crate::parser::*;
+    use crate::parser::declarations::*;
+    use crate::parser::operators::*;
+    use crate::parser::utils::*;
 
     #[test]
     fn test_parse_module() {
         let input = LocatedSpan::new(
-            "contract Coin {
+            "contract Coin (Antique, Old, New, Invalid) {
                 var minter: Address
                         var balance: [Address: Int] = [:]
                             event Sent(from: Address, to: Address, amount: Int)
@@ -87,7 +89,7 @@ mod tests {
                                     enclosing_type: None,
                                     line_info: LineInfo {
                                         line: 2,
-                                        offset: 36,
+                                        offset: 65,
                                     },
                                 },
 
@@ -102,7 +104,7 @@ mod tests {
                                     enclosing_type: None,
                                     line_info: LineInfo {
                                         line: 3,
-                                        offset: 80,
+                                        offset: 109,
                                     },
                                 },
 
@@ -121,7 +123,7 @@ mod tests {
                                     enclosing_type: None,
                                     line_info: LineInfo {
                                         line: 4,
-                                        offset: 144,
+                                        offset: 163,
                                     },
                                 },
 
@@ -132,7 +134,7 @@ mod tests {
                                             enclosing_type: None,
                                             line_info: LineInfo {
                                                 line: 4,
-                                                offset: 149,
+                                                offset: 178,
                                             },
                                         },
 
@@ -140,7 +142,7 @@ mod tests {
                                         expression: None,
                                         line_info: LineInfo {
                                             line: 4,
-                                            offset: 149,
+                                            offset: 178,
                                         },
                                     },
                                     Parameter {
@@ -149,14 +151,14 @@ mod tests {
                                             enclosing_type: None,
                                             line_info: LineInfo {
                                                 line: 4,
-                                                offset: 164,
+                                                offset: 193,
                                             },
                                         },
                                         type_assignment: Type::Address,
                                         expression: None,
                                         line_info: LineInfo {
                                             line: 4,
-                                            offset: 164,
+                                            offset: 193,
                                         },
                                     },
                                     Parameter {
@@ -165,21 +167,62 @@ mod tests {
                                             enclosing_type: None,
                                             line_info: LineInfo {
                                                 line: 4,
-                                                offset: 177,
+                                                offset: 206,
                                             },
                                         },
                                         type_assignment: Type::Int,
                                         expression: None,
                                         line_info: LineInfo {
                                             line: 4,
-                                            offset: 177,
+                                            offset: 206,
                                         },
                                     }
                                 ],
                             })
                         ],
-
-                        conformances: vec![],
+                        type_states: vec![
+                            TypeState {
+                                identifier: Identifier {
+                                    token: "Antique".to_string(),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 15,
+                                    }
+                                }
+                            },
+                            TypeState {
+                                identifier: Identifier {
+                                    token: "Old".to_string(),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 24,
+                                    }
+                                }
+                            },
+                            TypeState {
+                                identifier: Identifier {
+                                    token: "New".to_string(),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 29,
+                                    }
+                                }
+                            },
+                            TypeState {
+                                identifier: Identifier {
+                                    token: "Invalid".to_string(),
+                                    enclosing_type: None,
+                                    line_info: LineInfo {
+                                        line: 1,
+                                        offset: 34,
+                                    }
+                                }
+                            }
+                        ],
+                        conformances: vec![]
                     }
                 )]
             }

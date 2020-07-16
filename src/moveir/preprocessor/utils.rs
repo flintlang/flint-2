@@ -66,14 +66,17 @@ pub fn convert_default_parameter_functions(
 
             _ctx.environment.remove_function(f, t);
 
-            let protections = if let Some(ref context) = _ctx.contract_behaviour_declaration_context
-            {
-                context.caller_protections.clone()
-            } else {
-                vec![]
-            };
+            let (protections, type_states) =
+                if let Some(ref context) = _ctx.contract_behaviour_declaration_context {
+                    (
+                        context.caller_protections.clone(),
+                        context.type_states.clone(),
+                    )
+                } else {
+                    (vec![], vec![])
+                };
             _ctx.environment
-                .add_function(&removed, t, protections.clone());
+                .add_function(&removed, t, protections.clone(), type_states.clone());
 
             processed.push(removed);
 
@@ -124,7 +127,7 @@ pub fn convert_default_parameter_functions(
             }
 
             _ctx.environment
-                .add_function(&assigned_function, t, protections);
+                .add_function(&assigned_function, t, protections, type_states);
 
             processed.push(assigned_function);
         }

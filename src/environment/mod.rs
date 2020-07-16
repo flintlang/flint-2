@@ -89,11 +89,18 @@ impl Environment {
         }
     }
 
+    fn add_type_state(&mut self, t: &TypeIdentifier, type_state: TypeState) {
+        if let Some(type_info) = self.types.get_mut(t) {
+            type_info.type_states.push(type_state);
+        }
+    }
+
     pub fn add_special(
         &mut self,
         s: &SpecialDeclaration,
         t: &TypeIdentifier,
         caller_protections: Vec<CallerProtection>,
+        type_states: Vec<TypeState>,
     ) {
         if s.is_init() {
             if s.is_public() {
@@ -110,6 +117,7 @@ impl Environment {
                     .initialisers
                     .push(SpecialInformation {
                         declaration: s.clone(),
+                        type_states,
                         caller_protections,
                     });
             }
@@ -122,6 +130,7 @@ impl Environment {
                     .fallbacks
                     .push(SpecialInformation {
                         declaration: s.clone(),
+                        type_states,
                         caller_protections,
                     });
             }
@@ -243,27 +252,19 @@ impl Environment {
     }
 
     pub fn is_contract_stateful(&self, t: &TypeIdentifier) -> bool {
-        let enum_name = ContractDeclaration::contract_enum_prefix() + t;
-        let enums = self.enum_declarations.clone();
-        let enums: Vec<String> = enums.into_iter().map(|i| i.token).collect();
-        if enums.contains(&enum_name) {
-            return true;
+        if let Some(contract_info) = self.types.get(t) {
+            !contract_info.type_states.is_empty()
+        } else {
+            panic!("Contract {} does not exist!", t)
         }
-        false
     }
 
-    pub fn is_state_declared(&self, state: &TypeIdentifier, t: &TypeIdentifier) -> bool {
-        let enum_name = ContractDeclaration::contract_enum_prefix() + t;
-        if self.types.get(enum_name.as_str()).is_some() {
-            return self
-                .types
-                .get(enum_name.as_str())
-                .unwrap()
-                .properties
-                .get(state)
-                .is_some();
+    pub fn is_state_declared(&self, state: &TypeState, t: &TypeIdentifier) -> bool {
+        if let Some(contract_info) = self.types.get(t) {
+            contract_info.type_states.contains(state)
+        } else {
+            panic!("Contract {} does not exist", t)
         }
-        false
     }
 
     pub fn is_struct_declared(&self, t: &TypeIdentifier) -> bool {

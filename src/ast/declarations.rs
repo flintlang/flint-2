@@ -45,10 +45,12 @@ impl Visitable for TopLevelDeclaration {
 pub struct ContractDeclaration {
     pub identifier: Identifier,
     pub contract_members: Vec<ContractMember>,
+    pub type_states: Vec<TypeState>,
     pub conformances: Vec<Conformance>,
 }
 
 impl ContractDeclaration {
+    #[allow(dead_code)]
     pub fn contract_enum_prefix() -> String {
         "QuartzStateEnum$".to_string()
     }
@@ -91,9 +93,12 @@ impl Visitable for ContractDeclaration {
 
         ctx.contract_declaration_context = Some(ContractDeclarationContext {
             identifier: self.identifier.clone(),
+            type_states: self.type_states.clone(),
         });
 
         self.conformances.visit(v, ctx)?;
+
+        self.type_states.visit(v, ctx)?;
 
         self.contract_members.visit(v, ctx)?;
 
@@ -127,7 +132,7 @@ impl Visitable for ContractMember {
 pub struct ContractBehaviourDeclaration {
     pub identifier: Identifier,
     pub members: Vec<ContractBehaviourMember>,
-    pub states: Vec<TypeState>,
+    pub type_states: Vec<TypeState>,
     pub caller_binding: Option<Identifier>,
     pub caller_protections: Vec<CallerProtection>,
 }
@@ -137,6 +142,7 @@ impl Visitable for ContractBehaviourDeclaration {
         ctx.contract_behaviour_declaration_context = Some(ContractBehaviourDeclarationContext {
             identifier: self.identifier.clone(),
             caller: self.caller_binding.clone(),
+            type_states: self.type_states.clone(),
             caller_protections: self.caller_protections.clone(),
         });
 
@@ -163,6 +169,8 @@ impl Visitable for ContractBehaviourDeclaration {
         if let Some(ref mut caller) = self.caller_binding {
             caller.visit(v, ctx)?;
         }
+
+        self.type_states.visit(v, ctx)?;
 
         self.caller_protections.visit(v, ctx)?;
 

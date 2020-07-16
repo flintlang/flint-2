@@ -42,6 +42,16 @@ fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration
     let (i, _contract_token) = tag("contract")(i)?;
     let (i, identifier) = preceded(nom::character::complete::space0, parse_identifier)(i)?;
     let (i, _) = whitespace(i)?;
+    // TODO fix enforcing of type states being correct
+    // TODO add type states contract parse test including a failing case for mismatched
+    let (_, left_round_bracket) = nom::combinator::opt(left_parens)(i)?;
+    let (i, type_states) = if left_round_bracket.is_none() {
+        (i, vec![])
+    } else {
+        parse_type_states(i)?
+    };
+
+    let (i, _) = whitespace(i)?;
     let (i, conformances) = parse_conformances(i)?;
     let (i, _identifier_group) = nom::combinator::opt(parse_identifier_group)(i)?;
     let (i, _) = preceded(nom::character::complete::space0, left_brace)(i)?;
@@ -54,6 +64,7 @@ fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration
     let contract = ContractDeclaration {
         identifier,
         contract_members,
+        type_states,
         conformances,
     };
     Ok((i, TopLevelDeclaration::ContractDeclaration(contract)))
@@ -113,7 +124,7 @@ fn parse_contract_behaviour_declaration(
     let contract_behaviour_declaration = ContractBehaviourDeclaration {
         members,
         identifier,
-        states: type_states,
+        type_states,
         caller_protections,
         caller_binding,
     };

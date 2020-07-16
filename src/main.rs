@@ -84,7 +84,9 @@ fn main() {
     let (module, environment) = parser::parse_program(&program);
 
     if let Some(module) = module {
-        let _process_result = ast_processor::process_ast(module, environment, target);
+        ast_processor::process_ast(module, environment, target).unwrap_or_else(|err| {
+            println!("Could not parse invalid flint file: {}", err);
+        });
     } else {
         println!("Parse Error");
     }
