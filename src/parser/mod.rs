@@ -19,25 +19,36 @@ use crate::parser::operators::*;
 use crate::parser::utils::*;
 
 pub fn parse_program(i: &str) -> ParseResult {
+    // TODO fix error typing to be more helpful
     let input = LocatedSpan::new(i);
     let result = parse_module(input);
-    let module = match result {
-        Ok((i, module)) => {
-            if !i.fragment().is_empty() {
-                panic!("Parser Error Parsing {:?}", i.fragment())
-            };
-            Some(module)
-        }
-        Err(_) => (None),
-    };
 
-    let mut environment: Environment = Default::default();
-    if let Some(module) = module {
-        environment.build(module.clone());
-        (Option::from(module), environment)
-    } else {
-        (module, environment)
+    match result {
+        Ok((_, module)) => {
+            // TODO check span is empty?
+            let mut environment: Environment = Default::default();
+            environment.build(module.clone());
+            Ok((module, environment))
+        }
+        Err(nom::Err::Failure((i, _))) => {
+            Err(format!("Could not parse {:#?}", i.fragment()))
+        }
+        Err(nom::Err::Error((i, _))) => {
+            Err(format!("Could not parse {:#?}", i.fragment()))
+        }
+        _ => Err("Could not parse. Not enough data".to_string()),
     }
+
+    // TODO remove
+    // let module = match result {
+    //     Ok((i, module)) => {
+    //         if !i.fragment().is_empty() {
+    //             panic!("Parser Error Parsing {:?}", i.fragment())
+    //         };
+    //         Some(module)
+    //     }
+    //     Err(_) => None,
+    // };
 }
 
 fn parse_module(i: Span) -> nom::IResult<Span, Module> {

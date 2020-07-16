@@ -14,6 +14,15 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
+// TODO do not allow 'any' as a declared typestate
+// TODO do not allow for duplicate typestates (e.g. Decrementable, Zero, Zero, Incrementable)
+// TODO write tests for parsing typestates
+// TODO check 'become' parsing
+// TODO start contract in one of the states
+// TODO decide how to represent the state of the contract
+// TODO decide how to represent the state of the contract in move
+// TODO test that the counter with states example properly works
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
@@ -81,13 +90,13 @@ fn main() {
             program = program
         )
     }
-    let (module, environment) = parser::parse_program(&program);
+    let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
+        println!("Could not parse file: {}", err);
+        std::process::exit(1);
+    });
 
-    if let Some(module) = module {
         ast_processor::process_ast(module, environment, target).unwrap_or_else(|err| {
             println!("Could not parse invalid flint file: {}", err);
+            std::process::exit(1);
         });
-    } else {
-        println!("Parse Error");
-    }
 }

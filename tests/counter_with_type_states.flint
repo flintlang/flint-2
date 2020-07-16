@@ -2,7 +2,7 @@ contract Counter (Decrementable, Zero) {
     var value: Int = 0
 }
 
-Counter @(any) :: (any) {
+Counter :: (any) {
     public init() {}
 
     public func getValue() -> Int {
@@ -11,11 +11,15 @@ Counter @(any) :: (any) {
 
     public func increment() mutates (value) {
         value += 1
+        // become Decrementable
     }
 }
 
 Counter @(Decrementable) :: (any) {
     public func decrement() mutates (value) {
         value -= 1
+        if getValue() == 0 {
+            // become Zero
+        }
     }
 }

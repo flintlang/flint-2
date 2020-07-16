@@ -328,6 +328,7 @@ impl Visitor for SemanticAnalysis {
     }
 
     fn start_identifier(&mut self, _t: &mut Identifier, _ctx: &mut Context) -> VResult {
+        // TODO make return errors properly
         let token = _t.token.clone();
         if token.contains('@') {
             println!("Invalid @ character used in Identifier");

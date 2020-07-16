@@ -7,7 +7,7 @@ pub use nom::{
 };
 pub use nom_locate::LocatedSpan;
 
-pub type ParseResult = (Option<Module>, Environment);
+pub type ParseResult = Result<(Module, Environment), String>;
 
 pub type Span<'a> = LocatedSpan<&'a str>;
 
