@@ -95,8 +95,8 @@ fn main() {
         std::process::exit(1);
     });
 
-        ast_processor::process_ast(module, environment, target).unwrap_or_else(|err| {
-            println!("Could not parse invalid flint file: {}", err);
-            std::process::exit(1);
-        });
+    ast_processor::process_ast(module, environment, target).unwrap_or_else(|err| {
+        println!("Could not parse invalid flint file: {}", err);
+        std::process::exit(1);
+    });
 }

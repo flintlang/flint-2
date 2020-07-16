@@ -52,9 +52,17 @@ impl Visitor for SemanticAnalysis {
 
         let stateful = _ctx.environment.is_contract_stateful(&_t.identifier.token);
         let states = _t.type_states.clone();
-        if stateful != (!states.is_empty()) {
-            println!("Contract Behaviour Declaration has mismatched states");
-            return Err(Box::from("".to_owned()));
+        if !stateful && !states.is_empty() {
+            return Err(Box::from(
+                format!(
+                    "Undeclared type states {:?}",
+                    states
+                        .iter()
+                        .map(|state| state.identifier.token.clone())
+                        .collect::<Vec<String>>()
+                )
+                .as_str(),
+            ));
         }
 
         if !_ctx.is_trait_declaration_context() {

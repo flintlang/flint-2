@@ -30,12 +30,8 @@ pub fn parse_program(i: &str) -> ParseResult {
             environment.build(module.clone());
             Ok((module, environment))
         }
-        Err(nom::Err::Failure((i, _))) => {
-            Err(format!("Could not parse {:#?}", i.fragment()))
-        }
-        Err(nom::Err::Error((i, _))) => {
-            Err(format!("Could not parse {:#?}", i.fragment()))
-        }
+        Err(nom::Err::Failure((i, _))) => Err(format!("Could not parse {:#?}", i.fragment())),
+        Err(nom::Err::Error((i, _))) => Err(format!("Could not parse {:#?}", i.fragment())),
         _ => Err("Could not parse. Not enough data".to_string()),
     }
 

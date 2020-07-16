@@ -106,16 +106,7 @@ fn parse_contract_behaviour_declaration(
     let (i, _) = whitespace(i)?;
     let (i, at_token) = nom::combinator::opt(at)(i)?;
     let (i, type_states) = if at_token.is_none() {
-        (
-            i,
-            vec![TypeState {
-                identifier: Identifier {
-                    token: "any".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-            }],
-        )
+        (i, vec![])
     } else {
         parse_type_states(i)?
     };
