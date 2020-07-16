@@ -562,7 +562,6 @@ impl Visitor for MovePreProcessor {
 
             let scope = _ctx.scope_context.clone().unwrap_or_default();
 
-            // TODO function call expression is fine here. Seems to be issue with receiver trail
             let receiver_trail = &mut _ctx.function_call_receiver_trail;
 
             if receiver_trail.is_empty() {
@@ -595,7 +594,6 @@ impl Visitor for MovePreProcessor {
                 let mut expression = construct_expression(expressions.clone());
 
                 if expression.enclosing_type().is_some() {
-                    // TODO temp__6 happens here but it is now understandable why
                     expression = expand_properties(expression, _ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression {
                     expression = expand_properties(expression, _ctx, false);

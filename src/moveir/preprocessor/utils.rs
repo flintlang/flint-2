@@ -467,7 +467,6 @@ pub fn pre_assign(
         })
         .collect();
     if statements.is_empty() {
-        // TODO temp_identifier is temp__6, so it is created here
         temp_identifier = scope.fresh_identifier(expression.get_line_info());
         let declaration = if expression_type.is_built_in_type() || borrow {
             VariableDeclaration {
