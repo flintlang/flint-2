@@ -299,7 +299,7 @@ impl Visitor for SemanticAnalysis {
     fn start_identifier(&mut self, _t: &mut Identifier, _ctx: &mut Context) -> VResult {
         let token = _t.token.clone();
         if token.contains('@') {
-            return Err(Box::from(format!("Invalid @ character used in Identifier")));
+            return Err(Box::from("Invalid @ character used in Identifier".to_string()));
         }
 
         if _ctx.is_property_default_assignment
