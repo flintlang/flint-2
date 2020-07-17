@@ -14,10 +14,9 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
-// TODO check 'become' parsing
-// TODO write tests for become parsing
 // TODO start contract in one of the states
 // TODO decide how to represent the state of the contract
+// TODO do not allow function calls to things in other states
 // TODO decide how to represent the state of the contract in move
 // TODO test that the counter with states example properly works
 

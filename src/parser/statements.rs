@@ -1,6 +1,7 @@
 use crate::parser::calls::parse_function_call;
 use crate::parser::declarations::parse_variable_declaration;
 use crate::parser::expressions::parse_expression;
+use crate::parser::type_states::parse_type_state;
 use crate::parser::utils::*;
 
 pub fn parse_statements(i: Span) -> nom::IResult<Span, Vec<Statement>> {
@@ -107,11 +108,8 @@ fn parse_become_statement(i: Span) -> nom::IResult<Span, Statement> {
     };
     let (i, _) = tag("become")(i)?;
     let (i, _) = nom::character::complete::space0(i)?;
-    let (i, expression) = parse_expression(i)?;
-    let become_statement = BecomeStatement {
-        expression,
-        line_info,
-    };
+    let (i, state) = parse_type_state(i)?;
+    let become_statement = BecomeStatement { state, line_info };
     Ok((i, Statement::BecomeStatement(become_statement)))
 }
 
@@ -250,17 +248,19 @@ mod tests {
 
     #[test]
     fn test_become_statement() {
-        let input = LocatedSpan::new("become example");
+        let input = LocatedSpan::new("become Example");
         let (_rest, result) =
             parse_become_statement(input).expect("Error parsing become statement");
         assert_eq!(
             result,
             Statement::BecomeStatement(BecomeStatement {
-                expression: Expression::Identifier(Identifier {
-                    token: String::from("example"),
-                    enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 },
-                }),
+                state: TypeState {
+                    identifier: Identifier {
+                        token: String::from("Example"),
+                        enclosing_type: None,
+                        line_info: LineInfo { line: 1, offset: 0 },
+                    }
+                },
 
                 line_info: LineInfo { line: 1, offset: 0 },
             })

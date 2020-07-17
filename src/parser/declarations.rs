@@ -4,10 +4,9 @@ use crate::parser::identifiers::*;
 use crate::parser::modifiers::*;
 use crate::parser::operators::*;
 use crate::parser::parameters::*;
+use crate::parser::type_states::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
-use nom::error::ErrorKind;
-use nom::lib::std::collections::HashSet;
 
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, top) = alt((
@@ -155,34 +154,6 @@ fn parse_caller_binding(i: Span) -> nom::IResult<Span, Identifier> {
     let (i, _) = whitespace(i)?;
     let (i, _) = left_arrow(i)?;
     Ok((i, identifier))
-}
-
-fn parse_type_states(i: Span) -> nom::IResult<Span, Vec<TypeState>> {
-    let (remaining, identifier_group) = parse_identifier_group(i)?;
-    // Ensure all start with an upper case ascii letter
-    if !identifier_group.iter().all(|id| {
-        let first = id.token.chars().next().unwrap();
-        first.is_alphabetic() && first.is_ascii_uppercase()
-    }) {
-        return Err(nom::Err::Failure((i, ErrorKind::Char)));
-    }
-
-    // Ensure no repeats
-    if identifier_group.len()
-        != identifier_group
-            .iter()
-            .map(|id| id.token.as_str())
-            .collect::<HashSet<&str>>()
-            .len()
-    {
-        return Err(nom::Err::Failure((i, ErrorKind::SeparatedList)));
-    }
-
-    let types_states = identifier_group
-        .into_iter()
-        .map(|identifier| TypeState { identifier })
-        .collect();
-    Ok((remaining, types_states))
 }
 
 #[allow(dead_code)]
@@ -620,42 +591,5 @@ mod test {
             Ok((_c, b)) => assert_eq!(b, Identifier::generated("caller")),
             Err(_) => assert_eq!(1, 0),
         }
-    }
-
-    fn create_states(state_names: Vec<&str>, line_info: Vec<(u32, usize)>) -> Vec<TypeState> {
-        let line_info = line_info
-            .into_iter()
-            .map(|(line, offset)| LineInfo { line, offset })
-            .collect::<Vec<LineInfo>>();
-
-        state_names
-            .into_iter()
-            .zip(line_info.into_iter())
-            .map(|(token, line_info)| TypeState {
-                identifier: Identifier {
-                    token: token.to_string(),
-                    enclosing_type: None,
-                    line_info,
-                },
-            })
-            .collect::<Vec<TypeState>>()
-    }
-
-    #[test]
-    fn test_parse_type_state() {
-        let input = LocatedSpan::new("(S1, S2, S3) {");
-        let (remains, states) =
-            parse_type_states(input).unwrap_or_else(|_| panic!("Failure parsing type states"));
-        assert_eq!(*remains.fragment(), " {");
-        assert_eq!(
-            states,
-            create_states(vec!["S1", "S2", "S3"], vec![(1, 1), (1, 5), (1, 9)])
-        );
-
-        let input = LocatedSpan::new("(s1, s2, s3) {");
-        parse_type_states(input).expect_err("Should not allow lowercase starting states");
-
-        let input = LocatedSpan::new("(S1, S2, S1, S3)");
-        parse_type_states(input).expect_err("Should not allow duplicate typestates");
     }
 }

@@ -266,14 +266,14 @@ impl Visitable for EmitStatement {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BecomeStatement {
-    pub expression: Expression,
+    pub state: TypeState,
     pub line_info: LineInfo,
 }
 
 impl Visitable for BecomeStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         ctx.in_become = true;
-        self.expression.visit(v, ctx)?;
+        self.state.visit(v, ctx)?;
         ctx.in_become = false;
         Ok(())
     }

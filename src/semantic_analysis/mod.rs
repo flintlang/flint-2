@@ -14,11 +14,17 @@ impl Visitor for SemanticAnalysis {
             .environment
             .has_public_initialiser(&_t.identifier.token)
         {
-            return Err(Box::from(format!("No public Initialiser for contract {}", _t.identifier.token)));
+            return Err(Box::from(format!(
+                "No public Initialiser for contract {}",
+                _t.identifier.token
+            )));
         }
 
         if _ctx.environment.is_conflicting(&_t.identifier) {
-            return Err(Box::from(format!("Conflicting Declarations for {}", _t.identifier.token)));
+            return Err(Box::from(format!(
+                "Conflicting Declarations for {}",
+                _t.identifier.token
+            )));
         }
 
         if is_conformance_repeated(_t.conformances.clone()) {
@@ -40,7 +46,10 @@ impl Visitor for SemanticAnalysis {
         _ctx: &mut Context,
     ) -> VResult {
         if !_ctx.environment.is_contract_declared(&_t.identifier.token) {
-            return Err(Box::from(format!("Undeclared contract {}", _t.identifier.token)));
+            return Err(Box::from(format!(
+                "Undeclared contract {}",
+                _t.identifier.token
+            )));
         }
 
         let stateful = _ctx.environment.is_contract_stateful(&_t.identifier.token);
@@ -62,8 +71,12 @@ impl Visitor for SemanticAnalysis {
             let members = _t.members.clone();
             for member in members {
                 match member {
-                    ContractBehaviourMember::SpecialSignatureDeclaration(_) | ContractBehaviourMember::FunctionSignatureDeclaration(_) => {
-                        return Err(Box::from(format!("Signature Declaration in Contract {}", _t.identifier.token)));
+                    ContractBehaviourMember::SpecialSignatureDeclaration(_)
+                    | ContractBehaviourMember::FunctionSignatureDeclaration(_) => {
+                        return Err(Box::from(format!(
+                            "Signature Declaration in Contract {}",
+                            _t.identifier.token
+                        )));
                     }
                     _ => continue,
                 }
@@ -85,7 +98,10 @@ impl Visitor for SemanticAnalysis {
         }
 
         if _ctx.environment.is_recursive_struct(&_t.identifier.token) {
-            return Err(Box::from(format!("Recusive Struct Definition for {}", _t.identifier.token)));
+            return Err(Box::from(format!(
+                "Recusive Struct Definition for {}",
+                _t.identifier.token
+            )));
         }
 
         if is_conformance_repeated(_t.conformances.clone()) {
@@ -107,7 +123,10 @@ impl Visitor for SemanticAnalysis {
         _ctx: &mut Context,
     ) -> VResult {
         if _ctx.environment.is_conflicting(&_t.identifier) {
-            return Err(Box::from(format!("Conflicting Declarations for {}", _t.identifier.token.clone())));
+            return Err(Box::from(format!(
+                "Conflicting Declarations for {}",
+                _t.identifier.token.clone()
+            )));
         }
 
         Ok(())
@@ -132,7 +151,10 @@ impl Visitor for SemanticAnalysis {
         };
 
         if !type_declared {
-            return Err(Box::from(format!("Type {:?} is not declared", _t.variable_type)));
+            return Err(Box::from(format!(
+                "Type {:?} is not declared",
+                _t.variable_type
+            )));
         }
 
         if _ctx.in_function_or_special() {
@@ -141,7 +163,10 @@ impl Visitor for SemanticAnalysis {
 
                 let redeclaration = scope_context.declaration(_t.identifier.token.clone());
                 if redeclaration.is_some() {
-                    return Err(Box::from(format!("Redeclaration of identifier {}", _t.identifier.token)));
+                    return Err(Box::from(format!(
+                        "Redeclaration of identifier {}",
+                        _t.identifier.token
+                    )));
                 }
                 scope_context.local_variables.push(_t.clone());
             }
@@ -169,7 +194,10 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .is_conflicting_function_declaration(&_t, identifier)
             {
-                return Err(Box::from(format!("Conflicting Function Declarations for {}", _t.head.identifier.token)));
+                return Err(Box::from(format!(
+                    "Conflicting Function Declarations for {}",
+                    _t.head.identifier.token
+                )));
             }
 
             if identifier == "Libra" || identifier == "Wei" {
@@ -188,7 +216,10 @@ impl Visitor for SemanticAnalysis {
             (1..parameters.len()).any(|i| parameters[i..].contains(&parameters[i - 1]));
 
         if duplicates {
-            return Err(Box::from(format!("Fuction {} has duplicate parameters", _t.head.identifier.token)));
+            return Err(Box::from(format!(
+                "Fuction {} has duplicate parameters",
+                _t.head.identifier.token
+            )));
         }
 
         let payable_parameters = _t.head.parameters.clone();
@@ -198,13 +229,22 @@ impl Visitor for SemanticAnalysis {
             .collect();
         if _t.is_payable() {
             if remaining_parameters.is_empty() {
-                return Err(Box::from(format!("Payable Function {} does not have payable parameter", _t.head.identifier.token)));
+                return Err(Box::from(format!(
+                    "Payable Function {} does not have payable parameter",
+                    _t.head.identifier.token
+                )));
             } else if remaining_parameters.len() > 1 {
-                return Err(Box::from(format!("Payable parameter is ambiguous in function {}", _t.head.identifier.token)));
+                return Err(Box::from(format!(
+                    "Payable parameter is ambiguous in function {}",
+                    _t.head.identifier.token
+                )));
             }
         } else if !remaining_parameters.is_empty() {
             let params = remaining_parameters.clone();
-            return Err(Box::from(format!("Function not marked payable but has payable parameter: {:?}", params)));
+            return Err(Box::from(format!(
+                "Function not marked payable but has payable parameter: {:?}",
+                params
+            )));
         }
 
         if _t.is_public() {
@@ -216,7 +256,10 @@ impl Visitor for SemanticAnalysis {
                 .filter(|p| p.is_dynamic() && !p.is_payable())
                 .collect();
             if !parameters.is_empty() {
-                return Err(Box::from(format!("Public Function {} has dynamic parameters", _t.head.identifier.token)));
+                return Err(Box::from(format!(
+                    "Public Function {} has dynamic parameters",
+                    _t.head.identifier.token
+                )));
             }
         }
 
@@ -224,7 +267,10 @@ impl Visitor for SemanticAnalysis {
         if return_type.is_some() {
             match return_type.as_ref().unwrap() {
                 Type::UserDefinedType(_) => {
-                    return Err(Box::from(format!("Not allowed to return struct in function {}", _t.head.identifier.token)));
+                    return Err(Box::from(format!(
+                        "Not allowed to return struct in function {}",
+                        _t.head.identifier.token
+                    )));
                 }
                 _ => (),
             }
@@ -248,25 +294,42 @@ impl Visitor for SemanticAnalysis {
 
         let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s.clone()));
         if remaining_after_end.count() > 0 {
-            return Err(Box::from(format!("Statements after Return in {}", _t.head.identifier.token)));
+            return Err(Box::from(format!(
+                "Statements after Return in {}",
+                _t.head.identifier.token
+            )));
         }
 
         if _t.head.result_type.is_some() && return_statements.is_empty() {
-            return Err(Box::from(format!("Missing Return in Function {}", _t.head.identifier.token)));
+            return Err(Box::from(format!(
+                "Missing Return in Function {}",
+                _t.head.identifier.token
+            )));
         }
 
         if return_statements.len() > 1 {
-            return Err(Box::from(format!("Multiple Returns in function {}", _t.head.identifier.token)));
+            return Err(Box::from(format!(
+                "Multiple Returns in function {}",
+                _t.head.identifier.token
+            )));
         }
 
         if become_statements.len() > 1 {
-            return Err(Box::from(format!("Multiple Become Statements in {}", _t.head.identifier.token)));
+            return Err(Box::from(format!(
+                "Multiple Become Statements in {}",
+                _t.head.identifier.token
+            )));
         }
 
         for become_statement in &become_statements {
             for return_statement in &return_statements {
-                if return_statement.line_info.line > become_statement.line_info.line {
-                    return Err(Box::from(format!("Return statement after Become in function {}", _t.head.identifier.token)));
+                if return_statement.line_info.line
+                    > become_statement.state.identifier.line_info.line
+                {
+                    return Err(Box::from(format!(
+                        "Return statement after Become in function {}",
+                        _t.head.identifier.token
+                    )));
                 }
             }
         }
@@ -289,7 +352,10 @@ impl Visitor for SemanticAnalysis {
         _ctx: &mut Context,
     ) -> VResult {
         if _t.is_fallback() && _t.head.has_parameters() {
-            return Err(Box::from(format!("Fallback {} declared with arguments", _t.head.special_token)));
+            return Err(Box::from(format!(
+                "Fallback {} declared with arguments",
+                _t.head.special_token
+            )));
             // TODO check body only has simple statements bit long
         }
 
@@ -299,7 +365,9 @@ impl Visitor for SemanticAnalysis {
     fn start_identifier(&mut self, _t: &mut Identifier, _ctx: &mut Context) -> VResult {
         let token = _t.token.clone();
         if token.contains('@') {
-            return Err(Box::from("Invalid @ character used in Identifier".to_string()));
+            return Err(Box::from(
+                "Invalid @ character used in Identifier".to_string(),
+            ));
         }
 
         if _ctx.is_property_default_assignment
@@ -311,7 +379,9 @@ impl Visitor for SemanticAnalysis {
                 _t.token.clone(),
                 &_ctx.enclosing_type_identifier().unwrap().token,
             ) {
-                Err(Box::from("State property used withing property initiliaser".to_owned()))
+                Err(Box::from(
+                    "State property used withing property initiliaser".to_owned(),
+                ))
             } else {
                 Err(Box::from("Use of undeclared identifier".to_owned()))
             };
@@ -361,8 +431,11 @@ impl Visitor for SemanticAnalysis {
                     .is_property_defined(_t.token.clone(), &_t.enclosing_type.as_ref().unwrap())
                 {
                     let identifier = _t.token.clone();
-                    return Err(Box::from(format!("Use of Undeclared Identifier {ident}", ident = identifier)));
-                //TODO add add used undefined variable to env
+                    return Err(Box::from(format!(
+                        "Use of Undeclared Identifier {ident}",
+                        ident = identifier
+                    )));
+                    //TODO add add used undefined variable to env
                 } else if is_l_value && !_ctx.in_subscript {
                     if _ctx.environment.is_property_constant(
                         _t.token.clone(),
@@ -387,13 +460,17 @@ impl Visitor for SemanticAnalysis {
                                 f = enclosing
                             );
 
-                            return Err(Box::from(format!("{}, {}", i, _ctx.function_declaration_context
-                                .as_ref()
-                                .unwrap()
-                                .declaration
-                                .head
-                                .identifier
-                                .token)));
+                            return Err(Box::from(format!(
+                                "{}, {}",
+                                i,
+                                _ctx.function_declaration_context
+                                    .as_ref()
+                                    .unwrap()
+                                    .declaration
+                                    .head
+                                    .identifier
+                                    .token
+                            )));
                         }
                     }
                 }
@@ -427,7 +504,10 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
         {
-            return Err(Box::from(format!("Undeclared caller protection {}", _t.identifier.token)));
+            return Err(Box::from(format!(
+                "Undeclared caller protection {}",
+                _t.identifier.token
+            )));
         }
 
         Ok(())
@@ -435,7 +515,10 @@ impl Visitor for SemanticAnalysis {
 
     fn start_conformance(&mut self, _t: &mut Conformance, _ctx: &mut Context) -> VResult {
         if !_ctx.environment.is_trait_declared(&_t.name()) {
-            return Err(Box::from(format!("Undeclared Trait {} Used", _t.identifier.token)));
+            return Err(Box::from(format!(
+                "Undeclared Trait {} Used",
+                _t.identifier.token
+            )));
         }
         Ok(())
     }
@@ -482,7 +565,9 @@ impl Visitor for SemanticAnalysis {
 
                 if let Expression::VariableDeclaration(v) = lhs {
                     if !v.is_constant() {
-                        return Err(Box::from("Invalid Condition Type in If statement".to_owned()));
+                        return Err(Box::from(
+                            "Invalid Condition Type in If statement".to_owned(),
+                        ));
                     }
                 }
             }
@@ -493,7 +578,9 @@ impl Visitor for SemanticAnalysis {
         //TODO expression type
 
         if expression_type.is_bool_type() {
-            return Err(Box::from("Invalid Condition Type in If statement".to_owned()));
+            return Err(Box::from(
+                "Invalid Condition Type in If statement".to_owned(),
+            ));
         }
         Ok(())
     }

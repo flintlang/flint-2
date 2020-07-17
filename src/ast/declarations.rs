@@ -93,7 +93,6 @@ impl Visitable for ContractDeclaration {
 
         ctx.contract_declaration_context = Some(ContractDeclarationContext {
             identifier: self.identifier.clone(),
-            type_states: self.type_states.clone(),
         });
 
         self.conformances.visit(v, ctx)?;
