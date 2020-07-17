@@ -211,6 +211,7 @@ impl ScopeContext {
         parameters.contains(&name)
     }
 
+    //TODO: here is where new local variables are created
     pub fn fresh_identifier(&mut self, line_info: LineInfo) -> Identifier {
         self.counter = self.counter + 1;
         let count = self.local_variables.len() + self.parameters.len() + self.counter as usize;

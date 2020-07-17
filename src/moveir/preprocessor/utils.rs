@@ -264,6 +264,9 @@ pub fn generate_contract_wrapper(
         .into_iter()
         .filter(|c| c.is_any())
         .collect();
+    dbg!(contract_behaviour_declaration.caller_protections.clone());
+    dbg!(caller_protections.clone());
+
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
@@ -417,6 +420,44 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
     expression
 }
 
+fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
+    //TODO: how many expression types should be compared?
+    match first {
+        Expression::SelfExpression => {
+            if let Expression::SelfExpression = second {
+                return true
+            }
+        }
+        Expression::Identifier(e1) => {
+            if let Expression::Identifier(e2) = second {
+                return e1.token == e2.token && e1.enclosing_type == e2.enclosing_type
+            }
+        },
+        Expression::InoutExpression(e1) => {
+            if let Expression::InoutExpression(e2) = second {
+                return cmp_expressions(&e1.expression, &e2.expression)
+            }
+        },
+        Expression::BinaryExpression(e1) => {
+            if let Expression::BinaryExpression(e2) = second {
+                return cmp_expressions(&e1.lhs_expression, &e2.lhs_expression) && cmp_expressions(&e1.rhs_expression, &e2.rhs_expression) && e1.op == e2.op
+            }
+        },
+        Expression::BracketedExpression(e1) => {
+            if let Expression::BracketedExpression(e2) = second {
+                return cmp_expressions(&e1.expression, &e2.expression)
+            }
+        },
+        Expression::CastExpression(e1) => {
+            if let Expression::CastExpression(e2) = second {
+                return e1.cast_type == e2.cast_type && cmp_expressions(&e1.expression, &e2.expression)
+            }
+        },
+        _ => {}
+    }
+    false
+}
+
 pub fn pre_assign(
     expression: Expression,
     ctx: &mut Context,
@@ -448,7 +489,8 @@ pub fn pre_assign(
     };
 
     let mut temp_identifier = Identifier::generated("_temp_move_preassign");
-
+    dbg!(&expression);
+    dbg!(&ctx.pre_statements);
     let statements: Vec<BinaryExpression> = ctx
         .pre_statements
         .clone()
@@ -460,12 +502,15 @@ pub fn pre_assign(
         .filter(|b| {
             if let BinOp::Equal = b.op {
                 if let Expression::Identifier(_) = *b.lhs_expression {
-                    return expression == *b.rhs_expression;
+                    dbg!(&expression);
+                    dbg!(&b.rhs_expression);
+                    return cmp_expressions(&expression, &*b.rhs_expression);
                 }
             }
             false
         })
         .collect();
+    dbg!(&statements);
     if statements.is_empty() {
         // TODO temp_identifier is temp__6, so it is created here
         temp_identifier = scope.fresh_identifier(expression.get_line_info());
