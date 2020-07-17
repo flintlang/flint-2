@@ -310,7 +310,6 @@ impl Environment {
             .map(|i| CallableInformation::FunctionInformation(i.clone()))
             .collect();
         let candidates = Candidates { candidates };
-        // println!("{:?}", candidates.clone());
         if token == "fatalError".to_string() {
             unimplemented!()
         }

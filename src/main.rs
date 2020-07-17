@@ -14,10 +14,8 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
-// TODO do not allow 'any' as a declared typestate
-// TODO do not allow for duplicate typestates (e.g. Decrementable, Zero, Zero, Incrementable)
-// TODO write tests for parsing typestates
 // TODO check 'become' parsing
+// TODO write tests for become parsing
 // TODO start contract in one of the states
 // TODO decide how to represent the state of the contract
 // TODO decide how to represent the state of the contract in move

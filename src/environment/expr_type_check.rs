@@ -108,11 +108,8 @@ impl ExpressionCheck for Environment {
 impl Environment {
     pub fn get_property_type(&self, name: String, t: &TypeIdentifier, scope: ScopeContext) -> Type {
         let enclosing = self.types.get(t);
-        // println!("{:?}", t);
         if enclosing.is_some() {
             let enclosing = enclosing.unwrap();
-            // println!("{:?}", enclosing.clone());
-            // println!("{:?}", name.clone());
             if enclosing.properties.get(name.as_str()).is_some() {
                 return self
                     .types
