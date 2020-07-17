@@ -235,7 +235,6 @@ mod test {
     }
 
     #[test]
-    //TODO: why is this function never called?
     fn test_parse_attempt_expression() {
         let input = LocatedSpan::new("try?foo()");
         let (_rest, result) =
