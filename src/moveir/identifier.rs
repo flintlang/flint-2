@@ -74,7 +74,7 @@ impl MoveIdentifier {
             if let MovePosition::Accessed = self.position.clone() {
                 let expression =
                     MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
-                let expression = MoveIRExpression::Operation(MoveIROperation::MutableReference(
+                let expression = MoveIRExpression::Operation(MoveIROperation::Reference(
                     Box::from(expression),
                 ));
                 return expression;
@@ -84,7 +84,7 @@ impl MoveIdentifier {
         if let MovePosition::Accessed = self.position {
             let expression =
                 MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
-            let expression = MoveIRExpression::Operation(MoveIROperation::MutableReference(
+            let expression = MoveIRExpression::Operation(MoveIROperation::Reference(
                 Box::from(expression),
             ));
 
