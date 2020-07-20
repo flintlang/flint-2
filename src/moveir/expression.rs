@@ -4,7 +4,8 @@ use super::declaration::MoveVariableDeclaration;
 use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRExpression, MoveIRFunctionCall, MoveIRLiteral, MoveIROperation, MoveIRVector,
+    MoveIRExpression, MoveIRFunctionCall, MoveIRLiteral, MoveIROperation,
+    MoveIRVector,
 };
 use super::literal::MoveLiteralToken;
 use super::property_access::MovePropertyAccess;
@@ -23,7 +24,10 @@ pub(crate) struct MoveExpression {
 }
 
 impl MoveExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(
+        &self,
+        function_context: &FunctionContext,
+    ) -> MoveIRExpression {
         match self.expression.clone() {
             Expression::Identifier(i) => MoveIdentifier {
                 identifier: i,
@@ -456,3 +460,4 @@ impl MoveBinaryExpression {
         }
     }
 }
+

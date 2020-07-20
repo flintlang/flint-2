@@ -1,10 +1,10 @@
-mod calls;
-mod declarations;
-mod expressions;
-mod literals;
-mod operators;
-mod statements;
-mod types;
+pub mod calls;
+pub mod declarations;
+pub mod expressions;
+pub mod literals;
+pub mod operators;
+pub mod statements;
+pub mod types;
 
 use std::cmp::max;
 use std::collections::HashMap;

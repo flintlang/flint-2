@@ -15,10 +15,6 @@ Shapes :: (any) {
     }
 
     public func semiPerimeter() -> Int {
-        self.rectangle = Rectangle(
-            width: 4, 
-            height: 4
-        )
         return self.rectangle.width + self.rectangle.height
     }
     

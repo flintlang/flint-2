@@ -72,7 +72,7 @@ impl fmt::Display for MoveIRIdentifier {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MoveIRExpression {
     FunctionCall(MoveIRFunctionCall),
     StructConstructor(MoveIRStructConstructor),
@@ -122,7 +122,7 @@ impl fmt::Display for MoveIRExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MoveIRVector {
     pub elements: Vec<MoveIRExpression>,
     pub vec_type: Option<MoveIRType>,
@@ -138,13 +138,13 @@ impl fmt::Display for MoveIRVector {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MoveIRStructConstructor {
     pub identifier: Identifier,
     pub fields: Vec<(String, MoveIRExpression)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MoveIRFunctionCall {
     pub identifier: String,
     pub arguments: Vec<MoveIRExpression>,
@@ -169,7 +169,7 @@ impl fmt::Display for MoveIRFunctionCall {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MoveIRLiteral {
     Num(u64),
     String(String),
@@ -190,7 +190,7 @@ impl fmt::Display for MoveIRLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MoveIRTransfer {
     Move(Box<MoveIRExpression>),
     Copy(Box<MoveIRExpression>),
@@ -205,7 +205,7 @@ impl fmt::Display for MoveIRTransfer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MoveIRAssignment {
     pub identifier: String,
     pub expression: Box<MoveIRExpression>,
@@ -222,7 +222,7 @@ impl fmt::Display for MoveIRAssignment {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MoveIRFieldDeclaration {
     pub identifier: String,
     pub declaration_type: MoveIRType,
@@ -240,7 +240,7 @@ impl fmt::Display for MoveIRFieldDeclaration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MoveIRVariableDeclaration {
     pub identifier: String,
     pub declaration_type: MoveIRType,
@@ -334,7 +334,7 @@ impl fmt::Display for MoveIRStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MoveIRType {
     U64,
     Address,
@@ -362,7 +362,7 @@ impl fmt::Display for MoveIRType {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MoveIROperation {
     Add(Box<MoveIRExpression>, Box<MoveIRExpression>),
     Minus(Box<MoveIRExpression>, Box<MoveIRExpression>),

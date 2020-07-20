@@ -425,34 +425,37 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
     match first {
         Expression::SelfExpression => {
             if let Expression::SelfExpression = second {
-                return true
+                return true;
             }
         }
         Expression::Identifier(e1) => {
             if let Expression::Identifier(e2) = second {
-                return e1.token == e2.token && e1.enclosing_type == e2.enclosing_type
+                return e1.token == e2.token && e1.enclosing_type == e2.enclosing_type;
             }
-        },
+        }
         Expression::InoutExpression(e1) => {
             if let Expression::InoutExpression(e2) = second {
-                return cmp_expressions(&e1.expression, &e2.expression)
+                return cmp_expressions(&e1.expression, &e2.expression);
             }
-        },
+        }
         Expression::BinaryExpression(e1) => {
             if let Expression::BinaryExpression(e2) = second {
-                return cmp_expressions(&e1.lhs_expression, &e2.lhs_expression) && cmp_expressions(&e1.rhs_expression, &e2.rhs_expression) && e1.op == e2.op
+                return cmp_expressions(&e1.lhs_expression, &e2.lhs_expression)
+                    && cmp_expressions(&e1.rhs_expression, &e2.rhs_expression)
+                    && e1.op == e2.op;
             }
-        },
+        }
         Expression::BracketedExpression(e1) => {
             if let Expression::BracketedExpression(e2) = second {
-                return cmp_expressions(&e1.expression, &e2.expression)
+                return cmp_expressions(&e1.expression, &e2.expression);
             }
-        },
+        }
         Expression::CastExpression(e1) => {
             if let Expression::CastExpression(e2) = second {
-                return e1.cast_type == e2.cast_type && cmp_expressions(&e1.expression, &e2.expression)
+                return e1.cast_type == e2.cast_type
+                    && cmp_expressions(&e1.expression, &e2.expression);
             }
-        },
+        }
         _ => {}
     }
     false
@@ -536,6 +539,7 @@ pub fn pre_assign(
                     key_type: Box::new(expression_type),
                 }),
             ));
+            dbg!(post_statement.clone());
             ctx.post_statements = post_statement;
             var
         };
