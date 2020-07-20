@@ -1,12 +1,15 @@
 use super::call::MoveFunctionCall;
 use super::expression::MoveExpression;
 use super::function::FunctionContext;
-use super::ir::{MoveIRAssignment, MoveIRExpression, MoveIRIf, MoveIRStatement, MoveIROperation, MoveIRTransfer, MoveIRFunctionCall};
-use crate::ast::{
-    BecomeStatement, EmitStatement, ForStatement, Identifier, IfStatement, ReturnStatement,
-    Statement, Expression,
+use super::ir::{
+    MoveIRAssignment, MoveIRExpression, MoveIRFunctionCall, MoveIRIf, MoveIROperation,
+    MoveIRStatement, MoveIRTransfer, MoveIRVector
 };
 use crate::ast::mangle;
+use crate::ast::{
+    BecomeStatement, EmitStatement, Expression, ForStatement, Identifier, IfStatement,
+    ReturnStatement, Statement,
+};
 
 pub struct MoveStatement {
     pub statement: Statement,
@@ -71,12 +74,12 @@ impl MoveIfStatement {
 fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRExpression> {
     match op {
         MoveIROperation::Add(l, r) => {
-            if let Some(new_r) = remove_move_helper(&statement, r) {
+            if let Some(new_r) = remove_move(&statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Add(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(&statement, l) {
+            } else if let Some(new_l) = remove_move(&statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Add(
                     Box::new(new_l),
                     r.clone(),
@@ -86,12 +89,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Minus(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Minus(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Minus(
                     Box::new(new_l),
                     r.clone(),
@@ -101,12 +104,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Times(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Times(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Times(
                     Box::new(new_l),
                     r.clone(),
@@ -116,12 +119,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Divide(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Divide(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Divide(
                     Box::new(new_l),
                     r.clone(),
@@ -131,12 +134,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Modulo(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Modulo(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Modulo(
                     Box::new(new_l),
                     r.clone(),
@@ -146,12 +149,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::GreaterThan(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::GreaterThan(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::GreaterThan(
                     Box::new(new_l),
                     r.clone(),
@@ -161,27 +164,25 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::GreaterThanEqual(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
-                Some(MoveIRExpression::Operation(MoveIROperation::GreaterThanEqual(
-                    l.clone(),
-                    Box::new(new_r),
-                )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
-                Some(MoveIRExpression::Operation(MoveIROperation::GreaterThanEqual(
-                    Box::new(new_l),
-                    r.clone(),
-                )))
+            if let Some(new_r) = remove_move(statement, r) {
+                Some(MoveIRExpression::Operation(
+                    MoveIROperation::GreaterThanEqual(l.clone(), Box::new(new_r)),
+                ))
+            } else if let Some(new_l) = remove_move(statement, l) {
+                Some(MoveIRExpression::Operation(
+                    MoveIROperation::GreaterThanEqual(Box::new(new_l), r.clone()),
+                ))
             } else {
                 None
             }
         }
         MoveIROperation::LessThan(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::LessThan(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::LessThan(
                     Box::new(new_l),
                     r.clone(),
@@ -191,12 +192,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::LessThanEqual(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::LessThanEqual(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::LessThanEqual(
                     Box::new(new_l),
                     r.clone(),
@@ -206,12 +207,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Equal(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Equal(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Equal(
                     Box::new(new_l),
                     r.clone(),
@@ -221,12 +222,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::NotEqual(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::NotEqual(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::NotEqual(
                     Box::new(new_l),
                     r.clone(),
@@ -236,12 +237,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::And(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::And(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::And(
                     Box::new(new_l),
                     r.clone(),
@@ -251,12 +252,12 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Or(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Or(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Or(
                     Box::new(new_l),
                     r.clone(),
@@ -266,16 +267,18 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Not(r) => {
-            let expr = remove_move_helper(statement, r)?;
-            Some(MoveIRExpression::Operation(MoveIROperation::Not(Box::new(expr))))
+            let expr = remove_move(statement, r)?;
+            Some(MoveIRExpression::Operation(MoveIROperation::Not(Box::new(
+                expr,
+            ))))
         }
         MoveIROperation::Power(l, r) => {
-            if let Some(new_r) = remove_move_helper(statement, r) {
+            if let Some(new_r) = remove_move(statement, r) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Power(
                     l.clone(),
                     Box::new(new_r),
                 )))
-            } else if let Some(new_l) = remove_move_helper(statement, l) {
+            } else if let Some(new_l) = remove_move(statement, l) {
                 Some(MoveIRExpression::Operation(MoveIROperation::Power(
                     Box::new(new_l),
                     r.clone(),
@@ -285,32 +288,39 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
             }
         }
         MoveIROperation::Access(r, s) => {
-            let expr = remove_move_helper(statement, r)?;
-            Some(MoveIRExpression::Operation(MoveIROperation::Access(Box::new(expr), s.to_string())))
+            let expr = remove_move(statement, r)?;
+            Some(MoveIRExpression::Operation(MoveIROperation::Access(
+                Box::new(expr),
+                s.to_string(),
+            )))
         }
         MoveIROperation::Dereference(r) => {
-            let expr = remove_move_helper(statement, r)?;
-            Some(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(expr))))
+            let expr = remove_move(statement, r)?;
+            Some(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                Box::new(expr),
+            )))
         }
         MoveIROperation::MutableReference(r) => {
-            let expr = remove_move_helper(statement, r)?;
-            Some(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(expr))))
+            let expr = remove_move(statement, r)?;
+            Some(MoveIRExpression::Operation(
+                MoveIROperation::MutableReference(Box::new(expr)),
+            ))
         }
         MoveIROperation::Reference(r) => {
-            let expr = remove_move_helper(statement, r)?;
-            Some(MoveIRExpression::Operation(MoveIROperation::Reference(Box::new(expr))))
+            let expr = remove_move(statement, r)?;
+            Some(MoveIRExpression::Operation(MoveIROperation::Reference(
+                Box::new(expr),
+            )))
         }
     }
 }
 
-fn remove_move_helper(
+fn remove_move(
     statement: &Statement,
     expression: &MoveIRExpression,
 ) -> Option<MoveIRExpression> {
-    //TODO: add the remaining expression types
     if let Statement::Expression(Expression::BinaryExpression(be)) = statement {
         if let Expression::Identifier(variable) = &*be.rhs_expression {
-            dbg!(expression.clone());
             match expression {
                 MoveIRExpression::Transfer(transfer) => {
                     if let MoveIRTransfer::Copy(identifier) = transfer {
@@ -330,12 +340,36 @@ fn remove_move_helper(
                     // iterate backwards through arguments until an argument matches the statement or we reach the end of arguments
                     let mut arguments = fc.arguments.clone();
                     for argument in arguments.iter_mut().rev() {
-                        if let Some(expr) = remove_move_helper(&statement, &argument) {
+                        if let Some(expr) = remove_move(&statement, &argument) {
                             *argument = expr;
-                            return Some(MoveIRExpression::FunctionCall(MoveIRFunctionCall{identifier: fc.identifier.clone(), arguments: arguments}));
+                            return Some(MoveIRExpression::FunctionCall(MoveIRFunctionCall {
+                                identifier: fc.identifier.clone(),
+                                arguments: arguments,
+                            }));
                         }
                     }
                 }
+                MoveIRExpression::Assignment(assignment) => {
+                    let expr = remove_move(&statement, &assignment.expression)?;
+                    return Some(MoveIRExpression::Assignment(MoveIRAssignment {
+                        identifier: assignment.identifier.clone(),
+                        expression: Box::new(expr),
+                    }));
+                }
+                MoveIRExpression::Vector(vec) => {
+                    // iterate backwards through arguments until an element matches the statement or we reach the end of arguments
+                    let mut elements = vec.elements.clone();
+                    for element in elements.iter_mut().rev() {
+                        if let Some(expr) = remove_move(&statement, &element) {
+                            *element = expr;
+                            return Some(MoveIRExpression::Vector(MoveIRVector {
+                                elements: elements,
+                                vec_type: vec.vec_type.clone()
+                            }));
+                        }
+                    }
+                }
+                //Identifier, Literal, Catchable, Inline, VariableDeclaration, StructConstructor, FieldDeclaration, Noop
                 _ => return None,
             }
         }
@@ -343,12 +377,15 @@ fn remove_move_helper(
     None
 }
 
-fn remove_move(statements: Vec<Statement>, expression: MoveIRExpression) -> (Vec<Statement>, MoveIRExpression) {
+fn remove_moves(
+    statements: Vec<Statement>,
+    expression: MoveIRExpression,
+) -> (Vec<Statement>, MoveIRExpression) {
     let mut curr_expr = expression.clone();
     let mut post_statements = Vec::new();
 
     for statement in statements {
-        if let Some(expr) = remove_move_helper(&statement, &expression) {
+        if let Some(expr) = remove_move(&statement, &expression) {
             curr_expr = expr;
         } else {
             post_statements.push(statement);
@@ -381,7 +418,7 @@ impl MoveReturnStatement {
         }
         .generate(&function_context);
 
-        let (cleanup, expression) = remove_move(self.statement.cleanup.clone(), expression);
+        let (cleanup, expression) = remove_moves(self.statement.cleanup.clone(), expression);
 
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
@@ -440,40 +477,51 @@ impl MoveEmitStatement {
     }
 }
 
-
 #[cfg(test)]
 mod test {
 
+    use crate::ast::expressions::BinaryExpression;
+    use crate::ast::expressions::Expression::*;
+    use crate::ast::expressions::Identifier;
+    use crate::ast::operators::BinOp::Equal;
+    use crate::ast::statements::Statement::Expression;
+    use crate::ast::types::InoutType;
+    use crate::ast::types::Type;
+    use crate::ast::LineInfo;
     use crate::moveir::ir::MoveIRExpression;
     use crate::moveir::ir::MoveIROperation;
     use crate::moveir::ir::MoveIRTransfer;
-    use crate::ast::statements::Statement::Expression;
-    use crate::ast::types::Type;
-    use crate::ast::types::InoutType;
-    use crate::ast::expressions::Identifier;
-    use crate::ast::expressions::Expression::*;
-    use crate::ast::expressions::BinaryExpression;
-    use crate::ast::LineInfo;
-    use crate::ast::operators::BinOp::Equal;
 
-    use crate::moveir::statement::remove_move_helper;
+    use crate::moveir::statement::remove_move;
 
     #[test]
     fn test_remove_move() {
         let expr = MoveIRExpression::Operation(MoveIROperation::Add(
             Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(MoveIRTransfer::Copy(
-                    Box::new(MoveIRExpression::Identifier("_temp__3".to_string()))),
-                )))))))),
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                    Box::new(MoveIRExpression::Operation(
+                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                                "_temp__3".to_string(),
+                            ))),
+                        ))),
+                    )),
+                ))),
                 "width".to_string(),
             ))),
             Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(MoveIRTransfer::Copy(
-                    Box::new(MoveIRExpression::Identifier("_temp__3".to_string()))),
-                )))))))),
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                    Box::new(MoveIRExpression::Operation(
+                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                                "_temp__3".to_string(),
+                            ))),
+                        ))),
+                    )),
+                ))),
                 "height".to_string(),
-            )),
-        )));
+            ))),
+        ));
         let statement = Expression(BinaryExpression(BinaryExpression {
             lhs_expression: Box::new(RawAssembly(
                 "_".to_string(),
@@ -503,21 +551,36 @@ mod test {
             },
         }));
 
-        let result = remove_move_helper(&statement, &expr).expect("Error with remove_move_helper");
+        let result = remove_move(&statement, &expr).expect("Error with remove_move");
 
-        assert_eq!(result, MoveIRExpression::Operation(MoveIROperation::Add(
-            Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(MoveIRTransfer::Copy(
-                    Box::new(MoveIRExpression::Identifier("_temp__3".to_string()))),
-                )))))))),
-                "width".to_string(),
-            ))),
-            Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(MoveIRTransfer::Move(
-                    Box::new(MoveIRExpression::Identifier("_temp__3".to_string()))),
-                )))))))),
-                "height".to_string(),
-            )),
-        ))));
+        assert_eq!(
+            result,
+            MoveIRExpression::Operation(MoveIROperation::Add(
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                    Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                        Box::new(MoveIRExpression::Operation(
+                            MoveIROperation::MutableReference(Box::new(
+                                MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::new(
+                                    MoveIRExpression::Identifier("_temp__3".to_string())
+                                )),)
+                            ))
+                        ))
+                    ))),
+                    "width".to_string(),
+                ))),
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                    Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                        Box::new(MoveIRExpression::Operation(
+                            MoveIROperation::MutableReference(Box::new(
+                                MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::new(
+                                    MoveIRExpression::Identifier("_temp__3".to_string())
+                                )),)
+                            ))
+                        ))
+                    ))),
+                    "height".to_string(),
+                )),)
+            ))
+        );
     }
 }
