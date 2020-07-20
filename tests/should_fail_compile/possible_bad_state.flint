@@ -1,0 +1,19 @@
+contract MyContract (One, Two) {
+    var dummy: Int = 0
+}
+
+MyContract :: (any) {
+    public init() {}
+}
+
+MyContract @(One, Two) :: (any) {
+    public func foo() {
+        bar()  // Should fail since we may not be in state Two
+    }
+}
+
+MyContract @(Two) :: (any) {
+    public func bar() -> Int {
+        return 10
+    }
+}

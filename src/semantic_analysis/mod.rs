@@ -639,20 +639,15 @@ fn check_if_correct_type_state_possible(
         || current_possible_states.is_empty()
         || current_possible_states
         .iter()
-        .any(|state| allowed_states.contains(state))
+        .all(|state| allowed_states.contains(state))
     {
         Ok(())
     } else {
         let err = format!(
-            "Must be in one of the following states to make function call {} on line {}: {:?}. \
-            It is only possible that at the time of calling, the contract is in one of these states {:?}",
+            "Must definitely be in one of the following states to make function call {} on line {}: {:?}.",
             function_id.token,
             function_id.line_info.line,
             allowed_states
-                .iter()
-                .map(|state| state.identifier.token.clone())
-                .collect::<Vec<String>>(),
-            current_possible_states
                 .iter()
                 .map(|state| state.identifier.token.clone())
                 .collect::<Vec<String>>(),

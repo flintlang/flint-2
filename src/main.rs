@@ -15,15 +15,6 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
-// TODO ask susan if starting in first listed state is ok
-
-// TODO implement states in move
-
-// TODO test that the counter with states example properly works (or equivalent example)
-
-// TODO write tests for the semantic analyser
-// TODO have a parsing error message for semi colons!
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
