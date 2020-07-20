@@ -106,8 +106,6 @@ pub(crate) struct MoveSelf {
 
 impl MoveSelf {
     pub fn generate(&self, function_context: &FunctionContext, force: bool) -> MoveIRExpression {
-        dbg!(self.clone());
-        dbg!(&self.position);
         if function_context.is_constructor {}
         if let MovePosition::Left = self.position {
             //MoveIRExpression::Operation(MoveIROperation::Dereference(Box::from(

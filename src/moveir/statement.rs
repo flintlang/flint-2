@@ -72,233 +72,233 @@ fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRE
     match op {
         MoveIROperation::Add(l, r) => {
             if let Some(new_r) = remove_move_helper(&statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Add(
+                Some(MoveIRExpression::Operation(MoveIROperation::Add(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(&statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Add(
+                Some(MoveIRExpression::Operation(MoveIROperation::Add(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Minus(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Minus(
+                Some(MoveIRExpression::Operation(MoveIROperation::Minus(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Minus(
+                Some(MoveIRExpression::Operation(MoveIROperation::Minus(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Times(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Times(
+                Some(MoveIRExpression::Operation(MoveIROperation::Times(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Times(
+                Some(MoveIRExpression::Operation(MoveIROperation::Times(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Divide(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Divide(
+                Some(MoveIRExpression::Operation(MoveIROperation::Divide(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Divide(
+                Some(MoveIRExpression::Operation(MoveIROperation::Divide(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Modulo(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Modulo(
+                Some(MoveIRExpression::Operation(MoveIROperation::Modulo(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Modulo(
+                Some(MoveIRExpression::Operation(MoveIROperation::Modulo(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::GreaterThan(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::GreaterThan(
+                Some(MoveIRExpression::Operation(MoveIROperation::GreaterThan(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::GreaterThan(
+                Some(MoveIRExpression::Operation(MoveIROperation::GreaterThan(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::GreaterThanEqual(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::GreaterThanEqual(
+                Some(MoveIRExpression::Operation(MoveIROperation::GreaterThanEqual(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::GreaterThanEqual(
+                Some(MoveIRExpression::Operation(MoveIROperation::GreaterThanEqual(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::LessThan(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::LessThan(
+                Some(MoveIRExpression::Operation(MoveIROperation::LessThan(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::LessThan(
+                Some(MoveIRExpression::Operation(MoveIROperation::LessThan(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::LessThanEqual(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::LessThanEqual(
+                Some(MoveIRExpression::Operation(MoveIROperation::LessThanEqual(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::LessThanEqual(
+                Some(MoveIRExpression::Operation(MoveIROperation::LessThanEqual(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Equal(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Equal(
+                Some(MoveIRExpression::Operation(MoveIROperation::Equal(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Equal(
+                Some(MoveIRExpression::Operation(MoveIROperation::Equal(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::NotEqual(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::NotEqual(
+                Some(MoveIRExpression::Operation(MoveIROperation::NotEqual(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::NotEqual(
+                Some(MoveIRExpression::Operation(MoveIROperation::NotEqual(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::And(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::And(
+                Some(MoveIRExpression::Operation(MoveIROperation::And(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::And(
+                Some(MoveIRExpression::Operation(MoveIROperation::And(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Or(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Or(
+                Some(MoveIRExpression::Operation(MoveIROperation::Or(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Or(
+                Some(MoveIRExpression::Operation(MoveIROperation::Or(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Not(r) => {
             let expr = remove_move_helper(statement, r)?;
-            return Some(MoveIRExpression::Operation(MoveIROperation::Not(Box::new(expr))));
+            Some(MoveIRExpression::Operation(MoveIROperation::Not(Box::new(expr))))
         }
         MoveIROperation::Power(l, r) => {
             if let Some(new_r) = remove_move_helper(statement, r) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Power(
+                Some(MoveIRExpression::Operation(MoveIROperation::Power(
                     l.clone(),
                     Box::new(new_r),
-                )));
+                )))
             } else if let Some(new_l) = remove_move_helper(statement, l) {
-                return Some(MoveIRExpression::Operation(MoveIROperation::Power(
+                Some(MoveIRExpression::Operation(MoveIROperation::Power(
                     Box::new(new_l),
                     r.clone(),
-                )));
+                )))
             } else {
-                return None;
+                None
             }
         }
         MoveIROperation::Access(r, s) => {
             let expr = remove_move_helper(statement, r)?;
-            return Some(MoveIRExpression::Operation(MoveIROperation::Access(Box::new(expr), s.to_string())));
+            Some(MoveIRExpression::Operation(MoveIROperation::Access(Box::new(expr), s.to_string())))
         }
         MoveIROperation::Dereference(r) => {
             let expr = remove_move_helper(statement, r)?;
-            return Some(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(expr))));
+            Some(MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(expr))))
         }
         MoveIROperation::MutableReference(r) => {
             let expr = remove_move_helper(statement, r)?;
-            return Some(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(expr))));
+            Some(MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::new(expr))))
         }
         MoveIROperation::Reference(r) => {
             let expr = remove_move_helper(statement, r)?;
-            return Some(MoveIRExpression::Operation(MoveIROperation::Reference(Box::new(expr))));
+            Some(MoveIRExpression::Operation(MoveIROperation::Reference(Box::new(expr))))
         }
     }
 }
