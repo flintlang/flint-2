@@ -15,7 +15,7 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
-// TODO start contract in one of the states
+// TODO ask susan if starting in first listed state is ok
 
 // TODO implement states in move
 

@@ -148,6 +148,22 @@ impl Environment {
         }
     }
 
+    pub fn get_contract_state(&self, contract_name: &TypeIdentifier) -> Option<TypeState> {
+        if let Some(type_info) = self.types.get(contract_name) {
+            type_info.current_state.clone()
+        } else {
+            panic!("Contract {} does not exist", contract_name)
+        }
+    }
+
+    pub fn set_contract_state(&mut self, contract_name: &TypeIdentifier, type_state: TypeState) {
+        if let Some(type_info) = self.types.get_mut(contract_name) {
+            type_info.current_state = Some(type_state)
+        } else {
+            panic!("Contract {} does not exist", contract_name)
+        }
+    }
+
     pub fn contains_caller_protection(&self, c: &CallerProtection, t: &TypeIdentifier) -> bool {
         self.declared_caller_protections(t).contains(&c.name())
     }

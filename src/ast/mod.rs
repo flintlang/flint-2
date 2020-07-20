@@ -45,6 +45,7 @@ pub struct TypeInfo {
     pub public_initializer: Option<SpecialDeclaration>,
     pub conformances: Vec<TypeInfo>,
     pub type_states: Vec<TypeState>,
+    pub current_state: Option<TypeState>,
     pub modifiers: Vec<FunctionCall>,
 }
 
@@ -59,6 +60,7 @@ impl TypeInfo {
             public_initializer: None,
             conformances: vec![],
             type_states: vec![],
+            current_state: None,
             modifiers: vec![],
         }
     }

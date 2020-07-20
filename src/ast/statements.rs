@@ -280,7 +280,8 @@ impl Visitable for BecomeStatement {
                 .environment
                 .contains_type_state(contract_name, &self.state)
             {
-                ctx.set_current_state(&self.state);
+                ctx.environment
+                    .set_contract_state(contract_name, self.state.clone());
                 ctx.in_become = false;
                 return Ok(());
             }
@@ -310,4 +311,3 @@ impl Visitable for ReturnStatement {
         Ok(())
     }
 }
-

@@ -436,7 +436,7 @@ impl Visitor for SemanticAnalysis {
                         "Use of Undeclared Identifier {ident}",
                         ident = identifier
                     )));
-                    //TODO add add used undefined variable to env
+                //TODO add add used undefined variable to env
                 } else if is_l_value && !_ctx.in_subscript {
                     if _ctx.environment.is_property_constant(
                         _t.token.clone(),
@@ -569,13 +569,13 @@ impl Visitor for SemanticAnalysis {
             return match function_info {
                 MatchedFunction(info) => check_if_correct_type_state_possible(
                     context.clone(),
-                    ctx.current_state.clone(),
+                    ctx.environment.get_contract_state(&contract_name),
                     info.type_states,
                     t.identifier.clone(),
                 ),
                 MatchedInitializer(info) => check_if_correct_type_state_possible(
                     context,
-                    ctx.current_state.clone(),
+                    ctx.environment.get_contract_state(&contract_name),
                     info.type_states,
                     t.identifier.clone(),
                 ),
