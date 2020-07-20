@@ -1,6 +1,7 @@
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
+use crate::environment::FunctionCallMatchResult::{MatchedFunction, MatchedInitializer};
 
 pub struct SemanticAnalysis {}
 
@@ -552,7 +553,37 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
-    fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
+    fn start_function_call(&mut self, t: &mut FunctionCall, ctx: &mut Context) -> VResult {
+        let contract_name = ctx.contract_behaviour_declaration_context.clone();
+        if let Some(context) = contract_name {
+            let contract_name = context.identifier.token.clone();
+            let caller_protections = context.caller_protections.clone();
+            let scope_context = ctx.scope_context.clone().unwrap_or(Default::default());
+
+            let function_info = ctx.environment.match_function_call(
+                t.clone(),
+                &contract_name,
+                caller_protections,
+                scope_context,
+            );
+            return match function_info {
+                MatchedFunction(info) => check_if_correct_type_state_possible(
+                    context.clone(),
+                    ctx.current_state.clone(),
+                    info.type_states,
+                    t.identifier.clone(),
+                ),
+                MatchedInitializer(info) => check_if_correct_type_state_possible(
+                    context,
+                    ctx.current_state.clone(),
+                    info.type_states,
+                    t.identifier.clone(),
+                ),
+                // Otherwise we are not calling a contract method so type states do not apply
+                _ => Ok(()),
+            };
+        }
+
         Ok(())
     }
 
@@ -588,6 +619,45 @@ impl Visitor for SemanticAnalysis {
     fn finish_statement(&mut self, _t: &mut Statement, _ctx: &mut Context) -> VResult {
         //TODO make recevier call trail empty
         Ok(())
+    }
+}
+
+fn check_if_correct_type_state_possible(
+    context: ContractBehaviourDeclarationContext,
+    current_state: Option<TypeState>,
+    allowed_states: Vec<TypeState>,
+    function_id: Identifier,
+) -> VResult {
+    let current_possible_states = if let Some(state) = current_state {
+        vec![state]
+    } else {
+        context.type_states
+    };
+
+    // If any type state is allowed, or if we could be in any type state, then we must check at runtime instead
+    if allowed_states.is_empty()
+        || current_possible_states.is_empty()
+        || current_possible_states
+        .iter()
+        .any(|state| allowed_states.contains(state))
+    {
+        Ok(())
+    } else {
+        let err = format!(
+            "Must be in one of the following states to make function call {} on line {}: {:?}. \
+            It is only possible that at the time of calling, the contract is in one of these states {:?}",
+            function_id.token,
+            function_id.line_info.line,
+            allowed_states
+                .iter()
+                .map(|state| state.identifier.token.clone())
+                .collect::<Vec<String>>(),
+            current_possible_states
+                .iter()
+                .map(|state| state.identifier.token.clone())
+                .collect::<Vec<String>>(),
+        );
+        Err(Box::from(err))
     }
 }
 

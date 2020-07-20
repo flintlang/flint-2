@@ -82,9 +82,9 @@ class MoveIRProgramme(Programme):
 
     def with_testsuite(self, testsuite):
         assert isinstance(testsuite, MoveIRProgramme)
-        new = TestRunner.default_path / "temp" / self.path.name
+        new = TestRunner.default_behaviour_path / "temp" / self.path.name
         try:
-            os.makedirs(TestRunner.default_path / "temp")
+            os.makedirs(TestRunner.default_behaviour_path / "temp")
         except FileExistsError:
             pass
         with open(new, "w") as file:
@@ -154,7 +154,7 @@ class BehaviourTest(NamedTuple):
         protections) has been attempted. Also note, only one fail is allowed per test.
         """
 
-        move_path = TestRunner.default_path / (name + ".mvir")
+        move_path = TestRunner.default_behaviour_path / (name + ".mvir")
         move_programme = None
         expected_fail_line = None
         if move_path.exists():
@@ -164,7 +164,9 @@ class BehaviourTest(NamedTuple):
                 expected_fail_line = int(expect_fail.group(1))
 
         return cls(
-            FlintProgramme(TestRunner.default_path / (name + ".flint"), config=config),
+            FlintProgramme(
+                TestRunner.default_behaviour_path / (name + ".flint"),
+                config=config),
             move_programme,
             expected_fail_line
         )
@@ -215,14 +217,19 @@ class TestFormatter:
         print(f"{test}: {cls.SUCCESS}passed{cls.END}")
 
     @classmethod
-    def all_failed(cls, tests: Iterable[BehaviourTest]):
+    def all_failed(cls, tests: Iterable[str]):
         print(f"{cls.FAIL}Failed tests:{cls.END}")
         for test in tests:
-            print(f"\t{cls.FAIL}{test.programme.path}{cls.END}")
+            print(f"\t{cls.FAIL}{test}{cls.END}")
 
     @classmethod
-    def complete(cls):
+    def complete_move(cls):
         print(f"\n\t{cls.SUCCESS}All MoveIR tests passed!{cls.END}\n")
+
+    @classmethod
+    def complete_compilation_checks(cls):
+        print(
+            f"\n\t{cls.SUCCESS}All compilation failure tests passed!{cls.END}\n")
 
     @classmethod
     def not_configured(cls):
@@ -233,19 +240,27 @@ To run them please set "libraPath" in ~/.flint/flint_config.json to the root of 
 
 
 class TestRunner(NamedTuple):
-    tests: List[BehaviourTest]
-    default_path = Path("tests")
+    behaviour_tests: List[BehaviourTest]
+    fail_compilation_tests: List[FlintProgramme]
+    default_behaviour_path = Path("tests")
+    default_compilation_fail_path = Path("tests/should_fail_compile")
 
     @classmethod
     def from_all(cls, names=[], config=None):
         return TestRunner([BehaviourTest.from_name(file.stem, config=config)
-                           for file in cls.default_path.iterdir()
+                           for file in cls.default_behaviour_path.iterdir()
+                           if file.suffix.endswith("flint")
+                           if not names or file.stem in names],
+
+                          [FlintProgramme(file, config=config)
+                           for file in
+                           cls.default_compilation_fail_path.iterdir()
                            if file.suffix.endswith("flint")
                            if not names or file.stem in names])
 
-    def run(self):
+    def run_behaviour_tests(self):
         passed = set()
-        for test in self.tests:
+        for test in self.behaviour_tests:
             try:
                 if test.test():
                     passed.add(test)
@@ -253,19 +268,41 @@ class TestRunner(NamedTuple):
                 print(f"Unexpected error `{e}`. Assuming failure")
 
         try:
-            pass
-            # shutil.rmtree(MoveIRProgramme.libra_path / MoveIRProgramme.temporary_test_path)
-            # shutil.rmtree(self.default_path / "temp")
+            shutil.rmtree(
+                MoveIRProgramme.libra_path / MoveIRProgramme.temporary_test_path)
+            shutil.rmtree(self.default_behaviour_path / "temp")
         except:
             pass
 
-        failed = set(self.tests) - passed
+        failed = set(self.behaviour_tests) - passed
         if failed:
-            TestFormatter.all_failed(failed)
+            TestFormatter.all_failed(
+                set(map(lambda t: t.programme.name, failed)))
             return 1
         else:
-            TestFormatter.complete()
+            TestFormatter.complete_move()
             return 0
+
+    def run_compilation_tests(self):
+        passed = set()
+        for programme in self.fail_compilation_tests:
+            try:
+                programme.compile()
+                print(f"Program `{programme.name}` did not fail compilation")
+            except FlintCompilationError:
+                passed.add(programme)
+
+        failed = set(self.fail_compilation_tests) - passed
+        if failed:
+            TestFormatter.all_failed(set(map(lambda t: t.name, failed)))
+            return 1
+        else:
+            TestFormatter.complete_compilation_checks()
+            return 0
+
+    def run(self):
+        self.run_behaviour_tests()
+        self.run_compilation_tests()
 
 
 if __name__ == '__main__':

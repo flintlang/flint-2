@@ -9,6 +9,6 @@ script:
   - cargo run libra tests/counter.flint
   - cargo run libra tests/map.flint
   - cargo run libra tests/shapes.flint
-  - cargo run libra tests/counter_with_type_states.flint
+  - cargo run libra tests/traffic_lights.flint
   - cargo test --verbose
 cache: cargo    

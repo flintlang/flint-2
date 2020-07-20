@@ -26,20 +26,7 @@ impl Environment {
         let type_info = if let Some(type_info) = self.types.get_mut(t) {
             type_info
         } else {
-            self.types.insert(
-                t.to_string(),
-                TypeInfo {
-                    ordered_properties: vec![],
-                    properties: Default::default(),
-                    functions: Default::default(),
-                    initialisers: vec![],
-                    fallbacks: vec![],
-                    public_initializer: None,
-                    conformances: vec![],
-                    type_states: vec![],
-                    modifiers: vec![],
-                },
-            );
+            self.types.insert(t.to_string(), TypeInfo::new());
             self.types.get_mut(t).unwrap()
         };
 
@@ -76,6 +63,7 @@ impl Environment {
         f: &FunctionSignatureDeclaration,
         t: &TypeIdentifier,
         caller_protections: Vec<CallerProtection>,
+        type_states: Vec<TypeState>,
         is_external: bool,
     ) {
         let name = f.identifier.token.clone();
@@ -92,8 +80,8 @@ impl Environment {
             declaration: function_declaration.clone(),
             mutating: function_declaration.is_mutating(),
             caller_protection: caller_protections,
+            type_states,
             is_signature: true,
-            ..Default::default()
         };
         if let Some(type_info) = self.types.get_mut(t) {
             if let Some(function_set) = type_info.functions.get_mut(&name) {
@@ -102,20 +90,7 @@ impl Environment {
                 type_info.functions.insert(name, vec![function_information]);
             }
         } else {
-            self.types.insert(
-                t.to_string(),
-                TypeInfo {
-                    ordered_properties: vec![],
-                    properties: Default::default(),
-                    functions: Default::default(),
-                    initialisers: vec![],
-                    fallbacks: vec![],
-                    public_initializer: None,
-                    conformances: vec![],
-                    type_states: vec![],
-                    modifiers: vec![],
-                },
-            );
+            self.types.insert(t.to_string(), TypeInfo::new());
             // TODO consider using a map literal crate
             self.types
                 .get_mut(t)

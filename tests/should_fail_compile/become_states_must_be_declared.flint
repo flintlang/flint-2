@@ -1,0 +1,11 @@
+contract StatesCorrect (One, Two, Three) {
+    var field: Int = 0
+}
+
+StatesCorrect :: (any) {
+    public init() {}
+
+    public func badStateChange() {
+        become Four
+    }
+}

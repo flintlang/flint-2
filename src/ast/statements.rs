@@ -274,8 +274,21 @@ impl Visitable for BecomeStatement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         ctx.in_become = true;
         self.state.visit(v, ctx)?;
-        ctx.in_become = false;
-        Ok(())
+        if let Some(context) = ctx.contract_behaviour_declaration_context.clone() {
+            let contract_name = &context.identifier.token;
+            if ctx
+                .environment
+                .contains_type_state(contract_name, &self.state)
+            {
+                ctx.set_current_state(&self.state);
+                ctx.in_become = false;
+                return Ok(());
+            }
+        }
+        Err(Box::from(format!(
+            "Undeclared type state {} in become statement at line {}",
+            self.state.identifier.token, self.line_info.line
+        )))
     }
 }
 
@@ -297,3 +310,4 @@ impl Visitable for ReturnStatement {
         Ok(())
     }
 }
+

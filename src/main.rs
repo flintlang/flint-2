@@ -9,16 +9,20 @@ mod solidity;
 mod type_assigner;
 mod type_checker;
 mod visitor;
+
 use crate::ast_processor::Target;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
 // TODO start contract in one of the states
-// TODO decide how to represent the state of the contract
-// TODO do not allow function calls to things in other states
-// TODO decide how to represent the state of the contract in move
-// TODO test that the counter with states example properly works
+
+// TODO implement states in move
+
+// TODO test that the counter with states example properly works (or equivalent example)
+
+// TODO write tests for the semantic analyser
+// TODO have a parsing error message for semi colons!
 
 fn main() {
     let args: Vec<String> = env::args().collect();

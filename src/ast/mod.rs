@@ -49,6 +49,20 @@ pub struct TypeInfo {
 }
 
 impl TypeInfo {
+    pub fn new() -> TypeInfo {
+        TypeInfo {
+            ordered_properties: vec![],
+            properties: Default::default(),
+            functions: Default::default(),
+            initialisers: vec![],
+            fallbacks: vec![],
+            public_initializer: None,
+            conformances: vec![],
+            type_states: vec![],
+            modifiers: vec![],
+        }
+    }
+
     pub fn all_functions(&self) -> HashMap<String, Vec<FunctionInformation>> {
         self.functions.clone()
     }

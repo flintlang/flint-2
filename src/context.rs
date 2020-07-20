@@ -27,6 +27,7 @@ pub struct Context {
     pub in_subscript: bool,
     pub is_enclosing: bool,
     pub in_emit: bool,
+    pub current_state: Option<TypeState>,
     pub pre_statements: Vec<Statement>,
     pub post_statements: Vec<Statement>,
 }
@@ -102,6 +103,10 @@ impl Context {
 
     pub fn scope_context(&self) -> Option<&ScopeContext> {
         self.scope_context.as_ref()
+    }
+
+    pub fn set_current_state(&mut self, state: &TypeState) {
+        self.current_state = Some(state.clone())
     }
 }
 

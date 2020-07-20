@@ -35,17 +35,6 @@ pub fn parse_program(i: &str) -> ParseResult {
         Err(nom::Err::Error((i, _))) => Err(format!("Could not parse {:#?}", i.fragment())),
         _ => Err("Could not parse. Not enough data".to_string()),
     }
-
-    // TODO remove
-    // let module = match result {
-    //     Ok((i, module)) => {
-    //         if !i.fragment().is_empty() {
-    //             panic!("Parser Error Parsing {:?}", i.fragment())
-    //         };
-    //         Some(module)
-    //     }
-    //     Err(_) => None,
-    // };
 }
 
 fn parse_module(i: Span) -> nom::IResult<Span, Module> {

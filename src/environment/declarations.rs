@@ -108,20 +108,8 @@ impl Environment {
 
         if !t.modifiers.is_empty() {
             if self.types.get(&t.identifier.token).is_none() {
-                self.types.insert(
-                    t.identifier.token.clone(),
-                    TypeInfo {
-                        ordered_properties: vec![],
-                        properties: Default::default(),
-                        functions: Default::default(),
-                        initialisers: vec![],
-                        fallbacks: vec![],
-                        public_initializer: None,
-                        conformances: vec![],
-                        type_states: vec![],
-                        modifiers: vec![],
-                    },
-                );
+                self.types
+                    .insert(t.identifier.token.clone(), TypeInfo::new());
             }
 
             if self.types.get(&t.identifier.token).is_some() {
@@ -140,7 +128,7 @@ impl Environment {
                     self.add_special(&s, &t.identifier.token, vec![], vec![])
                 }
                 TraitMember::FunctionSignatureDeclaration(f) => {
-                    self.add_function_signature(&f, &t.identifier.token, vec![], true)
+                    self.add_function_signature(&f, &t.identifier.token, vec![], vec![], true)
                 }
                 TraitMember::SpecialSignatureDeclaration(_) => unimplemented!(),
                 TraitMember::ContractBehaviourDeclaration(_) => {}
@@ -209,20 +197,7 @@ impl Environment {
                     type_states,
                 });
         } else {
-            self.types.insert(
-                enclosing.to_string(),
-                TypeInfo {
-                    ordered_properties: vec![],
-                    properties: Default::default(),
-                    functions: Default::default(),
-                    initialisers: vec![],
-                    fallbacks: vec![],
-                    public_initializer: None,
-                    conformances: vec![],
-                    type_states: vec![],
-                    modifiers: vec![],
-                },
-            );
+            self.types.insert(enclosing.to_string(), TypeInfo::new());
             self.types
                 .get_mut(enclosing)
                 .unwrap()

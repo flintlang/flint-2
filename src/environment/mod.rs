@@ -89,12 +89,6 @@ impl Environment {
         }
     }
 
-    fn add_type_state(&mut self, t: &TypeIdentifier, type_state: TypeState) {
-        if let Some(type_info) = self.types.get_mut(t) {
-            type_info.type_states.push(type_state);
-        }
-    }
-
     pub fn add_special(
         &mut self,
         s: &SpecialDeclaration,
@@ -134,6 +128,23 @@ impl Environment {
                         caller_protections,
                     });
             }
+        }
+    }
+    fn add_type_state(&mut self, contract_name: &TypeIdentifier, type_state: TypeState) {
+        if let Some(type_info) = self.types.get_mut(contract_name) {
+            type_info.type_states.push(type_state);
+        }
+    }
+
+    pub fn contains_type_state(
+        &mut self,
+        contract_name: &TypeIdentifier,
+        type_state: &TypeState,
+    ) -> bool {
+        if let Some(type_info) = self.types.get(contract_name) {
+            type_info.type_states.contains(type_state)
+        } else {
+            panic!("Contract {} does not exist", contract_name)
         }
     }
 
