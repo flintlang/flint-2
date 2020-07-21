@@ -153,41 +153,6 @@ impl Visitor for MovePreProcessor {
             mangle_function_move(&_t.head.identifier.token, &enclosing_identifier, false);
         _t.mangled_identifier = Some(mangled_name);
 
-        // start
-/*
-        let references: Vec<Identifier> = _ctx
-            .scope_context
-            .unwrap()
-            .parameters
-            .clone()
-            .into_iter()
-            .filter(|i| i.is_inout())
-            .map(|p| p.identifier)
-            .collect();
-        
-        let mut expression_type = _ctx.environment.get_expression_type(
-            expression.clone(),
-            &enclosing_type.token,
-            vec![],
-            vec![],
-            scope.clone(),
-        );
-
-        let mut post_statement = _ctx.post_statements.clone();
-        
-        for reference in references {
-            post_statement.push(release(
-                Expression::Identifier(reference.clone()),
-                Type::InoutType(InoutType {
-                    key_type: Box::new(expression_type),
-                }),
-            ));
-        }
-
-        _ctx.post_statements = post_statement;
-*/
-        // end
-
         if _t.is_payable() {
             let payable_param = _t.first_payable_param();
 

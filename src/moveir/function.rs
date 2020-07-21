@@ -8,6 +8,8 @@ use crate::ast::{
 };
 use crate::context::ScopeContext;
 use crate::environment::Environment;
+use crate::moveir::preprocessor::utils::release;
+use crate::moveir::utils::*;
 use crate::type_checker::ExpressionCheck;
 
 #[derive(Debug)]
@@ -156,7 +158,7 @@ impl MoveFunction {
         if let Some(block) = function_context.block_stack.pop() {
             for statement in block.statements.iter().rev() {
                 if let MoveIRStatement::Expression(e) = statement {
-                    let (remaining, new_expr) = crate::moveir::statement::remove_moves(release_references, e.clone());
+                    let (remaining, new_expr) = remove_moves(release_references, e.clone());
                     new_statements.push(MoveIRStatement::Expression(new_expr));
                     release_references = remaining;
                 } else {
@@ -167,7 +169,9 @@ impl MoveFunction {
 
         new_statements.reverse();
 
-        let new_block = MoveIRBlock {statements: new_statements};
+        let new_block = MoveIRBlock {
+            statements: new_statements,
+        };
         function_context.block_stack.push(new_block);
 
         for reference in release_references {
@@ -180,8 +184,6 @@ impl MoveFunction {
                 function_context.emit(MoveIRStatement::Inline(format!("_ = {}", expression)));
             }
         }
-
-        //TODO: all statements are in the block stack here, go through block backwards
 
         let body = function_context.generate();
         if result_type.is_empty() {
@@ -285,7 +287,7 @@ impl FunctionContext {
             .filter(|i| i.is_inout())
             .collect();
         for reference in references {
-            let statement = crate::moveir::preprocessor::utils::release(
+            let statement = release(
                 Expression::Identifier(reference.identifier.clone()),
                 Type::InoutType(InoutType {
                     key_type: Box::new(reference.type_assignment),
