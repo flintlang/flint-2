@@ -3,13 +3,17 @@ use super::expression::MoveExpression;
 use super::function::FunctionContext;
 use super::ir::{
     MoveIRAssignment, MoveIRExpression, MoveIRFunctionCall, MoveIRIf, MoveIROperation,
-    MoveIRStatement, MoveIRTransfer, MoveIRVector
+    MoveIRStatement, MoveIRTransfer, MoveIRVector, MoveIRBlock
 };
 use crate::ast::mangle;
 use crate::ast::{
     BecomeStatement, EmitStatement, Expression, ForStatement, Identifier, IfStatement,
     ReturnStatement, Statement,
 };
+
+use crate::moveir::preprocessor::utils::release;
+use crate::ast::types::{Type, InoutType};
+use crate::ast::declarations::Parameter;
 
 pub struct MoveStatement {
     pub statement: Statement,
@@ -325,7 +329,7 @@ fn remove_move(
                 MoveIRExpression::Transfer(transfer) => {
                     if let MoveIRTransfer::Copy(identifier) = transfer {
                         if let MoveIRExpression::Identifier(id) = &**identifier {
-                            if *id == mangle(&variable.token) {
+                            if *id == mangle(&variable.token) || (variable.token == "self" && *id == "this") {
                                 return Some(MoveIRExpression::Transfer(MoveIRTransfer::Move(
                                     Box::new(MoveIRExpression::Identifier(id.to_string())),
                                 )));
@@ -348,11 +352,18 @@ fn remove_move(
                     }
                 }
                 MoveIRExpression::Assignment(assignment) => {
-                    let expr = remove_move(&statement, &assignment.expression)?;
-                    return Some(MoveIRExpression::Assignment(MoveIRAssignment {
-                        identifier: assignment.identifier.clone(),
-                        expression: Box::new(expr),
-                    }));
+                    if assignment.identifier.contains(&variable.token) || (assignment.identifier.contains("this") && variable.token == "self") {
+                        return Some(MoveIRExpression::Assignment(MoveIRAssignment {
+                            identifier: assignment.identifier.clone().replace("copy", "move"),
+                            expression: assignment.expression.clone(),
+                        }))
+                    } else {
+                        let expr = remove_move(&statement, &assignment.expression)?;
+                        return Some(MoveIRExpression::Assignment(MoveIRAssignment {
+                            identifier: assignment.identifier.clone(),
+                            expression: Box::new(expr),
+                        }));
+                    }
                 }
                 MoveIRExpression::Vector(vec) => {
                     // iterate backwards through arguments until an element matches the statement or we reach the end of arguments
@@ -375,7 +386,7 @@ fn remove_move(
     None
 }
 
-fn remove_moves(
+pub fn remove_moves(
     statements: Vec<Statement>,
     expression: MoveIRExpression,
 ) -> (Vec<Statement>, MoveIRExpression) {
@@ -400,7 +411,7 @@ struct MoveReturnStatement {
 impl MoveReturnStatement {
     pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
         if self.statement.expression.is_none() {
-            function_context.emit_release_references();
+            //function_context.emit_release_references();
             return MoveIRStatement::Inline(String::from("return"));
         }
 
@@ -429,7 +440,7 @@ impl MoveReturnStatement {
             function_context.emit(move_statement);
         }
 
-        function_context.emit_release_references();
+        //function_context.emit_release_references();
         let string = format!(
             "return move({identifier})",
             identifier = return_identifier.token

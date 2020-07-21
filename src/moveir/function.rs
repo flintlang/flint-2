@@ -149,6 +149,40 @@ impl MoveFunction {
             function_context.emit(statement);
         }
 
+        let mut release_references = function_context.get_release_references();
+
+        let mut new_statements = Vec::new();
+
+        if let Some(block) = function_context.block_stack.pop() {
+            for statement in block.statements.iter().rev() {
+                if let MoveIRStatement::Expression(e) = statement {
+                    let (remaining, new_expr) = crate::moveir::statement::remove_moves(release_references, e.clone());
+                    new_statements.push(MoveIRStatement::Expression(new_expr));
+                    release_references = remaining;
+                } else {
+                    new_statements.push(statement.clone());
+                }
+            }
+        }
+
+        new_statements.reverse();
+
+        let new_block = MoveIRBlock {statements: new_statements};
+        function_context.block_stack.push(new_block);
+
+        for reference in release_references {
+            if let Statement::Expression(Expression::Identifier(id)) = reference {
+                let expression = MoveIdentifier {
+                    identifier: id,
+                    position: Default::default(),
+                }
+                .generate(&function_context, true, false);
+                function_context.emit(MoveIRStatement::Inline(format!("_ = {}", expression)));
+            }
+        }
+
+        //TODO: all statements are in the block stack here, go through block backwards
+
         let body = function_context.generate();
         if result_type.is_empty() {
             let result = format!(
@@ -239,6 +273,27 @@ impl FunctionContext {
             .generate(self, true, false);
             self.emit(MoveIRStatement::Inline(format!("_ = {}", expression)))
         }
+    }
+
+    pub fn get_release_references(&self) -> Vec<Statement> {
+        let mut release_references = Vec::new();
+        let references: Vec<Parameter> = self
+            .scope_context
+            .parameters
+            .clone()
+            .into_iter()
+            .filter(|i| i.is_inout())
+            .collect();
+        for reference in references {
+            let statement = crate::moveir::preprocessor::utils::release(
+                Expression::Identifier(reference.identifier.clone()),
+                Type::InoutType(InoutType {
+                    key_type: Box::new(reference.type_assignment),
+                }),
+            );
+            release_references.push(statement);
+        }
+        release_references
     }
 
     pub fn self_type(&self) -> Type {
