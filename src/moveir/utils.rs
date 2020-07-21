@@ -334,3 +334,111 @@ pub fn remove_moves(
 
     return (post_statements, curr_expr);
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::ast::expressions::BinaryExpression;
+    use crate::ast::expressions::Expression::*;
+    use crate::ast::expressions::Identifier;
+    use crate::ast::operators::BinOp::Equal;
+    use crate::ast::statements::Statement::Expression;
+    use crate::ast::types::InoutType;
+    use crate::ast::types::Type;
+    use crate::ast::LineInfo;
+    use crate::moveir::ir::MoveIRExpression;
+    use crate::moveir::ir::MoveIROperation;
+    use crate::moveir::ir::MoveIRTransfer;
+
+    use crate::moveir::utils::remove_moves;
+
+    #[test]
+    fn test_remove_moves() {
+        let expr = MoveIRExpression::Operation(MoveIROperation::Add(
+            Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                    Box::new(MoveIRExpression::Operation(
+                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                                "_temp__3".to_string(),
+                            ))),
+                        ))),
+                    )),
+                ))),
+                "width".to_string(),
+            ))),
+            Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                    Box::new(MoveIRExpression::Operation(
+                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                                "_temp__3".to_string(),
+                            ))),
+                        ))),
+                    )),
+                ))),
+                "height".to_string(),
+            ))),
+        ));
+        let statement = Expression(BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(RawAssembly(
+                "_".to_string(),
+                Some(Type::InoutType(InoutType {
+                    key_type: Box::new(Type::UserDefinedType(Identifier {
+                        token: "Rectangle".to_string(),
+                        enclosing_type: None,
+                        line_info: LineInfo {
+                            line: 2,
+                            offset: 37,
+                        },
+                    })),
+                })),
+            )),
+            rhs_expression: Box::new(Identifier(Identifier {
+                token: "temp__3".to_string(),
+                enclosing_type: None,
+                line_info: LineInfo {
+                    line: 18,
+                    offset: 377,
+                },
+            })),
+            op: Equal,
+            line_info: LineInfo {
+                line: 18,
+                offset: 377,
+            },
+        }));
+
+        let result = remove_moves(vec![statement], expr);
+
+        assert_eq!(
+            result.1,
+            MoveIRExpression::Operation(MoveIROperation::Add(
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                    Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                        Box::new(MoveIRExpression::Operation(
+                            MoveIROperation::MutableReference(Box::new(
+                                MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::new(
+                                    MoveIRExpression::Identifier("_temp__3".to_string())
+                                )),)
+                            ))
+                        ))
+                    ))),
+                    "width".to_string(),
+                ))),
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                    Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                        Box::new(MoveIRExpression::Operation(
+                            MoveIROperation::MutableReference(Box::new(
+                                MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::new(
+                                    MoveIRExpression::Identifier("_temp__3".to_string())
+                                )),)
+                            ))
+                        ))
+                    ))),
+                    "height".to_string(),
+                )),)
+            ))
+        );
+    }
+}
