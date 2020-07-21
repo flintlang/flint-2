@@ -176,7 +176,7 @@ pub(crate) struct MoveSubscriptExpression {
 impl MoveSubscriptExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let rhs = self.rhs.clone();
-        let rhs = rhs.unwrap_or(MoveIRExpression::Literal(MoveIRLiteral::Num(0)));
+        let rhs = rhs.unwrap_or(MoveIRExpression::Literal(MoveIRLiteral::U64(0)));
 
         let index = &self.expression.index_expression;
         let index = MoveExpression {

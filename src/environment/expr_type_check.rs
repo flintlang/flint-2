@@ -135,6 +135,7 @@ impl Environment {
 
     pub fn get_literal_type(&self, literal: Literal) -> Type {
         match literal {
+            Literal::U8Literal(_) => Type::TypeState,
             Literal::BooleanLiteral(_) => Type::Bool,
             Literal::AddressLiteral(_) => Type::Address,
             Literal::StringLiteral(_) => Type::String,

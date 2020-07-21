@@ -22,6 +22,7 @@ impl SolidityIRType {
             Type::Error => panic!("Can not convert Error type to Solidity Type"),
             Type::SelfType => panic!("Can not convert this type to Solidity Type"),
             Type::Solidity(_) => panic!("Can not convert this type to Solidity Type"),
+            Type::TypeState => panic!("Not yet implemented for solidity"),
         }
     }
 

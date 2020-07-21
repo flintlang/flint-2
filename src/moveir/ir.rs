@@ -171,7 +171,8 @@ impl fmt::Display for MoveIRFunctionCall {
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum MoveIRLiteral {
-    Num(u64),
+    U8(u8),
+    U64(u64),
     String(String),
     Bool(bool),
     Decimal(u64, u64),
@@ -181,7 +182,8 @@ pub enum MoveIRLiteral {
 impl fmt::Display for MoveIRLiteral {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MoveIRLiteral::Num(i) => write!(f, "{i}", i = i),
+            MoveIRLiteral::U8(num) => write!(f, "{}u8", num),
+            MoveIRLiteral::U64(i) => write!(f, "{i}", i = i),
             MoveIRLiteral::String(s) => write!(f, "\"{s}\"", s = s),
             MoveIRLiteral::Bool(b) => write!(f, "{b}", b = b),
             MoveIRLiteral::Decimal(i1, i2) => write!(f, "{i1}.{i2}", i1 = i1, i2 = i2),
@@ -336,6 +338,7 @@ impl fmt::Display for MoveIRStatement {
 
 #[derive(Debug, Clone)]
 pub enum MoveIRType {
+    U8,
     U64,
     Address,
     Bool,
@@ -349,6 +352,7 @@ pub enum MoveIRType {
 impl fmt::Display for MoveIRType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            MoveIRType::U8 => write!(f, "u8"),
             MoveIRType::U64 => write!(f, "u64"),
             MoveIRType::Address => write!(f, "&signer"),
             MoveIRType::Bool => write!(f, "bool"),

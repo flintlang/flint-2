@@ -136,16 +136,21 @@ impl Environment {
         }
     }
 
+    pub fn get_contract_type_states(&self, contract_name: &TypeIdentifier) -> Vec<TypeState> {
+        if let Some(type_info) = self.types.get(contract_name) {
+            type_info.type_states.clone()
+        } else {
+            panic!("Contract {} does not exist", contract_name)
+        }
+    }
+
     pub fn contains_type_state(
         &mut self,
         contract_name: &TypeIdentifier,
         type_state: &TypeState,
     ) -> bool {
-        if let Some(type_info) = self.types.get(contract_name) {
-            type_info.type_states.contains(type_state)
-        } else {
-            panic!("Contract {} does not exist", contract_name)
-        }
+        self.get_contract_type_states(contract_name)
+            .contains(type_state)
     }
 
     pub fn get_contract_state(&self, contract_name: &TypeIdentifier) -> Option<TypeState> {
@@ -386,6 +391,7 @@ impl Environment {
             Type::Error => unimplemented!(),
             Type::SelfType => unimplemented!(),
             Type::Solidity(_) => unimplemented!(),
+            Type::TypeState => 1,
         }
     }
 }

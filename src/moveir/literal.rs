@@ -7,7 +7,8 @@ impl MoveLiteralToken {
             Literal::BooleanLiteral(b) => MoveIRLiteral::Bool(b),
             Literal::AddressLiteral(a) => MoveIRLiteral::Hex(a),
             Literal::StringLiteral(s) => MoveIRLiteral::String(s),
-            Literal::IntLiteral(i) => MoveIRLiteral::Num(i),
+            Literal::U8Literal(u) => MoveIRLiteral::U8(u),
+            Literal::IntLiteral(i) => MoveIRLiteral::U64(i),
             Literal::FloatLiteral(_) => panic!("Floats not currently supported"),
         }
     }

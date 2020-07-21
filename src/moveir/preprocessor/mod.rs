@@ -10,6 +10,30 @@ mod utils;
 pub(crate) struct MovePreProcessor {}
 
 impl Visitor for MovePreProcessor {
+    fn start_contract_declaration(
+        &mut self,
+        contract: &mut ContractDeclaration,
+        _ctx: &mut Context,
+    ) -> VResult {
+        // If the contract is stateful, we set the state to initially be the first one listed (0)
+        if !contract.type_states.is_empty() {
+            contract
+                .contract_members
+                .push(ContractMember::VariableDeclaration(VariableDeclaration {
+                    declaration_token: None,
+                    identifier: Identifier {
+                        token: "_contract_state".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    },
+                    variable_type: Type::TypeState,
+                    expression: Some(Box::from(Expression::Literal(Literal::U8Literal(0)))),
+                }))
+        }
+
+        Ok(())
+    }
+
     fn start_contract_behaviour_declaration(
         &mut self,
         _t: &mut ContractBehaviourDeclaration,

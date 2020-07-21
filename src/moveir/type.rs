@@ -5,6 +5,7 @@ use crate::environment::Environment;
 
 #[derive(Debug, Clone)]
 pub(crate) enum MoveType {
+    U8,
     U64,
     Address,
     Bool,
@@ -19,6 +20,7 @@ pub(crate) enum MoveType {
 impl MoveType {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRType {
         match self {
+            MoveType::U8 => MoveIRType::U8,
             MoveType::U64 => MoveIRType::U64,
             MoveType::Address => MoveIRType::Address,
             MoveType::Bool => MoveIRType::Bool,
@@ -128,6 +130,7 @@ impl MoveType {
             Type::SelfType => panic!("Cannot convert type to move equivalent"),
             Type::Error => panic!("Cannot convert type error to move equivalent"),
             Type::Solidity(_) => panic!("Cannot convert Solidity Type to move equivalent"),
+            Type::TypeState => MoveType::U8,
         }
     }
 

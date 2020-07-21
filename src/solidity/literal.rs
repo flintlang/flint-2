@@ -7,6 +7,7 @@ pub struct SolidityLiteral {
 impl SolidityLiteral {
     pub fn generate(&self) -> YulLiteral {
         match self.literal.clone() {
+            Literal::U8Literal(_) => panic!("Not yet supported for solidity"),
             Literal::BooleanLiteral(b) => YulLiteral::Bool(b),
             Literal::AddressLiteral(a) => YulLiteral::Hex(a),
             Literal::StringLiteral(s) => YulLiteral::String(s),

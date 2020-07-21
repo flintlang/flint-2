@@ -107,6 +107,7 @@ impl MoveContract {
             .into_iter()
             .filter(|m| !m.variable_type.is_dictionary_type())
             .collect();
+
         let members: Vec<String> = members
             .into_iter()
             .map(|v| {
@@ -351,7 +352,7 @@ impl MoveContract {
 
         let body;
 
-        for property in properties {
+        for property in properties.clone() {
             let property_type = MoveType::move_type(
                 property.variable_type.clone(),
                 Option::from(self.environment.clone()),
@@ -364,8 +365,11 @@ impl MoveContract {
                     declaration_type: property_type,
                 }),
             ));
+        }
 
+        for property in properties {
             if let Some(expr) = property.expression {
+                let identifier = format!("__this_{}", property.identifier.token);
                 function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
                     MoveIRAssignment {
                         identifier,
@@ -430,6 +434,7 @@ impl MoveContract {
         let fields = self
             .contract_declaration
             .get_variable_declarations_without_dict();
+
         let fields: Vec<(String, MoveIRExpression)> = fields
             .into_iter()
             .map(|p| {

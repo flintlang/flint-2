@@ -18,6 +18,7 @@ pub enum Type {
     String,
     Address,
     Error,
+    TypeState,
 }
 
 impl Type {
@@ -119,6 +120,7 @@ impl Type {
             Type::Error => true,
             Type::SelfType => unimplemented!(),
             Type::Solidity(_) => unimplemented!(),
+            Type::TypeState => true,
         }
     }
 
@@ -140,6 +142,7 @@ impl Type {
             Type::Error => "Quartz$ErrorType".to_string(),
             Type::SelfType => "Self".to_string(),
             Type::Solidity(s) => format!("{:?}", s),
+            Type::TypeState => unimplemented!(),
         }
     }
 

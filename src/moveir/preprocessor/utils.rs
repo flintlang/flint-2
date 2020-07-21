@@ -1,8 +1,9 @@
+use crate::ast::Literal::U8Literal;
 use crate::ast::{
     mangle, mangle_function_move, BinOp, BinaryExpression, CallerProtection,
     ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
     Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
-    TypeIdentifier, VariableDeclaration,
+    TypeIdentifier, TypeState, VariableDeclaration,
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
@@ -178,6 +179,7 @@ pub fn generate_contract_wrapper(
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     context: &mut Context,
 ) -> FunctionDeclaration {
+    let is_stateful = !contract_behaviour_declaration.type_states.is_empty();
     let mut wrapper = function.clone();
     wrapper.mangled_identifier = Option::from(mangle_function_move(
         &function.head.identifier.token,
@@ -223,12 +225,23 @@ pub fn generate_contract_wrapper(
     let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
     wrapper.body.push(Statement::Expression(sender_declaration));
 
+    if is_stateful {
+        let type_state_declaration = VariableDeclaration {
+            declaration_token: None,
+            identifier: Identifier::generated("_contract_state"),
+            variable_type: Type::TypeState,
+            expression: None,
+        };
+
+        wrapper
+            .body
+            .push(Statement::Expression(Expression::VariableDeclaration(
+                type_state_declaration,
+            )));
+    }
+
     let sender_assignment = BinaryExpression {
-        lhs_expression: Box::new(Expression::Identifier(Identifier {
-            token: "sender".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        })),
+        lhs_expression: Box::new(Expression::Identifier(Identifier::generated("sender"))),
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "Signer.address_of(move({param}))",
@@ -260,6 +273,61 @@ pub fn generate_contract_wrapper(
         .push(Statement::Expression(Expression::BinaryExpression(
             self_assignment,
         )));
+
+    let function_context = FunctionContext {
+        environment: context.environment.clone(),
+        scope_context: function.scope_context.clone().unwrap_or_default(),
+        enclosing_type: contract_behaviour_declaration.identifier.token.clone(),
+        block_stack: vec![MoveIRBlock { statements: vec![] }],
+        in_struct_function: false,
+        is_constructor: false,
+    };
+
+    if is_stateful {
+        // TODO cannot use type_state_declaration.identifier here because it inserts an extra _ at the beginning
+        // hardcoding the name is not ideal
+        let state_identifier = Identifier::generated("contract_state");
+        let type_state_assignment = BinaryExpression {
+            lhs_expression: Box::new(Expression::Identifier(state_identifier.clone())),
+            rhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::SelfExpression),
+                rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                    "_contract_state",
+                ))),
+                op: BinOp::Dot,
+                line_info: Default::default(),
+            })),
+            op: BinOp::Equal,
+            line_info: Default::default(),
+        };
+
+        wrapper
+            .body
+            .push(Statement::Expression(Expression::BinaryExpression(
+                type_state_assignment,
+            )));
+
+        let contract_name = &contract_behaviour_declaration.identifier.token;
+        let allowed_type_states_as_u8s = extract_allowed_states(
+            &contract_behaviour_declaration.type_states,
+            &context.environment.get_contract_type_states(contract_name),
+        );
+        // TODO integrate this with improved existing assertion generator
+        let cond_expr = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
+        let cond_expr = MoveExpression {
+            expression: Expression::BinaryExpression(cond_expr),
+            position: Default::default(),
+        }
+            .generate(&function_context);
+
+        let assertion = format!(
+            "assert({}, {})",
+            cond_expr, contract_behaviour_declaration.identifier.line_info.line
+        );
+        let assertion = Expression::RawAssembly(assertion, None);
+
+        wrapper.body.push(Statement::Expression(assertion));
+    }
 
     let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
         .caller_protections
@@ -321,17 +389,7 @@ pub fn generate_contract_wrapper(
             })
             .collect();
 
-        let assertion = generate_assertion(
-            predicates,
-            FunctionContext {
-                environment: context.environment.clone(),
-                scope_context: function.scope_context.clone().unwrap_or_default(),
-                enclosing_type: contract_behaviour_declaration.identifier.token.clone(),
-                block_stack: vec![MoveIRBlock { statements: vec![] }],
-                in_struct_function: false,
-                is_constructor: false,
-            },
-        );
+        let assertion = generate_assertion(predicates, function_context);
 
         wrapper.body.push(assertion)
     }
@@ -470,7 +528,6 @@ pub fn pre_assign(
         })
         .collect();
     if statements.is_empty() {
-        // TODO temp_identifier is temp__6, so it is created here
         temp_identifier = scope.fresh_identifier(expression.get_line_info());
         let declaration = if expression_type.is_built_in_type() || borrow {
             VariableDeclaration {
@@ -571,6 +628,7 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
     Statement::Expression(Expression::BinaryExpression(assignment))
 }
 
+// TODO make this better like the other one
 pub fn generate_assertion(
     predicate: Vec<Expression>,
     function_context: FunctionContext,
@@ -738,4 +796,47 @@ pub fn construct_expression(expressions: Vec<Expression>) -> Expression {
         Some(first) => first.clone(),
         None => panic!("Cannot construct expression from no expressions"),
     }
+}
+
+fn extract_allowed_states(
+    permitted_states: &Vec<TypeState>,
+    declared_states: &Vec<TypeState>,
+) -> Vec<u8> {
+    assert!(declared_states.len() < 256);
+    permitted_states
+        .iter()
+        .map(|permitted_state| {
+            declared_states
+                .iter()
+                .position(|declared_state| declared_state == permitted_state)
+                .unwrap() as u8
+        })
+        .collect()
+}
+
+fn generate_type_state_condition(id: Identifier, allowed: Vec<u8>) -> BinaryExpression {
+    assert!(!allowed.is_empty());
+
+    let conjuncts = allowed
+        .iter()
+        .map(|state| BinaryExpression {
+            lhs_expression: Box::from(Expression::Identifier(id.clone())),
+            rhs_expression: Box::from(Expression::Literal(U8Literal(*state))),
+            op: BinOp::DoubleEqual,
+            line_info: Default::default(),
+        })
+        .collect::<Vec<BinaryExpression>>();
+
+    let first_conjunct = conjuncts.first().unwrap().clone();
+    // Unfortunately rusts fold_first is unstable at time of writing. If this changes,
+    // change this to use it
+    conjuncts
+        .into_iter()
+        .skip(1)
+        .fold(first_conjunct, |left, right| BinaryExpression {
+            lhs_expression: Box::from(Expression::BinaryExpression(left)),
+            rhs_expression: Box::from(Expression::BinaryExpression(right)),
+            op: BinOp::Or,
+            line_info: Default::default(),
+        })
 }
