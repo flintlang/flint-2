@@ -264,8 +264,6 @@ pub fn generate_contract_wrapper(
         .into_iter()
         .filter(|c| c.is_any())
         .collect();
-    dbg!(contract_behaviour_declaration.caller_protections.clone());
-    dbg!(caller_protections.clone());
 
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
@@ -492,8 +490,6 @@ pub fn pre_assign(
     };
 
     let mut temp_identifier = Identifier::generated("_temp_move_preassign");
-    dbg!(&expression);
-    dbg!(&ctx.pre_statements);
     let statements: Vec<BinaryExpression> = ctx
         .pre_statements
         .clone()
@@ -505,15 +501,12 @@ pub fn pre_assign(
         .filter(|b| {
             if let BinOp::Equal = b.op {
                 if let Expression::Identifier(_) = *b.lhs_expression {
-                    dbg!(&expression);
-                    dbg!(&b.rhs_expression);
                     return cmp_expressions(&expression, &*b.rhs_expression);
                 }
             }
             false
         })
         .collect();
-    dbg!(&statements);
     if statements.is_empty() {
         temp_identifier = scope.fresh_identifier(expression.get_line_info());
         let declaration = if expression_type.is_built_in_type() || borrow {
@@ -539,7 +532,6 @@ pub fn pre_assign(
                     key_type: Box::new(expression_type),
                 }),
             ));
-            dbg!(post_statement.clone());
             ctx.post_statements = post_statement;
             var
         };

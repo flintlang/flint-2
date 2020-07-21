@@ -66,9 +66,6 @@ impl MoveIdentifier {
             }
         }
 
-        dbg!(ir_identifier.clone());
-        dbg!(&self.position);
-
         if let MovePosition::Left = self.position {
             return ir_identifier;
         }
@@ -108,13 +105,6 @@ impl MoveSelf {
     pub fn generate(&self, function_context: &FunctionContext, force: bool) -> MoveIRExpression {
         if function_context.is_constructor {}
         if let MovePosition::Left = self.position {
-            //MoveIRExpression::Operation(MoveIROperation::Dereference(Box::from(
-            //  MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::from(
-            //    MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(
-            //      MoveIRExpression::Identifier(self.name()),
-            //))),
-            //))),
-            //)))
             MoveIRExpression::Identifier(self.name())
         } else if force {
             MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
@@ -124,7 +114,6 @@ impl MoveSelf {
             MoveIRExpression::Identifier(self.name())
         } else if let MovePosition::Accessed = self.position {
             MoveIRExpression::Operation(MoveIROperation::Dereference(Box::from(
-                //MoveIRExpression::Operation(MoveIROperation::Reference(Box::from(
                 MoveIRExpression::Operation(MoveIROperation::MutableReference(Box::from(
                     MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(
                         MoveIRExpression::Identifier(self.name()),

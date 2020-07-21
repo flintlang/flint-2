@@ -37,11 +37,8 @@ impl MovePropertyAccess {
                 }
                 .generate(function_context, false, false);
             }
-            //TODO: kept as MovePosition::Left
             let position = if let MovePosition::Inout = self.position {
                 MovePosition::Inout
-            //} else if let MovePosition::Left = self.position {
-            //MovePosition::Left
             } else {
                 MovePosition::Accessed
             };

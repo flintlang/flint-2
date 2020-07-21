@@ -14,8 +14,7 @@ impl Visitor for MovePreProcessor {
         &mut self,
         _t: &mut ContractBehaviourDeclaration,
         _ctx: &mut Context,
-    ) -> VResult {
-        dbg!(&_t);
+    ) -> VResult {;
         _t.members = _t
             .members
             .clone()

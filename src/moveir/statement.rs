@@ -325,8 +325,6 @@ fn remove_move(
                 MoveIRExpression::Transfer(transfer) => {
                     if let MoveIRTransfer::Copy(identifier) = transfer {
                         if let MoveIRExpression::Identifier(id) = &**identifier {
-                            dbg!(id);
-                            dbg!(variable.token.clone());
                             if *id == mangle(&variable.token) {
                                 return Some(MoveIRExpression::Transfer(MoveIRTransfer::Move(
                                     Box::new(MoveIRExpression::Identifier(id.to_string())),
