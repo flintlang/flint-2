@@ -25,11 +25,14 @@ pub fn parse_program(i: &str) -> ParseResult {
     let result = parse_module(input);
 
     match result {
-        Ok((_, module)) => {
-            // TODO check span is empty?
-            let mut environment: Environment = Default::default();
-            environment.build(module.clone());
-            Ok((module, environment))
+        Ok((remaining, module)) => {
+            if remaining.fragment().is_empty() {
+                let mut environment: Environment = Default::default();
+                environment.build(module.clone());
+                Ok((module, environment))
+            } else {
+                Err(format!("Could not parse {:#?}", remaining.fragment()))
+            }
         }
         Err(nom::Err::Failure((i, _))) => Err(format!("Could not parse {:#?}", i.fragment())),
         Err(nom::Err::Error((i, _))) => Err(format!("Could not parse {:#?}", i.fragment())),

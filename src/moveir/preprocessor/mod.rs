@@ -773,4 +773,39 @@ impl Visitor for MovePreProcessor {
         }
         Ok(())
     }
+
+    fn finish_statement(&mut self, statement: &mut Statement, context: &mut Context) -> VResult {
+        if let Statement::BecomeStatement(bs) = statement {
+            // MID we should be in a contract behaviour context since we are using type states
+            let contract_name = &context
+                .contract_behaviour_declaration_context
+                .as_ref()
+                .unwrap()
+                .identifier
+                .token;
+            let declared_states = context.environment.get_contract_type_states(contract_name);
+            // We immediately unwrap as all become statements should have been checked for having a declared typestate
+            let type_state_as_u8 = declared_states
+                .iter()
+                .position(|state| state == &bs.state)
+                .unwrap() as u8;
+
+            let state_variable = Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::SelfExpression),
+                rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                    "_contract_state",
+                ))),
+                op: BinOp::Dot,
+                line_info: Default::default(),
+            });
+
+            *statement = Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(state_variable),
+                rhs_expression: Box::new(Expression::Literal(Literal::U8Literal(type_state_as_u8))),
+                op: BinOp::Equal,
+                line_info: Default::default(),
+            }));
+        }
+        Ok(())
+    }
 }

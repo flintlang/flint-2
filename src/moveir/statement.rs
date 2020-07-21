@@ -3,8 +3,7 @@ use super::expression::MoveExpression;
 use super::function::FunctionContext;
 use super::ir::{MoveIRAssignment, MoveIRExpression, MoveIRIf, MoveIRStatement};
 use crate::ast::{
-    BecomeStatement, EmitStatement, ForStatement, Identifier, IfStatement, ReturnStatement,
-    Statement,
+    EmitStatement, ForStatement, Identifier, IfStatement, ReturnStatement, Statement,
 };
 
 pub struct MoveStatement {
@@ -22,10 +21,10 @@ impl MoveStatement {
                     expression: e,
                     position: Default::default(),
                 }
-                .generate(function_context),
+                    .generate(function_context),
             ),
-            Statement::BecomeStatement(b) => {
-                MoveBecomeStatement { statement: b }.generate(function_context)
+            Statement::BecomeStatement(_) => {
+                panic!("Should have been implemented in the preprocessor")
             }
             Statement::EmitStatement(e) => {
                 MoveEmitStatement { statement: e }.generate(function_context)
@@ -106,16 +105,6 @@ impl MoveReturnStatement {
             identifier = return_identifier.token
         );
         MoveIRStatement::Inline(string)
-    }
-}
-
-struct MoveBecomeStatement {
-    pub statement: BecomeStatement,
-}
-
-impl MoveBecomeStatement {
-    pub fn generate(&self, _function_context: &mut FunctionContext) -> MoveIRStatement {
-        panic!("Become Statements not currently supported")
     }
 }
 

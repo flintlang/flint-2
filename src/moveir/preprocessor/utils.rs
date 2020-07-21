@@ -639,7 +639,6 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
     Statement::Expression(Expression::BinaryExpression(assignment))
 }
 
-// TODO make this better like the other one
 pub fn generate_assertion(
     cond: Expression,
     error_code: u32,
