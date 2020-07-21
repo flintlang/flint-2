@@ -313,20 +313,14 @@ pub fn generate_contract_wrapper(
             &context.environment.get_contract_type_states(contract_name),
         );
         // TODO integrate this with improved existing assertion generator
-        let cond_expr = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
-        let cond_expr = MoveExpression {
-            expression: Expression::BinaryExpression(cond_expr),
-            position: Default::default(),
-        }
-            .generate(&function_context);
-
-        let assertion = format!(
-            "assert({}, {})",
-            cond_expr, contract_behaviour_declaration.identifier.line_info.line
+        let assertion = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
+        let assertion = generate_assertion(
+            Expression::BinaryExpression(assertion),
+            contract_behaviour_declaration.identifier.line_info.line,
+            &function_context,
         );
-        let assertion = Expression::RawAssembly(assertion, None);
 
-        wrapper.body.push(Statement::Expression(assertion));
+        wrapper.body.push(assertion);
     }
 
     let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
@@ -389,8 +383,25 @@ pub fn generate_contract_wrapper(
             })
             .collect();
 
-        let assertion = generate_assertion(predicates, function_context);
+        assert!(!predicates.is_empty());
+        let first_cond = predicates.first().unwrap().clone();
+        let predicates = predicates
+            .into_iter()
+            .skip(1)
+            .fold(first_cond, |left, right| {
+                Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(left),
+                    rhs_expression: Box::new(right),
+                    op: BinOp::Or,
+                    line_info: Default::default(),
+                })
+            });
 
+        let assertion = generate_assertion(
+            predicates,
+            contract_behaviour_declaration.identifier.line_info.line,
+            &function_context,
+        );
         wrapper.body.push(assertion)
     }
 
@@ -630,40 +641,19 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
 
 // TODO make this better like the other one
 pub fn generate_assertion(
-    predicate: Vec<Expression>,
-    function_context: FunctionContext,
+    cond: Expression,
+    error_code: u32,
+    function_context: &FunctionContext,
 ) -> Statement {
-    let mut predicates = predicate;
-    if predicates.len() >= 2 {
-        let or_expression = Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(predicates.remove(0)),
-            rhs_expression: Box::new(predicates.remove(0)),
-            op: BinOp::Or,
-            line_info: Default::default(),
-        });
-        while !predicates.is_empty() {
-            unimplemented!()
-        }
-        let expression = MoveExpression {
-            expression: or_expression,
-            position: Default::default(),
-        }
-        .generate(&function_context);
-        let string = format!("assert({ex}, 1)", ex = expression);
-        return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
-    }
-
-    if predicates.is_empty() {
-        unimplemented!()
-    }
-    let expression = predicates.remove(0);
+    // PRE: cond is an expression that when evaluated will be true or false
     let expression = MoveExpression {
-        expression,
+        expression: cond,
         position: Default::default(),
     }
-    .generate(&function_context);
-    let string = format!("assert({ex}, 1)", ex = expression);
-    Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
+        .generate(function_context);
+
+    let assertion = format!("assert({}, {})", expression, error_code);
+    Statement::Expression(Expression::RawAssembly(assertion, None))
 }
 
 pub fn release(expression: Expression, expression_type: Type) -> Statement {
