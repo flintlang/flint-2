@@ -1,4 +1,4 @@
-//! expect fail 22
+//! expect fail 20
 import {{default}}.TrafficLights;
 main(account: &signer) {
     TrafficLights.publish(copy(account));

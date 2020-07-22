@@ -73,11 +73,11 @@ impl SolidityPropertyAccess {
                 .enclosing_parameter(self.lhs.clone(), &type_identifier)
                 .unwrap_or_else(|| "QuartzSelf".to_string());
 
-            let lhs_offset = YulExpression::Identifier(enclosing_name.clone());
+            let lhs_offset = YulExpression::Identifier(mangle(&enclosing_name));
             SolidityRuntimeFunction::add_offset(
                 lhs_offset,
                 rhs_offset,
-                mangle_mem(&enclosing_name),
+                mangle(&mangle_mem(&enclosing_name)),
             )
         } else {
             let lhs_offset = if let Expression::Identifier(i) = self.lhs.clone() {
@@ -106,9 +106,9 @@ impl SolidityPropertyAccess {
 
         if function_context.in_struct_function && !is_mem_access {
             let lhs_enclosing = if let Some(ident) = self.lhs.enclosing_identifier() {
-                ident.token
+                mangle(&ident.token)
             } else {
-                "_QuartzSelf".to_string()
+                mangle("QuartzSelf")
             };
 
             return SolidityRuntimeFunction::load(offset, mangle_mem(&lhs_enclosing));

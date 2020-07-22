@@ -1,9 +1,0 @@
-contract MyContract (One, Two) {
-    var dummy: Int = 0
-}
-
-MyContract @(One) :: (any) {
-    public init() {
-        become Two
-    }
-}

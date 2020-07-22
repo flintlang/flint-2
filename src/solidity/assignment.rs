@@ -15,7 +15,7 @@ impl SolidityAssignment {
 
         match self.lhs.clone() {
             Expression::VariableDeclaration(v) => {
-                let mangle = v.identifier.token;
+                let mangle = mangle(&v.identifier.token);
                 YulExpression::VariableDeclaration(YulVariableDeclaration {
                     declaration: mangle,
                     declaration_type: YulType::Any,
@@ -24,7 +24,7 @@ impl SolidityAssignment {
             }
             Expression::Identifier(i) if i.enclosing_type.is_none() => {
                 YulExpression::Assignment(YulAssignment {
-                    identifiers: vec![i.token],
+                    identifiers: vec![mangle(&i.token)],
                     expression: Box::from(rhs_code),
                 })
             }
@@ -49,7 +49,7 @@ impl SolidityAssignment {
                     return SolidityRuntimeFunction::store(
                         lhs_code,
                         rhs_code,
-                        mangle_mem(enclosing_name),
+                        mangle(&mangle_mem(enclosing_name)),
                     );
                 } else if let Some(enclosing) = self.lhs.enclosing_identifier() {
                     if function_context

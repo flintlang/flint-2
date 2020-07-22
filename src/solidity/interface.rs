@@ -42,10 +42,11 @@ impl SolidityInterface {
                 .map(|p| {
                     let param_type =
                         SolidityIRType::map_to_solidity_type(p.type_assignment.clone()).generate();
+                    let mangled_name = mangle(&p.identifier.token);
                     format!(
                         "{param_type} {mangled_name}",
                         param_type = param_type,
-                        mangled_name = p.identifier.token
+                        mangled_name = mangled_name
                     )
                 })
                 .collect();

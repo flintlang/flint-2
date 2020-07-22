@@ -4,7 +4,7 @@ use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRAssignment, MoveIRExpression};
 use super::r#type::MoveType;
 use super::MovePosition;
-use crate::ast::{Expression, Type};
+use crate::ast::{mangle, Expression, Type};
 use crate::type_checker::ExpressionCheck;
 
 #[derive(Debug)]
@@ -72,7 +72,7 @@ impl MoveAssignment {
         if let Expression::Identifier(ref i) = lhs {
             if i.enclosing_type.is_none() {
                 return MoveIRExpression::Assignment(MoveIRAssignment {
-                    identifier: i.token.clone(),
+                    identifier: mangle(&i.token),
                     expression: Box::new(rhs_ir),
                 });
             }

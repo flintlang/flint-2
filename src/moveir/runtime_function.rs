@@ -1,4 +1,5 @@
 use super::ir::{MoveIRExpression, MoveIRFunctionCall};
+use crate::ast::mangle;
 use core::fmt;
 
 #[allow(dead_code)]
@@ -35,7 +36,8 @@ impl MoveRuntimeFunction {
     }
 
     pub fn mangle_runtime(&self) -> String {
-        format!("Self.{}", self.to_string())
+        let string = mangle(&format!("{}", self));
+        format!("Self.{}", string)
     }
 
     pub fn get_all_functions() -> Vec<String> {

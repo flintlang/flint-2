@@ -189,7 +189,7 @@ impl SolidityContract {
 
         let caller_binding =
             if let Some(ref binding) = contract_behaviour_declaration.caller_binding {
-                let binding = binding.token.clone();
+                let binding = mangle(&binding.token);
                 format!("let {binding} := caller()\n", binding = binding)
             } else {
                 "".to_string()

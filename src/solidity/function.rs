@@ -74,7 +74,7 @@ impl SolidityFunction {
         };
 
         let caller_binding = if let Some(ref binding) = self.caller_binding {
-            let binding = binding.token.clone();
+            let binding = mangle(&binding.token);
             format!("let {binding} := caller()\n", binding = binding)
         } else {
             "".to_string()
