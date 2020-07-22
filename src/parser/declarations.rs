@@ -43,8 +43,6 @@ fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration
     let (i, _contract_token) = tag("contract")(i)?;
     let (i, identifier) = preceded(nom::character::complete::space0, parse_identifier)(i)?;
     let (i, _) = whitespace(i)?;
-    // TODO fix enforcing of type states being correct
-    // TODO add type states contract parse test including a failing case for mismatched
     let (_, left_round_bracket) = nom::combinator::opt(left_parens)(i)?;
     let (i, type_states) = if left_round_bracket.is_none() {
         (i, vec![])

@@ -20,7 +20,6 @@ use crate::parser::operators::*;
 use crate::parser::utils::*;
 
 pub fn parse_program(i: &str) -> ParseResult {
-    // TODO fix error typing to be more helpful
     let input = LocatedSpan::new(i);
     let result = parse_module(input);
 

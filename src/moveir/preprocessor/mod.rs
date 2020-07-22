@@ -9,6 +9,10 @@ mod utils;
 
 pub(crate) struct MovePreProcessor {}
 
+impl MovePreProcessor {
+    const STATE_VAR_NAME: &'static str = "_contract_state";
+}
+
 impl Visitor for MovePreProcessor {
     fn start_contract_declaration(
         &mut self,
@@ -22,7 +26,7 @@ impl Visitor for MovePreProcessor {
                 .push(ContractMember::VariableDeclaration(VariableDeclaration {
                     declaration_token: None,
                     identifier: Identifier {
-                        token: "_contract_state".to_string(),
+                        token: MovePreProcessor::STATE_VAR_NAME.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     },
@@ -586,7 +590,6 @@ impl Visitor for MovePreProcessor {
 
             let scope = _ctx.scope_context.clone().unwrap_or_default();
 
-            // TODO function call expression is fine here. Seems to be issue with receiver trail
             let receiver_trail = &mut _ctx.function_call_receiver_trail;
 
             if receiver_trail.is_empty() {
@@ -619,7 +622,6 @@ impl Visitor for MovePreProcessor {
                 let mut expression = construct_expression(expressions.clone());
 
                 if expression.enclosing_type().is_some() {
-                    // TODO temp__6 happens here but it is now understandable why
                     expression = expand_properties(expression, _ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression {
                     expression = expand_properties(expression, _ctx, false);
@@ -793,7 +795,7 @@ impl Visitor for MovePreProcessor {
             let state_variable = Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(Expression::SelfExpression),
                 rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                    "_contract_state",
+                    MovePreProcessor::STATE_VAR_NAME,
                 ))),
                 op: BinOp::Dot,
                 line_info: Default::default(),

@@ -10,6 +10,7 @@ use crate::environment::{CallableInformation, Environment, FunctionCallMatchResu
 use crate::moveir::expression::MoveExpression;
 use crate::moveir::function::FunctionContext;
 use crate::moveir::ir::MoveIRBlock;
+use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionCheck;
 
 pub fn convert_default_parameter_functions(
@@ -228,7 +229,7 @@ pub fn generate_contract_wrapper(
     if is_stateful {
         let type_state_declaration = VariableDeclaration {
             declaration_token: None,
-            identifier: Identifier::generated("_contract_state"),
+            identifier: Identifier::generated(MovePreProcessor::STATE_VAR_NAME),
             variable_type: Type::TypeState,
             expression: None,
         };
@@ -284,15 +285,15 @@ pub fn generate_contract_wrapper(
     };
 
     if is_stateful {
-        // TODO cannot use type_state_declaration.identifier here because it inserts an extra _ at the beginning
-        // hardcoding the name is not ideal
-        let state_identifier = Identifier::generated("contract_state");
+        // TODO we need the slice [1..] because an extra _ is added to the front for some reason
+        // This should be fixed
+        let state_identifier = Identifier::generated(&MovePreProcessor::STATE_VAR_NAME[1..]);
         let type_state_assignment = BinaryExpression {
             lhs_expression: Box::new(Expression::Identifier(state_identifier.clone())),
             rhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(Expression::SelfExpression),
                 rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                    "_contract_state",
+                    MovePreProcessor::STATE_VAR_NAME,
                 ))),
                 op: BinOp::Dot,
                 line_info: Default::default(),
@@ -312,7 +313,6 @@ pub fn generate_contract_wrapper(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
         );
-        // TODO integrate this with improved existing assertion generator
         let assertion = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
         let assertion = generate_assertion(
             Expression::BinaryExpression(assertion),
