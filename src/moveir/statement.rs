@@ -5,6 +5,7 @@ use super::ir::{MoveIRAssignment, MoveIRExpression, MoveIRIf, MoveIRStatement};
 use crate::ast::{
     EmitStatement, ForStatement, Identifier, IfStatement, ReturnStatement, Statement,
 };
+use crate::moveir::utils::*;
 
 pub struct MoveStatement {
     pub statement: Statement,
@@ -73,7 +74,6 @@ struct MoveReturnStatement {
 impl MoveReturnStatement {
     pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
         if self.statement.expression.is_none() {
-            function_context.emit_release_references();
             return MoveIRStatement::Inline(String::from("return"));
         }
 
@@ -88,18 +88,20 @@ impl MoveReturnStatement {
             position: Default::default(),
         }
         .generate(&function_context);
+
+        let (cleanup, expression) = remove_moves(self.statement.cleanup.clone(), expression);
+
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
             expression: Box::from(expression),
         });
         function_context.emit(MoveIRStatement::Expression(assignment));
 
-        for statement in self.statement.cleanup.clone() {
+        for statement in cleanup.clone() {
             let move_statement = MoveStatement { statement }.generate(function_context);
             function_context.emit(move_statement);
         }
 
-        function_context.emit_release_references();
         let string = format!(
             "return move({identifier})",
             identifier = return_identifier.token

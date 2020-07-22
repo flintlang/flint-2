@@ -5,7 +5,7 @@ use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
 use crate::visitor::Visitor;
 
-mod utils;
+pub mod utils;
 
 pub(crate) struct MovePreProcessor {}
 

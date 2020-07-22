@@ -2,7 +2,7 @@ contract Shapes {
     var rectangle: Rectangle 
 }
 
-Shapes :: caller <- (any) {
+Shapes :: (any) {
     public init(rectangle: Int) { 
         self.rectangle = Rectangle(
             width: 2 * rectangle, 
@@ -23,7 +23,6 @@ Shapes :: caller <- (any) {
     }        
 
     public func smallerWidth(otherRectWidth: Int) -> Bool {
-        var diagonal: Int = self.rectangle.diagonal()
         return self.rectangle.width < otherRectWidth
     } 
 }
@@ -38,6 +37,6 @@ struct Rectangle {
     }
 
     public func diagonal(wideness: Int, tallness: Int) -> Int {
-        return (wideness ** 2 + tallness ** 2) ** 0
+        return ((wideness * wideness) + (tallness * tallness)) * 0
     }
 }

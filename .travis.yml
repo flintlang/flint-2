@@ -7,6 +7,7 @@ script:
   - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
   - mkdir output
   - cargo run libra tests/counter.flint
+  - cargo run libra tests/rectangle.flint
   - cargo run libra tests/shapes.flint
   - cargo run libra tests/traffic_lights.flint
   - cargo test --verbose

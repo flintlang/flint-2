@@ -329,6 +329,7 @@ pub fn generate_contract_wrapper(
         .into_iter()
         .filter(|c| c.is_any())
         .collect();
+
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
@@ -489,6 +490,123 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
     expression
 }
 
+fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
+    // compares expressions ignoring line_info
+    match first {
+        Expression::SelfExpression => {
+            if let Expression::SelfExpression = second {
+                return true;
+            }
+        }
+        Expression::Identifier(e1) => {
+            if let Expression::Identifier(e2) = second {
+                return e1.token == e2.token && e1.enclosing_type == e2.enclosing_type;
+            }
+        }
+        Expression::InoutExpression(e1) => {
+            if let Expression::InoutExpression(e2) = second {
+                return cmp_expressions(&e1.expression, &e2.expression);
+            }
+        }
+        Expression::BinaryExpression(e1) => {
+            if let Expression::BinaryExpression(e2) = second {
+                return cmp_expressions(&e1.lhs_expression, &e2.lhs_expression)
+                    && cmp_expressions(&e1.rhs_expression, &e2.rhs_expression)
+                    && e1.op == e2.op;
+            }
+        }
+        Expression::BracketedExpression(e1) => {
+            if let Expression::BracketedExpression(e2) = second {
+                return cmp_expressions(&e1.expression, &e2.expression);
+            }
+        }
+        Expression::CastExpression(e1) => {
+            if let Expression::CastExpression(e2) = second {
+                return e1.cast_type == e2.cast_type
+                    && cmp_expressions(&e1.expression, &e2.expression);
+            }
+        }
+        Expression::SubscriptExpression(e1) => {
+            if let Expression::SubscriptExpression(e2) = second {
+                return e1.base_expression == e2.base_expression && cmp_expressions(&e1.index_expression, &e2.index_expression);
+            }
+        }
+        Expression::AttemptExpression(e1) => {
+            if let Expression::AttemptExpression(e2) = second {
+                return e1.kind == e2.kind && cmp_expressions(&Expression::FunctionCall(e1.function_call.clone()), &Expression::FunctionCall(e2.function_call.clone()));
+            }
+        }
+        Expression::RangeExpression(e1) => {
+            if let Expression::RangeExpression(e2) = second {
+                return e1.op == e2.op && cmp_expressions(&e1.start_expression, &e2.start_expression) && cmp_expressions(&e1.end_expression, &e2.end_expression);
+            }
+        }
+        Expression::VariableDeclaration(v1) => {
+            if let Expression::VariableDeclaration(v2) = second {
+                if v1.declaration_token == v2.declaration_token && v1.identifier == v2.identifier && v1.variable_type == v2.variable_type {
+                    if let Some(e1) = &v1.expression {
+                        if let Some(e2) = &v2.expression {
+                            return cmp_expressions(&e1, &e2);
+                        }
+                    }
+                } 
+            }
+        }
+        Expression::ExternalCall(e1) => {
+            if let Expression::ExternalCall(e2) = second {
+                return e1.arguments == e2.arguments && e1.external_trait_name == e2.external_trait_name && cmp_expressions(&Expression::BinaryExpression(e1.function_call.clone()), &Expression::BinaryExpression(e2.function_call.clone()));
+            }
+        }
+        Expression::ArrayLiteral(first_exprs) => {
+            if let Expression::ArrayLiteral(second_exprs) = second {
+                let mut found = false;
+                for expr in &first_exprs.elements {
+                    for other_expr in &second_exprs.elements {
+                        found |= cmp_expressions(&expr, &other_expr);
+                    }
+                    if !found {
+                        return false;
+                    }
+                    found = false;
+                }
+                return true;
+            }
+        }
+        Expression::Sequence(first_exprs) => {
+            if let Expression::Sequence(second_exprs) = second {
+                let mut found = false;
+                for expr in first_exprs {
+                    for other_expr in second_exprs {
+                        found |= cmp_expressions(&expr, &other_expr);
+                    }
+                    if !found {
+                        return false;
+                    }
+                    found = false;
+                }
+                return true;
+            }
+        }
+        Expression::DictionaryLiteral(first_mappings) => {
+            if let Expression::DictionaryLiteral(second_mappings) = second {
+                let mut found = false;
+                for expr in &first_mappings.elements {
+                    for other_expr in &second_mappings.elements {
+                        found |= cmp_expressions(&expr.0, &other_expr.0) && cmp_expressions(&expr.1, &other_expr.1);
+                    }
+                    if !found {
+                        return false;
+                    }
+                    found = false;
+                }
+                return true;
+            }
+        }
+        _ => return first == second,
+    }
+    false
+}
+
 pub fn pre_assign(
     expression: Expression,
     ctx: &mut Context,
@@ -520,7 +638,6 @@ pub fn pre_assign(
     };
 
     let mut temp_identifier = Identifier::generated("_temp_move_preassign");
-
     let statements: Vec<BinaryExpression> = ctx
         .pre_statements
         .clone()
@@ -532,7 +649,7 @@ pub fn pre_assign(
         .filter(|b| {
             if let BinOp::Equal = b.op {
                 if let Expression::Identifier(_) = *b.lhs_expression {
-                    return expression == *b.rhs_expression;
+                    return cmp_expressions(&expression, &*b.rhs_expression);
                 }
             }
             false
