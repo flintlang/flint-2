@@ -1,6 +1,6 @@
 use crate::ast::Literal::U8Literal;
 use crate::ast::{
-    mangle, mangle_function_move, BinOp, BinaryExpression, CallerProtection,
+    mangle_function_move, BinOp, BinaryExpression, CallerProtection,
     ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
     Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
     TypeIdentifier, TypeState, VariableDeclaration,
@@ -148,7 +148,7 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
                 let mut declaration = v;
                 if !declaration.identifier.is_self() {
                     declaration.identifier = Identifier {
-                        token: mangle(&declaration.identifier.token),
+                        token: declaration.identifier.token,
                         enclosing_type: None,
                         line_info: Default::default(),
                     };
@@ -242,11 +242,11 @@ pub fn generate_contract_wrapper(
     }
 
     let sender_assignment = BinaryExpression {
-        lhs_expression: Box::new(Expression::Identifier(Identifier::generated("sender"))),
+        lhs_expression: Box::new(Expression::Identifier(Identifier::generated("_sender"))),
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "Signer.address_of(move({param}))",
-                param = mangle(&contract_address_parameter.identifier.token)
+                param = contract_address_parameter.identifier.token
             ),
             None,
         )),
@@ -285,9 +285,7 @@ pub fn generate_contract_wrapper(
     };
 
     if is_stateful {
-        // TODO we need the slice [1..] because an extra _ is added to the front for some reason
-        // This should be fixed
-        let state_identifier = Identifier::generated(&MovePreProcessor::STATE_VAR_NAME[1..]);
+        let state_identifier = Identifier::generated(MovePreProcessor::STATE_VAR_NAME);
         let type_state_assignment = BinaryExpression {
             lhs_expression: Box::new(Expression::Identifier(state_identifier.clone())),
             rhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
@@ -339,7 +337,7 @@ pub fn generate_contract_wrapper(
             Statement::Expression(Expression::VariableDeclaration(VariableDeclaration {
                 declaration_token: None,
                 identifier: Identifier {
-                    token: mangle(&caller.token),
+                    token: caller.token.clone(),
                     enclosing_type: None,
                     line_info: Default::default(),
                 },

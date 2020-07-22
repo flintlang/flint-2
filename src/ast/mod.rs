@@ -354,10 +354,6 @@ pub fn do_vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
     matching == a.len() && matching == b.len()
 }
 
-pub fn mangle(string: &str) -> String {
-    format!("_{}", string)
-}
-
 pub fn mangle_dictionary(string: &str) -> String {
     format!("_dictionary_{}", string)
 }

@@ -19,7 +19,6 @@ impl Visitor for MovePreProcessor {
         contract: &mut ContractDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        // If the contract is stateful, we set the state to initially be the first one listed (0)
         if !contract.type_states.is_empty() {
             contract
                 .contract_members
@@ -31,7 +30,7 @@ impl Visitor for MovePreProcessor {
                         line_info: Default::default(),
                     },
                     variable_type: Type::TypeState,
-                    expression: Some(Box::from(Expression::Literal(Literal::U8Literal(0)))),
+                    expression: None,
                 }))
         }
 
@@ -192,7 +191,7 @@ impl Visitor for MovePreProcessor {
             let new_param_type =
                 Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
-            payable_param.identifier.token = mangle(&payable_param_name);
+            payable_param.identifier.token = payable_param_name.clone();
             let parameters = _t
                 .head
                 .parameters

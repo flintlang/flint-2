@@ -443,7 +443,7 @@ impl SolidityVariableDeclaration {
                 * 32,
         );
         YulExpression::VariableDeclaration(YulVariableDeclaration {
-            declaration: mangle(&self.declaration.identifier.token),
+            declaration: self.declaration.identifier.token.clone(),
             declaration_type: YulType::Any,
             expression: Option::from(Box::from(allocate)),
         })

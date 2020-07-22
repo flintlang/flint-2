@@ -13,7 +13,7 @@ use super::runtime_function::MoveRuntimeFunction;
 use super::statement::MoveStatement;
 use super::MovePosition;
 use crate::ast::{
-    mangle, mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
+    mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
     ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, FunctionDeclaration,
     Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type,
     VariableDeclaration,
@@ -358,7 +358,7 @@ impl MoveContract {
                 Option::from(self.environment.clone()),
             );
             let property_type = property_type.generate(&function_context);
-            let identifier = format!("__this_{}", property.identifier.token);
+            let identifier = property.identifier.token;
             function_context.emit(MoveIRStatement::Expression(
                 MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier: identifier.clone(),
@@ -369,7 +369,7 @@ impl MoveContract {
 
         for property in properties {
             if let Some(expr) = property.expression {
-                let identifier = format!("__this_{}", property.identifier.token);
+                let identifier = property.identifier.token;
                 function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
                     MoveIRAssignment {
                         identifier,
@@ -441,7 +441,7 @@ impl MoveContract {
                 (
                     p.identifier.token.clone(),
                     MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
-                        MoveIRExpression::Identifier(format!("__this_{}", p.identifier.token)),
+                        MoveIRExpression::Identifier(p.identifier.token),
                     ))),
                 )
             })
@@ -469,7 +469,7 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: mangle(shadow),
+                identifier: shadow.to_string(),
                 declaration_type: self_type,
             });
 

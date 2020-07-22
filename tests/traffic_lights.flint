@@ -3,7 +3,9 @@ contract TrafficLights (Red, Amber, Green) {
 }
 
 TrafficLights :: (any) {
-    public init() {}
+    public init() {
+        become Red
+    }
 
     public func getSignal() -> Int {
         return signal

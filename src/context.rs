@@ -188,7 +188,7 @@ impl ScopeContext {
                     .into_iter()
                     .map(|p| p.as_variable_declaration()),
             )
-            .find(|v| v.identifier.token == variable || mangle(variable) == v.identifier.token)
+            .find(|v| variable == v.identifier.token)
             .map(|i| i.variable_type)
     }
 

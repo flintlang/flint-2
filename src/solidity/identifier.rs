@@ -17,6 +17,6 @@ impl SolidityIdentifier {
             .generate(function_context);
         }
 
-        YulExpression::Identifier(mangle(&self.identifier.token))
+        YulExpression::Identifier(self.identifier.token.clone())
     }
 }
