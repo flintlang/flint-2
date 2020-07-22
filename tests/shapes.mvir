@@ -1,0 +1,11 @@
+import {{default}}.Shapes;
+
+main(account: &signer) {
+    Shapes.publish(10, copy(account));
+    assert(Shapes.area(copy(account)) == 200, 1);
+    assert(Shapes.semiPerimeter(copy(account)) == 30, 2);
+    assert(Shapes.perimeter(copy(account)) == 60, 3);
+    assert(Shapes.smallerWidth(copy(account), 21), 4);
+    assert(!Shapes.smallerWidth(copy(account), 19), 5);
+    return;
+}
