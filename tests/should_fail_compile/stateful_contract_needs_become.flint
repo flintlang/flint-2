@@ -1,0 +1,7 @@
+contract MyContract (One, Two) {
+    var dummy: Int = 0
+}
+
+MyContract :: (any) {
+    public init() {}
+}

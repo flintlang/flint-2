@@ -19,7 +19,6 @@ impl Visitor for MovePreProcessor {
         contract: &mut ContractDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        // If the contract is stateful, we set the state to initially be the first one listed (0)
         if !contract.type_states.is_empty() {
             contract
                 .contract_members
@@ -31,7 +30,7 @@ impl Visitor for MovePreProcessor {
                         line_info: Default::default(),
                     },
                     variable_type: Type::TypeState,
-                    expression: Some(Box::from(Expression::Literal(Literal::U8Literal(0)))),
+                    expression: None,
                 }))
         }
 
@@ -792,14 +791,20 @@ impl Visitor for MovePreProcessor {
                 .position(|state| state == &bs.state)
                 .unwrap() as u8;
 
-            let state_variable = Expression::BinaryExpression(BinaryExpression {
-                lhs_expression: Box::new(Expression::SelfExpression),
-                rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                    MovePreProcessor::STATE_VAR_NAME,
-                ))),
-                op: BinOp::Dot,
-                line_info: Default::default(),
-            });
+            let state_variable = if context.is_special_declaration_context() {
+                // Special declarations have no 'this' yet as it is being constructed
+                // TODO the mangling is a problem
+                Expression::Identifier(Identifier::generated(&format!("_this_{}", MovePreProcessor::STATE_VAR_NAME)))
+            } else {
+                Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::SelfExpression),
+                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                        MovePreProcessor::STATE_VAR_NAME,
+                    ))),
+                    op: BinOp::Dot,
+                    line_info: Default::default(),
+                })
+            };
 
             *statement = Statement::Expression(Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(state_variable),

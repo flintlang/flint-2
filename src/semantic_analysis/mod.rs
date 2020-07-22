@@ -349,17 +349,38 @@ impl Visitor for SemanticAnalysis {
 
     fn start_special_declaration(
         &mut self,
-        _t: &mut SpecialDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut SpecialDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        if _t.is_fallback() && _t.head.has_parameters() {
+        if declaration.is_fallback() && declaration.head.has_parameters() {
             return Err(Box::from(format!(
                 "Fallback {} declared with arguments",
-                _t.head.special_token
+                declaration.head.special_token
             )));
             // TODO check body only has simple statements bit long
         }
 
+        if let Some(context) = &ctx.contract_behaviour_declaration_context {
+            if !context.type_states.is_empty() {
+                return Err(Box::from("Initialiser cannot have type state restrictions".to_string()));
+            }
+
+            // An initialiser in a stateful contract must have a become statement in it otherwise we
+            // cannot be in any state
+            if ctx
+                .environment
+                .is_contract_stateful(&context.identifier.token)
+                && !declaration
+                .body
+                .iter()
+                .any(|state| matches!(state, Statement::BecomeStatement(_)))
+            {
+                return Err(Box::from(
+                    "Initialiser of a contract with typestates must have a become statement"
+                        .to_string(),
+                ));
+            }
+        }
         Ok(())
     }
 
