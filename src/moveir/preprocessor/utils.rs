@@ -1,15 +1,11 @@
-use crate::ast::Literal::U8Literal;
 use crate::ast::{
-    mangle, mangle_function_move, BinOp, BinaryExpression, CallerProtection,
+    mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
     ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
-    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
-    TypeIdentifier, TypeState, VariableDeclaration,
+    Identifier, InoutExpression, InoutType, Literal::U8Literal, Parameter, ReturnStatement,
+    Statement, Type, TypeIdentifier, TypeState, VariableDeclaration,
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
-use crate::moveir::expression::MoveExpression;
-use crate::moveir::function::FunctionContext;
-use crate::moveir::ir::MoveIRBlock;
 use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionCheck;
 
@@ -275,15 +271,6 @@ pub fn generate_contract_wrapper(
             self_assignment,
         )));
 
-    let function_context = FunctionContext {
-        environment: context.environment.clone(),
-        scope_context: function.scope_context.clone().unwrap_or_default(),
-        enclosing_type: contract_behaviour_declaration.identifier.token.clone(),
-        block_stack: vec![MoveIRBlock { statements: vec![] }],
-        in_struct_function: false,
-        is_constructor: false,
-    };
-
     if is_stateful {
         // TODO we need the slice [1..] because an extra _ is added to the front for some reason
         // This should be fixed
@@ -313,14 +300,13 @@ pub fn generate_contract_wrapper(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
         );
-        let assertion = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
-        let assertion = generate_assertion(
-            Expression::BinaryExpression(assertion),
-            contract_behaviour_declaration.identifier.line_info.line,
-            &function_context,
-        );
+        let condition = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
+        let assertion = Assertion {
+            expression: Expression::BinaryExpression(condition),
+            line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+        };
 
-        wrapper.body.push(assertion);
+        wrapper.body.push(Statement::Assertion(assertion));
     }
 
     let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
@@ -386,7 +372,7 @@ pub fn generate_contract_wrapper(
 
         assert!(!predicates.is_empty());
         let first_cond = predicates.first().unwrap().clone();
-        let predicates = predicates
+        let predicate = predicates
             .into_iter()
             .skip(1)
             .fold(first_cond, |left, right| {
@@ -398,12 +384,12 @@ pub fn generate_contract_wrapper(
                 })
             });
 
-        let assertion = generate_assertion(
-            predicates,
-            contract_behaviour_declaration.identifier.line_info.line,
-            &function_context,
-        );
-        wrapper.body.push(assertion)
+        let assertion = Assertion {
+            expression: predicate,
+            line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+        };
+
+        wrapper.body.push(Statement::Assertion(assertion))
     }
 
     let arguments = function
@@ -770,22 +756,6 @@ pub fn generate_caller_statement(caller: Identifier) -> Statement {
     };
 
     Statement::Expression(Expression::BinaryExpression(assignment))
-}
-
-pub fn generate_assertion(
-    cond: Expression,
-    error_code: u32,
-    function_context: &FunctionContext,
-) -> Statement {
-    // PRE: cond is an expression that when evaluated will be true or false
-    let expression = MoveExpression {
-        expression: cond,
-        position: Default::default(),
-    }
-        .generate(function_context);
-
-    let assertion = format!("assert({}, {})", expression, error_code);
-    Statement::Expression(Expression::RawAssembly(assertion, None))
 }
 
 pub fn release(expression: Expression, expression_type: Type) -> Statement {
