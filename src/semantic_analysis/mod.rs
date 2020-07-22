@@ -457,8 +457,9 @@ impl Visitor for SemanticAnalysis {
                 {
                     let identifier = _t.token.clone();
                     return Err(Box::from(format!(
-                        "Use of Undeclared Identifier {ident}",
-                        ident = identifier
+                        "Use of Undeclared Identifier {} at line {}",
+                        identifier,
+                        _t.line_info.line
                     )));
                 //TODO add add used undefined variable to env
                 } else if is_l_value && !_ctx.in_subscript {

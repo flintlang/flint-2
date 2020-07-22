@@ -24,11 +24,8 @@ impl Environment {
 
     pub fn property(&self, identifier: String, t: &TypeIdentifier) -> Option<PropertyInformation> {
         let type_info = &self.types.get(t);
-        if type_info.is_some() {
-            let properties = &self
-                .types
-                .get(t)
-                .unwrap()
+        if let Some(type_info) = type_info {
+            let properties = type_info
                 .properties
                 .get(identifier.as_str());
             if properties.is_some() {

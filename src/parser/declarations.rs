@@ -270,7 +270,7 @@ fn parse_enum_member(i: Span) -> nom::IResult<Span, EnumMember> {
         };
         return Ok((i, enum_member));
     }
-    let (i, expression) = parse_expression(i)?;
+    let (i, expression) = preceded(nom::character::complete::space0, parse_expression)(i)?;
     let enum_member = EnumMember {
         case_token: case_token.to_string(),
         identifier,

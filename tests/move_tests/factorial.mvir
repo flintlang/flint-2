@@ -1,0 +1,44 @@
+import {{default}}.Factorial;
+
+main(account: &signer) {
+    Factorial.publish(copy(account));
+    assert(Factorial.getValue(copy(account)) == 0, 1);
+
+    Factorial.calculate(copy(account), 0);
+    assert(Factorial.getValue(copy(account)) == 1, 2);
+
+    Factorial.calculate(copy(account), 1);
+    assert(Factorial.getValue(copy(account)) == 1, 3);
+
+    Factorial.calculate(copy(account), 2);
+    assert(Factorial.getValue(copy(account)) == 2, 4);
+
+    Factorial.calculate(copy(account), 3);
+    assert(Factorial.getValue(copy(account)) == 6, 5);
+
+    Factorial.calculate(copy(account), 4);
+    assert(Factorial.getValue(copy(account)) == 24, 6);
+
+    Factorial.calculate(copy(account), 5);
+    assert(Factorial.getValue(copy(account)) == 120, 7);
+
+    Factorial.calculate(copy(account), 6);
+    assert(Factorial.getValue(copy(account)) == 720, 8);
+
+    Factorial.calculate(copy(account), 7);
+    assert(Factorial.getValue(copy(account)) == 5040, 7);
+
+    Factorial.calculate(copy(account), 8);
+    assert(Factorial.getValue(copy(account)) == 40320, 8);
+
+    Factorial.calculate(copy(account), 9);
+    assert(Factorial.getValue(copy(account)) == 362880, 9);
+
+    Factorial.calculate(copy(account), 10);
+    assert(Factorial.getValue(copy(account)) == 3628800, 10);
+
+    Factorial.calculate(copy(account), 11);
+    assert(Factorial.getValue(copy(account)) == 39916800, 11);
+
+    return;
+}
