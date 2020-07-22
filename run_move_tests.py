@@ -51,9 +51,9 @@ class Configuration(NamedTuple):
 
 class Programme:
     path: Path
-    config: Configuration
+    config: Optional[Configuration]
 
-    def __init__(self, path: Path, config: Configuration):
+    def __init__(self, path: Path, config: Optional[Configuration] = None):
         self.path = path
         self.config = config
 
@@ -196,7 +196,7 @@ class BehaviourTest(NamedTuple):
                                  )
             return False
 
-        TestFormatter.passed(self.programme.name)
+        TestFormatter.behaviour_passed(self.programme.name)
         return True
 
 
@@ -213,8 +213,12 @@ class TestFormatter:
 """)
 
     @classmethod
-    def passed(cls, test):
-        print(f"{test}: {cls.SUCCESS}passed{cls.END}")
+    def compilation_failure_passed(cls, test):
+        print(f"Compilation test: {test}: {cls.SUCCESS}passed{cls.END}")
+
+    @classmethod
+    def behaviour_passed(cls, test):
+        print(f"Behaviour test: {test}: {cls.SUCCESS}passed{cls.END}")
 
     @classmethod
     def all_failed(cls, tests: Iterable[str]):
@@ -242,7 +246,7 @@ To run them please set "libraPath" in ~/.flint/flint_config.json to the root of 
 class TestRunner(NamedTuple):
     behaviour_tests: List[BehaviourTest]
     fail_compilation_tests: List[FlintProgramme]
-    default_behaviour_path = Path("tests")
+    default_behaviour_path = Path("tests/move_tests")
     default_compilation_fail_path = Path("tests/should_fail_compile")
 
     @classmethod
@@ -269,10 +273,10 @@ class TestRunner(NamedTuple):
 
         try:
             shutil.rmtree(
-                MoveIRProgramme.libra_path / MoveIRProgramme.temporary_test_path)
+                MoveIRProgramme.config.libra_path / MoveIRProgramme.temporary_test_path)
             shutil.rmtree(self.default_behaviour_path / "temp")
         except:
-            pass
+            print(f"Could not remove temporary files")
 
         failed = set(self.behaviour_tests) - passed
         if failed:
@@ -291,6 +295,7 @@ class TestRunner(NamedTuple):
                 print(f"Program `{programme.name}` did not fail compilation")
             except FlintCompilationError:
                 passed.add(programme)
+                TestFormatter.compilation_failure_passed(programme.name)
 
         failed = set(self.fail_compilation_tests) - passed
         if failed:
@@ -309,9 +314,21 @@ if __name__ == '__main__':
     os.path.dirname(os.path.realpath(__file__))
     config = Configuration.from_flint_config()
 
-    if not config:
+    assert sys.argv[1] in ["both", "compilation", "behaviour"]
+
+    if not config and sys.argv[1] != "compilation":
         TestFormatter.not_configured()
         sys.exit(0)
 
-    # Run all, or run the given arguments (empty list is falsey)
-    sys.exit(TestRunner.from_all(sys.argv[1:], config=config).run())
+    test_runner = TestRunner.from_all(sys.argv[2:], config=config)
+
+    # Run all, or run the given arguments (empty list is false)
+    if sys.argv[1] == "both":
+        sys.exit(test_runner.run())
+    elif sys.argv[1] == "compilation":
+        sys.exit(test_runner.run_compilation_tests())
+    elif sys.argv[1] == "behaviour":
+        sys.exit(test_runner.run_behaviour_tests())
+    else:
+        raise Exception(
+            "Must specify 'both', 'compilation' or 'behaviour' as first program argument")
