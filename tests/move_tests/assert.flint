@@ -6,10 +6,10 @@ Assert :: (any) {
     public init() {}
 
     public func shouldCrash() {
-        assert(false)
+        assert 5 == 4
     }
 
     public func shouldNotCrash() {
-        assert(true)
+        assert (5 == (3 + 2))
     }
 }

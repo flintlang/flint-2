@@ -24,6 +24,7 @@ impl SolidityStatement {
                 SolidityIfStatement { statement: i }.generate(function_context)
             }
             Statement::DoCatchStatement(_) => panic!("Catch Statement Not Currently Supported"),
+            Statement::Assertion(_) => panic!("Assertions not supported"),
         }
     }
 }

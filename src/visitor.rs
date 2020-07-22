@@ -473,4 +473,12 @@ pub trait Visitor {
     ) -> VResult {
         Ok(())
     }
+
+    fn start_assertion(&mut self, _t: &mut Assertion, _ctx: &mut Context) -> VResult {
+        Ok(())
+    }
+
+    fn finish_assertion(&mut self, _t: &mut Assertion, _ctx: &mut Context) -> VResult {
+        Ok(())
+    }
 }

@@ -37,6 +37,14 @@ impl MoveStatement {
                 MoveIfStatement { statement: i }.generate(function_context)
             }
             Statement::DoCatchStatement(_) => panic!("Do Catch not currently supported"),
+            Statement::Assertion(a) => MoveIRStatement::Assert(
+                MoveExpression {
+                    expression: a.expression,
+                    position: Default::default(),
+                }
+                    .generate(function_context),
+                a.line_info.line,
+            ),
         }
     }
 }

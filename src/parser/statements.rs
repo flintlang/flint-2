@@ -20,8 +20,25 @@ fn parse_statement(i: Span) -> nom::IResult<Span, Statement> {
         parse_for_statement,
         parse_if_statement,
         parse_docatch_statement,
+        parse_assert_statement,
         map(parse_expression, |e| Statement::Expression(e)),
     ))(i)
+}
+
+fn parse_assert_statement(i: Span) -> nom::IResult<Span, Statement> {
+    let (i, _) = tag("assert")(i)?;
+    let (i, _) = nom::character::complete::space1(i)?;
+    let (i, expression) = parse_expression(i)?;
+
+    let assertion = Assertion {
+        expression,
+        line_info: LineInfo {
+            line: i.location_line(),
+            offset: i.location_offset(),
+        },
+    };
+
+    Ok((i, Statement::Assertion(assertion)))
 }
 
 fn parse_docatch_statement(i: Span) -> nom::IResult<Span, Statement> {
@@ -135,6 +152,58 @@ mod tests {
 
     use crate::ast::{BinOp::*, Literal::*, *};
     use crate::parser::statements::*;
+
+    #[test]
+    fn test_assert_statement() {
+        let input = LocatedSpan::new("assert true");
+        let (_, result) = parse_assert_statement(input).expect("Error with assert statement");
+        assert_eq!(
+            result,
+            Statement::Assertion(Assertion {
+                expression: Expression::Literal(Literal::BooleanLiteral(true)),
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 11,
+                },
+            })
+        );
+
+        let input = LocatedSpan::new("assert ((1 + 2) == 3)");
+        let (_, result) = parse_assert_statement(input).expect("Error with assert statement");
+        assert_eq!(
+            result,
+            Statement::Assertion(Assertion {
+                expression: Expression::BracketedExpression(BracketedExpression {
+                    expression: Box::new(Expression::BinaryExpression(BinaryExpression {
+                        lhs_expression: Box::new(Expression::BracketedExpression(
+                            BracketedExpression {
+                                expression: Box::new(Expression::BinaryExpression(
+                                    BinaryExpression {
+                                        lhs_expression: Box::new(Expression::Literal(
+                                            Literal::IntLiteral(1)
+                                        )),
+                                        rhs_expression: Box::new(Expression::Literal(
+                                            Literal::IntLiteral(2)
+                                        )),
+                                        op: BinOp::Plus,
+                                        line_info: LineInfo { line: 1, offset: 9 },
+                                    }
+                                ))
+                            }
+                        )),
+                        rhs_expression: Box::new(Expression::Literal(IntLiteral(3))),
+                        op: BinOp::DoubleEqual,
+                        line_info: LineInfo { line: 1, offset: 8 },
+                    }))
+                }),
+
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 21,
+                },
+            })
+        );
+    }
 
     #[test]
     fn test_docatch_statement() {

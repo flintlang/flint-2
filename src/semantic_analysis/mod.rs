@@ -2,6 +2,7 @@ use super::ast::*;
 use super::context::*;
 use super::visitor::*;
 use crate::environment::FunctionCallMatchResult::{MatchedFunction, MatchedInitializer};
+use crate::type_checker::ExpressionCheck;
 
 pub struct SemanticAnalysis {}
 
@@ -362,7 +363,9 @@ impl Visitor for SemanticAnalysis {
 
         if let Some(context) = &ctx.contract_behaviour_declaration_context {
             if !context.type_states.is_empty() {
-                return Err(Box::from("Initialiser cannot have type state restrictions".to_string()));
+                return Err(Box::from(
+                    "Initialiser cannot have type state restrictions".to_string(),
+                ));
             }
 
             // An initialiser in a stateful contract must have a become statement in it otherwise we
@@ -640,6 +643,32 @@ impl Visitor for SemanticAnalysis {
     fn finish_statement(&mut self, _t: &mut Statement, _ctx: &mut Context) -> VResult {
         //TODO make recevier call trail empty
         Ok(())
+    }
+
+    fn start_assertion(&mut self, assertion: &mut Assertion, ctx: &mut Context) -> VResult {
+        let enclosing_type = &ctx.enclosing_type_identifier().unwrap_or_default().token;
+        let (type_states, caller_protections) =
+            if let Some(info) = &ctx.contract_behaviour_declaration_context {
+                (info.type_states.clone(), info.caller_protections.clone())
+            } else {
+                (vec![], vec![])
+            };
+
+        if ctx.environment.get_expression_type(
+            assertion.expression.clone(),
+            enclosing_type,
+            type_states,
+            caller_protections,
+            ctx.scope_context.clone().unwrap_or_default(),
+        ) == Type::Bool
+        {
+            Ok(())
+        } else {
+            Err(Box::from(format!(
+                "Assertion expression at line {} must evaluate to boolean",
+                assertion.line_info.line
+            )))
+        }
     }
 }
 

@@ -1,4 +1,3 @@
-//! expect fail 22
 import {{default}}.TrafficLights;
 main(account: &signer) {
     TrafficLights.publish(copy(account));
@@ -8,6 +7,7 @@ main(account: &signer) {
     TrafficLights.moveToGreen(copy(account));
     assert(TrafficLights.getSignal(copy(account)) == 2, 3);
     // We cannot jump straight from green light to a red!
+    //! expect fail 22
     TrafficLights.moveToRed(copy(account));
     return;
 }

@@ -314,7 +314,7 @@ if __name__ == '__main__':
     os.path.dirname(os.path.realpath(__file__))
     config = Configuration.from_flint_config()
 
-    assert sys.argv[1] in ["both", "compilation", "behaviour"]
+    assert sys.argv[1] in ["all", "compilation", "behaviour"]
 
     if not config and sys.argv[1] != "compilation":
         TestFormatter.not_configured()
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     test_runner = TestRunner.from_all(sys.argv[2:], config=config)
 
     # Run all, or run the given arguments (empty list is false)
-    if sys.argv[1] == "both":
+    if sys.argv[1] == "all":
         sys.exit(test_runner.run())
     elif sys.argv[1] == "compilation":
         sys.exit(test_runner.run_compilation_tests())
@@ -331,4 +331,4 @@ if __name__ == '__main__':
         sys.exit(test_runner.run_behaviour_tests())
     else:
         raise Exception(
-            "Must specify 'both', 'compilation' or 'behaviour' as first program argument")
+            "Must specify 'all', 'compilation' or 'behaviour' as first program argument")

@@ -794,7 +794,10 @@ impl Visitor for MovePreProcessor {
             let state_variable = if context.is_special_declaration_context() {
                 // Special declarations have no 'this' yet as it is being constructed
                 // TODO the mangling is a problem
-                Expression::Identifier(Identifier::generated(&format!("_this_{}", MovePreProcessor::STATE_VAR_NAME)))
+                Expression::Identifier(Identifier::generated(&format!(
+                    "_this_{}",
+                    MovePreProcessor::STATE_VAR_NAME
+                )))
             } else {
                 Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::SelfExpression),

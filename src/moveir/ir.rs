@@ -315,6 +315,7 @@ pub enum MoveIRStatement {
     Inline(String),
     Return(MoveIRExpression),
     Import(MoveIRModuleImport),
+    Assert(MoveIRExpression, u32),
 }
 
 impl fmt::Display for MoveIRStatement {
@@ -332,6 +333,7 @@ impl fmt::Display for MoveIRStatement {
             MoveIRStatement::Inline(s) => write!(f, "{s};", s = s),
             MoveIRStatement::Return(e) => write!(f, "return {e};", e = e),
             MoveIRStatement::Import(m) => write!(f, "{s};", s = m),
+            MoveIRStatement::Assert(expr, line) => write!(f, "assert({}, {});", expr, line),
         }
     }
 }

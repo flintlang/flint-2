@@ -1,0 +1,10 @@
+contract MyContract {
+    var dummy: Int
+}
+
+MyContract :: (any) {
+    public init() {
+        // Should crash because 5 + 4 is not boolean
+        assert 5 + 4
+    }
+}

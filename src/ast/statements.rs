@@ -11,6 +11,7 @@ pub enum Statement {
     ForStatement(ForStatement),
     IfStatement(IfStatement),
     DoCatchStatement(DoCatchStatement),
+    Assertion(Assertion),
 }
 
 impl Statement {
@@ -34,6 +35,7 @@ impl Visitable for Statement {
             Statement::ForStatement(f) => f.visit(v, ctx),
             Statement::IfStatement(i) => i.visit(v, ctx),
             Statement::DoCatchStatement(d) => d.visit(v, ctx),
+            Statement::Assertion(a) => a.visit(v, ctx),
         }?;
         v.finish_statement(self, ctx)?;
         Ok(())
@@ -308,6 +310,21 @@ impl Visitable for ReturnStatement {
         }
 
         v.finish_return_statement(self, ctx)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Assertion {
+    pub expression: Expression,
+    pub line_info: LineInfo,
+}
+
+impl Visitable for Assertion {
+    fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+        v.start_assertion(self, ctx)?;
+        self.expression.visit(v, ctx)?;
+        v.finish_assertion(self, ctx)?;
         Ok(())
     }
 }
