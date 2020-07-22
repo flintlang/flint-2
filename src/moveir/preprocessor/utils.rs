@@ -419,7 +419,7 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
 }
 
 fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
-    //TODO: how many expression types should be compared?
+    // compares expressions ignoring line_info
     match first {
         Expression::SelfExpression => {
             if let Expression::SelfExpression = second {
@@ -454,7 +454,83 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
                     && cmp_expressions(&e1.expression, &e2.expression);
             }
         }
-        _ => {}
+        Expression::SubscriptExpression(e1) => {
+            if let Expression::SubscriptExpression(e2) = second {
+                return e1.base_expression == e2.base_expression && cmp_expressions(&e1.index_expression, &e2.index_expression);
+            }
+        }
+        Expression::AttemptExpression(e1) => {
+            if let Expression::AttemptExpression(e2) = second {
+                return e1.kind == e2.kind && cmp_expressions(&Expression::FunctionCall(e1.function_call.clone()), &Expression::FunctionCall(e2.function_call.clone()));
+            }
+        }
+        Expression::RangeExpression(e1) => {
+            if let Expression::RangeExpression(e2) = second {
+                return e1.op == e2.op && cmp_expressions(&e1.start_expression, &e2.start_expression) && cmp_expressions(&e1.end_expression, &e2.end_expression);
+            }
+        }
+        Expression::VariableDeclaration(v1) => {
+            if let Expression::VariableDeclaration(v2) = second {
+                if v1.declaration_token == v2.declaration_token && v1.identifier == v2.identifier && v1.variable_type == v2.variable_type {
+                    if let Some(e1) = &v1.expression {
+                        if let Some(e2) = &v2.expression {
+                            return cmp_expressions(&e1, &e2);
+                        }
+                    }
+                } 
+            }
+        }
+        Expression::ExternalCall(e1) => {
+            if let Expression::ExternalCall(e2) = second {
+                return e1.arguments == e2.arguments && e1.external_trait_name == e2.external_trait_name && cmp_expressions(&Expression::BinaryExpression(e1.function_call.clone()), &Expression::BinaryExpression(e2.function_call.clone()));
+            }
+        }
+        Expression::ArrayLiteral(first_exprs) => {
+            if let Expression::ArrayLiteral(second_exprs) = second {
+                let mut found = false;
+                for expr in &first_exprs.elements {
+                    for other_expr in &second_exprs.elements {
+                        found |= cmp_expressions(&expr, &other_expr);
+                    }
+                    if !found {
+                        return false;
+                    }
+                    found = false;
+                }
+                return true;
+            }
+        }
+        Expression::Sequence(first_exprs) => {
+            if let Expression::Sequence(second_exprs) = second {
+                let mut found = false;
+                for expr in first_exprs {
+                    for other_expr in second_exprs {
+                        found |= cmp_expressions(&expr, &other_expr);
+                    }
+                    if !found {
+                        return false;
+                    }
+                    found = false;
+                }
+                return true;
+            }
+        }
+        Expression::DictionaryLiteral(first_mappings) => {
+            if let Expression::DictionaryLiteral(second_mappings) = second {
+                let mut found = false;
+                for expr in &first_mappings.elements {
+                    for other_expr in &second_mappings.elements {
+                        found |= cmp_expressions(&expr.0, &other_expr.0) && cmp_expressions(&expr.1, &other_expr.1);
+                    }
+                    if !found {
+                        return false;
+                    }
+                    found = false;
+                }
+                return true;
+            }
+        }
+        _ => return first == second,
     }
     false
 }
