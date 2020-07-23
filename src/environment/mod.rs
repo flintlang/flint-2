@@ -259,6 +259,7 @@ impl Environment {
     fn external_trait_init() -> SpecialSignatureDeclaration {
         SpecialSignatureDeclaration {
             special_token: "init".to_string(),
+            enclosing_type: None,
             attributes: vec![],
             modifiers: vec![],
             mutates: vec![],

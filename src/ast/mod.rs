@@ -132,7 +132,7 @@ pub struct PropertyInformation {
 impl PropertyInformation {
     pub(crate) fn get_type(&self) -> &Type {
         match &self.property {
-            Property::VariableDeclaration(v) => &v.variable_type,
+            Property::VariableDeclaration(v, _) => &v.variable_type,
             Property::EnumCase(e) => &e.enum_type,
         }
     }
@@ -140,7 +140,14 @@ impl PropertyInformation {
     pub fn is_constant(&self) -> bool {
         match &self.property {
             Property::EnumCase(_) => true,
-            Property::VariableDeclaration(v) => v.is_constant(),
+            Property::VariableDeclaration(v, _) => v.is_constant(),
+        }
+    }
+
+    pub fn get_modifier(&self) -> &Option<Modifier> {
+        match &self.property {
+            Property::VariableDeclaration(_, modifier) => modifier,
+            _ => &None,
         }
     }
 }
@@ -148,28 +155,28 @@ impl PropertyInformation {
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Property {
-    VariableDeclaration(VariableDeclaration),
+    VariableDeclaration(VariableDeclaration, Option<Modifier>),
     EnumCase(EnumMember),
 }
 
 impl Property {
     pub fn get_identifier(&self) -> Identifier {
         match self {
-            Property::VariableDeclaration(v) => v.identifier.clone(),
+            Property::VariableDeclaration(v, _) => v.identifier.clone(),
             Property::EnumCase(e) => e.identifier.clone(),
         }
     }
 
     pub fn get_type(&self) -> Type {
         match self {
-            Property::VariableDeclaration(v) => v.variable_type.clone(),
+            Property::VariableDeclaration(v, _) => v.variable_type.clone(),
             Property::EnumCase(e) => e.enum_type.clone(),
         }
     }
 
     pub fn get_value(&self) -> Option<Expression> {
         match self {
-            Property::VariableDeclaration(v) => {
+            Property::VariableDeclaration(v, _) => {
                 let expression = v.expression.clone();
                 match expression {
                     None => None,

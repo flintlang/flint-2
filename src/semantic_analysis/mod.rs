@@ -163,7 +163,7 @@ impl Visitor for SemanticAnalysis {
             if _ctx.has_scope_context() {
                 let scope_context = _ctx.scope_context.as_mut().unwrap();
 
-                let redeclaration = scope_context.declaration(_t.identifier.token.clone());
+                let redeclaration = scope_context.declaration(&_t.identifier.token);
                 if redeclaration.is_some() {
                     return Err(Box::from(format!(
                         "Redeclaration of identifier {}",
@@ -387,121 +387,150 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
-    fn start_identifier(&mut self, _t: &mut Identifier, _ctx: &mut Context) -> VResult {
-        let token = _t.token.clone();
-        if token.contains('@') {
-            return Err(Box::from(
-                "Invalid @ character used in Identifier".to_string(),
-            ));
+    fn start_identifier(&mut self, identifier: &mut Identifier, ctx: &mut Context) -> VResult {
+        let token = &identifier.token;
+        let line_number = identifier.line_info.line;
+
+        // Check for invalid @ in name
+        if token.contains("@") {
+            return Err(Box::from(format!(
+                "Invalid @ character used in Identifier at line {}",
+                identifier.line_info.line
+            )));
         }
 
-        if _ctx.is_property_default_assignment
-            && !_ctx.environment.is_struct_declared(&_t.token)
-            && !_ctx.environment.is_asset_declared(&_t.token)
-            && _ctx.enclosing_type_identifier().is_some()
+        if ctx.is_property_default_assignment
+            && !ctx.environment.is_struct_declared(token)
+            && !ctx.environment.is_asset_declared(token)
         {
-            return if _ctx.environment.is_property_defined(
-                _t.token.clone(),
-                &_ctx.enclosing_type_identifier().unwrap().token,
-            ) {
-                Err(Box::from(
-                    "State property used withing property initiliaser".to_owned(),
-                ))
-            } else {
-                Err(Box::from("Use of undeclared identifier".to_owned()))
-            };
+            if let Some(enclosing_type) = ctx.enclosing_type_identifier() {
+                return if ctx
+                    .environment
+                    .is_property_defined(token, &enclosing_type.token)
+                {
+                    // Check for property being used to define itself (I think)
+                    Err(Box::from(format!(
+                        "State property used within property initiliaser at line {}",
+                        line_number
+                    )))
+                } else {
+                    // Check for if property is defined
+                    Err(Box::from(format!(
+                        "Use of undeclared identifier {} at line {}",
+                        token, line_number
+                    )))
+                };
+            }
         }
 
-        if _ctx.is_function_call_context || _ctx.is_function_call_argument_label {
-        } else if _ctx.in_function_or_special() && !_ctx.in_become && !_ctx.in_emit {
-            let is_l_value = _ctx.is_lvalue;
-            if _t.enclosing_type.is_none() {
-                let scope = _ctx.scope_context.is_some();
-                if scope {
-                    let variable_declaration =
-                        _ctx.scope_context().unwrap().declaration(_t.token.clone());
-                    if variable_declaration.is_some() {
-                        let variable_declaration = _ctx
-                            .scope_context()
-                            .unwrap()
-                            .declaration(_t.token.clone())
-                            .unwrap();
-                        if variable_declaration.is_constant()
-                            && !variable_declaration.variable_type.is_inout_type()
-                            && is_l_value
-                            && _ctx.in_subscript
-                        {
-                            return Err(Box::from("Reassignment to constant".to_string()));
-                        }
-                    } else if !_ctx.environment.is_enum_declared(&_t.token) {
-                        let enclosing = _ctx.enclosing_type_identifier();
-                        let enclosing = enclosing.unwrap();
-                        _t.enclosing_type = Option::from(enclosing.token);
-                    } else if !_ctx.is_enclosing {
-                        return Err(Box::from("Invalid reference".to_string()));
-                    }
-                }
-            }
+        // Check: If we are a function call identifier or parameter, we move on
+        if ctx.is_function_call_context || ctx.is_function_call_argument_label {
+            return Ok(());
+        }
 
-            if _t.enclosing_type.is_some()
-                && _t.enclosing_type.as_ref().unwrap() != "Quartz$ErrorType"
-            {
-                let enclosing = _t.enclosing_type.clone();
-                let enclosing = enclosing.unwrap();
-                if enclosing == "Libra".to_string() || enclosing == "Wei".to_string() {
+        if ctx.in_function_or_special() && !ctx.in_become && !ctx.in_emit {
+            if let Some(enclosing_type) = &identifier.enclosing_type {
+                // Previously there was a check for enclosing type not being "Quartz$ErrorType"
+                // but I cannot see why so I have removed it for simplicity
+
+                // Check
+                if enclosing_type == "Libra" || enclosing_type == "Wei" {
                     return Ok(());
                 }
-                if !_ctx
-                    .environment
-                    .is_property_defined(_t.token.clone(), &_t.enclosing_type.as_ref().unwrap())
-                {
-                    let identifier = _t.token.clone();
-                    return Err(Box::from(format!(
-                        "Use of Undeclared Identifier {} at line {}",
-                        identifier,
-                        _t.line_info.line
-                    )));
-                //TODO add add used undefined variable to env
-                } else if is_l_value && !_ctx.in_subscript {
-                    if _ctx.environment.is_property_constant(
-                        _t.token.clone(),
-                        &_t.enclosing_type.as_ref().unwrap(),
-                    ) {}
 
-                    if _ctx.is_special_declaration_context() {}
-
-                    if _ctx.is_function_declaration_context() {
-                        let mutated = _ctx
-                            .function_declaration_context
-                            .as_ref()
-                            .unwrap()
-                            .mutates()
-                            .clone();
-                        let mutated: Vec<String> = mutated.into_iter().map(|i| i.token).collect();
-                        if !mutated.contains(&_t.token) {
-                            let i = _t.token.clone();
-                            let i = format!(
-                                "Mutating {i} identifier that is declared non mutating in {f}",
-                                i = i,
-                                f = enclosing
-                            );
-
+                if let Some(property) = ctx.environment.property(token, enclosing_type) {
+                    // Check: Do not allow reassignment to constants: This does not work since we never know
+                    // if something is assigned to yet TODO add RHS expression when something is not yet defined
+                    // So we know when something has been assigned to
+                    if property.is_constant() && ctx.is_lvalue {
+                        if property.property.get_value().is_some() {
                             return Err(Box::from(format!(
-                                "{}, {}",
-                                i,
-                                _ctx.function_declaration_context
-                                    .as_ref()
-                                    .unwrap()
+                                "Cannot reassign to constant `{}` on line {}",
+                                token, line_number
+                            )));
+                        } else {}
+                    }
+
+                    let current_enclosing_type =
+                        if let Some(context) = &ctx.function_declaration_context {
+                            context.declaration.head.identifier.enclosing_type.clone()
+                        } else if let Some(context) = &ctx.special_declaration_context {
+                            context.declaration.head.enclosing_type.clone()
+                        } else {
+                            panic!("Should be in a special or function declaration")
+                        };
+
+                    println!("Token: {} at line {}", token, line_number);
+                    println!("LHS: {:?}", Some(enclosing_type));
+                    println!("RHS: {:?}", current_enclosing_type);
+                    // TODO check for assigning to public, visible, private with structs when not in struct declaration
+                    if Some(enclosing_type) != current_enclosing_type.as_ref() {
+                        match property.get_modifier() {
+                            Some(Modifier::Visible) => {
+                                if ctx.is_lvalue {
+                                    return Err(Box::from(format!(
+                                        "Cannot assign to non-public value `{}` on line {}",
+                                        token, line_number
+                                    )));
+                                }
+                            }
+                            None => {
+                                return Err(Box::from(format!(
+                                    "Cannot access private value `{}` on line {}",
+                                    token, line_number
+                                )))
+                            }
+                            Some(Modifier::Public) => (),
+                        }
+                    }
+
+                    if let Some(function_declaration_context) =
+                    ctx.function_declaration_context.as_ref()
+                    {
+                        // Check: Do not allow mutation of identifier if it is not declared mutating
+                        if !function_declaration_context
+                            .mutates()
+                            .iter()
+                            .any(|id| &id.token == token) && ctx.is_lvalue
+                        {
+                            return Err(Box::from(format!(
+                                "Mutating identifier {} which is not declared mutating at line {}",
+                                token,
+                                function_declaration_context
                                     .declaration
                                     .head
                                     .identifier
-                                    .token
+                                    .line_info
+                                    .line
                             )));
                         }
                     }
+                } else {
+                    // Check: cannot find property definition
+                    return Err(Box::from(format!(
+                        "Use of undeclared identifier `{}` at line {}",
+                        token, line_number
+                    )));
                 }
+            } else if let Some(scope) = &ctx.scope_context {
+                if let Some(declaration) = scope.declaration(token) {
+                    // Previously we had checks for ctx.in_subscript and !declaration.variable_type.is_inout_type()
+                    if declaration.is_constant() && ctx.is_lvalue {
+                        return Err(Box::from(format!(
+                            "Reassignment to constant {} on line {}",
+                            token, line_number
+                        )));
+                    }
+                } else if !ctx.environment.is_enum_declared(token) {
+                    identifier.enclosing_type = Option::from(ctx.enclosing_type_identifier().unwrap().token)
+                } else if !ctx.is_enclosing {
+                    return Err(Box::from(format!(
+                        "Invalid reference to {} on line {}",
+                        token, line_number
+                    )));
+                }
+                // Before we had another check for if there was an enum declared, but I don't think it did anything
             }
-        } else if _ctx.in_become {
         }
 
         Ok(())

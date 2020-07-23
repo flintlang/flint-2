@@ -2,7 +2,7 @@ import {{default}}.Counter;
 
 main (account: &signer) {
   Counter.publish(copy(account));
-  assert(Counter.getCount(copy(account)) == 0, 1);
+  assert(Counter.Count(copy(account)) == 0, 1);
   Counter.increment(copy(account), 1);
   assert(Counter.getCount(copy(account)) == 1, 2);
   Counter.reset(copy(account));

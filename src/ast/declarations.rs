@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::context::*;
 use crate::visitor::Visitor;
 use hex::encode;
+use nom::lib::std::fmt::Formatter;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TopLevelDeclaration {
@@ -61,7 +62,7 @@ impl ContractDeclaration {
         members
             .into_iter()
             .filter_map(|c| match c {
-                ContractMember::VariableDeclaration(v) => Some(v),
+                ContractMember::VariableDeclaration(v, _) => Some(v),
                 ContractMember::EventDeclaration(_) => None,
             })
             .collect()
@@ -72,7 +73,7 @@ impl ContractDeclaration {
         members
             .into_iter()
             .filter_map(|c| match c {
-                ContractMember::VariableDeclaration(v) => {
+                ContractMember::VariableDeclaration(v, _) => {
                     if v.clone().variable_type.is_dictionary_type() {
                         None
                     } else {
@@ -111,7 +112,7 @@ impl Visitable for ContractDeclaration {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ContractMember {
-    VariableDeclaration(VariableDeclaration),
+    VariableDeclaration(VariableDeclaration, Option<Modifier>),
     EventDeclaration(EventDeclaration),
 }
 
@@ -119,7 +120,7 @@ impl Visitable for ContractMember {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_contract_member(self, ctx)?;
         match self {
-            ContractMember::VariableDeclaration(d) => d.visit(v, ctx),
+            ContractMember::VariableDeclaration(d, _) => d.visit(v, ctx),
             ContractMember::EventDeclaration(d) => d.visit(v, ctx),
         }?;
         v.finish_contract_member(self, ctx)?;
@@ -302,7 +303,7 @@ impl StructDeclaration {
         members
             .into_iter()
             .filter_map(|m| {
-                if let StructMember::VariableDeclaration(v) = m {
+                if let StructMember::VariableDeclaration(v, _) = m {
                     Some(v)
                 } else {
                     None
@@ -346,7 +347,7 @@ impl Visitable for StructDeclaration {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StructMember {
-    VariableDeclaration(VariableDeclaration),
+    VariableDeclaration(VariableDeclaration, Option<Modifier>),
     FunctionDeclaration(FunctionDeclaration),
     SpecialDeclaration(SpecialDeclaration),
 }
@@ -357,7 +358,7 @@ impl Visitable for StructMember {
         match self {
             StructMember::FunctionDeclaration(f) => f.visit(v, ctx),
             StructMember::SpecialDeclaration(s) => s.visit(v, ctx),
-            StructMember::VariableDeclaration(d) => d.visit(v, ctx),
+            StructMember::VariableDeclaration(d, _) => d.visit(v, ctx),
         }?;
         v.finish_struct_member(self, ctx)?;
         Ok(())
@@ -628,7 +629,7 @@ impl Visitable for FunctionDeclaration {
 pub struct FunctionSignatureDeclaration {
     pub func_token: std::string::String,
     pub attributes: Vec<Attribute>,
-    pub modifiers: Vec<std::string::String>,
+    pub modifiers: Vec<Modifier>,
     pub mutates: Vec<Identifier>,
     pub identifier: Identifier,
     pub parameters: Vec<Parameter>,
@@ -642,7 +643,7 @@ impl FunctionSignatureDeclaration {
     }
 
     pub fn is_public(&self) -> bool {
-        self.modifiers.contains(&"public".to_string())
+        self.modifiers.contains(&Modifier::Public)
     }
 
     pub fn parameter_identifiers(&self) -> Vec<Identifier> {
@@ -721,13 +722,7 @@ impl SpecialDeclaration {
     }
 
     pub(crate) fn is_public(&self) -> bool {
-        let modifiers = &self.head.modifiers;
-        for modifier in modifiers {
-            if modifier == "public" {
-                return true;
-            }
-        }
-        false
+        self.head.modifiers.contains(&Modifier::Public)
     }
 
     pub fn as_function_declaration(&self) -> FunctionDeclaration {
@@ -822,8 +817,9 @@ impl Visitable for SpecialDeclaration {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SpecialSignatureDeclaration {
     pub special_token: std::string::String,
+    pub enclosing_type: Option<String>,
     pub attributes: Vec<Attribute>,
-    pub modifiers: Vec<std::string::String>,
+    pub modifiers: Vec<Modifier>,
     pub mutates: Vec<Identifier>,
     pub parameters: Vec<Parameter>,
 }
@@ -896,6 +892,21 @@ impl Visitable for Parameter {
         self.type_assignment.visit(v, ctx)?;
         v.finish_parameter(self, ctx)?;
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Modifier {
+    Public,
+    Visible,
+}
+
+impl std::fmt::Display for Modifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Modifier::Public => write!(f, "public"),
+            Modifier::Visible => write!(f, "visible"),
+        }
     }
 }
 

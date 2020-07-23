@@ -28,7 +28,7 @@ Shapes :: (any) {
 }
 
 struct Rectangle {
-    public var width: Int 
+    public var width: Int
     public var height: Int
 
     public init(width: Int, height: Int) {

@@ -37,15 +37,17 @@ impl MoveFunction {
             is_constructor: false,
         };
 
-        let modifiers: Vec<String> = self
+        let modifiers = self
             .function_declaration
             .head
             .modifiers
             .clone()
             .into_iter()
-            .filter(|s| s.eq("public"))
-            .collect();
-        let modifiers = modifiers.join(",");
+            .filter(|s| s == &Modifier::Public)
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>()
+            .join(",");
+
         let name = self.function_declaration.head.identifier.token.clone();
         let name = self
             .function_declaration

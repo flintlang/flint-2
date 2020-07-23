@@ -22,16 +22,19 @@ impl Visitor for MovePreProcessor {
         if !contract.type_states.is_empty() {
             contract
                 .contract_members
-                .push(ContractMember::VariableDeclaration(VariableDeclaration {
-                    declaration_token: None,
-                    identifier: Identifier {
-                        token: MovePreProcessor::STATE_VAR_NAME.to_string(),
-                        enclosing_type: None,
-                        line_info: Default::default(),
+                .push(ContractMember::VariableDeclaration(
+                    VariableDeclaration {
+                        declaration_token: None,
+                        identifier: Identifier {
+                            token: MovePreProcessor::STATE_VAR_NAME.to_string(),
+                            enclosing_type: None,
+                            line_info: Default::default(),
+                        },
+                        variable_type: Type::TypeState,
+                        expression: None,
                     },
-                    variable_type: Type::TypeState,
-                    expression: None,
-                }))
+                    None,
+                ))
         }
 
         Ok(())
@@ -76,7 +79,7 @@ impl Visitor for MovePreProcessor {
                     let wrapper = generate_contract_wrapper(function.clone(), _t, _ctx);
                     let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
                     let mut function = function;
-                    function.head.modifiers.retain(|x| *x != "public");
+                    function.head.modifiers.retain(|x| x != &Modifier::Public);
                     return vec![
                         ContractBehaviourMember::FunctionDeclaration(function),
                         wrapper,

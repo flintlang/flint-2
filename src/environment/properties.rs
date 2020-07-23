@@ -1,3 +1,4 @@
+use crate::ast::{Property, PropertyInformation, TypeIdentifier};
 use crate::environment::*;
 
 impl Environment {
@@ -7,27 +8,18 @@ impl Environment {
         identifier: &TypeIdentifier,
         t: &TypeIdentifier,
     ) {
-        let type_info = &self.types.get_mut(t);
-        if type_info.is_some() {
-            self.types
-                .get_mut(t)
-                .unwrap()
+        if let Some(type_info) = self.types.get_mut(t) {
+            type_info
                 .properties
                 .insert(identifier.to_string(), PropertyInformation { property });
-            self.types
-                .get_mut(t)
-                .unwrap()
-                .ordered_properties
-                .push(identifier.to_string());
+            type_info.ordered_properties.push(identifier.to_string());
         }
     }
 
-    pub fn property(&self, identifier: String, t: &TypeIdentifier) -> Option<PropertyInformation> {
+    pub fn property(&self, identifier: &str, t: &TypeIdentifier) -> Option<PropertyInformation> {
         let type_info = &self.types.get(t);
         if let Some(type_info) = type_info {
-            let properties = type_info
-                .properties
-                .get(identifier.as_str());
+            let properties = type_info.properties.get(identifier);
             if properties.is_some() {
                 let property = properties.unwrap().clone();
                 return Some(property);
@@ -53,15 +45,8 @@ impl Environment {
         return vec![];
     }
 
-    pub fn is_property_defined(&self, identifier: String, t: &TypeIdentifier) -> bool {
+    pub fn is_property_defined(&self, identifier: &str, t: &TypeIdentifier) -> bool {
         self.property(identifier, t).is_some()
-    }
-
-    pub fn is_property_constant(&self, identifier: String, t: &TypeIdentifier) -> bool {
-        if self.property(identifier.clone(), t).is_some() {
-            return self.property(identifier, t).unwrap().is_constant();
-        }
-        false
     }
 
     pub fn property_offset(&self, property: String, t: &TypeIdentifier) -> u64 {

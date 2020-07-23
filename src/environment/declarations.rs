@@ -37,8 +37,8 @@ impl Environment {
         for member in members {
             match member {
                 ContractMember::EventDeclaration(e) => self.add_event_declaration(&e),
-                ContractMember::VariableDeclaration(v) => self.add_property(
-                    Property::VariableDeclaration(v.clone()),
+                ContractMember::VariableDeclaration(v, modifier) => self.add_property(
+                    Property::VariableDeclaration(v.clone(), modifier.clone()),
                     &v.identifier.token,
                     &c.identifier.token,
                 ),
@@ -60,8 +60,8 @@ impl Environment {
         let members = &s.members;
         for member in members {
             match member {
-                StructMember::VariableDeclaration(v) => self.add_property(
-                    Property::VariableDeclaration(v.clone()),
+                StructMember::VariableDeclaration(v, modifier) => self.add_property(
+                    Property::VariableDeclaration(v.clone(), modifier.clone()),
                     &v.identifier.token,
                     &s.identifier.token,
                 ),
@@ -90,7 +90,7 @@ impl Environment {
         for member in members {
             match member {
                 AssetMember::VariableDeclaration(v) => self.add_property(
-                    Property::VariableDeclaration(v.clone()),
+                    Property::VariableDeclaration(v.clone(), None),
                     &v.identifier.token,
                     &a.identifier.token,
                 ),

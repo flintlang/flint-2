@@ -159,7 +159,7 @@ pub struct ScopeContext {
 }
 
 impl ScopeContext {
-    pub fn declaration(&self, name: String) -> Option<VariableDeclaration> {
+    pub fn declaration(&self, name: &str) -> Option<VariableDeclaration> {
         let mut identifiers: Vec<VariableDeclaration> = self
             .local_variables
             .clone()
@@ -173,7 +173,7 @@ impl ScopeContext {
             .collect();
         identifiers = identifiers
             .into_iter()
-            .filter(|v| v.identifier.token == name)
+            .filter(|v| v.identifier.token.as_str() == name)
             .collect();
         identifiers.first().cloned()
     }

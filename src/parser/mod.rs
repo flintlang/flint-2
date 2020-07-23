@@ -80,42 +80,48 @@ mod tests {
                         },
 
                         contract_members: vec![
-                            ContractMember::VariableDeclaration(VariableDeclaration {
-                                declaration_token: Some(String::from("var")),
+                            ContractMember::VariableDeclaration(
+                                VariableDeclaration {
+                                    declaration_token: Some(String::from("var")),
 
-                                identifier: Identifier {
-                                    token: String::from("minter"),
-                                    enclosing_type: None,
-                                    line_info: LineInfo {
-                                        line: 2,
-                                        offset: 65,
+                                    identifier: Identifier {
+                                        token: String::from("minter"),
+                                        enclosing_type: Some("Coin".to_string()),
+                                        line_info: LineInfo {
+                                            line: 2,
+                                            offset: 65,
+                                        },
                                     },
+
+                                    variable_type: Type::Address,
+                                    expression: None,
                                 },
+                                None,
+                            ),
+                            ContractMember::VariableDeclaration(
+                                VariableDeclaration {
+                                    declaration_token: Some(String::from("var")),
 
-                                variable_type: Type::Address,
-                                expression: None,
-                            }),
-                            ContractMember::VariableDeclaration(VariableDeclaration {
-                                declaration_token: Some(String::from("var")),
-
-                                identifier: Identifier {
-                                    token: String::from("balance"),
-                                    enclosing_type: None,
-                                    line_info: LineInfo {
-                                        line: 3,
-                                        offset: 109,
+                                    identifier: Identifier {
+                                        token: String::from("balance"),
+                                        enclosing_type: Some("Coin".to_string()),
+                                        line_info: LineInfo {
+                                            line: 3,
+                                            offset: 109,
+                                        },
                                     },
+
+                                    variable_type: Type::DictionaryType(DictionaryType {
+                                        key_type: Box::new(Type::Address),
+                                        value_type: Box::new(Type::Int),
+                                    }),
+
+                                    expression: Some(Box::new(Expression::DictionaryLiteral(
+                                        DictionaryLiteral { elements: vec![] }
+                                    ))),
                                 },
-
-                                variable_type: Type::DictionaryType(DictionaryType {
-                                    key_type: Box::new(Type::Address),
-                                    value_type: Box::new(Type::Int),
-                                }),
-
-                                expression: Some(Box::new(Expression::DictionaryLiteral(
-                                    DictionaryLiteral { elements: vec![] }
-                                ))),
-                            }),
+                                None,
+                            ),
                             ContractMember::EventDeclaration(EventDeclaration {
                                 identifier: Identifier {
                                     token: String::from("Sent"),

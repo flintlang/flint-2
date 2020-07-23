@@ -95,7 +95,7 @@ impl MoveContract {
             .clone()
             .into_iter()
             .filter_map(|m| {
-                if let ContractMember::VariableDeclaration(v) = m {
+                if let ContractMember::VariableDeclaration(v, _) = m {
                     Some(v)
                 } else {
                     None
@@ -124,7 +124,7 @@ impl MoveContract {
             .clone()
             .into_iter()
             .filter_map(|m| {
-                if let ContractMember::VariableDeclaration(v) = m {
+                if let ContractMember::VariableDeclaration(v, _) = m {
                     Some(v)
                 } else {
                     None

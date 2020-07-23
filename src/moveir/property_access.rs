@@ -17,13 +17,14 @@ impl MovePropertyAccess {
         if let Expression::Identifier(e) = self.left.clone() {
             if let Expression::Identifier(p) = self.right.clone() {
                 if function_context.environment.is_enum_declared(&e.token) {
-                    if let Some(property) = function_context.environment.property(p.token, &e.token)
+                    if let Some(property) =
+                    function_context.environment.property(&p.token, &e.token)
                     {
                         return MoveExpression {
                             expression: property.property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                        .generate(function_context);
+                            .generate(function_context);
                     }
                 }
             }

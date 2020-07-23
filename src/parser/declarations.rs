@@ -40,7 +40,7 @@ fn parse_event_declaration(i: Span) -> nom::IResult<Span, EventDeclaration> {
 // contract declaration
 
 fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
-    let (i, _contract_token) = tag("contract")(i)?;
+    let (i, _) = tag("contract")(i)?;
     let (i, identifier) = preceded(nom::character::complete::space0, parse_identifier)(i)?;
     let (i, _) = whitespace(i)?;
     let (_, left_round_bracket) = nom::combinator::opt(left_parens)(i)?;
@@ -54,10 +54,18 @@ fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration
     let (i, conformances) = parse_conformances(i)?;
     let (i, _identifier_group) = nom::combinator::opt(parse_identifier_group)(i)?;
     let (i, _) = preceded(nom::character::complete::space0, left_brace)(i)?;
-    let (i, contract_members) = many0(nom::sequence::terminated(
+    let (i, mut contract_members) = many0(nom::sequence::terminated(
         preceded(whitespace, parse_contract_member),
         multi_whitespace,
     ))(i)?;
+
+    // Add enclosing type to all contract members
+    for member in contract_members.iter_mut() {
+        if let ContractMember::VariableDeclaration(dec, _) = member {
+            dec.identifier.enclosing_type = Some(identifier.token.clone());
+        }
+    }
+
     let (i, _) = whitespace(i)?;
     let (i, _) = right_brace(i)?;
     let contract = ContractDeclaration {
@@ -74,8 +82,8 @@ fn parse_contract_member(i: Span) -> nom::IResult<Span, ContractMember> {
         map(parse_event_declaration, |e| {
             ContractMember::EventDeclaration(e)
         }),
-        map(parse_variable_declaration_enclosing, |v| {
-            ContractMember::VariableDeclaration(v)
+        map(parse_variable_declaration_enclosing, |(dec, modifier)| {
+            ContractMember::VariableDeclaration(dec, modifier)
         }),
     ))(i)
 }
@@ -115,10 +123,29 @@ fn parse_contract_behaviour_declaration(
     let (i, caller_protections) = parse_caller_protection_group(i)?;
     let (i, _) = whitespace(i)?;
     let (i, _) = left_brace(i)?;
-    let (i, members) = many0(nom::sequence::terminated(
+    let (i, mut members) = many0(nom::sequence::terminated(
         preceded(whitespace, parse_contract_behaviour_member),
         multi_whitespace,
     ))(i)?;
+
+    // Give members the enclosing type
+    for member in members.iter_mut() {
+        match member {
+            ContractBehaviourMember::FunctionDeclaration(declaration) => {
+                declaration.head.identifier.enclosing_type = Some(identifier.token.clone())
+            }
+            ContractBehaviourMember::SpecialDeclaration(declaration) => {
+                declaration.head.enclosing_type = Some(identifier.token.clone())
+            }
+            ContractBehaviourMember::FunctionSignatureDeclaration(declarations) => {
+                declarations.identifier.enclosing_type = Some(identifier.token.clone())
+            }
+            ContractBehaviourMember::SpecialSignatureDeclaration(declarations) => {
+                declarations.enclosing_type = Some(identifier.token.clone())
+            }
+        }
+    }
+
     let (i, _) = right_brace(i)?;
     let contract_behaviour_declaration = ContractBehaviourDeclaration {
         members,
@@ -172,8 +199,10 @@ fn parse_caller_protection_group(i: Span) -> nom::IResult<Span, Vec<CallerProtec
 
 // variable declaration
 
-fn parse_variable_declaration_enclosing(i: Span) -> nom::IResult<Span, VariableDeclaration> {
-    let (i, _) = parse_modifiers(i)?;
+fn parse_variable_declaration_enclosing(
+    i: Span,
+) -> nom::IResult<Span, (VariableDeclaration, Option<Modifier>)> {
+    let (i, modifier) = nom::combinator::opt(parse_modifier)(i)?;
     let (i, _) = whitespace(i)?;
     let (i, declaration_token) = alt((tag("var"), tag("let")))(i)?;
     let declaration_token = Some(declaration_token.fragment().to_string());
@@ -188,7 +217,7 @@ fn parse_variable_declaration_enclosing(i: Span) -> nom::IResult<Span, VariableD
             variable_type: type_annotation.type_assigned,
             expression: None,
         };
-        return Ok((i, variable_declaration));
+        return Ok((i, (variable_declaration, modifier)));
     }
     let (i, expression) = preceded(nom::character::complete::space0, parse_expression)(i)?;
     let variable_declaration = VariableDeclaration {
@@ -197,7 +226,7 @@ fn parse_variable_declaration_enclosing(i: Span) -> nom::IResult<Span, VariableD
         variable_type: type_annotation.type_assigned,
         expression: Option::from(Box::new(expression)),
     };
-    Ok((i, variable_declaration))
+    Ok((i, (variable_declaration, modifier)))
 }
 
 pub fn parse_variable_declaration(i: Span) -> nom::IResult<Span, VariableDeclaration> {
@@ -309,6 +338,7 @@ fn parse_special_signature_declaration(i: Span) -> nom::IResult<Span, SpecialSig
         mutates,
         parameters,
         special_token: special_token.to_string(),
+        enclosing_type: None,
     };
     Ok((i, special_signature_declaration))
 }
@@ -440,8 +470,8 @@ fn parse_asset_member(i: Span) -> nom::IResult<Span, AssetMember> {
         map(parse_special_declaration, |s| {
             AssetMember::SpecialDeclaration(s)
         }),
-        map(parse_variable_declaration_enclosing, |v| {
-            AssetMember::VariableDeclaration(v)
+        map(parse_variable_declaration_enclosing, |(dec, _)| {
+            AssetMember::VariableDeclaration(dec)
         }),
     ))(i)
 }
@@ -449,16 +479,32 @@ fn parse_asset_member(i: Span) -> nom::IResult<Span, AssetMember> {
 // struct declaration
 
 fn parse_struct_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
-    let (i, _struct_token) = tag("struct")(i)?;
+    let (i, _) = tag("struct")(i)?;
     let (i, _) = nom::character::complete::space0(i)?;
     let (i, identifier) = parse_identifier(i)?;
     let (i, conformances) = parse_conformances(i)?;
     let (i, _) = nom::character::complete::space0(i)?;
     let (i, _) = left_brace(i)?;
-    let (i, members) = many0(nom::sequence::terminated(
+    let (i, mut members) = many0(nom::sequence::terminated(
         preceded(whitespace, parse_struct_member),
         nom::character::complete::multispace0,
     ))(i)?;
+
+    // Add enclosing type to all struct members
+    for member in members.iter_mut() {
+        match member {
+            StructMember::VariableDeclaration(dec, _) => {
+                dec.identifier.enclosing_type = Some(identifier.token.clone())
+            }
+            StructMember::FunctionDeclaration(dec) => {
+                dec.head.identifier.enclosing_type = Some(identifier.token.clone())
+            }
+            StructMember::SpecialDeclaration(dec) => {
+                dec.head.enclosing_type = Some(identifier.token.clone())
+            }
+        }
+    }
+
     let (i, _) = whitespace(i)?;
     let (i, _) = right_brace(i)?;
     let struct_declaration = StructDeclaration {
@@ -480,8 +526,8 @@ fn parse_struct_member(i: Span) -> nom::IResult<Span, StructMember> {
         map(parse_special_declaration, |s| {
             StructMember::SpecialDeclaration(s)
         }),
-        map(parse_variable_declaration_enclosing, |v| {
-            StructMember::VariableDeclaration(v)
+        map(parse_variable_declaration_enclosing, |(dec, modifier)| {
+            StructMember::VariableDeclaration(dec, modifier)
         }),
     ))(i)
 }
@@ -565,18 +611,21 @@ mod test {
         let (_rest, result) = parse_contract_member(input).expect("Error parsing contract member");
         assert_eq!(
             result,
-            ContractMember::VariableDeclaration(VariableDeclaration {
-                declaration_token: Some(String::from("var")),
+            ContractMember::VariableDeclaration(
+                VariableDeclaration {
+                    declaration_token: Some(String::from("var")),
 
-                identifier: Identifier {
-                    token: String::from("minter"),
-                    enclosing_type: None,
-                    line_info: LineInfo { line: 1, offset: 0 },
+                    identifier: Identifier {
+                        token: String::from("minter"),
+                        enclosing_type: None,
+                        line_info: LineInfo { line: 1, offset: 0 },
+                    },
+
+                    variable_type: Type::Address,
+                    expression: None,
                 },
-
-                variable_type: Type::Address,
-                expression: None,
-            })
+                None,
+            )
         );
     }
 

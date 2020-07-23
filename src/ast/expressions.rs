@@ -255,6 +255,7 @@ impl Visitable for BinaryExpression {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_binary_expression(self, ctx)?;
 
+        let old_is_lvalue = ctx.is_lvalue;
         if self.op.is_assignment() {
             if let Expression::VariableDeclaration(_) = *self.lhs_expression {
             } else {
@@ -272,7 +273,7 @@ impl Visitable for BinaryExpression {
         self.lhs_expression.visit(v, ctx)?;
 
         if let BinOp::Dot = self.op.clone() {
-            ctx.is_lvalue = false;
+            // ctx.is_lvalue = false;
         }
 
         ctx.external_call_context = old_context;
@@ -304,7 +305,7 @@ impl Visitable for BinaryExpression {
         };
 
         v.finish_binary_expression(self, ctx)?;
-        ctx.is_lvalue = false;
+        ctx.is_lvalue = old_is_lvalue; // TODO ensure is_lvalue is correct
         Ok(())
     }
 }

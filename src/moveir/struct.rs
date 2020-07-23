@@ -9,7 +9,7 @@ use super::r#type::MoveType;
 use super::statement::MoveStatement;
 use super::MovePosition;
 use crate::ast::{
-    BinOp, Expression, FunctionDeclaration, Identifier, SpecialDeclaration, Statement,
+    BinOp, Expression, FunctionDeclaration, Identifier, Modifier, SpecialDeclaration, Statement,
     StructDeclaration, StructMember, Type, VariableDeclaration,
 };
 use crate::context::ScopeContext;
@@ -37,7 +37,7 @@ impl MoveStruct {
             .clone()
             .into_iter()
             .filter_map(|s| match s {
-                StructMember::VariableDeclaration(v) => {
+                StructMember::VariableDeclaration(v, _) => {
                     Some(MoveFieldDeclaration { declaration: v }.generate(&function_context))
                 }
                 _ => None,
@@ -138,15 +138,21 @@ pub(crate) struct MoveStructInitialiser {
 
 impl MoveStructInitialiser {
     pub fn generate(&self) -> String {
-        let modifiers: Vec<String> = self
+        let modifiers = self
             .declaration
             .head
             .modifiers
             .clone()
             .into_iter()
-            .filter(|s| s.eq("public"))
-            .collect();
-        let modifiers = modifiers.join(",");
+            .filter_map(|s| {
+                if s == Modifier::Public {
+                    Some(s.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(",");
 
         let scope = ScopeContext {
             parameters: self.declaration.head.parameters.clone(),

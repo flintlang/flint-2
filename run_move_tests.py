@@ -175,7 +175,8 @@ class BehaviourTest(NamedTuple):
         try:
             test = self.programme.compile()
         except FlintCompilationError as e:
-            TestFormatter.failed(self.programme.name, f"Flint Compilation Error: `{e !s}`")
+            TestFormatter.behaviour_failed(self.programme.name,
+                                           f"Flint Compilation Error: `{e !s}`")
             return False
         if self.testsuite:
             test.with_testsuite(self.testsuite)
@@ -190,10 +191,10 @@ class BehaviourTest(NamedTuple):
         else:
             line = message = None
         if self.expected_fail_line != line:
-            TestFormatter.failed(self.programme.name,
-                                 message or f"Move Missing Error: "
-                                            f"No error raised in {self.programme.path.name} line {self.expected_fail_line}"
-                                 )
+            TestFormatter.behaviour_failed(self.programme.name,
+                                           message or f"Move Missing Error: "
+                                                      f"No error raised in {self.programme.path.name} line {self.expected_fail_line}"
+                                           )
             return False
 
         TestFormatter.behaviour_passed(self.programme.name)
@@ -206,7 +207,14 @@ class TestFormatter:
     END = "\033[m"
 
     @classmethod
-    def failed(cls, test, message):
+    def behaviour_failed(cls, test, message):
+        print(f"""\
+{test}: {cls.FAIL}failed{cls.END}
+\t{message}\
+""")
+
+    @classmethod
+    def compilation_failed(cls, test, message):
         print(f"""\
 {test}: {cls.FAIL}failed{cls.END}
 \t{message}\
@@ -292,7 +300,8 @@ class TestRunner(NamedTuple):
         for programme in self.fail_compilation_tests:
             try:
                 programme.compile()
-                print(f"Program `{programme.name}` did not fail compilation")
+                TestFormatter.compilation_failed(programme.name,
+                                                 "Did not fail to compile")
             except FlintCompilationError:
                 passed.add(programme)
                 TestFormatter.compilation_failure_passed(programme.name)
