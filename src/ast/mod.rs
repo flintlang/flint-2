@@ -216,7 +216,7 @@ impl SpecialInformation {
 #[derive(Default, Debug, Clone)]
 pub struct FunctionInformation {
     pub declaration: FunctionDeclaration,
-    pub caller_protection: Vec<CallerProtection>,
+    pub caller_protections: Vec<CallerProtection>,
     pub type_states: Vec<TypeState>,
     pub mutating: bool,
     pub is_signature: bool,
@@ -320,7 +320,7 @@ impl CallerProtection {
         self.identifier.token.clone()
     }
 
-    pub fn is_sub_protection(&self, parent: CallerProtection) -> bool {
+    pub fn is_sub_protection(&self, parent: &CallerProtection) -> bool {
         parent.is_any() || self.name() == parent.name()
     }
 }
@@ -362,11 +362,6 @@ pub fn is_literal(expression: &Expression) -> bool {
     }
 }
 
-pub fn do_vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
-    let matching = a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count();
-    matching == a.len() && matching == b.len()
-}
-
 pub fn mangle(string: &str) -> String {
     format!("_{}", string)
 }
@@ -376,20 +371,20 @@ pub fn mangle_dictionary(string: &str) -> String {
 }
 
 #[allow(dead_code)]
-pub fn mangle_function(string: &str, t: &TypeIdentifier, is_contract: bool) -> String {
+pub fn mangle_function(string: &str, type_id: &str, is_contract: bool) -> String {
     let func_type = if is_contract {
         "".to_string()
     } else {
-        format!("{}$", t)
+        format!("{}$", type_id)
     };
     format!("{func_type}{name}", name = string, func_type = func_type)
 }
 
-pub fn mangle_function_move(string: &str, t: &TypeIdentifier, is_contract: bool) -> String {
+pub fn mangle_function_move(string: &str, type_id: &str, is_contract: bool) -> String {
     let func_type = if is_contract {
         "".to_string()
     } else {
-        format!("{}_", t)
+        format!("{}_", type_id)
     };
     format!("{func_type}{name}", name = string, func_type = func_type)
 }

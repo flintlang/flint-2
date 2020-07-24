@@ -1,11 +1,11 @@
-pub use crate::ast::*;
-pub use crate::environment::Environment;
+use crate::ast::*;
+use crate::environment::Environment;
 use crate::parser::statements::*;
-pub use crate::parser::*;
-pub use nom::{
-    branch::alt, bytes::complete::tag, combinator::map, multi::many0, sequence::preceded,
+use crate::parser::operators::{left_brace, right_brace, parse_comment};
+use nom::{
+    branch::alt, multi::many0,
 };
-pub use nom_locate::LocatedSpan;
+use nom_locate::LocatedSpan;
 
 pub type ParseResult = Result<(Module, Environment), String>;
 
@@ -39,6 +39,7 @@ pub fn multi_whitespace(i: Span) -> nom::IResult<Span, Span> {
 mod test {
 
     use crate::parser::utils::*;
+    use nom_locate::LocatedSpan;
 
     #[test]
     fn test_parse_whitespace() {

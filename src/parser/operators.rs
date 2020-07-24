@@ -1,4 +1,7 @@
 use crate::parser::utils::*;
+use crate::ast::BinOp;
+use nom::branch::alt;
+use nom::bytes::complete::tag;
 
 pub fn get_operator_precedence(op: &BinOp) -> i32 {
     match op {

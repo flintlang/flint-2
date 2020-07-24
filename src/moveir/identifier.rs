@@ -27,7 +27,7 @@ impl MoveIdentifier {
                     right: Expression::Identifier(self.identifier.clone()),
                     position: self.position.clone(),
                 }
-                .generate(function_context, f_call)
+                    .generate(function_context, f_call)
             };
         };
 
@@ -36,18 +36,17 @@ impl MoveIdentifier {
                 token: self.identifier.token.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context, force);
+                .generate(function_context, force);
         }
 
-        let ir_identifier: MoveIRExpression;
-        if function_context
+        let ir_identifier = if function_context
             .scope_context
             .contains_variable_declaration(mangle(&self.identifier.token.clone()))
         {
-            ir_identifier = MoveIRExpression::Identifier(mangle(&self.identifier.token.clone()));
+            MoveIRExpression::Identifier(mangle(&self.identifier.token.clone()))
         } else {
-            ir_identifier = MoveIRExpression::Identifier(self.identifier.token.clone());
-        }
+            MoveIRExpression::Identifier(self.identifier.token.clone())
+        };
 
         if force {
             return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));

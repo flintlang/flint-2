@@ -26,25 +26,25 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn assign_enclosing_type(&mut self, t: &TypeIdentifier) {
+    pub fn assign_enclosing_type(&mut self, type_id: &str) {
         match self {
             Expression::Identifier(i) => {
-                i.enclosing_type = Some(String::from(t));
+                i.enclosing_type = Some(String::from(type_id));
             }
             Expression::BinaryExpression(b) => {
-                b.lhs_expression.assign_enclosing_type(t);
+                b.lhs_expression.assign_enclosing_type(type_id);
             }
             Expression::ExternalCall(e) => {
-                e.function_call.lhs_expression.assign_enclosing_type(t);
+                e.function_call.lhs_expression.assign_enclosing_type(type_id);
             }
             Expression::FunctionCall(f) => {
-                f.identifier.enclosing_type = Some(String::from(t));
+                f.identifier.enclosing_type = Some(String::from(type_id));
             }
             Expression::BracketedExpression(b) => {
-                b.expression.assign_enclosing_type(t);
+                b.expression.assign_enclosing_type(type_id);
             }
             Expression::SubscriptExpression(s) => {
-                s.base_expression.enclosing_type = Some(String::from(t));
+                s.base_expression.enclosing_type = Some(String::from(type_id));
             }
             _ => {}
         }
@@ -279,17 +279,16 @@ impl Visitable for BinaryExpression {
         ctx.external_call_context = old_context;
         ctx.is_enclosing = false;
 
-        let scope = ctx.scope_context.clone();
-        let scope = scope.unwrap_or_default();
+        let scope = ctx.scope_context.as_ref().unwrap_or_default();
 
         let enclosing = ctx.enclosing_type_identifier();
         let enclosing = enclosing.unwrap_or_default();
         let enclosing = enclosing.token;
         let lhs_type = ctx.environment.get_expression_type(
-            *self.lhs_expression.clone(),
+            &*self.lhs_expression,
             &enclosing,
-            vec![],
-            vec![],
+            &[],
+            &[],
             scope,
         );
 

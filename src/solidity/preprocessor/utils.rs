@@ -1,9 +1,12 @@
 use crate::solidity::preprocessor::*;
+use crate::ast::{Type, FunctionCall, mangle_function_move, Property, Statement};
+use crate::context::Context;
+use crate::environment::{FunctionCallMatchResult, CallableInformation};
 
 pub fn mangle_solidity_function_name(
     string: String,
     param_type: Vec<Type>,
-    t: &TypeIdentifier,
+    type_id: &str,
 ) -> String {
     let parameters: Vec<String> = param_type.into_iter().map(|p| p.name()).collect();
     let dollar = if parameters.is_empty() {
@@ -15,7 +18,7 @@ pub fn mangle_solidity_function_name(
 
     format!(
         "{t}${name}{dollar}{parameters}",
-        t = t,
+        t = type_id,
         name = string,
         dollar = dollar,
         parameters = parameters
@@ -42,14 +45,13 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
             vec![]
         };
 
-        let scope = ctx.scope_context.clone();
-        let scope = scope.unwrap_or_default();
+        let scope = ctx.scope_context.as_ref().unwrap_or_default();
 
         let match_result = ctx.environment.match_function_call(
-            call,
+            &call,
             &enclosing_type,
-            caller_protections,
-            scope.clone(),
+            &caller_protections,
+            scope,
         );
 
         match match_result.clone() {
@@ -155,20 +157,17 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
     let enclosing = ctx.enclosing_type_identifier().clone();
     let enclosing = enclosing.unwrap();
     let enclosing = enclosing.token.clone();
-    let caller_protections = if ctx.contract_behaviour_declaration_context.is_some() {
-        let behaviour = ctx.contract_behaviour_declaration_context.clone();
-        let behaviour = behaviour.unwrap();
-        behaviour.caller_protections
+    let caller_protections: &[_] = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+        &behaviour.caller_protections
     } else {
-        vec![]
+        &[]
     };
 
-    let scope = ctx.scope_context.clone();
-    let scope = scope.unwrap_or_default();
+    let scope = ctx.scope_context.as_ref().unwrap_or_default();
 
     let result =
         ctx.environment
-            .match_function_call(function_call, &enclosing, caller_protections, scope);
+            .match_function_call(&function_call, &enclosing, caller_protections, scope);
 
     if let FunctionCallMatchResult::MatchedGlobalFunction(_) = result {
         return true;

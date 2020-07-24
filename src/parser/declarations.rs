@@ -7,6 +7,12 @@ use crate::parser::parameters::*;
 use crate::parser::type_states::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
+use crate::ast::{TopLevelDeclaration, EventDeclaration, ContractMember, ContractDeclaration, Conformance, ContractBehaviourDeclaration, ContractBehaviourMember, Identifier, CallerProtection, VariableDeclaration, Modifier, EnumDeclaration, Type, EnumMember, SpecialDeclaration, SpecialSignatureDeclaration, Attribute, FunctionDeclaration, FunctionSignatureDeclaration, AssetMember, StructMember, StructDeclaration, TraitDeclaration, FunctionCall, TraitMember, AssetDeclaration};
+use nom::sequence::preceded;
+use nom::multi::many0;
+use nom::branch::alt;
+use nom::combinator::map;
+use nom::bytes::complete::tag;
 
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, top) = alt((

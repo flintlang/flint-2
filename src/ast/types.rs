@@ -140,12 +140,12 @@ impl Type {
         }
     }
 
-    pub fn replacing_self(&self, t: &TypeIdentifier) -> Type {
+    pub fn replacing_self(&self, type_id: &str) -> Type {
         let input_type = self.clone();
 
         if Type::SelfType == input_type {
             return Type::UserDefinedType(Identifier {
-                token: t.to_string(),
+                token: type_id.to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
             });
@@ -155,7 +155,7 @@ impl Type {
             if let Type::SelfType = *i.key_type {
                 return Type::InoutType(InoutType {
                     key_type: Box::new(Type::UserDefinedType(Identifier {
-                        token: t.to_string(),
+                        token: type_id.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     })),

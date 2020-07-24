@@ -103,11 +103,11 @@ impl SolidityCastExpression {
         };
 
         let original_type = function_context.environment.get_expression_type(
-            *self.expression.expression.clone(),
+            &*self.expression.expression,
             enclosing,
-            vec![],
-            vec![],
-            function_context.scope_context.clone(),
+            &[],
+            &[],
+            &function_context.scope_context,
         );
         let target_type = self.expression.cast_type.clone();
 
@@ -282,11 +282,11 @@ impl SoliditySubscriptExpression {
         .generate(function_context);
 
         let base_type = function_context.environment.get_expression_type(
-            Expression::Identifier(expression.base_expression.clone()),
-            &function_context.enclosing_type.clone(),
-            vec![],
-            vec![],
-            function_context.scope_context.clone(),
+            &Expression::Identifier(expression.base_expression.clone()),
+            &function_context.enclosing_type,
+            &[],
+            &[],
+            &function_context.scope_context,
         );
 
         println!("{:?}", expression.base_expression.clone());

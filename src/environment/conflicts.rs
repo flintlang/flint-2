@@ -1,4 +1,5 @@
 use crate::environment::*;
+use crate::ast::{Identifier, is_redeclaration, PropertyInformation, FunctionInformation, FunctionDeclaration};
 
 impl Environment {
     pub fn is_conflicting(&self, identifier: &Identifier) -> bool {
@@ -31,9 +32,9 @@ impl Environment {
     pub fn conflicting_property_declaration(
         &self,
         identifier: &Identifier,
-        t: &TypeIdentifier,
+        type_id: &str,
     ) -> bool {
-        if let Some(type_info) = self.types.get(t) {
+        if let Some(type_info) = self.types.get(type_id) {
             let properties: Vec<&PropertyInformation> =
                 type_info.properties.values().collect();
 
@@ -50,9 +51,9 @@ impl Environment {
         false
     }
 
-    pub fn conflicting_trait_signatures(&self, t: &TypeIdentifier) -> bool {
-        if let Some(type_info) = self.types.get(t) {
-            let conflicting = |f: &Vec<FunctionInformation>| {
+    pub fn conflicting_trait_signatures(&self, type_id: &str) -> bool {
+        if let Some(type_info) = self.types.get(type_id) {
+            let conflicting = |f: &[FunctionInformation]| {
                 if let Some(first_signature) = f.get(0) {
                     let first_parameter = &first_signature.declaration.head;
                     for function in f {
@@ -75,7 +76,7 @@ impl Environment {
     pub fn is_conflicting_function_declaration(
         &self,
         function_declaration: &FunctionDeclaration,
-        identifier: &TypeIdentifier,
+        identifier: &str,
     ) -> bool {
         if self.is_contract_declared(identifier) {
             let type_info = &self.types.get(identifier);

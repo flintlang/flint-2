@@ -305,11 +305,11 @@ impl FunctionContext {
             self_type
         } else {
             self.environment.get_expression_type(
-                Expression::SelfExpression,
+                &Expression::SelfExpression,
                 &self.enclosing_type,
-                vec![],
-                vec![],
-                self.scope_context.clone(),
+                &[],
+                &[],
+                &self.scope_context,
             )
         }
     }

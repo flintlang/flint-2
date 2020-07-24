@@ -1,16 +1,16 @@
-use crate::ast::*;
-use crate::context::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
+use crate::context::ScopeContext;
+use crate::ast::{CallerProtection, TypeState, Expression, Type, InoutType, Identifier, Literal, AttemptExpression, RangeExpression, RangeType, BinaryExpression, BinOp, ArrayType, ArrayLiteral, FunctionCall};
 
 impl ExpressionCheck for Environment {
     fn get_expression_type(
         &self,
-        expression: Expression,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        expression: &Expression,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type {
         match expression {
             Expression::Identifier(i) => {
@@ -24,17 +24,17 @@ impl ExpressionCheck for Environment {
                     }
                 }
 
-                let enclosing_type = i.enclosing_type.as_ref().unwrap_or(t);
+                let enclosing_type = i.enclosing_type.as_deref().unwrap_or(type_id);
 
-                self.get_property_type(i.token.clone(), enclosing_type, scope)
+                self.get_property_type(&i.token, enclosing_type, scope)
             }
             Expression::BinaryExpression(b) => {
-                self.get_binary_expression_type(b, t, type_states, caller_protections, scope)
+                self.get_binary_expression_type(b, type_id, type_states, caller_protections, scope)
             }
             Expression::InoutExpression(e) => {
                 let key_type = self.get_expression_type(
-                    *e.expression,
-                    t,
+                    &*e.expression,
+                    type_id,
                     type_states,
                     caller_protections,
                     scope,
@@ -45,8 +45,8 @@ impl ExpressionCheck for Environment {
                 })
             }
             Expression::ExternalCall(e) => self.get_expression_type(
-                Expression::BinaryExpression(e.function_call),
-                t,
+                &Expression::BinaryExpression(e.function_call.clone()),
+                type_id,
                 type_states,
                 caller_protections,
                 scope,
@@ -56,35 +56,35 @@ impl ExpressionCheck for Environment {
                     let enclosing = f.identifier.enclosing_type.as_ref();
                     enclosing.unwrap()
                 } else {
-                    t
+                    type_id
                 };
 
-                self.get_function_call_type(f.clone(), enclosing_type, caller_protections, scope)
+                self.get_function_call_type(f, enclosing_type, caller_protections, scope)
             }
-            Expression::VariableDeclaration(v) => v.variable_type,
+            Expression::VariableDeclaration(v) => v.variable_type.clone(),
             Expression::BracketedExpression(e) => {
-                self.get_expression_type(*e.expression, t, type_states, caller_protections, scope)
+                self.get_expression_type(&*e.expression, type_id, type_states, caller_protections, scope)
             }
             Expression::AttemptExpression(a) => {
-                self.get_attempt_expression_type(a, t, type_states, caller_protections, scope)
+                self.get_attempt_expression_type(a, type_id, type_states, caller_protections, scope)
             }
             Expression::Literal(l) => self.get_literal_type(l),
             Expression::ArrayLiteral(a) => {
-                self.get_array_literal_type(a, t, type_states, caller_protections, scope)
+                self.get_array_literal_type(a, type_id, type_states, caller_protections, scope)
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => Type::UserDefinedType(Identifier {
-                token: t.clone(),
+                token: type_id.to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),
             }),
             Expression::SubscriptExpression(s) => {
                 //    Get Identifier Type
                 let identifer_type = self.get_expression_type(
-                    Expression::Identifier(s.base_expression),
-                    t,
-                    vec![],
-                    vec![],
+                    &Expression::Identifier(s.base_expression.clone()),
+                    type_id,
+                    &[],
+                    &[],
                     scope,
                 );
 
@@ -96,19 +96,19 @@ impl ExpressionCheck for Environment {
                 }
             }
             Expression::RangeExpression(r) => {
-                self.get_range_type(r, t, type_states, caller_protections, scope)
+                self.get_range_type(r, type_id, type_states, caller_protections, scope)
             }
             Expression::RawAssembly(_, _) => unimplemented!(),
-            Expression::CastExpression(c) => c.cast_type,
+            Expression::CastExpression(c) => c.cast_type.clone(),
             Expression::Sequence(_) => unimplemented!(),
         }
     }
 }
 
 impl Environment {
-    pub fn get_property_type(&self, name: String, t: &TypeIdentifier, scope: ScopeContext) -> Type {
-        self.types.get(t)
-            .and_then(|enclosing| enclosing.properties.get(name.as_str()))
+    pub fn get_property_type(&self, name: &str, type_id: &str, scope: &ScopeContext) -> Type {
+        self.types.get(type_id)
+            .and_then(|enclosing| enclosing.properties.get(name))
             .map(|info| info.property.get_type())
             .unwrap_or_else(|| {
                 if scope.type_for(&name).is_some() {
@@ -118,7 +118,7 @@ impl Environment {
             })
     }
 
-    pub fn get_literal_type(&self, literal: Literal) -> Type {
+    pub fn get_literal_type(&self, literal: &Literal) -> Type {
         match literal {
             Literal::U8Literal(_) => Type::TypeState,
             Literal::BooleanLiteral(_) => Type::Bool,
@@ -131,22 +131,22 @@ impl Environment {
 
     pub fn get_attempt_expression_type(
         &self,
-        expression: AttemptExpression,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        expression: &AttemptExpression,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type {
         if expression.is_soft() {
             return Type::Bool;
         }
 
         let function_call = &expression.function_call;
-        let enclosing_type = expression.function_call.identifier.enclosing_type.as_ref()
-            .unwrap_or_else(|| t);
+        let enclosing_type = expression.function_call.identifier.enclosing_type.as_deref()
+            .unwrap_or_else(|| type_id);
 
         self.get_expression_type(
-            Expression::FunctionCall(function_call.clone()),
+            &Expression::FunctionCall(function_call.clone()),
             enclosing_type,
             type_states,
             caller_protections,
@@ -156,22 +156,22 @@ impl Environment {
 
     pub fn get_range_type(
         &self,
-        expression: RangeExpression,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        expression: &RangeExpression,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type {
         let element_type = self.get_expression_type(
-            *expression.start_expression,
-            t,
+            &*expression.start_expression,
+            type_id,
             type_states.clone(),
             caller_protections.clone(),
-            scope.clone(),
+            scope,
         );
         let bound_type = self.get_expression_type(
-            *expression.end_expression,
-            t,
+            &*expression.end_expression,
+            type_id,
             type_states,
             caller_protections,
             scope,
@@ -187,27 +187,27 @@ impl Environment {
 
     pub fn get_binary_expression_type(
         &self,
-        b: BinaryExpression,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        binary: &BinaryExpression,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type {
-        if b.op.is_boolean() {
+        if binary.op.is_boolean() {
             return Type::Bool;
         }
 
-        if let BinOp::Dot = b.op {
+        if let BinOp::Dot = binary.op {
             let lhs_type = self.get_expression_type(
-                *b.lhs_expression,
-                t,
+                &*binary.lhs_expression,
+                type_id,
                 type_states.clone(),
                 caller_protections.clone(),
-                scope.clone(),
+                scope,
             );
             match lhs_type {
                 Type::ArrayType(_) => {
-                    if let Expression::Identifier(i) = *b.rhs_expression {
+                    if let Expression::Identifier(i) = &*binary.rhs_expression {
                         if i.token == "size" {
                             return Type::Int;
                         }
@@ -216,7 +216,7 @@ impl Environment {
                     return Type::Error;
                 }
                 Type::FixedSizedArrayType(_) => {
-                    if let Expression::Identifier(i) = *b.rhs_expression {
+                    if let Expression::Identifier(i) = &*binary.rhs_expression {
                         if i.token == "size" {
                             return Type::Int;
                         }
@@ -225,7 +225,7 @@ impl Environment {
                     return Type::Error;
                 }
                 Type::DictionaryType(d) => {
-                    if let Expression::Identifier(i) = *b.rhs_expression {
+                    if let Expression::Identifier(i) = &*binary.rhs_expression {
                         if i.token == "size" {
                             return Type::Int;
                         } else if i.token == "keys" {
@@ -240,34 +240,34 @@ impl Environment {
                 _ => {}
             };
             self.get_expression_type(
-                *b.rhs_expression,
+                &*binary.rhs_expression,
                 &lhs_type.name(),
                 type_states,
                 caller_protections,
                 scope,
             )
         } else {
-            self.get_expression_type(*b.rhs_expression, t, type_states, caller_protections, scope)
+            self.get_expression_type(&*binary.rhs_expression, type_id, type_states, caller_protections, scope)
         }
     }
 
     pub fn get_array_literal_type(
         &self,
-        a: ArrayLiteral,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        array: &ArrayLiteral,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type {
         let mut element_type: Option<Type> = None;
 
-        for elements in a.elements {
+        for elements in &array.elements {
             let elements_type = self.get_expression_type(
-                elements.clone(),
-                t,
-                type_states.clone(),
-                caller_protections.clone(),
-                scope.clone(),
+                elements,
+                type_id,
+                type_states,
+                caller_protections,
+                scope,
             );
 
             if let Some(ref comparison_type) = element_type {
@@ -286,13 +286,13 @@ impl Environment {
 
     pub fn get_function_call_type(
         &self,
-        f: FunctionCall,
-        t: &TypeIdentifier,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        call: &FunctionCall,
+        type_id: &str,
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type {
-        let identifier = f.identifier.clone();
-        let function_call = self.match_function_call(f, t, caller_protections, scope);
+        let identifier = call.identifier.clone();
+        let function_call = self.match_function_call(call, type_id, caller_protections, scope);
         match function_call {
             FunctionCallMatchResult::MatchedFunction(m) => {
                 m.get_result_type().unwrap_or(Type::Error)

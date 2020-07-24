@@ -7,10 +7,10 @@ pub struct SolidityFunctionCall {
 impl SolidityFunctionCall {
     pub fn generate(&self, function_context: &mut FunctionContext) -> YulExpression {
         let match_result = function_context.environment.match_function_call(
-            self.function_call.clone(),
+            &self.function_call,
             &function_context.enclosing_type,
-            vec![],
-            function_context.scope_context.clone(),
+            &[],
+            &function_context.scope_context,
         );
 
         if let FunctionCallMatchResult::MatchedInitializer(i) = match_result {

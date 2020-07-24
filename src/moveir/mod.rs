@@ -50,9 +50,8 @@ pub fn generate(module: Module, context: &mut Context) {
         })
         .collect();
 
-    let mut contracts: Vec<MoveContract> = Vec::new();
-    for declaration in &module.declarations {
-        if let TopLevelDeclaration::ContractDeclaration(c) = declaration {
+    let contracts: Vec<MoveContract> = module.declarations.iter().filter_map(|declaration| {
+        if let TopLevelDeclaration::ContractDeclaration(contract) = declaration {
             let contract_behaviour_declarations: Vec<ContractBehaviourDeclaration> = module
                 .declarations
                 .clone()
@@ -61,7 +60,7 @@ pub fn generate(module: Module, context: &mut Context) {
                     TopLevelDeclaration::ContractBehaviourDeclaration(cbd) => Some(cbd),
                     _ => None,
                 })
-                .filter(|cbd| cbd.identifier.token == c.identifier.token)
+                .filter(|cbd| cbd.identifier.token == contract.identifier.token)
                 .collect();
 
             let struct_declarations: Vec<StructDeclaration> = module
@@ -84,17 +83,16 @@ pub fn generate(module: Module, context: &mut Context) {
                 })
                 .collect();
 
-            let contract = MoveContract {
-                contract_declaration: c.clone(),
+            Some(MoveContract {
+                contract_declaration: contract.clone(),
                 contract_behaviour_declarations,
                 struct_declarations,
                 asset_declarations,
                 environment: context.environment.clone(),
                 external_traits: trait_declarations.clone(),
-            };
-            contracts.push(contract);
-        }
-    }
+            })
+        } else { None }
+    }).collect();
 
     for contract in contracts {
         let c = contract.generate();

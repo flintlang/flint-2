@@ -25,10 +25,10 @@ impl MoveExternalCall {
             };
 
             let result = function_context.environment.match_function_call(
-                lookup,
+                &lookup,
                 &enclosing,
-                vec![],
-                function_context.scope_context.clone(),
+                &[],
+                &function_context.scope_context,
             );
 
             if let FunctionCallMatchResult::MatchedFunction(_) = result {

@@ -37,13 +37,12 @@ impl Visitor for TypeAssigner {
         if let BinOp::Dot = _t.op {
             let enclosing = _ctx.enclosing_type_identifier();
             let enclosing = enclosing.unwrap();
-            let scope = _ctx.scope_context.clone();
-            let scope = scope.unwrap_or_default();
+            let scope = &_ctx.scope_context.as_ref().unwrap_or_default();
             let lhs_type = _ctx.environment.get_expression_type(
-                *_t.lhs_expression.clone(),
+                &*_t.lhs_expression,
                 &enclosing.token,
-                vec![],
-                vec![],
+                &[],
+                &[],
                 scope,
             );
             if let Expression::Identifier(i) = &*_t.lhs_expression {

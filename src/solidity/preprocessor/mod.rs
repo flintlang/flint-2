@@ -63,26 +63,24 @@ impl Visitor for SolidityPreProcessor {
         Ok(())
     }
 
-    fn start_expression(&mut self, _t: &mut Expression, _ctx: &mut Context) -> VResult {
-        let expression = _t.clone();
-        if let Expression::BinaryExpression(b) = expression {
-            if let BinOp::Dot = b.op {
-                if let Expression::Identifier(lhs) = *b.lhs_expression.clone() {
-                    if let Expression::Identifier(_) = *b.rhs_expression.clone() {
+    fn start_expression(&mut self, expression: &mut Expression, _ctx: &mut Context) -> VResult {
+        if let Expression::BinaryExpression(binary) = expression.clone() {
+            if let BinOp::Dot = binary.op {
+                if let Expression::Identifier(lhs) = *binary.lhs_expression {
+                    if let Expression::Identifier(_) = *binary.rhs_expression {
                         if _ctx.environment.is_enum_declared(&lhs.token) {
                             unimplemented!()
                         }
                     }
                 }
-            } else if let BinOp::Equal = b.op {
-                if let Expression::FunctionCall(f) = *b.rhs_expression.clone() {
-                    let mut function_call = f.clone();
-                    if _ctx.environment.is_initiliase_call(f) {
+            } else if let BinOp::Equal = binary.op {
+                if let Expression::FunctionCall(mut call) = *binary.rhs_expression.clone() {
+                    if _ctx.environment.is_initiliase_call(&call) {
                         let inout = Expression::InoutExpression(InoutExpression {
                             ampersand_token: "&".to_string(),
-                            expression: b.lhs_expression.clone(),
+                            expression: binary.lhs_expression.clone(),
                         });
-                        function_call.arguments.insert(
+                        call.arguments.insert(
                             0,
                             FunctionArgument {
                                 identifier: None,
@@ -90,9 +88,9 @@ impl Visitor for SolidityPreProcessor {
                             },
                         );
 
-                        *_t = Expression::FunctionCall(function_call.clone());
+                        *expression = Expression::FunctionCall(call.clone());
 
-                        if let Expression::VariableDeclaration(v) = *b.lhs_expression.clone() {
+                        if let Expression::VariableDeclaration(v) = *binary.lhs_expression.clone() {
                             if v.variable_type.is_dynamic_type() {
                                 let function_arg = Expression::Identifier(v.identifier.clone());
                                 let function_arg = Expression::InoutExpression(InoutExpression {
@@ -100,7 +98,7 @@ impl Visitor for SolidityPreProcessor {
                                     expression: Box::new(function_arg),
                                 });
 
-                                let mut call = function_call.clone();
+                                let mut call = call.clone();
                                 call.arguments.remove(0);
                                 call.arguments.insert(
                                     0,
@@ -110,7 +108,7 @@ impl Visitor for SolidityPreProcessor {
                                     },
                                 );
 
-                                *_t = Expression::Sequence(vec![
+                                *expression = Expression::Sequence(vec![
                                     Expression::VariableDeclaration(v.clone()),
                                     Expression::FunctionCall(call.clone()),
                                 ]);
@@ -211,8 +209,8 @@ impl Visitor for SolidityPreProcessor {
         Ok(())
     }
 
-    fn start_function_call(&mut self, _t: &mut FunctionCall, _ctx: &mut Context) -> VResult {
-        if is_ether_runtime_function_call(_t) {
+    fn start_function_call(&mut self, call: &mut FunctionCall, _ctx: &mut Context) -> VResult {
+        if is_ether_runtime_function_call(call) {
             return Ok(());
         }
 
@@ -220,8 +218,8 @@ impl Visitor for SolidityPreProcessor {
             _ctx.function_call_receiver_trail = vec![Expression::SelfExpression];
         }
 
-        let mut f_call = _t.clone();
-        if _ctx.environment.is_initiliase_call(f_call.clone()) {
+        let mut f_call = call.clone();
+        if _ctx.environment.is_initiliase_call(&f_call) {
             let mut temp = f_call.clone();
             if _ctx.function_declaration_context.is_some()
                 || _ctx.special_declaration_context.is_some() && !temp.arguments.is_empty()
@@ -232,7 +230,7 @@ impl Visitor for SolidityPreProcessor {
             let mangled = mangle_function_call_name(&temp, _ctx);
             if mangled.is_some() {
                 let mangled = mangled.unwrap();
-                _t.mangled_identifier = Option::from(Identifier {
+                call.mangled_identifier = Option::from(Identifier {
                     token: mangled.clone(),
                     enclosing_type: None,
                     line_info: Default::default(),
@@ -263,11 +261,11 @@ impl Visitor for SolidityPreProcessor {
                 });
 
                 let d_type = _ctx.environment.get_expression_type(
-                    trail_last,
+                    &trail_last,
                     &enclosing_ident,
-                    vec![],
-                    vec![],
-                    scope.clone(),
+                    &[],
+                    &[],
+                    &scope,
                 );
 
                 d_type.name()
@@ -279,7 +277,7 @@ impl Visitor for SolidityPreProcessor {
                 println!("MAngled is");
                 println!("{:?}", mangled.clone());
                 println!("{:?}", f_call.identifier.line_info.clone());
-                _t.mangled_identifier = Option::from(Identifier {
+                call.mangled_identifier = Option::from(Identifier {
                     token: mangled.clone(),
                     enclosing_type: None,
                     line_info: Default::default(),
@@ -306,11 +304,11 @@ impl Visitor for SolidityPreProcessor {
                         expression: Expression::InoutExpression(inout_expression),
                     },
                 );
-                *_t = f_call.clone();
+                *call = f_call.clone();
             }
         }
 
-        println!("{:?}", _ctx.environment.is_initiliase_call(f_call.clone()));
+        println!("{:?}", _ctx.environment.is_initiliase_call(&f_call));
         println!("{:?}", f_call.mangled_identifier);
         let scope = _ctx.scope_context.clone();
         let scope = scope.unwrap_or(ScopeContext {
@@ -330,7 +328,7 @@ impl Visitor for SolidityPreProcessor {
 
         let match_result =
             _ctx.environment
-                .match_function_call(f_call.clone(), &enclosing, vec![], scope.clone());
+                .match_function_call(&f_call, &enclosing, &[], &scope);
 
         let mut is_external = false;
         if let FunctionCallMatchResult::MatchedFunction(m) = match_result.clone() {
@@ -345,7 +343,7 @@ impl Visitor for SolidityPreProcessor {
             let args = f_call.arguments.clone();
             for arg in args {
                 let mut is_mem = SelfExpression;
-                let param_name = scope.enclosing_parameter(arg.expression.clone(), &enclosing);
+                let param_name = scope.enclosing_parameter(&arg.expression, &enclosing);
 
                 if param_name.is_some() {
                     let _param_name = param_name.unwrap();
@@ -353,11 +351,11 @@ impl Visitor for SolidityPreProcessor {
                 }
 
                 let arg_type = _ctx.environment.get_expression_type(
-                    arg.expression.clone(),
+                    &arg.expression,
                     &enclosing,
-                    vec![],
-                    vec![],
-                    scope.clone(),
+                    &[],
+                    &[],
+                    &scope,
                 );
 
                 if let Type::Error = arg_type.clone() {
@@ -401,7 +399,7 @@ impl Visitor for SolidityPreProcessor {
                 offset += 1;
                 index += 1;
             }
-            *_t = f_call;
+            *call = f_call;
         }
 
         _ctx.function_call_receiver_trail = vec![];

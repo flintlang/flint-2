@@ -152,14 +152,14 @@ pub struct SolidityWrapperFunction {
 }
 
 impl SolidityWrapperFunction {
-    pub fn generate(&self, t: &TypeIdentifier) -> String {
+    pub fn generate(&self, type_id: &str) -> String {
         let caller_check = SolidityCallerProtectionCheck {
             caller_protections: self.function.caller_protections.clone(),
             revert: false,
             variable: "_QuartzCallerCheck".to_string(),
         };
 
-        let _caller_code = caller_check.generate(t, self.function.environment.clone());
+        let _caller_code = caller_check.generate(type_id, self.function.environment.clone());
 
         unimplemented!()
     }
@@ -176,31 +176,31 @@ struct SolidityCallerProtectionCheck {
 }
 
 impl SolidityCallerProtectionCheck {
-    pub fn generate(&self, t: &TypeIdentifier, environment: Environment) -> String {
+    pub fn generate(&self, type_id: &str, environment: Environment) -> String {
         let checks: Vec<String> = self
             .caller_protections
             .clone()
             .into_iter()
-            .filter_map(|c| {
-                if !c.is_any() {
+            .filter_map(|protection| {
+                if !protection.is_any() {
                     let caller_type = environment.get_property_type(
-                        c.name(),
-                        t,
-                        ScopeContext {
+                        &protection.name(),
+                        type_id,
+                        &ScopeContext {
                             parameters: vec![],
                             local_variables: vec![],
                             counter: 0,
                         },
                     );
 
-                    let offset = environment.property_offset(c.name(), t);
+                    let offset = environment.property_offset(protection.name(), type_id);
 
                     let _function_context = FunctionContext {
                         environment: environment.clone(),
                         scope_context: Default::default(),
                         in_struct_function: false,
                         block_stack: vec![YulBlock { statements: vec![] }],
-                        enclosing_type: t.to_string(),
+                        enclosing_type: type_id.to_string(),
                         counter: 0,
                     };
 

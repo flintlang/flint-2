@@ -590,9 +590,7 @@ impl Visitable for FunctionDeclaration {
         });
 
         if let Some(ref mut scope_context) = ctx.scope_context {
-            for parameter in &self.head.parameters {
-                scope_context.parameters.push(parameter.clone());
-            }
+            scope_context.parameters.extend(self.head.parameters.iter().cloned());
         }
 
         let mut statements: Vec<Vec<Statement>> = vec![];
@@ -605,11 +603,8 @@ impl Visitable for FunctionDeclaration {
             statements.push(ctx.post_statements.clone());
         }
 
-        let body = self.body.clone();
-        let mut counter = 1;
-        for statement in body {
-            statements.insert(counter, vec![statement]);
-            counter += 3;  // Why +3, this needs an explanation
+        for (statement, counter) in self.body.iter().zip((1..).step_by(3)) {
+            statements.insert(counter, vec![statement.clone()]);
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();
@@ -672,16 +667,10 @@ impl FunctionSignatureDeclaration {
     }
 
     pub fn is_equal(&self, against: FunctionSignatureDeclaration) -> bool {
-        let modifiers_match = do_vecs_match(&self.modifiers.clone(), &against.modifiers);
-        let attibutes_match = do_vecs_match(&self.attributes.clone(), &against.attributes);
-        let parameter_names_match = do_vecs_match(
-            &self.parameter_identifiers(),
-            &against.parameter_identifiers(),
-        );
-        let parameter_types = do_vecs_match(
-            &self.parameter_types(),
-            &against.parameter_types(),
-        );
+        let modifiers_match = self.modifiers == against.modifiers;
+        let attibutes_match = self.attributes == against.attributes;
+        let parameter_names_match = self.parameter_identifiers() == against.parameter_identifiers();
+        let parameter_types = self.parameter_types() == against.parameter_types();
         if self.identifier.token == against.identifier.token
             && modifiers_match
             && attibutes_match
@@ -784,9 +773,8 @@ impl Visitable for SpecialDeclaration {
         });
 
         if let Some(ref mut scope_context) = ctx.scope_context {
-            for parameter in &self.head.parameters {
-                scope_context.parameters.push(parameter.clone());
-            }
+            scope_context.parameters.extend(self.head.parameters.iter().cloned());
+
             scope_context.parameters.push(Parameter {
                 identifier: Identifier {
                     token: "caller".to_string(),
@@ -822,11 +810,8 @@ impl Visitable for SpecialDeclaration {
             statements.push(ctx.post_statements.clone());
         }
 
-        let body = self.body.clone();
-        let mut counter = 1;
-        for statement in body {
-            statements.insert(counter, vec![statement]);
-            counter += 3;  // Why +3, needs explanation
+        for (statement, counter) in self.body.iter().zip((1..).step_by(3)) {
+            statements.insert(counter, vec![statement.clone()]);
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();

@@ -1,4 +1,8 @@
 use crate::parser::utils::*;
+use crate::ast::Modifier;
+use nom::branch::alt;
+use nom::bytes::complete::tag;
+use nom::multi::many0;
 
 pub fn parse_modifiers(i: Span) -> nom::IResult<Span, Vec<Modifier>> {
     many0(nom::sequence::terminated(

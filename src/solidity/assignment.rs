@@ -39,7 +39,7 @@ impl SolidityAssignment {
                 if function_context.in_struct_function {
                     let enclosing_name = function_context
                         .scope_context
-                        .enclosing_parameter(self.lhs.clone(), &function_context.enclosing_type);
+                        .enclosing_parameter(&self.lhs, &function_context.enclosing_type);
                     let enclosing_name = if let Some(ref enclosing_name) = enclosing_name {
                         enclosing_name
                     } else {

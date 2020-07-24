@@ -20,11 +20,11 @@ impl MoveAssignment {
         if let Expression::Identifier(i) = &lhs {
             if let Some(ref enclosing) = i.enclosing_type {
                 let var_type = function_context.environment.get_expression_type(
-                    lhs.clone(),
+                    &lhs,
                     enclosing,
-                    vec![],
-                    vec![],
-                    function_context.scope_context.clone(),
+                    &[],
+                    &[],
+                    &function_context.scope_context,
                 );
                 if let Type::ArrayType(a) = var_type {
                     let lhs_ir = MoveExpression {

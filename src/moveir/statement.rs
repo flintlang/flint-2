@@ -31,7 +31,7 @@ impl MoveStatement {
                 MoveEmitStatement { statement: e }.generate(function_context)
             }
             Statement::ForStatement(f) => {
-                MoveForStatement { statement: f }.generate(function_context)
+                MoveForStatement { statement: *f }.generate(function_context)
             }
             Statement::IfStatement(i) => {
                 MoveIfStatement { statement: i }.generate(function_context)

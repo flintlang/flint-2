@@ -8,7 +8,7 @@ pub enum Statement {
     Expression(Expression),
     BecomeStatement(BecomeStatement),
     EmitStatement(EmitStatement),
-    ForStatement(ForStatement),
+    ForStatement(Box<ForStatement>),   // Boxed as rare and large
     IfStatement(IfStatement),
     DoCatchStatement(DoCatchStatement),
     Assertion(Assertion),
@@ -110,11 +110,8 @@ impl Visitable for IfStatement {
             statements.push(ctx.post_statements.clone());
         }
 
-        let body = self.body.clone();
-        let mut counter = 1;
-        for statement in body {
-            statements.insert(counter, vec![statement]);
-            counter += 3;  // Why is this +3, needs explanation
+        for (statement, counter) in self.body.iter().zip((1..).step_by(3)) {
+            statements.insert(counter, vec![statement.clone()]);
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();
@@ -163,11 +160,8 @@ impl Visitable for IfStatement {
             statements.push(ctx.post_statements.clone());
         }
 
-        let body = self.else_body.clone();
-        let mut counter = 1;
-        for statement in body {
-            statements.insert(counter, vec![statement]);
-            counter += 3;
+        for (statement, counter) in self.body.iter().zip((1..).step_by(3)) {
+            statements.insert(counter, vec![statement.clone()]);
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();
@@ -227,11 +221,8 @@ impl Visitable for ForStatement {
             statements.push(ctx.post_statements.clone());
         }
 
-        let body = self.body.clone();
-        let mut counter = 1;
-        for statement in body {
-            statements.insert(counter, vec![statement]);
-            counter += 3;
+        for (statement, counter) in self.body.iter().zip((1..).step_by(3)) {
+            statements.insert(counter, vec![statement.clone()]);
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();

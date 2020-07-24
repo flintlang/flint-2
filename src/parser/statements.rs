@@ -3,6 +3,12 @@ use crate::parser::declarations::parse_variable_declaration;
 use crate::parser::expressions::parse_expression;
 use crate::parser::type_states::parse_type_state;
 use crate::parser::utils::*;
+use crate::ast::{Statement, Assertion, LineInfo, DoCatchStatement, IfStatement, ForStatement, EmitStatement, ReturnStatement, BecomeStatement};
+use nom::combinator::map;
+use nom::branch::alt;
+use nom::bytes::complete::tag;
+use nom::multi::many0;
+use nom::sequence::preceded;
 
 pub fn parse_statements(i: Span) -> nom::IResult<Span, Vec<Statement>> {
     let (i, statements) = many0(nom::sequence::terminated(
@@ -107,7 +113,7 @@ fn parse_for_statement(i: Span) -> nom::IResult<Span, Statement> {
         body: statements,
         for_body_scope_context: None,
     };
-    Ok((i, Statement::ForStatement(for_statement)))
+    Ok((i, Statement::ForStatement(Box::new(for_statement))))
 }
 
 pub fn parse_emit_statement(i: Span) -> nom::IResult<Span, Statement> {
@@ -342,7 +348,7 @@ mod tests {
         let (_rest, result) = parse_for_statement(input).expect("Error parsing for statement");
         assert_eq!(
             result,
-            Statement::ForStatement(ForStatement {
+            Statement::ForStatement(Box::new(ForStatement {
                 variable: VariableDeclaration {
                     declaration_token: Some(String::from("let")),
                     identifier: Identifier {
@@ -363,7 +369,7 @@ mod tests {
 
                 body: vec![Statement::Expression(Expression::Literal(IntLiteral(5)))],
                 for_body_scope_context: None,
-            })
+            }))
         );
     }
 

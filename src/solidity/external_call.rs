@@ -9,24 +9,23 @@ impl SolidityExternalCall {
         let gas = YulExpression::Literal(YulLiteral::Num(2300));
         let value = YulExpression::Literal(YulLiteral::Num(0));
 
-        let f_call: FunctionCall;
         let rhs = *self.call.function_call.rhs_expression.clone();
-        if let Expression::FunctionCall(f) = rhs {
-            f_call = f;
+        let call: FunctionCall = if let Expression::FunctionCall(f) = rhs {
+            f
         } else {
             panic!("Solidity External Call RHS not function call")
-        }
+        };
 
-        let enclosing = if let Some(ref identifier) = f_call.identifier.enclosing_type {
+        let enclosing = if let Some(ref identifier) = call.identifier.enclosing_type {
             identifier
         } else {
             &function_context.enclosing_type
         };
         let matched = function_context.environment.match_function_call(
-            f_call.clone(),
+            &call,
             enclosing,
-            vec![],
-            function_context.scope_context.clone(),
+            &[],
+            &function_context.scope_context,
         );
 
         let match_result: FunctionInformation;
@@ -67,7 +66,7 @@ impl SolidityExternalCall {
         let dynamic_size = 0;
 
         let param_types = match_result.declaration.head.parameter_types().clone();
-        let f_args = f_call.arguments.clone();
+        let f_args = call.arguments.clone();
 
         let pairs: Vec<(Type, FunctionArgument)> =
             param_types.into_iter().zip(f_args.into_iter()).collect();

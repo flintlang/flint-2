@@ -109,18 +109,16 @@ struct MoveCastExpression {
 
 impl MoveCastExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
-        let enclosing = &self
-            .expression
-            .expression
-            .enclosing_type()
-            .unwrap_or_else(|| function_context.enclosing_type.clone());
-        let scope = function_context.scope_context.clone();
+        let enclosing = self.expression.expression.enclosing_type();
+        let enclosing = enclosing
+            .as_ref()
+            .unwrap_or_else(|| &function_context.enclosing_type);
         let original_type = function_context.environment.get_expression_type(
-            *self.expression.expression.clone(),
+            &*self.expression.expression,
             enclosing,
-            vec![],
-            vec![],
-            scope,
+            &[],
+            &[],
+            &function_context.scope_context,
         );
         let target_type = self.expression.cast_type.clone();
 
@@ -128,7 +126,7 @@ impl MoveCastExpression {
         let target_type_information = MoveCastExpression::get_type_info(target_type);
 
         let expression_code = MoveExpression {
-            expression: *self.expression.expression.clone(),
+            expression: (*self.expression.expression).clone(),
             position: Default::default(),
         }
         .generate(function_context);
@@ -193,11 +191,11 @@ impl MoveSubscriptExpression {
         }
         .generate(function_context, false, false);
         let base_type = function_context.environment.get_expression_type(
-            Expression::Identifier(self.expression.base_expression.clone()),
+            &Expression::Identifier(self.expression.base_expression.clone()),
             &function_context.enclosing_type.clone(),
-            vec![],
-            vec![],
-            function_context.scope_context.clone(),
+            &[],
+            &[],
+            &function_context.scope_context,
         );
 
         let inner_type = match base_type.clone() {
@@ -297,11 +295,11 @@ struct MoveInoutExpression {
 impl MoveInoutExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let expression_type = function_context.environment.get_expression_type(
-            *self.expression.expression.clone(),
+            &*self.expression.expression.clone(),
             &function_context.enclosing_type,
-            vec![],
-            vec![],
-            function_context.scope_context.clone(),
+            &[],
+            &[],
+            &function_context.scope_context,
         );
 
         if let Type::InoutType(_) = expression_type {

@@ -1,6 +1,6 @@
 use super::function::FunctionContext;
 use super::ir::MoveIRType;
-use crate::ast::{FunctionCall, Identifier, Type, TypeIdentifier};
+use crate::ast::{FunctionCall, Identifier, Type};
 use crate::environment::Environment;
 
 #[derive(Debug, Clone)]
@@ -144,8 +144,8 @@ impl MoveType {
         }
     }
 
-    pub fn is_resource_type(original: Type, t: &TypeIdentifier, environment: &Environment) -> bool {
-        environment.is_contract_declared(t) || original.is_currency_type()
+    pub fn is_resource_type(original: Type, type_id: &str, environment: &Environment) -> bool {
+        environment.is_contract_declared(type_id) || original.is_currency_type()
     }
 
     pub fn is_resource(&self) -> bool {

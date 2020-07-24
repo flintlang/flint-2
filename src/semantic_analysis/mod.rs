@@ -598,26 +598,24 @@ impl Visitor for SemanticAnalysis {
     fn start_function_call(&mut self, t: &mut FunctionCall, ctx: &mut Context) -> VResult {
         let contract_name = ctx.contract_behaviour_declaration_context.clone();
         if let Some(context) = contract_name {
-            let contract_name = context.identifier.token.clone();
-            let caller_protections = context.caller_protections.clone();
-            let scope_context = ctx.scope_context.clone().unwrap_or_default();
+            let contract_name = &context.identifier.token.clone();
 
             let function_info = ctx.environment.match_function_call(
-                t.clone(),
-                &contract_name,
-                caller_protections,
-                scope_context,
+                &t,
+                contract_name,
+                &context.caller_protections,
+                ctx.scope_context.as_ref().unwrap_or_default(),
             );
             return match function_info {
                 MatchedFunction(info) => check_if_correct_type_state_possible(
                     context,
-                    ctx.environment.get_contract_state(&contract_name),
+                    ctx.environment.get_contract_state(contract_name),
                     info.type_states,
                     t.identifier.clone(),
                 ),
                 MatchedInitializer(info) => check_if_correct_type_state_possible(
                     context,
-                    ctx.environment.get_contract_state(&contract_name),
+                    ctx.environment.get_contract_state(contract_name),
                     info.type_states,
                     t.identifier.clone(),
                 ),
@@ -673,11 +671,11 @@ impl Visitor for SemanticAnalysis {
             };
 
         if let Type::Bool = ctx.environment.get_expression_type(
-            assertion.expression.clone(),
+            &assertion.expression,
             enclosing_type,
-            type_states,
-            caller_protections,
-            ctx.scope_context.clone().unwrap_or_default(),
+            &type_states,
+            &caller_protections,
+            ctx.scope_context.as_ref().unwrap_or_default(),
         )
         {
             Ok(())

@@ -1,6 +1,6 @@
 use crate::ast::{
-    do_vecs_match, CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration,
-    FunctionInformation, FunctionSignatureDeclaration, Type, TypeIdentifier, TypeInfo, TypeState,
+    CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration,
+    FunctionInformation, FunctionSignatureDeclaration, Type, TypeInfo, TypeState,
     VariableDeclaration,
 };
 use crate::context::ScopeContext;
@@ -10,24 +10,25 @@ use crate::type_checker::ExpressionCheck;
 impl Environment {
     pub fn add_function(
         &mut self,
-        f: &FunctionDeclaration,
-        t: &TypeIdentifier,
+        f: FunctionDeclaration,
+        type_id: &str,
         caller_protections: Vec<CallerProtection>,
         type_states: Vec<TypeState>,
     ) {
         let name = f.head.identifier.token.clone();
+        let mutating = f.is_mutating();
         let function_information = FunctionInformation {
-            declaration: f.clone(),
-            mutating: f.is_mutating(),
-            caller_protection: caller_protections,
+            declaration: f,
+            mutating,
+            caller_protections: caller_protections,
             type_states,
             ..Default::default()
         };
-        let type_info = if let Some(type_info) = self.types.get_mut(t) {
+        let type_info = if let Some(type_info) = self.types.get_mut(type_id) {
             type_info
         } else {
-            self.types.insert(t.to_string(), TypeInfo::new());
-            self.types.get_mut(t).unwrap()
+            self.types.insert(type_id.to_string(), TypeInfo::new());
+            self.types.get_mut(type_id).unwrap()
         };
 
         if let Some(function_set) = type_info.functions.get_mut(&name) {
@@ -37,9 +38,9 @@ impl Environment {
         }
     }
 
-    pub fn remove_function(&mut self, function: &FunctionDeclaration, t: &TypeIdentifier) {
+    pub fn remove_function(&mut self, function: &FunctionDeclaration, type_id: &str) {
         let name = function.head.identifier.token.clone();
-        if let Some(type_info) = self.types.get_mut(t) {
+        if let Some(type_info) = self.types.get_mut(type_id) {
             if let Some(function_set) = type_info.functions.remove(&name) {
                 let function_set = function_set
                     .into_iter()
@@ -47,10 +48,8 @@ impl Environment {
                         /* The original code had this without the !(..), it was added
                         as it seems to be the desired intent */
                         !(f.declaration.head.identifier.token == name
-                            && do_vecs_match(
-                                &f.declaration.parameters_and_types(),
-                                &function.parameters_and_types(),
-                            ))
+                            && f.declaration.parameters_and_types() == function.parameters_and_types()
+                            )
                     })
                     .collect();
                 type_info.functions.insert(name, function_set);
@@ -60,15 +59,15 @@ impl Environment {
 
     pub fn add_function_signature(
         &mut self,
-        f: &FunctionSignatureDeclaration,
-        t: &TypeIdentifier,
+        signature: FunctionSignatureDeclaration,
+        type_id: &str,
         caller_protections: Vec<CallerProtection>,
         type_states: Vec<TypeState>,
         is_external: bool,
     ) {
-        let name = f.identifier.token.clone();
+        let name = signature.identifier.token.clone();
         let function_declaration = FunctionDeclaration {
-            head: f.clone(),
+            head: signature.clone(),
             body: vec![],
             scope_context: None,
             tags: vec![],
@@ -79,21 +78,21 @@ impl Environment {
         let function_information = FunctionInformation {
             declaration: function_declaration.clone(),
             mutating: function_declaration.is_mutating(),
-            caller_protection: caller_protections,
+            caller_protections: caller_protections,
             type_states,
             is_signature: true,
         };
-        if let Some(type_info) = self.types.get_mut(t) {
+        if let Some(type_info) = self.types.get_mut(type_id) {
             if let Some(function_set) = type_info.functions.get_mut(&name) {
                 function_set.push(function_information);
             } else {
                 type_info.functions.insert(name, vec![function_information]);
             }
         } else {
-            self.types.insert(t.to_string(), TypeInfo::new());
+            self.types.insert(type_id.to_string(), TypeInfo::new());
             // TODO consider using a map literal crate
             self.types
-                .get_mut(t)
+                .get_mut(type_id)
                 .unwrap()
                 .functions
                 .insert(name, vec![function_information]);
@@ -102,32 +101,30 @@ impl Environment {
 
     fn match_regular_function(
         &self,
-        f: FunctionCall,
-        t: &TypeIdentifier,
-        c: Vec<CallerProtection>,
-        scope: ScopeContext,
+        call: &FunctionCall,
+        type_id: &str,
+        protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> FunctionCallMatchResult {
         let mut candidates = Vec::new();
 
-        let arguments = f.arguments.clone();
-
-        let argument_types: Vec<Type> = arguments
-            .into_iter()
+        let argument_types: Vec<Type> = call.arguments
+            .iter()
             .map(|a| {
-                self.get_expression_type(a.expression, t, vec![], vec![], scope.clone())
+                self.get_expression_type(&a.expression, type_id, &[], &[], &scope)
             })
             .collect();
 
-        if let Some(type_info) = self.types.get(t) {
-            if let Some(functions) = type_info.all_functions().get(&f.identifier.token) {
+        if let Some(type_info) = self.types.get(type_id) {
+            if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
                     if self.function_call_arguments_compatible(
-                        function.clone(),
-                        f.clone(),
-                        t,
-                        scope.clone()) && self.compatible_caller_protections(
-                            c.clone(),
-                            function.caller_protection.clone(),
+                        function,
+                        call,
+                        type_id,
+                        scope) && self.compatible_caller_protections(
+                        protections,
+                        &function.caller_protections,
                         ) {
                         return FunctionCallMatchResult::MatchedFunction(function.clone());
                     }
@@ -178,13 +175,13 @@ impl Environment {
     }
 
     #[allow(dead_code)]
-    fn match_fallback_function(&self, f: FunctionCall, c: Vec<CallerProtection>) {
+    fn match_fallback_function(&self, call: &FunctionCall, protections: &[CallerProtection]) {
         let mut candidates = Vec::new();
-        if let Some(type_info) = self.types.get(&f.identifier.token) {
+        if let Some(type_info) = self.types.get(&call.identifier.token) {
             let fallbacks = &type_info.fallbacks;
             for fallback in fallbacks {
                 if self
-                    .compatible_caller_protections(c.clone(), fallback.caller_protections.clone())
+                    .compatible_caller_protections(protections, &fallback.caller_protections)
                 {
                     // TODO Return MatchedFallBackFunction
                 } else {
@@ -198,17 +195,17 @@ impl Environment {
 
     fn match_initialiser_function(
         &self,
-        f: FunctionCall,
-        argument_types: Vec<Type>,
-        c: Vec<CallerProtection>,
+        call: &FunctionCall,
+        argument_types: &[Type],
+        protections: &[CallerProtection],
     ) -> FunctionCallMatchResult {
         let mut candidates = Vec::new();
 
-        if let Some(type_info) = self.types.get(&f.identifier.token) {
+        if let Some(type_info) = self.types.get(&call.identifier.token) {
             for initialiser in &type_info.initialisers {
                 let parameter_types = initialiser.parameter_types();
                 let mut equal_types = true;
-                for argument_type in &argument_types {
+                for argument_type in argument_types {
                     if !parameter_types.contains(argument_type) {
                         equal_types = false;
                     }
@@ -216,8 +213,8 @@ impl Environment {
 
                 if equal_types
                     && self.compatible_caller_protections(
-                        c.clone(),
-                        initialiser.caller_protections.clone(),
+                    protections,
+                    &initialiser.caller_protections,
                     )
                 {
                     return FunctionCallMatchResult::MatchedInitializer(initialiser.clone());
@@ -238,26 +235,21 @@ impl Environment {
 
     fn match_global_function(
         &self,
-        f: FunctionCall,
-        argument_types: Vec<Type>,
-        c: Vec<CallerProtection>,
+        call: &FunctionCall,
+        argument_types: &[Type],
+        protections: &[CallerProtection],
     ) -> FunctionCallMatchResult {
-        let token = f.identifier.token.clone();
+        let token = call.identifier.token.clone();
         let mut candidates = Vec::new();
         if let Some(type_info) = self.types.get(&"Quartz_Global".to_string()) {
-            if let Some(functions) = type_info.functions.get(&f.identifier.token) {
+            if let Some(functions) = type_info.functions.get(&call.identifier.token) {
                 for function in functions {
                     let parameter_types = function.get_parameter_types();
-                    let mut equal_types = true;
-                    for argument_type in argument_types.clone() {
-                        if !parameter_types.contains(&argument_type) {
-                            equal_types = false;
-                        }
-                    }
+                    let equal_types = argument_types.iter().all(|argument_type| parameter_types.contains(argument_type));
                     if equal_types
                         && self.compatible_caller_protections(
-                            c.clone(),
-                            function.caller_protection.clone(),
+                        protections,
+                        &function.caller_protections,
                         )
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
@@ -284,36 +276,34 @@ impl Environment {
 
     pub fn match_function_call(
         &self,
-        f: FunctionCall,
-        t: &TypeIdentifier,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        call: &FunctionCall,
+        type_id: &str,
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> FunctionCallMatchResult {
         let result = FunctionCallMatchResult::Failure(Candidates {
             ..Default::default()
         });
 
-        let arguments = f.arguments.clone();
-
-        let argument_types: Vec<Type> = arguments
-            .into_iter()
+        let argument_types: Vec<_> = call.arguments
+            .iter()
             .map(|a| {
-                self.get_expression_type(a.expression, t, vec![], vec![], scope.clone())
+                self.get_expression_type(&a.expression, type_id, &[], &[], &scope)
             })
             .collect();
 
         let regular_match =
-            self.match_regular_function(f.clone(), t, caller_protections.clone(), scope);
+            self.match_regular_function(&call, type_id, caller_protections.clone(), scope);
 
         let initaliser_match = self.match_initialiser_function(
-            f.clone(),
-            argument_types.clone(),
-            caller_protections.clone(),
+            call,
+            &argument_types,
+            caller_protections,
         );
 
         let global_match = self.match_global_function(
-            f,
-            argument_types,
+            call,
+            &argument_types,
             caller_protections,
         );
 
@@ -324,12 +314,12 @@ impl Environment {
 
     fn compatible_caller_protections(
         &self,
-        source: Vec<CallerProtection>,
-        target: Vec<CallerProtection>,
+        source: &[CallerProtection],
+        target: &[CallerProtection],
     ) -> bool {
-        for parent in &target {
-            for caller_protection in &source {
-                if !caller_protection.is_sub_protection(parent.clone()) {
+        for parent in target {
+            for caller_protection in source {
+                if !caller_protection.is_sub_protection(parent) {
                     return false;
                 }
             }
@@ -339,19 +329,18 @@ impl Environment {
 
     fn function_call_arguments_compatible(
         &self,
-        source: FunctionInformation,
-        target: FunctionCall,
-        t: &TypeIdentifier,
-        scope: ScopeContext,
+        source: &FunctionInformation,
+        target: &FunctionCall,
+        type_id: &str,
+        scope: &ScopeContext,
     ) -> bool {
-        let no_self_declaration_type = Environment::replace_self(source.get_parameter_types(), t);
+        let no_self_declaration_type = Environment::replace_self(source.get_parameter_types(), type_id);
 
-        let parameters: Vec<VariableDeclaration> = source
+        let parameters: Vec<_> = source
             .declaration
             .head
             .parameters
-            .clone()
-            .into_iter()
+            .iter()
             .map(|p| p.as_variable_declaration())
             .collect();
 
@@ -359,11 +348,11 @@ impl Environment {
             && target.arguments.len() >= source.required_parameter_identifiers().len()
         {
             self.check_parameter_compatibility(
-                target.arguments,
-                parameters,
-                t,
+                &target.arguments,
+                &parameters,
+                type_id,
                 scope,
-                no_self_declaration_type,
+                &no_self_declaration_type,
             )
         } else {
             false
@@ -372,31 +361,21 @@ impl Environment {
 
     fn check_parameter_compatibility(
         &self,
-        arguments: Vec<FunctionArgument>,
-        parameters: Vec<VariableDeclaration>,
-        enclosing: &TypeIdentifier,
-        scope: ScopeContext,
-        declared_types: Vec<Type>,
+        arguments: &[FunctionArgument],
+        parameters: &[VariableDeclaration],
+        enclosing: &str,
+        scope: &ScopeContext,
+        declared_types: &[Type],
     ) -> bool {
-        let mut index = 0;
-        let mut argument_index = 0;
 
-        let required_parameters = parameters.clone();
-        let required_parameters: Vec<VariableDeclaration> = required_parameters
-            .into_iter()
+        let required_parameters: Vec<&VariableDeclaration> = parameters
+            .iter()
             .filter(|f| f.expression.is_none())
             .collect();
 
-        while index < required_parameters.len() {
-            if arguments[argument_index].identifier.is_some() {
-                let argument_name = arguments[argument_index]
-                    .identifier
-                    .as_ref()
-                    .unwrap()
-                    .token
-                    .clone();
-
-                if argument_name != parameters[index].identifier.token {
+        for (index, _) in required_parameters.iter().enumerate() {
+            if let Some(ref argument) = arguments[index].identifier {
+                if argument.token != parameters[index].identifier.token {
                     return false;
                 }
             } else {
@@ -404,39 +383,37 @@ impl Environment {
             }
 
             // Check Types
-            let declared_type = declared_types[index].clone();
-            let argument_expression = arguments[argument_index].expression.clone();
+            let declared_type = &declared_types[index];
+            let argument_expression = &arguments[index].expression;
             let argument_type = self.get_expression_type(
                 argument_expression,
                 enclosing,
-                vec![],
-                vec![],
-                scope.clone(),
+                &[],
+                &[],
+                &scope,
             );
 
-            if declared_type != argument_type {
+            if argument_type != *declared_type {
                 return false;
             }
-
-            index += 1;
-            argument_index += 1;
         }
 
-        while index < required_parameters.len() && argument_index < arguments.len() {
-            if arguments[argument_index].identifier.is_some() {
-            } else {
-                let declared_type = declared_types[index].clone();
+        let mut index = required_parameters.len();
+        let mut argument_index = index;
 
-                let argument_expression = arguments[argument_index].expression.clone();
+        while index < required_parameters.len() && argument_index < arguments.len() {
+            if arguments[argument_index].identifier.is_none() {
+                let declared_type = &declared_types[index];
+
                 let argument_type = self.get_expression_type(
-                    argument_expression,
+                    &arguments[argument_index].expression,
                     enclosing,
-                    vec![],
-                    vec![],
-                    scope.clone(),
+                    &[],
+                    &[],
+                    scope,
                 );
                 //TODO replacing self
-                if declared_type != argument_type {
+                if argument_type != *declared_type {
                     return false;
                 }
                 index += 1;
@@ -445,14 +422,8 @@ impl Environment {
             }
 
             while index < parameters.len() {
-                if arguments[argument_index].identifier.is_some() {
-                    let argument_name = arguments[argument_index]
-                        .identifier
-                        .as_ref()
-                        .unwrap()
-                        .token
-                        .clone();
-                    if argument_name != parameters[index].identifier.token {
+                if let Some(ref argument) = arguments[argument_index].identifier {
+                    if argument.token != parameters[index].identifier.token {
                         index += 1;
                     }
                 } else {
@@ -466,17 +437,16 @@ impl Environment {
             }
 
             // Check Types
-            let declared_type = declared_types[index].clone();
-            let argument_expression = arguments[argument_index].expression.clone();
+            let declared_type = &declared_types[index];
             let argument_type = self.get_expression_type(
-                argument_expression,
+                &arguments[argument_index].expression,
                 enclosing,
-                vec![],
-                vec![],
-                scope.clone(),
+                &[],
+                &[],
+                scope,
             );
 
-            if declared_type != argument_type {
+            if *declared_type != argument_type {
                 return false;
             }
 
@@ -490,7 +460,7 @@ impl Environment {
         true
     }
 
-    pub fn replace_self(list: Vec<Type>, enclosing: &TypeIdentifier) -> Vec<Type> {
+    pub fn replace_self(list: Vec<Type>, enclosing: &str) -> Vec<Type> {
         list.into_iter()
             .map(|t| t.replacing_self(enclosing))
             .collect()

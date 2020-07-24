@@ -4,6 +4,12 @@ use crate::parser::literals::*;
 use crate::parser::operators::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
+use crate::ast::{Expression, Identifier, SubscriptExpression, RangeExpression, CastExpression, InoutExpression, BracketedExpression, AttemptExpression, BinaryExpression, LineInfo};
+use nom::bytes::complete::tag;
+use nom::combinator::map;
+use nom::branch::alt;
+use nom::sequence::preceded;
+use crate::parser::declarations::parse_variable_declaration;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((

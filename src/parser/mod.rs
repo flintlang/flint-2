@@ -15,9 +15,10 @@ use nom_locate::LocatedSpan;
 
 use nom::multi::many0;
 
-use crate::parser::declarations::*;
-use crate::parser::operators::*;
 use crate::parser::utils::*;
+use crate::environment::Environment;
+use crate::ast::Module;
+use crate::parser::declarations::parse_top_level_declaration;
 
 pub fn parse_program(i: &str) -> ParseResult {
     let input = LocatedSpan::new(i);
@@ -52,9 +53,8 @@ fn parse_module(i: Span) -> nom::IResult<Span, Module> {
 mod tests {
     use nom_locate::LocatedSpan;
 
-    use crate::parser::declarations::*;
-    use crate::parser::operators::*;
-    use crate::parser::utils::*;
+    use crate::ast::{TopLevelDeclaration, Module, ContractDeclaration, Identifier, LineInfo, ContractMember, VariableDeclaration, Type, DictionaryType, DictionaryLiteral, Expression, EventDeclaration, Parameter, TypeState};
+    use crate::parser::parse_module;
 
     #[test]
     fn test_parse_module() {

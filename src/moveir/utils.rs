@@ -275,7 +275,7 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
                             *argument = expr;
                             return Some(MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                                 identifier: fc.identifier.clone(),
-                                arguments: arguments,
+                                arguments,
                             }));
                         }
                     }
@@ -298,12 +298,12 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
                 }
                 MoveIRExpression::Vector(vec) => {
                     // iterate backwards through arguments until an element matches the statement or we reach the end of arguments
+                    // TODO this look like it's broken, much is unused within it
                     let mut elements = vec.elements.clone();
                     for element in elements.iter_mut().rev() {
-                        if let Some(expr) = remove_move(&statement, &element) {
-                            *element = expr;
+                        if remove_move(&statement, &element).is_some() {
                             return Some(MoveIRExpression::Vector(MoveIRVector {
-                                elements: elements,
+                                elements,
                                 vec_type: vec.vec_type.clone(),
                             }));
                         }
@@ -331,8 +331,7 @@ pub fn remove_moves(
             post_statements.push(statement);
         }
     }
-
-    return (post_statements, curr_expr);
+    (post_statements, curr_expr)
 }
 
 #[cfg(test)]
@@ -354,30 +353,23 @@ mod test {
 
     #[test]
     fn test_remove_moves() {
-        let expr = MoveIRExpression::Operation(MoveIROperation::Add(
-            Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
-                    Box::new(MoveIRExpression::Operation(
-                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
-                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
-                                "_temp__3".to_string(),
-                            ))),
+        let inner = Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+            Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                Box::new(MoveIRExpression::Operation(
+                    MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                        MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                            "_temp__3".to_string(),
                         ))),
-                    )),
-                ))),
-                "width".to_string(),
+                    ))),
+                )),
             ))),
+            "width".to_string(),
+        )));
+        let expr = MoveIRExpression::Operation(MoveIROperation::Add(
+            inner.clone(),
             Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
-                    Box::new(MoveIRExpression::Operation(
-                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
-                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
-                                "_temp__3".to_string(),
-                            ))),
-                        ))),
-                    )),
-                ))),
-                "height".to_string(),
+                inner,
+                "height".to_string()
             ))),
         ));
         let statement = Expression(BinaryExpression(BinaryExpression {

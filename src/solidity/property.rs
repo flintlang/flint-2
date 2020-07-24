@@ -12,14 +12,14 @@ impl SolidityPropertyAccess {
         let scope = function_context.scope_context.clone();
         let is_mem_access = false;
         let lhs_type = function_context.environment.get_expression_type(
-            self.lhs.clone(),
+            &self.lhs,
             &type_identifier,
-            vec![],
-            vec![],
-            scope.clone(),
+            &[],
+            &[],
+            &scope,
         );
-        if let Expression::Identifier(li) = self.lhs.clone() {
-            if let Expression::Identifier(_) = self.rhs.clone() {
+        if let Expression::Identifier(ref li) = self.lhs.clone() {
+            if let Expression::Identifier(_) = self.rhs {
                 if function_context.environment.is_enum_declared(&li.token) {
                     unimplemented!()
                 }
@@ -70,7 +70,7 @@ impl SolidityPropertyAccess {
         let offset = if function_context.in_struct_function {
             let enclosing_name = function_context
                 .scope_context
-                .enclosing_parameter(self.lhs.clone(), &type_identifier)
+                .enclosing_parameter(&self.lhs, &type_identifier)
                 .unwrap_or_else(|| "QuartzSelf".to_string());
 
             let lhs_offset = YulExpression::Identifier(mangle(&enclosing_name));
@@ -80,7 +80,7 @@ impl SolidityPropertyAccess {
                 mangle(&mangle_mem(&enclosing_name)),
             )
         } else {
-            let lhs_offset = if let Expression::Identifier(i) = self.lhs.clone() {
+            let lhs_offset = if let Expression::Identifier(i) = &self.lhs {
                 if let Some(ref enclosing_type) = i.enclosing_type {
                     let offset = function_context
                         .environment

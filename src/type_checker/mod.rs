@@ -10,11 +10,11 @@ pub struct TypeChecker {}
 pub trait ExpressionCheck {
     fn get_expression_type(
         &self,
-        expr: Expression,
-        t: &TypeIdentifier,
-        type_states: Vec<TypeState>,
-        caller_protections: Vec<CallerProtection>,
-        scope: ScopeContext,
+        expr: &Expression,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
     ) -> Type;
 }
 
@@ -72,11 +72,11 @@ impl Visitor for TypeChecker {
         let enclosing = _ctx.enclosing_type_identifier().unwrap_or_default();
         let enclosing = enclosing.token;
         let lhs_type = _ctx.environment.get_expression_type(
-            *_t.lhs_expression.clone(),
+            &*_t.lhs_expression,
             &enclosing,
-            vec![],
-            vec![],
-            _ctx.scope_context.clone().unwrap_or_default(),
+            &[],
+            &[],
+            _ctx.scope_context.as_ref().unwrap_or_default(),
         );
         match _t.op {
             BinOp::Dot => _t.rhs_expression.assign_enclosing_type(&lhs_type.name()),

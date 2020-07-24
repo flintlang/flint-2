@@ -4,6 +4,11 @@ use crate::parser::identifiers::parse_identifier;
 use crate::parser::literals::*;
 use crate::parser::operators::*;
 use crate::parser::utils::*;
+use crate::ast::{Type, SolidityType, FixedSizedArrayType, Literal, InoutType, ArrayType, DictionaryType, TypeAnnotation};
+use nom::bytes::complete::tag;
+use nom::combinator::map;
+use nom::branch::alt;
+use nom::sequence::preceded;
 
 pub fn parse_type_annotation(i: Span) -> nom::IResult<Span, TypeAnnotation> {
     let (i, colon) = colon(i)?;

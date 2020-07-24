@@ -3,6 +3,9 @@ use crate::parser::identifiers::*;
 use crate::parser::operators::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
+use crate::ast::{Parameter, LineInfo};
+use nom::bytes::complete::tag;
+use nom::sequence::preceded;
 
 pub fn parse_parameter_list(i: Span) -> nom::IResult<Span, Vec<Parameter>> {
     let (i, _) = left_parens(i)?;
