@@ -160,7 +160,7 @@ impl Visitable for IfStatement {
             statements.push(ctx.post_statements.clone());
         }
 
-        for (statement, counter) in self.body.iter().zip((1..).step_by(3)) {
+        for (statement, counter) in self.else_body.iter().zip((1..).step_by(3)) {
             statements.insert(counter, vec![statement.clone()]);
         }
 
