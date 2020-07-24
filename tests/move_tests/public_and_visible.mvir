@@ -1,0 +1,11 @@
+import {{default}}.MyContract;
+
+main(account: &signer) {
+  MyContract.publish(copy(account));
+  assert(MyContract.getValue(copy(account)) == 0, 1);
+  assert(MyContract.getOtherValue(copy(account)) == 0, 2);
+  MyContract.setOtherValue(copy(account), 9);
+  assert(MyContract.getOtherValue(copy(account)) == 9, 3);
+
+  return;
+}

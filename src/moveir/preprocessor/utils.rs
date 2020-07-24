@@ -743,43 +743,6 @@ pub fn pre_assign(
     }
 }
 
-pub fn generate_assertion(
-    predicate: Vec<Expression>,
-    function_context: FunctionContext,
-) -> Statement {
-    let mut predicates = predicate;
-    if predicates.len() >= 2 {
-        let or_expression = Expression::BinaryExpression(BinaryExpression {
-            lhs_expression: Box::new(predicates.remove(0)),
-            rhs_expression: Box::new(predicates.remove(0)),
-            op: BinOp::Or,
-            line_info: Default::default(),
-        });
-        while !predicates.is_empty() {
-            unimplemented!()
-        }
-        let expression = MoveExpression {
-            expression: or_expression,
-            position: Default::default(),
-        }
-        .generate(&function_context);
-        let string = format!("assert({ex}, 1)", ex = expression);
-        return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
-    }
-
-    if predicates.is_empty() {
-        unimplemented!()
-    }
-    let expression = predicates.remove(0);
-    let expression = MoveExpression {
-        expression,
-        position: Default::default(),
-    }
-    .generate(&function_context);
-    let string = format!("assert({ex}, 1)", ex = expression);
-    Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
-}
-
 pub fn release(expression: Expression, expression_type: Type) -> Statement {
     Statement::Expression(Expression::BinaryExpression(BinaryExpression {
         lhs_expression: Box::new(Expression::RawAssembly(

@@ -1,0 +1,8 @@
+contract MyContract {
+  visible var value: Int = 0
+  public var otherValue: Int = 0
+}
+
+MyContract :: (any) {
+  public init() {}
+}

@@ -4,7 +4,7 @@ dist: xenial
 before_script:
   - rustup component add clippy
 script:
-  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
+  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -W clippy::unnecessary-unwrap --verbose
   - mkdir output
   - cargo run libra tests/move_tests/counter.flint
   - cargo run libra tests/move_tests/rectangle.flint

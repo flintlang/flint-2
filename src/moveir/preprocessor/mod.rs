@@ -42,17 +42,47 @@ impl Visitor for MovePreProcessor {
 
     fn start_contract_behaviour_declaration(
         &mut self,
-        _t: &mut ContractBehaviourDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut ContractBehaviourDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        _t.members = _t
+        // If we are in the declaration that contains the initialiser, then that is where we will insert the
+        // getters and setters since there are no caller protections or type state restrictions
+        if declaration.members.iter().any(|member| {
+            if let ContractBehaviourMember::SpecialDeclaration(special) = member {
+                special.head.special_token.eq("init")
+            } else {
+                false
+            }
+        }) {
+            let non_private_contract_members = ctx
+                .environment
+                .property_declarations(&declaration.identifier.token)
+                .into_iter()
+                // Some(_) ensures it has some modifier, and is therefore not private
+                .filter(|property| property.get_modifier().is_some())
+                .collect::<Vec<Property>>();
+
+            for non_private_contract_member in non_private_contract_members {
+                match non_private_contract_member.get_modifier().as_ref().unwrap() {
+                    Modifier::Public => {
+                        generate_and_add_getter(&non_private_contract_member, declaration, ctx);
+                        generate_and_add_setter(&non_private_contract_member, declaration);
+                    }
+                    Modifier::Visible => {
+                        generate_and_add_getter(&non_private_contract_member, declaration, ctx)
+                    }
+                }
+            }
+        }
+
+        declaration.members = declaration
             .members
             .clone()
             .into_iter()
             .flat_map(|f| {
                 if let ContractBehaviourMember::FunctionDeclaration(fd) = f {
                     let functions =
-                        convert_default_parameter_functions(fd, &_t.identifier.token, _ctx);
+                        convert_default_parameter_functions(fd, &declaration.identifier.token, ctx);
                     functions
                         .into_iter()
                         .map(ContractBehaviourMember::FunctionDeclaration)
@@ -167,10 +197,10 @@ impl Visitor for MovePreProcessor {
 
     fn start_function_declaration(
         &mut self,
-        _t: &mut FunctionDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut FunctionDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        let enclosing_identifier = _ctx
+        let enclosing_identifier = ctx
             .enclosing_type_identifier()
             .unwrap_or(Identifier {
                 token: "".to_string(),
@@ -179,12 +209,15 @@ impl Visitor for MovePreProcessor {
             })
             .token;
 
-        let mangled_name =
-            mangle_function_move(&_t.head.identifier.token, &enclosing_identifier, false);
-        _t.mangled_identifier = Some(mangled_name);
+        let mangled_name = mangle_function_move(
+            &declaration.head.identifier.token,
+            &enclosing_identifier,
+            false,
+        );
+        declaration.mangled_identifier = Some(mangled_name);
 
-        if _t.is_payable() {
-            let payable_param = _t.first_payable_param();
+        if declaration.is_payable() {
+            let payable_param = declaration.first_payable_param();
 
             if payable_param.is_none() {
                 panic!("lol")
@@ -195,7 +228,7 @@ impl Visitor for MovePreProcessor {
                 Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
             payable_param.identifier.token = mangle(&payable_param_name);
-            let parameters = _t
+            let parameters = declaration
                 .head
                 .parameters
                 .clone()
@@ -209,7 +242,7 @@ impl Visitor for MovePreProcessor {
                 })
                 .collect();
 
-            _t.head.parameters = parameters;
+            declaration.head.parameters = parameters;
 
             let lhs = VariableDeclaration {
                 declaration_token: None,
@@ -236,14 +269,14 @@ impl Visitor for MovePreProcessor {
                 op: BinOp::Equal,
                 line_info: Default::default(),
             };
-            _t.body.insert(
+            declaration.body.insert(
                 0,
                 Statement::Expression(Expression::BinaryExpression(assignment)),
             );
         }
 
-        if _ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global" {
-            let asset_ctx = _ctx.asset_context.clone();
+        if ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global" {
+            let asset_ctx = ctx.asset_context.clone();
             let asset_ctx = asset_ctx.unwrap();
             let asset_ctx_identifier = asset_ctx.identifier;
             let param_type = Type::UserDefinedType(asset_ctx_identifier);
@@ -259,17 +292,17 @@ impl Visitor for MovePreProcessor {
                 line_info: Default::default(),
             };
 
-            _t.head.parameters.insert(0, parameter.clone());
-            if let Some(ref scope) = _ctx.scope_context {
+            declaration.head.parameters.insert(0, parameter.clone());
+            if let Some(ref scope) = ctx.scope_context {
                 let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
 
-                _ctx.scope_context = Some(scope);
+                ctx.scope_context = Some(scope);
             }
         }
 
-        if _ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global" {
-            let struct_ctx = _ctx.struct_declaration_context.clone().unwrap();
+        if ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global" {
+            let struct_ctx = ctx.struct_declaration_context.clone().unwrap();
             let struct_ctx_identifier = struct_ctx.identifier;
             let param_type = Type::UserDefinedType(struct_ctx_identifier);
             let param_type = Type::InoutType(InoutType {
@@ -284,17 +317,17 @@ impl Visitor for MovePreProcessor {
                 line_info: Default::default(),
             };
 
-            _t.head.parameters.insert(0, parameter.clone());
-            if let Some(ref scope) = _ctx.scope_context {
+            declaration.head.parameters.insert(0, parameter.clone());
+            if let Some(ref scope) = ctx.scope_context {
                 let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
 
-                _ctx.scope_context = Some(scope);
+                ctx.scope_context = Some(scope);
             }
         }
 
-        if _ctx.is_contract_behaviour_declaration_context() {
-            let contract = _ctx.contract_behaviour_declaration_context.clone().unwrap();
+        if ctx.is_contract_behaviour_declaration_context() {
+            let contract = ctx.contract_behaviour_declaration_context.clone().unwrap();
             let identifier = contract.identifier.clone();
             let parameter_type = Type::UserDefinedType(identifier);
             let parameter_type = Type::InoutType(InoutType {
@@ -307,22 +340,23 @@ impl Visitor for MovePreProcessor {
                 line_info: Default::default(),
             };
 
-            _t.head.parameters.insert(0, parameter.clone());
-            _t.head
+            declaration.head.parameters.insert(0, parameter.clone());
+            declaration
+                .head
                 .parameters
-                .append(&mut _ctx.scope_context.as_ref().unwrap().parameters.clone());
+                .append(&mut ctx.scope_context.as_ref().unwrap().parameters.clone());
 
-            if let Some(scope) = _ctx.scope_context() {
+            if let Some(scope) = ctx.scope_context() {
                 let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
-                _ctx.scope_context = Some(scope);
+                ctx.scope_context = Some(scope);
             }
         }
 
-        if let Some(ref scope) = _t.scope_context {
+        if let Some(ref scope) = declaration.scope_context {
             let mut scope = scope.clone();
-            scope.parameters = _t.head.parameters.clone();
-            _t.scope_context = Some(scope);
+            scope.parameters = declaration.head.parameters.clone();
+            declaration.scope_context = Some(scope);
         }
 
         Ok(())
@@ -833,4 +867,138 @@ impl Visitor for MovePreProcessor {
         }
         Ok(())
     }
+}
+
+fn generate_and_add_getter(
+    member: &Property,
+    behaviour_declaration: &mut ContractBehaviourDeclaration,
+    ctx: &mut Context,
+) {
+    let mut member_identifier = member.get_identifier();
+    member_identifier.enclosing_type = Some(behaviour_declaration.identifier.token.clone());
+
+    // converts the name to start with a capital, so value becomes getValue
+    let getter_name = format!(
+        "get{}{}",
+        member_identifier
+            .token
+            .chars()
+            .next()
+            .unwrap()
+            .to_ascii_uppercase(),
+        member_identifier.token.chars().skip(1).collect::<String>()
+    );
+
+    let member_type = member.get_type();
+
+    let return_statement = Statement::ReturnStatement(ReturnStatement {
+        expression: Some(Expression::BinaryExpression(BinaryExpression {
+            // TODO the self part of this does not get a copy or move because function context
+            // does not declare it an in out type
+            lhs_expression: Box::new(Expression::SelfExpression),
+            rhs_expression: Box::new(Expression::Identifier(member_identifier)),
+            op: BinOp::Dot,
+            line_info: Default::default(),
+        })),
+        cleanup: vec![],
+        line_info: Default::default(),
+    });
+
+    let getter_signature = FunctionSignatureDeclaration {
+        func_token: "func".to_string(),
+        attributes: vec![],
+        modifiers: vec![Modifier::Public],
+        mutates: vec![],
+        identifier: Identifier::generated(&getter_name),
+        parameters: vec![],
+        result_type: Some(member_type),
+        payable: false,
+    };
+
+    let getter = FunctionDeclaration {
+        head: getter_signature,
+        body: vec![return_statement],
+        scope_context: Some(Default::default()),
+        tags: vec![],
+        mangled_identifier: None,
+        is_external: false,
+    };
+
+    behaviour_declaration
+        .members
+        .push(ContractBehaviourMember::FunctionDeclaration(getter.clone()));
+
+    ctx.environment.add_function(
+        &getter,
+        &behaviour_declaration.identifier.token,
+        vec![], // These should be empty anyway as we should only make getters and setters
+        vec![], // In restriction free zones
+    );
+}
+
+fn generate_and_add_setter(
+    member: &Property,
+    behaviour_declaration: &mut ContractBehaviourDeclaration,
+) {
+    let member_identifier = member.get_identifier();
+
+    // converts the name to start with a capital, so value becomes setValue
+    let setter_name = format!(
+        "set{}{}",
+        member_identifier
+            .token
+            .chars()
+            .next()
+            .unwrap()
+            .to_ascii_uppercase(),
+        member_identifier.token.chars().skip(1).collect::<String>()
+    );
+
+    let parameter_identifier = Identifier::generated(member_identifier.token.as_str());
+    let parameter = Parameter {
+        identifier: parameter_identifier.clone(),
+        type_assignment: member.get_type(),
+        expression: None,
+        line_info: Default::default(),
+    };
+
+    let assignment = BinaryExpression {
+        lhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(Expression::SelfExpression),
+            rhs_expression: Box::new(Expression::Identifier(member_identifier.clone())),
+            op: BinOp::Dot,
+            line_info: Default::default(),
+        })),
+        rhs_expression: Box::new(Expression::Identifier(parameter_identifier)),
+        op: BinOp::Equal,
+        line_info: Default::default(),
+    };
+
+    let assignment = Statement::Expression(Expression::BinaryExpression(assignment));
+
+    let setter_signature = FunctionSignatureDeclaration {
+        func_token: "func".to_string(),
+        attributes: vec![],
+        modifiers: vec![Modifier::Public],
+        mutates: vec![member_identifier],
+        identifier: Identifier::generated(&setter_name),
+        parameters: vec![parameter],
+        result_type: None,
+        payable: false,
+    };
+
+    let setter_declaration = FunctionDeclaration {
+        head: setter_signature,
+        body: vec![assignment],
+        scope_context: Some(Default::default()),
+        tags: vec![],
+        mangled_identifier: None,
+        is_external: false,
+    };
+
+    behaviour_declaration
+        .members
+        .push(ContractBehaviourMember::FunctionDeclaration(
+            setter_declaration,
+        ));
 }

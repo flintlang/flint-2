@@ -461,10 +461,6 @@ impl Visitor for SemanticAnalysis {
                             panic!("Should be in a special or function declaration")
                         };
 
-                    println!("Token: {} at line {}", token, line_number);
-                    println!("LHS: {:?}", Some(enclosing_type));
-                    println!("RHS: {:?}", current_enclosing_type);
-                    // TODO check for assigning to public, visible, private with structs when not in struct declaration
                     if Some(enclosing_type) != current_enclosing_type.as_ref() {
                         match property.get_modifier() {
                             Some(Modifier::Visible) => {
