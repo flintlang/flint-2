@@ -15,11 +15,19 @@ impl MoveFieldDeclaration {
         )
         .generate(function_context);
 
-        MoveIRExpression::FieldDeclaration(MoveIRFieldDeclaration {
-            identifier: self.declaration.identifier.token.clone(),
-            declaration_type: ir_type,
-            expression: None,
-        })
+        if let Some(expr) = &self.declaration.expression {
+            MoveIRExpression::FieldDeclaration(MoveIRFieldDeclaration {
+                identifier: self.declaration.identifier.token.clone(),
+                declaration_type: ir_type,
+                expression: Some(*expr.clone()),
+            })
+        } else {
+            MoveIRExpression::FieldDeclaration(MoveIRFieldDeclaration {
+                identifier: self.declaration.identifier.token.clone(),
+                declaration_type: ir_type,
+                expression: None,
+            })
+        }
     }
 }
 

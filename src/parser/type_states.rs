@@ -13,10 +13,10 @@ pub fn parse_type_states(i: Span) -> nom::IResult<Span, Vec<TypeState>> {
     // Ensure no repeats
     if type_states.len()
         != type_states
-        .iter()
-        .map(|id| id.identifier.token.as_str())
-        .collect::<HashSet<&str>>()
-        .len()
+            .iter()
+            .map(|id| id.identifier.token.as_str())
+            .collect::<HashSet<&str>>()
+            .len()
     {
         return Err(nom::Err::Failure((i, ErrorKind::SeparatedList)));
     }

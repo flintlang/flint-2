@@ -374,9 +374,9 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .is_contract_stateful(&context.identifier.token)
                 && !declaration
-                .body
-                .iter()
-                .any(|state| matches!(state, Statement::BecomeStatement(_)))
+                    .body
+                    .iter()
+                    .any(|state| matches!(state, Statement::BecomeStatement(_)))
             {
                 return Err(Box::from(
                     "Initialiser of a contract with typestates must have a become statement"
@@ -448,7 +448,8 @@ impl Visitor for SemanticAnalysis {
                                 "Cannot reassign to constant `{}` on line {}",
                                 token, line_number
                             )));
-                        } else {}
+                        } else {
+                        }
                     }
 
                     let current_enclosing_type =
@@ -485,13 +486,14 @@ impl Visitor for SemanticAnalysis {
                     }
 
                     if let Some(function_declaration_context) =
-                    ctx.function_declaration_context.as_ref()
+                        ctx.function_declaration_context.as_ref()
                     {
                         // Check: Do not allow mutation of identifier if it is not declared mutating
                         if !function_declaration_context
                             .mutates()
                             .iter()
-                            .any(|id| &id.token == token) && ctx.is_lvalue
+                            .any(|id| &id.token == token)
+                            && ctx.is_lvalue
                         {
                             return Err(Box::from(format!(
                                 "Mutating identifier {} which is not declared mutating at line {}",
@@ -522,7 +524,8 @@ impl Visitor for SemanticAnalysis {
                         )));
                     }
                 } else if !ctx.environment.is_enum_declared(token) {
-                    identifier.enclosing_type = Option::from(ctx.enclosing_type_identifier().unwrap().token)
+                    identifier.enclosing_type =
+                        Option::from(ctx.enclosing_type_identifier().unwrap().token)
                 } else if !ctx.is_enclosing {
                     return Err(Box::from(format!(
                         "Invalid reference to {} on line {}",
@@ -718,8 +721,8 @@ fn check_if_correct_type_state_possible(
     if allowed_states.is_empty()
         || current_possible_states.is_empty()
         || current_possible_states
-        .iter()
-        .all(|state| allowed_states.contains(state))
+            .iter()
+            .all(|state| allowed_states.contains(state))
     {
         Ok(())
     } else {
