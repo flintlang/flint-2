@@ -4,7 +4,7 @@ contract MyContract {
 
 MyContract :: (any) {
     public init() {
-        // Should crash because 5 + 4 is not boolean
+        //! Fail compile line 8
         assert 5 + 4
     }
 }

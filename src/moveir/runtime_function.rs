@@ -44,7 +44,7 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_power() -> String {
-      //TODO: change function name?
+        //TODO: change function name?
         "_Power(b: u64, e: u64): u64 { 
         let ret: u64;
         let i: u64;

@@ -12,8 +12,8 @@ MyContract :: (any) {
     return self.aStruct.value
   }
 
-  public func shouldNotCompile() {
-    // Attempt to assign to merely visible value
+  public func shouldNotCompile() mutates (aStruct) {
+    //! Fail compile line 17
     self.aStruct.value = 5
   }
 }
