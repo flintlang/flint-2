@@ -6,8 +6,6 @@ use crate::ast::{
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
-use crate::moveir::expression::MoveExpression;
-use crate::moveir::function::FunctionContext;
 use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionCheck;
 
