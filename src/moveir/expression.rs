@@ -422,7 +422,8 @@ impl MoveBinaryExpression {
             }
 
             BinOp::Power => {
-                MoveIRExpression::Operation(MoveIROperation::Power(Box::from(lhs), Box::from(rhs)))
+                MoveRuntimeFunction::power(lhs, rhs)
+                //MoveIRExpression::Operation(MoveIROperation::Power(Box::from(lhs), Box::from(rhs)))
             }
             BinOp::Divide => {
                 MoveIRExpression::Operation(MoveIROperation::Divide(Box::from(lhs), Box::from(rhs)))

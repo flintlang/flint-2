@@ -1,0 +1,41 @@
+import {{default}}.Operators;
+
+main(account: &signer) {
+    Operators.publish(copy(account));
+    
+    // Comparison
+    assert(Operators.lt(copy(account), 0, 1), 2);
+    assert(Operators.gt(copy(account), 1, 0), 2);
+    assert(Operators.le(copy(account), 1, 1), 2);
+    assert(Operators.le(copy(account), 0, 1), 2);
+    assert(Operators.ge(copy(account), 1, 1), 2);
+    assert(Operators.ge(copy(account), 1, 0), 2);
+    assert(Operators.equal(copy(account), 0, 0), 2);
+    assert(Operators.equal(copy(account), 1, 1), 2);
+    assert(Operators.notEqual(copy(account), 0, 1), 2);
+    assert(Operators.notEqual(copy(account), 1, 0), 2);
+
+    // Arithmetic
+    assert(Operators.plus(copy(account), 9, 3) == 12, 3);
+    assert(Operators.plus(copy(account), 0, 12) == 12, 3);
+    assert(Operators.minus(copy(account), 21, 9) == 12, 3);
+    assert(Operators.minus(copy(account), 10000, 9988) == 12, 3);
+    assert(Operators.times(copy(account), 3, 4) == 12, 3);
+    assert(Operators.times(copy(account), 2, 6) == 12, 3);
+    assert(Operators.divide(copy(account), 24, 2) == 12, 3);
+    assert(Operators.divide(copy(account), 156, 13) == 12, 3);
+    assert(Operators.power(copy(account), 5, 2) == 25, 3);
+    assert(Operators.power(copy(account), 2, 10) == 1024, 3);
+
+    // Logic
+    assert(Operators.andOp(copy(account), false, false) == false, 4);
+    assert(Operators.andOp(copy(account), true, false) == false, 4);
+    assert(Operators.andOp(copy(account), false, true) == false, 4);
+    assert(Operators.andOp(copy(account), true, true) == true, 4);
+    assert(Operators.orOp(copy(account), false, false) == false, 4);
+    assert(Operators.orOp(copy(account), true, false) == true, 4);
+    assert(Operators.orOp(copy(account), false, true) == true, 4);
+    assert(Operators.orOp(copy(account), true, true) == true, 4);
+  
+    return;
+}
