@@ -101,7 +101,7 @@ impl SolidityContract {
             .parameters
             .clone()
             .into_iter()
-            .map(|p| self.environment.type_size(p.type_assignment))
+            .map(|p| self.environment.type_size(&p.type_assignment))
             .collect();
         println!("{:?}", parameter_sizes);
 

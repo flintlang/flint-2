@@ -213,7 +213,7 @@ impl ScopeContext {
     }
 
     pub fn fresh_identifier(&mut self, line_info: LineInfo) -> Identifier {
-        self.counter = self.counter + 1;
+        self.counter += 1;
         let count = self.local_variables.len() + self.parameters.len() + self.counter as usize;
         let name = format!("temp__{}", count);
         Identifier {
@@ -228,17 +228,14 @@ impl ScopeContext {
         expression: Expression,
         t: &TypeIdentifier,
     ) -> Option<String> {
-        let expression_enclosing = expression.enclosing_type();
-        let expression_enclosing = expression_enclosing.unwrap_or_default();
-        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {
-            //REMOVEBEFOREFLIGHT
-            let enclosing_identifier = expression.enclosing_identifier().clone();
-            let enclosing_identifier = enclosing_identifier.unwrap();
-            if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {
-                return Option::from(enclosing_identifier.token);
+        let expression_enclosing = expression.enclosing_type().unwrap_or_default();
+        if &expression_enclosing == t {
+            if let Some(enclosing_identifier) = expression.enclosing_identifier() {
+                if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {
+                    return Some(enclosing_identifier.token);
+                }
             }
         }
-
         None
     }
 }

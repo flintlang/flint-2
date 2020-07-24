@@ -74,7 +74,7 @@ impl ContractDeclaration {
             .into_iter()
             .filter_map(|c| match c {
                 ContractMember::VariableDeclaration(v, _) => {
-                    if v.clone().variable_type.is_dictionary_type() {
+                    if v.variable_type.is_dictionary_type() {
                         None
                     } else {
                         Some(v)
@@ -417,10 +417,12 @@ impl TraitDeclaration {
             .modifiers
             .clone()
             .into_iter()
-            .filter(|f| f.identifier.token == "module".to_string())
+            .filter(|f| f.identifier.token == "module")
             .collect();
 
-        if let Some(argument) = modifiers.first().and_then(|m| m.arguments.first()) {
+        if let Some(argument) = modifiers
+            .first()
+            .and_then(|m| m.arguments.first()) {
             if let Some(ref identifier) = argument.identifier {
                 let name = &identifier.token;
                 if name == "address" {
@@ -607,7 +609,7 @@ impl Visitable for FunctionDeclaration {
         let mut counter = 1;
         for statement in body {
             statements.insert(counter, vec![statement]);
-            counter = counter + 3;
+            counter += 3;  // Why +3, this needs an explanation
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();
@@ -670,17 +672,17 @@ impl FunctionSignatureDeclaration {
     }
 
     pub fn is_equal(&self, against: FunctionSignatureDeclaration) -> bool {
-        let modifiers_match = do_vecs_match(&self.modifiers.clone(), &against.modifiers.clone());
-        let attibutes_match = do_vecs_match(&self.attributes.clone(), &against.attributes.clone());
+        let modifiers_match = do_vecs_match(&self.modifiers.clone(), &against.modifiers);
+        let attibutes_match = do_vecs_match(&self.attributes.clone(), &against.attributes);
         let parameter_names_match = do_vecs_match(
-            &self.parameter_identifiers().clone(),
-            &against.parameter_identifiers().clone(),
+            &self.parameter_identifiers(),
+            &against.parameter_identifiers(),
         );
         let parameter_types = do_vecs_match(
-            &self.parameter_types().clone(),
-            &against.parameter_types().clone(),
+            &self.parameter_types(),
+            &against.parameter_types(),
         );
-        if self.identifier.token.clone() == against.identifier.token.clone()
+        if self.identifier.token == against.identifier.token
             && modifiers_match
             && attibutes_match
             && parameter_names_match
@@ -824,7 +826,7 @@ impl Visitable for SpecialDeclaration {
         let mut counter = 1;
         for statement in body {
             statements.insert(counter, vec![statement]);
-            counter = counter + 3;
+            counter += 3;  // Why +3, needs explanation
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();

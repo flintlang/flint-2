@@ -34,17 +34,17 @@ impl FunctionCallMatchResult {
     fn merge(self, f: FunctionCallMatchResult) -> FunctionCallMatchResult {
         if let FunctionCallMatchResult::Failure(c1) = &self {
             if let FunctionCallMatchResult::Failure(c2) = f.clone() {
-                let mut c1_canididates = c1.candidates.clone();
-                let mut c2_canididates = c2.candidates.clone();
-                c1_canididates.append(&mut c2_canididates);
+                let mut c1_candidates = c1.candidates.clone();
+                let mut c2_candidates = c2.candidates;
+                c1_candidates.append(&mut c2_candidates);
                 FunctionCallMatchResult::Failure(Candidates {
-                    candidates: c1_canididates,
+                    candidates: c1_candidates,
                 })
             } else {
                 f
             }
         } else {
-            self.clone()
+            self
         }
     }
 }
@@ -174,7 +174,6 @@ impl Environment {
     }
 
     fn declared_caller_protections(&self, t: &TypeIdentifier) -> Vec<String> {
-        let type_info = self.types.get(t);
         let caller_protection_property = |p: &PropertyInformation| match p.property.get_type() {
             Type::Address => true,
             Type::FixedSizedArrayType(f) => {
@@ -215,45 +214,17 @@ impl Environment {
             }
             false
         };
-        if type_info.is_some() {
-            let mut properties: Vec<String> = type_info
-                .unwrap()
-                .properties
-                .clone()
-                .into_iter()
+        self.types.get(t)
+            .into_iter()
+            .flat_map(|type_info| type_info.properties.iter()
                 .filter(|(_, v)| caller_protection_property(v))
-                .map(|(k, _)| k)
-                .collect();
-
-            let functions: HashMap<String, Vec<FunctionInformation>> = self
-                .types
-                .get(t)
-                .unwrap()
-                .functions
-                .clone()
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        v.clone()
-                            .into_iter()
-                            .filter(|f| caller_protection_function(f))
-                            .collect(),
+                .map(|(k, _)| k.clone())
+                .chain(
+                type_info.functions.iter()
+                    .filter(|(_, v)| v.iter().any(caller_protection_function))
+                    .map(|(k, _)| k.clone())
                     )
-                })
-                .collect();
-            let mut functions: Vec<String> = functions
-                .into_iter()
-                .filter(|(_, v)| !v.is_empty())
-                .map(|(k, _)| k)
-                .collect();
-
-            properties.append(&mut functions);
-
-            return properties;
-        }
-
-        Vec::new()
+            ).collect()
     }
 
     fn external_trait_init() -> SpecialSignatureDeclaration {
@@ -278,10 +249,7 @@ impl Environment {
 
     pub fn is_contract_declared(&self, t: &TypeIdentifier) -> bool {
         let contract = &self.contract_declarations.iter().find(|&x| x.token.eq(t));
-        if contract.is_none() {
-            return false;
-        }
-        true
+        contract.is_some()
     }
 
     pub fn is_contract_stateful(&self, t: &TypeIdentifier) -> bool {
@@ -302,44 +270,31 @@ impl Environment {
 
     pub fn is_struct_declared(&self, t: &TypeIdentifier) -> bool {
         let struct_decl = &self.struct_declarations.iter().find(|&x| x.token.eq(t));
-        if struct_decl.is_none() {
-            return false;
-        }
-        true
+        struct_decl.is_some()
     }
 
     pub fn is_trait_declared(&self, t: &TypeIdentifier) -> bool {
         let identifier = &self.trait_declarations.iter().find(|&x| x.token.eq(t));
-        if identifier.is_none() {
-            return false;
-        }
-        true
+        identifier.is_some()
     }
 
     pub fn is_asset_declared(&self, t: &TypeIdentifier) -> bool {
         let identifier = &self.asset_declarations.iter().find(|&x| x.token.eq(t));
-        if identifier.is_none() {
-            return false;
-        }
-        true
+        identifier.is_some()
     }
 
     pub fn is_enum_declared(&self, t: &TypeIdentifier) -> bool {
         let enum_declaration = &self.enum_declarations.iter().find(|&x| x.token.eq(t));
-        if enum_declaration.is_none() {
-            return false;
-        }
-        true
+        enum_declaration.is_some()
     }
 
     pub fn is_recursive_struct(&self, t: &TypeIdentifier) -> bool {
         let properties = &self.types.get(t).unwrap().ordered_properties;
 
         for property in properties {
-            let type_property = self.types.get(t).unwrap().properties.get(property);
-            if type_property.is_some() {
-                match type_property.unwrap().get_type() {
-                    Type::UserDefinedType(i) => return i.token == t.to_string(),
+            if let Some(type_property) = self.types.get(t).unwrap().properties.get(property) {
+                match type_property.get_type() {
+                    Type::UserDefinedType(i) => return &i.token == t,
                     _ => {
                         return false;
                     }
@@ -358,7 +313,7 @@ impl Environment {
             || self.is_asset_declared(&function_call.identifier.token)
     }
 
-    pub fn type_size(&self, input_type: Type) -> u64 {
+    pub fn type_size(&self, input_type: &Type) -> u64 {
         match input_type {
             Type::Bool => 1,
             Type::Int => 1,
@@ -368,9 +323,8 @@ impl Environment {
             Type::ArrayType(_) => 1,
             Type::RangeType(_) => unimplemented!(),
             Type::FixedSizedArrayType(a) => {
-                let key_size = self.type_size(*a.key_type.clone());
-                let size = a.size;
-                key_size * size
+                let key_size = self.type_size(&a.key_type);
+                key_size * a.size
             }
             Type::DictionaryType(_) => unimplemented!(),
             Type::UserDefinedType(i) => {
@@ -378,16 +332,11 @@ impl Environment {
                     unimplemented!()
                 }
 
-                let mut acc = 0;
-                let enclosing = self.types.get(&i.token);
-                let enclosing = enclosing.unwrap();
-                let enclosing_properties = enclosing.properties.clone();
-
-                for (_, v) in enclosing_properties {
-                    acc = acc + self.type_size(v.property.get_type())
-                }
-
-                acc
+                self.types.get(&i.token)
+                    .into_iter()
+                    .flat_map(|enclosing| &enclosing.properties)
+                    .map(|(_, v)| self.type_size(&v.property.get_type()))
+                    .sum()
             }
             Type::Error => unimplemented!(),
             Type::SelfType => unimplemented!(),

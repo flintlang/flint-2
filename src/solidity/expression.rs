@@ -299,7 +299,7 @@ impl SoliditySubscriptExpression {
         match base_type.clone() {
             Type::ArrayType(_) => SolidityRuntimeFunction::storage_array_offset(a, b),
             Type::FixedSizedArrayType(_f) => {
-                let size = function_context.environment.type_size(base_type);
+                let size = function_context.environment.type_size(&base_type);
                 SolidityRuntimeFunction::storage_fixed_array_offset(a, b, size)
             }
             Type::DictionaryType(_) => SolidityRuntimeFunction::storage_dictionary_offset_key(a, b),
@@ -439,7 +439,7 @@ impl SolidityVariableDeclaration {
         let allocate = SolidityRuntimeFunction::allocate_memory(
             function_context
                 .environment
-                .type_size(self.declaration.variable_type.clone())
+                .type_size(&self.declaration.variable_type)
                 * 32,
         );
         YulExpression::VariableDeclaration(YulVariableDeclaration {

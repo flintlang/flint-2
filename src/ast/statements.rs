@@ -114,7 +114,7 @@ impl Visitable for IfStatement {
         let mut counter = 1;
         for statement in body {
             statements.insert(counter, vec![statement]);
-            counter = counter + 3;
+            counter += 3;  // Why is this +3, needs explanation
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();
@@ -167,7 +167,7 @@ impl Visitable for IfStatement {
         let mut counter = 1;
         for statement in body {
             statements.insert(counter, vec![statement]);
-            counter = counter + 3;
+            counter += 3;
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();
@@ -211,7 +211,7 @@ impl Visitable for ForStatement {
         let initial_pre_statements = ctx.pre_statements.clone();
         let initial_post_statements = ctx.post_statements.clone();
 
-        let blocks_scope = self.for_body_scope_context.as_ref().or(ctx.scope_context());
+        let blocks_scope = self.for_body_scope_context.as_ref().or_else(|| ctx.scope_context());
         let block_context = BlockContext {
             scope_context: blocks_scope.unwrap().clone(),
         };
@@ -231,7 +231,7 @@ impl Visitable for ForStatement {
         let mut counter = 1;
         for statement in body {
             statements.insert(counter, vec![statement]);
-            counter = counter + 3;
+            counter += 3;
         }
 
         let statements: Vec<Statement> = statements.into_iter().flatten().collect();

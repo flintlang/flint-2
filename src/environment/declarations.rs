@@ -192,7 +192,7 @@ impl Environment {
                 .unwrap()
                 .initialisers
                 .push(SpecialInformation {
-                    declaration: special.clone(),
+                    declaration: special,
                     caller_protections,
                     type_states,
                 });
@@ -203,7 +203,7 @@ impl Environment {
                 .unwrap()
                 .initialisers
                 .push(SpecialInformation {
-                    declaration: special.clone(),
+                    declaration: special,
                     type_states,
                     caller_protections,
                 });

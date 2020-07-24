@@ -33,10 +33,9 @@ impl Environment {
         identifier: &Identifier,
         t: &TypeIdentifier,
     ) -> bool {
-        let type_info = self.types.get(t);
-        if type_info.is_some() {
+        if let Some(type_info) = self.types.get(t) {
             let properties: Vec<&PropertyInformation> =
-                type_info.unwrap().properties.values().collect();
+                type_info.properties.values().collect();
 
             let identifiers: Vec<Identifier> = properties
                 .into_iter()
@@ -52,35 +51,24 @@ impl Environment {
     }
 
     pub fn conflicting_trait_signatures(&self, t: &TypeIdentifier) -> bool {
-        let type_info = self.types.get(t);
-        let conflicting = |f: &Vec<FunctionInformation>| {
-            let first = f.get(0);
-            if first.is_none() {
-                return false;
-            }
-            let first_signature = first.unwrap().clone();
-            let first_parameter = first_signature.declaration.head.clone();
-            for function in f {
-                if function.get_parameter_types() == first_signature.get_parameter_types()
-                    && function.declaration.head.is_equal(first_parameter.clone())
-                {
-                    return true;
+        if let Some(type_info) = self.types.get(t) {
+            let conflicting = |f: &Vec<FunctionInformation>| {
+                if let Some(first_signature) = f.get(0) {
+                    let first_parameter = &first_signature.declaration.head;
+                    for function in f {
+                        if function.get_parameter_types() == first_signature.get_parameter_types()
+                            && function.declaration.head.is_equal(first_parameter.clone())
+                        {
+                            return true;
+                        }
+                    }
                 }
-            }
-            false
-        };
-        if type_info.is_some() {
-            let traits = type_info.unwrap().trait_functions().clone();
-            let traits: HashMap<String, Vec<FunctionInformation>> = traits
+                false
+            };
+            return !type_info.trait_functions()
                 .into_iter()
-                .filter(|(_, v)| v.len() > 1)
-                .filter(|(_, v)| conflicting(v))
-                .collect();
-            if !traits.is_empty() {
-                return true;
-            }
+                .any(|(_, v)| v.len() > 1 && conflicting(&v));
         }
-
         false
     }
 

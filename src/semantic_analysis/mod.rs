@@ -65,7 +65,7 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                .as_str(),
+                    .as_str(),
             ));
         }
 
@@ -172,11 +172,10 @@ impl Visitor for SemanticAnalysis {
                 }
                 scope_context.local_variables.push(_t.clone());
             }
-        } else if _ctx.enclosing_type_identifier().is_some() {
-            let identifier = &_ctx.enclosing_type_identifier().unwrap().token.clone();
+        } else if let Some(ref identifier) = _ctx.enclosing_type_identifier() {
             if _ctx
                 .environment
-                .conflicting_property_declaration(&_t.identifier, identifier)
+                .conflicting_property_declaration(&_t.identifier, &identifier.token)
             {
                 return Err(Box::from("Conflicting property declarations".to_owned()));
             }
@@ -190,11 +189,10 @@ impl Visitor for SemanticAnalysis {
         _t: &mut FunctionDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        if _ctx.enclosing_type_identifier().is_some() {
-            let identifier = &_ctx.enclosing_type_identifier().unwrap().token.clone();
+        if let Some(ref identifier) = _ctx.enclosing_type_identifier() {
             if _ctx
                 .environment
-                .is_conflicting_function_declaration(&_t, identifier)
+                .is_conflicting_function_declaration(&_t, &identifier.token)
             {
                 return Err(Box::from(format!(
                     "Conflicting Function Declarations for {}",
@@ -202,7 +200,7 @@ impl Visitor for SemanticAnalysis {
                 )));
             }
 
-            if identifier == "Libra" || identifier == "Wei" {
+            if &identifier.token == "Libra" || &identifier.token == "Wei" {
                 return Ok(());
             }
         }
@@ -242,10 +240,9 @@ impl Visitor for SemanticAnalysis {
                 )));
             }
         } else if !remaining_parameters.is_empty() {
-            let params = remaining_parameters.clone();
             return Err(Box::from(format!(
                 "Function not marked payable but has payable parameter: {:?}",
-                params
+                remaining_parameters
             )));
         }
 
@@ -265,17 +262,11 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let return_type = &_t.head.result_type;
-        if return_type.is_some() {
-            match return_type.as_ref().unwrap() {
-                Type::UserDefinedType(_) => {
-                    return Err(Box::from(format!(
-                        "Not allowed to return struct in function {}",
-                        _t.head.identifier.token
-                    )));
-                }
-                _ => (),
-            }
+        if let Some(Type::UserDefinedType(_)) = _t.head.result_type {
+            return Err(Box::from(format!(
+                "Not allowed to return struct in function {}",
+                _t.head.identifier.token
+            )));
         }
 
         let statements = _t.body.clone();
@@ -297,28 +288,28 @@ impl Visitor for SemanticAnalysis {
         let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s.clone()));
         if remaining_after_end.count() > 0 {
             return Err(Box::from(format!(
-                "Statements after Return in {}",
+                "Statements after `return` in {}",
                 _t.head.identifier.token
             )));
         }
 
         if _t.head.result_type.is_some() && return_statements.is_empty() {
             return Err(Box::from(format!(
-                "Missing Return in Function {}",
+                "Missing `return` in function {}",
                 _t.head.identifier.token
             )));
         }
 
         if return_statements.len() > 1 {
             return Err(Box::from(format!(
-                "Multiple Returns in function {}",
+                "Multiple `return`s in function {}",
                 _t.head.identifier.token
             )));
         }
 
         if become_statements.len() > 1 {
             return Err(Box::from(format!(
-                "Multiple Become Statements in {}",
+                "Multiple `become` statements in {}",
                 _t.head.identifier.token
             )));
         }
@@ -329,7 +320,7 @@ impl Visitor for SemanticAnalysis {
                     > become_statement.state.identifier.line_info.line
                 {
                     return Err(Box::from(format!(
-                        "Return statement after Become in function {}",
+                        "`return` statement after `become` in function {}",
                         _t.head.identifier.token
                     )));
                 }
@@ -374,12 +365,12 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .is_contract_stateful(&context.identifier.token)
                 && !declaration
-                    .body
-                    .iter()
-                    .any(|state| matches!(state, Statement::BecomeStatement(_)))
+                .body
+                .iter()
+                .any(|state| matches!(state, Statement::BecomeStatement(_)))
             {
                 return Err(Box::from(
-                    "Initialiser of a contract with typestates must have a become statement"
+                    "Initialiser of a contract with typestates must have a `become` statement"
                         .to_string(),
                 ));
             }
@@ -392,9 +383,9 @@ impl Visitor for SemanticAnalysis {
         let line_number = identifier.line_info.line;
 
         // Check for invalid @ in name
-        if token.contains("@") {
+        if token.contains('@') {
             return Err(Box::from(format!(
-                "Invalid @ character used in Identifier at line {}",
+                "Invalid '@' character used in Identifier at line {}",
                 identifier.line_info.line
             )));
         }
@@ -410,13 +401,13 @@ impl Visitor for SemanticAnalysis {
                 {
                     // Check for property being used to define itself (I think)
                     Err(Box::from(format!(
-                        "State property used within property initiliaser at line {}",
+                        "State property used within property initialiser at line {}",
                         line_number
                     )))
                 } else {
                     // Check for if property is defined
                     Err(Box::from(format!(
-                        "Use of undeclared identifier {} at line {}",
+                        "Use of undeclared identifier `{}` at line {}",
                         token, line_number
                     )))
                 };
@@ -448,8 +439,7 @@ impl Visitor for SemanticAnalysis {
                                 "Cannot reassign to constant `{}` on line {}",
                                 token, line_number
                             )));
-                        } else {
-                        }
+                        } else {}
                     }
 
                     let current_enclosing_type =
@@ -475,14 +465,14 @@ impl Visitor for SemanticAnalysis {
                                 return Err(Box::from(format!(
                                     "Cannot access private value `{}` on line {}",
                                     token, line_number
-                                )))
+                                )));
                             }
                             Some(Modifier::Public) => (),
                         }
                     }
 
                     if let Some(function_declaration_context) =
-                        ctx.function_declaration_context.as_ref()
+                    ctx.function_declaration_context.as_ref()
                     {
                         // Check: Do not allow mutation of identifier if it is not declared mutating
                         if !function_declaration_context
@@ -492,7 +482,7 @@ impl Visitor for SemanticAnalysis {
                             && ctx.is_lvalue
                         {
                             return Err(Box::from(format!(
-                                "Mutating identifier {} which is not declared mutating at line {}",
+                                "Mutating identifier `{}` which is not declared mutating at line {}",
                                 token,
                                 function_declaration_context
                                     .declaration
@@ -515,7 +505,7 @@ impl Visitor for SemanticAnalysis {
                     // Previously we had checks for ctx.in_subscript and !declaration.variable_type.is_inout_type()
                     if declaration.is_constant() && ctx.is_lvalue {
                         return Err(Box::from(format!(
-                            "Reassignment to constant {} on line {}",
+                            "Reassignment to constant `{}` on line {}",
                             token, line_number
                         )));
                     }
@@ -524,7 +514,7 @@ impl Visitor for SemanticAnalysis {
                         Option::from(ctx.enclosing_type_identifier().unwrap().token)
                 } else if !ctx.is_enclosing {
                     return Err(Box::from(format!(
-                        "Invalid reference to {} on line {}",
+                        "Invalid reference to `{}` on line {}",
                         token, line_number
                     )));
                 }
@@ -539,8 +529,7 @@ impl Visitor for SemanticAnalysis {
         let start = _t.start_expression.clone();
         let end = _t.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
-        } else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
             return Err(Box::from(format!("Invalid Range Declaration: {:?}", _t)));
         }
 
@@ -555,8 +544,8 @@ impl Visitor for SemanticAnalysis {
         if _ctx.enclosing_type_identifier().is_some()
             && !_t.is_any()
             && !_ctx
-                .environment
-                .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
+            .environment
+            .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -570,7 +559,7 @@ impl Visitor for SemanticAnalysis {
     fn start_conformance(&mut self, _t: &mut Conformance, _ctx: &mut Context) -> VResult {
         if !_ctx.environment.is_trait_declared(&_t.name()) {
             return Err(Box::from(format!(
-                "Undeclared Trait {} Used",
+                "Undeclared trait `{}` used",
                 _t.identifier.token
             )));
         }
@@ -592,7 +581,7 @@ impl Visitor for SemanticAnalysis {
         _t: &mut BinaryExpression,
         _ctx: &mut Context,
     ) -> VResult {
-        match _t.op {
+        /* unused code: match _t.op {
             BinOp::Dot => {}
             BinOp::Equal => {
                 let rhs = _t.rhs_expression.clone();
@@ -602,7 +591,7 @@ impl Visitor for SemanticAnalysis {
                 }
             }
             _ => {}
-        }
+        }*/
         Ok(())
     }
 
@@ -611,7 +600,7 @@ impl Visitor for SemanticAnalysis {
         if let Some(context) = contract_name {
             let contract_name = context.identifier.token.clone();
             let caller_protections = context.caller_protections.clone();
-            let scope_context = ctx.scope_context.clone().unwrap_or(Default::default());
+            let scope_context = ctx.scope_context.clone().unwrap_or_default();
 
             let function_info = ctx.environment.match_function_call(
                 t.clone(),
@@ -621,7 +610,7 @@ impl Visitor for SemanticAnalysis {
             );
             return match function_info {
                 MatchedFunction(info) => check_if_correct_type_state_possible(
-                    context.clone(),
+                    context,
                     ctx.environment.get_contract_state(&contract_name),
                     info.type_states,
                     t.identifier.clone(),
@@ -640,17 +629,17 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
+    #[allow(clippy::single_match)]
     fn finish_if_statement(&mut self, _t: &mut IfStatement, _ctx: &mut Context) -> VResult {
         let condition = _t.condition.clone();
 
         match condition {
             Expression::BinaryExpression(b) => {
-                let lhs = *b.lhs_expression.clone();
 
-                if let Expression::VariableDeclaration(v) = lhs {
+                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
                     if !v.is_constant() {
                         return Err(Box::from(
-                            "Invalid Condition Type in If statement".to_owned(),
+                            "Invalid condition type in `if` statement".to_owned(),
                         ));
                     }
                 }
@@ -663,14 +652,14 @@ impl Visitor for SemanticAnalysis {
 
         if expression_type.is_bool_type() {
             return Err(Box::from(
-                "Invalid Condition Type in If statement".to_owned(),
+                "Invalid condition type in `if` statement".to_owned(),
             ));
         }
         Ok(())
     }
 
     fn finish_statement(&mut self, _t: &mut Statement, _ctx: &mut Context) -> VResult {
-        //TODO make recevier call trail empty
+        //TODO make receiver call trail empty
         Ok(())
     }
 
@@ -683,13 +672,13 @@ impl Visitor for SemanticAnalysis {
                 (vec![], vec![])
             };
 
-        if ctx.environment.get_expression_type(
+        if let Type::Bool = ctx.environment.get_expression_type(
             assertion.expression.clone(),
             enclosing_type,
             type_states,
             caller_protections,
             ctx.scope_context.clone().unwrap_or_default(),
-        ) == Type::Bool
+        )
         {
             Ok(())
         } else {
@@ -717,8 +706,8 @@ fn check_if_correct_type_state_possible(
     if allowed_states.is_empty()
         || current_possible_states.is_empty()
         || current_possible_states
-            .iter()
-            .all(|state| allowed_states.contains(state))
+        .iter()
+        .all(|state| allowed_states.contains(state))
     {
         Ok(())
     } else {

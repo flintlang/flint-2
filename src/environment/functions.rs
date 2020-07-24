@@ -114,7 +114,7 @@ impl Environment {
         let argument_types: Vec<Type> = arguments
             .into_iter()
             .map(|a| {
-                self.get_expression_type(a.expression.clone(), t, vec![], vec![], scope.clone())
+                self.get_expression_type(a.expression, t, vec![], vec![], scope.clone())
             })
             .collect();
 
@@ -125,14 +125,11 @@ impl Environment {
                         function.clone(),
                         f.clone(),
                         t,
-                        scope.clone(),
-                    ) {
-                        if self.compatible_caller_protections(
+                        scope.clone()) && self.compatible_caller_protections(
                             c.clone(),
                             function.caller_protection.clone(),
                         ) {
-                            return FunctionCallMatchResult::MatchedFunction(function.clone());
-                        }
+                        return FunctionCallMatchResult::MatchedFunction(function.clone());
                     }
                     candidates.push(function.clone());
                     continue;
@@ -160,7 +157,7 @@ impl Environment {
 
         let matched_candidates: Vec<CallableInformation> = matched_candidates
             .into_iter()
-            .map(|i| CallableInformation::FunctionInformation(i.clone()))
+            .map(CallableInformation::FunctionInformation)
             .collect();
 
         if !matched_candidates.is_empty() {
@@ -172,7 +169,7 @@ impl Environment {
 
         let candidates: Vec<CallableInformation> = candidates
             .into_iter()
-            .map(|i| CallableInformation::FunctionInformation(i.clone()))
+            .map(CallableInformation::FunctionInformation)
             .collect();
 
         let candidates = Candidates { candidates };
@@ -183,9 +180,8 @@ impl Environment {
     #[allow(dead_code)]
     fn match_fallback_function(&self, f: FunctionCall, c: Vec<CallerProtection>) {
         let mut candidates = Vec::new();
-        let type_info = self.types.get(&f.identifier.token.clone());
-        if type_info.is_some() {
-            let fallbacks = &type_info.unwrap().fallbacks;
+        if let Some(type_info) = self.types.get(&f.identifier.token) {
+            let fallbacks = &type_info.fallbacks;
             for fallback in fallbacks {
                 if self
                     .compatible_caller_protections(c.clone(), fallback.caller_protections.clone())
@@ -208,14 +204,12 @@ impl Environment {
     ) -> FunctionCallMatchResult {
         let mut candidates = Vec::new();
 
-        let type_info = self.types.get(&f.identifier.token.clone());
-        if type_info.is_some() {
-            let initialisers = &type_info.unwrap().initialisers;
-            for initialiser in initialisers {
+        if let Some(type_info) = self.types.get(&f.identifier.token) {
+            for initialiser in &type_info.initialisers {
                 let parameter_types = initialiser.parameter_types();
                 let mut equal_types = true;
-                for argument_type in argument_types.clone() {
-                    if !parameter_types.contains(&argument_type) {
+                for argument_type in &argument_types {
+                    if !parameter_types.contains(argument_type) {
                         equal_types = false;
                     }
                 }
@@ -250,14 +244,8 @@ impl Environment {
     ) -> FunctionCallMatchResult {
         let token = f.identifier.token.clone();
         let mut candidates = Vec::new();
-        let type_info = self.types.get(&"Quartz_Global".to_string());
-        if type_info.is_some() {
-            let functions = &type_info.unwrap().functions;
-            let functions = functions.get(&f.identifier.token.clone());
-
-            if functions.is_some() {
-                let functions = functions.unwrap();
-
+        if let Some(type_info) = self.types.get(&"Quartz_Global".to_string()) {
+            if let Some(functions) = type_info.functions.get(&f.identifier.token) {
                 for function in functions {
                     let parameter_types = function.get_parameter_types();
                     let mut equal_types = true;
@@ -284,16 +272,14 @@ impl Environment {
             .into_iter()
             .map(|i| CallableInformation::FunctionInformation(i.clone()))
             .collect();
-        let candidates = Candidates { candidates };
-        if token == "fatalError".to_string() {
+        if token == "fatalError" {
             unimplemented!()
         }
-        FunctionCallMatchResult::Failure(candidates)
+        FunctionCallMatchResult::Failure(Candidates { candidates })
     }
 
     pub fn is_runtime_function_call(function_call: &FunctionCall) -> bool {
-        let ident = function_call.identifier.token.clone();
-        ident.starts_with("Quartz_")
+        function_call.identifier.token.starts_with("Quartz_")
     }
 
     pub fn match_function_call(
@@ -312,12 +298,12 @@ impl Environment {
         let argument_types: Vec<Type> = arguments
             .into_iter()
             .map(|a| {
-                self.get_expression_type(a.expression.clone(), t, vec![], vec![], scope.clone())
+                self.get_expression_type(a.expression, t, vec![], vec![], scope.clone())
             })
             .collect();
 
         let regular_match =
-            self.match_regular_function(f.clone(), t, caller_protections.clone(), scope.clone());
+            self.match_regular_function(f.clone(), t, caller_protections.clone(), scope);
 
         let initaliser_match = self.match_initialiser_function(
             f.clone(),
@@ -326,9 +312,9 @@ impl Environment {
         );
 
         let global_match = self.match_global_function(
-            f.clone(),
-            argument_types.clone(),
-            caller_protections.clone(),
+            f,
+            argument_types,
+            caller_protections,
         );
 
         let result = result.merge(regular_match);
@@ -341,11 +327,8 @@ impl Environment {
         source: Vec<CallerProtection>,
         target: Vec<CallerProtection>,
     ) -> bool {
-        if target.is_empty() {
-            return true;
-        }
-        for caller_protection in source {
-            for parent in &target {
+        for parent in &target {
+            for caller_protection in &source {
                 if !caller_protection.is_sub_protection(parent.clone()) {
                     return false;
                 }
@@ -376,10 +359,10 @@ impl Environment {
             && target.arguments.len() >= source.required_parameter_identifiers().len()
         {
             self.check_parameter_compatibility(
-                target.arguments.clone(),
-                parameters.clone(),
+                target.arguments,
+                parameters,
                 t,
-                scope.clone(),
+                scope,
                 no_self_declaration_type,
             )
         } else {

@@ -81,7 +81,7 @@ impl ExpressionCheck for Environment {
             Expression::SubscriptExpression(s) => {
                 //    Get Identifier Type
                 let identifer_type = self.get_expression_type(
-                    Expression::Identifier(s.base_expression.clone()),
+                    Expression::Identifier(s.base_expression),
                     t,
                     vec![],
                     vec![],
@@ -107,30 +107,15 @@ impl ExpressionCheck for Environment {
 
 impl Environment {
     pub fn get_property_type(&self, name: String, t: &TypeIdentifier, scope: ScopeContext) -> Type {
-        let enclosing = self.types.get(t);
-        if enclosing.is_some() {
-            let enclosing = enclosing.unwrap();
-            if enclosing.properties.get(name.as_str()).is_some() {
-                return self
-                    .types
-                    .get(t)
-                    .unwrap()
-                    .properties
-                    .get(name.as_str())
-                    .unwrap()
-                    .property
-                    .get_type();
-            }
-
-            if enclosing.functions.get(name.as_str()).is_some() {
-                unimplemented!()
-            }
-        }
-
-        if scope.type_for(&name).is_some() {
-            unimplemented!()
-        }
-        Type::Error
+        self.types.get(t)
+            .and_then(|enclosing| enclosing.properties.get(name.as_str()))
+            .map(|info| info.property.get_type())
+            .unwrap_or_else(|| {
+                if scope.type_for(&name).is_some() {
+                    unimplemented!()
+                }
+                Type::Error
+            })
     }
 
     pub fn get_literal_type(&self, literal: Literal) -> Type {
@@ -156,18 +141,13 @@ impl Environment {
             return Type::Bool;
         }
 
-        let function_call = expression.function_call.clone();
-
-        let enclosing_type = if function_call.identifier.enclosing_type.is_some() {
-            let enclosing = function_call.identifier.enclosing_type.clone();
-            enclosing.unwrap()
-        } else {
-            t.clone()
-        };
+        let function_call = &expression.function_call;
+        let enclosing_type = expression.function_call.identifier.enclosing_type.as_ref()
+            .unwrap_or_else(|| t);
 
         self.get_expression_type(
-            Expression::FunctionCall(function_call),
-            &enclosing_type,
+            Expression::FunctionCall(function_call.clone()),
+            enclosing_type,
             type_states,
             caller_protections,
             scope,
@@ -259,17 +239,16 @@ impl Environment {
                 }
                 _ => {}
             };
-            let rhs_type = self.get_expression_type(
+            self.get_expression_type(
                 *b.rhs_expression,
                 &lhs_type.name(),
-                type_states.clone(),
-                caller_protections.clone(),
-                scope.clone(),
-            );
-            return rhs_type;
+                type_states,
+                caller_protections,
+                scope,
+            )
+        } else {
+            self.get_expression_type(*b.rhs_expression, t, type_states, caller_protections, scope)
         }
-
-        self.get_expression_type(*b.rhs_expression, t, type_states, caller_protections, scope)
     }
 
     pub fn get_array_literal_type(
@@ -291,23 +270,15 @@ impl Environment {
                 scope.clone(),
             );
 
-            if element_type.is_some() {
-                let comparison_type = element_type.clone();
-                let comparison_type = comparison_type.unwrap();
-                if comparison_type != elements_type {
+            if let Some(ref comparison_type) = element_type {
+                if comparison_type != &elements_type {
                     return Type::Error;
                 }
-            }
-            if element_type.is_none() {
+            } else {
                 element_type = Some(elements_type)
             }
         }
-        let result_type = if element_type.is_some() {
-            element_type.unwrap()
-        } else {
-            //TODO change to Type::Any
-            Type::Error
-        };
+        let result_type = element_type.unwrap_or(Type::Error);
         Type::ArrayType(ArrayType {
             key_type: Box::new(result_type),
         })

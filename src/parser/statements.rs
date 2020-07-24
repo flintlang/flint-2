@@ -21,7 +21,7 @@ fn parse_statement(i: Span) -> nom::IResult<Span, Statement> {
         parse_if_statement,
         parse_docatch_statement,
         parse_assert_statement,
-        map(parse_expression, |e| Statement::Expression(e)),
+        map(parse_expression, Statement::Expression),
     ))(i)
 }
 

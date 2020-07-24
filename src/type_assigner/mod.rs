@@ -35,7 +35,7 @@ impl Visitor for TypeAssigner {
         _ctx: &mut Context,
     ) -> VResult {
         if let BinOp::Dot = _t.op {
-            let enclosing = _ctx.enclosing_type_identifier().clone();
+            let enclosing = _ctx.enclosing_type_identifier();
             let enclosing = enclosing.unwrap();
             let scope = _ctx.scope_context.clone();
             let scope = scope.unwrap_or_default();

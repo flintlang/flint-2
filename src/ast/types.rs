@@ -45,26 +45,20 @@ impl Type {
     }
 
     pub fn is_currency_type(&self) -> bool {
-        let currency_type = self.clone();
-
-        let identifier = match currency_type {
-            Type::UserDefinedType(i) => i,
-            _ => return false,
-        };
-
-        let identifier = identifier.token.clone();
-        identifier.eq("Wei") || identifier.eq("Libra") || identifier.eq("LibraCoin.T")
+        return matches!(
+            self,
+            Type::UserDefinedType(ref i)
+                if i.token == "Wei" || i.token == "Libra" || i.token == "LibraCoin.T"
+        )
     }
 
     #[allow(dead_code)]
     pub fn is_currency_original_type(&self) -> bool {
-        let identifier = match self.clone() {
-            Type::UserDefinedType(i) => i,
-            _ => return false,
-        };
-
-        let identifier = identifier.token.clone();
-        identifier.eq("Wei") || identifier.eq("Libra")
+        return matches!(
+            self,
+            Type::UserDefinedType(ref i)
+                if i.token == "Wei" || i.token == "Libra"
+        )
     }
 
     pub fn is_dynamic_type(&self) -> bool {

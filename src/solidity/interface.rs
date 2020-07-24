@@ -22,7 +22,7 @@ impl SolidityInterface {
 
         let functions: Vec<Option<String>> = functions
             .into_iter()
-            .map(|f| SolidityInterface::render_function(f))
+            .map(SolidityInterface::render_function)
             .collect();
         let functions: Vec<String> = functions.into_iter().filter_map(|s| s).collect();
         let functions = functions.join("\n");

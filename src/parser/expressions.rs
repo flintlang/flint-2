@@ -7,63 +7,39 @@ use crate::parser::utils::*;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
-        map(parse_inout_expression, |inout| {
-            Expression::InoutExpression(inout)
-        }),
-        map(parse_external_call, |e| Expression::ExternalCall(e)),
-        map(parse_cast_expression, |c| Expression::CastExpression(c)),
-        map(parse_binary_expression, |be| {
-            Expression::BinaryExpression(be)
-        }),
+        map(parse_inout_expression, Expression::InoutExpression),
+        map(parse_external_call, Expression::ExternalCall),
+        map(parse_cast_expression, Expression::CastExpression),
+        map(parse_binary_expression, Expression::BinaryExpression),
         map(tag(Identifier::SELF), |_| Expression::SelfExpression),
-        map(parse_subscript_expression, |s| {
-            Expression::SubscriptExpression(s)
-        }),
-        map(parse_function_call, |f| Expression::FunctionCall(f)),
-        map(parse_variable_declaration, |v| {
-            Expression::VariableDeclaration(v)
-        }),
-        map(parse_literal, |l| Expression::Literal(l)),
-        map(parse_identifier, |i| Expression::Identifier(i)),
-        map(parse_bracketed_expression, |b| {
-            Expression::BracketedExpression(b)
-        }),
-        map(parse_array_literal, |a| Expression::ArrayLiteral(a)),
-        map(parse_dictionary_literal, |d| {
-            Expression::DictionaryLiteral(d)
-        }),
-        map(parse_dictionary_empty_literal, |d| {
-            Expression::DictionaryLiteral(d)
-        }),
-        map(parse_range_expression, |r| Expression::RangeExpression(r)),
+        map(parse_subscript_expression, Expression::SubscriptExpression),
+        map(parse_function_call, Expression::FunctionCall),
+        map(parse_variable_declaration, Expression::VariableDeclaration),
+        map(parse_literal, Expression::Literal),
+        map(parse_identifier, Expression::Identifier),
+        map(parse_bracketed_expression, Expression::BracketedExpression),
+        map(parse_array_literal, Expression::ArrayLiteral),
+        map(parse_dictionary_literal, Expression::DictionaryLiteral),
+        map(parse_dictionary_empty_literal, Expression::DictionaryLiteral),
+        map(parse_range_expression, Expression::RangeExpression),
     ))(i)
 }
 
 pub fn parse_expression_left(i: Span) -> nom::IResult<Span, Expression> {
     alt((
-        map(parse_inout_expression, |inout| {
-            Expression::InoutExpression(inout)
-        }),
-        map(parse_external_call, |e| Expression::ExternalCall(e)),
-        map(parse_cast_expression, |c| Expression::CastExpression(c)),
+        map(parse_inout_expression, Expression::InoutExpression),
+        map(parse_external_call, Expression::ExternalCall),
+        map(parse_cast_expression, Expression::CastExpression),
         map(tag(Identifier::SELF), |_| Expression::SelfExpression),
-        map(parse_subscript_expression, |s| {
-            Expression::SubscriptExpression(s)
-        }),
-        map(parse_function_call, |f| Expression::FunctionCall(f)),
-        map(parse_variable_declaration, |v| {
-            Expression::VariableDeclaration(v)
-        }),
-        map(parse_literal, |l| Expression::Literal(l)),
-        map(parse_identifier, |i| Expression::Identifier(i)),
-        map(parse_bracketed_expression, |b| {
-            Expression::BracketedExpression(b)
-        }),
-        map(parse_array_literal, |a| Expression::ArrayLiteral(a)),
-        map(parse_dictionary_empty_literal, |a| {
-            Expression::DictionaryLiteral(a)
-        }),
-        map(parse_range_expression, |r| Expression::RangeExpression(r)),
+        map(parse_subscript_expression, Expression::SubscriptExpression),
+        map(parse_function_call, Expression::FunctionCall),
+        map(parse_variable_declaration, Expression::VariableDeclaration),
+        map(parse_literal, Expression::Literal),
+        map(parse_identifier, Expression::Identifier),
+        map(parse_bracketed_expression, Expression::BracketedExpression),
+        map(parse_array_literal, Expression::ArrayLiteral),
+        map(parse_dictionary_empty_literal, Expression::DictionaryLiteral),
+        map(parse_range_expression, Expression::RangeExpression),
     ))(i)
 }
 

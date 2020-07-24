@@ -11,9 +11,7 @@ use crate::parser::utils::*;
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, top) = alt((
         parse_contract_declaration,
-        map(parse_contract_behaviour_declaration, |c| {
-            TopLevelDeclaration::ContractBehaviourDeclaration(c)
-        }),
+        map(parse_contract_behaviour_declaration, TopLevelDeclaration::ContractBehaviourDeclaration),
         parse_struct_declaration,
         parse_asset_declaration,
         parse_enum_declaration,
@@ -79,9 +77,7 @@ fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration
 
 fn parse_contract_member(i: Span) -> nom::IResult<Span, ContractMember> {
     alt((
-        map(parse_event_declaration, |e| {
-            ContractMember::EventDeclaration(e)
-        }),
+        map(parse_event_declaration, ContractMember::EventDeclaration),
         map(parse_variable_declaration_enclosing, |(dec, modifier)| {
             ContractMember::VariableDeclaration(dec, modifier)
         }),
@@ -159,18 +155,10 @@ fn parse_contract_behaviour_declaration(
 
 fn parse_contract_behaviour_member(i: Span) -> nom::IResult<Span, ContractBehaviourMember> {
     alt((
-        map(parse_function_declaration, |f| {
-            ContractBehaviourMember::FunctionDeclaration(f)
-        }),
-        map(parse_special_declaration, |s| {
-            ContractBehaviourMember::SpecialDeclaration(s)
-        }),
-        map(parse_special_signature_declaration, |s| {
-            ContractBehaviourMember::SpecialSignatureDeclaration(s)
-        }),
-        map(parse_function_signature_declaration, |f| {
-            ContractBehaviourMember::FunctionSignatureDeclaration(f)
-        }),
+        map(parse_function_declaration, ContractBehaviourMember::FunctionDeclaration),
+        map(parse_special_declaration, ContractBehaviourMember::SpecialDeclaration),
+        map(parse_special_signature_declaration, ContractBehaviourMember::SpecialSignatureDeclaration),
+        map(parse_function_signature_declaration, ContractBehaviourMember::FunctionSignatureDeclaration),
     ))(i)
 }
 
@@ -252,11 +240,7 @@ fn parse_enum_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, enum_token) = tag("enum")(i)?;
     let (i, identifier) = preceded(nom::character::complete::space0, parse_identifier)(i)?;
     let (i, type_annotation) = nom::combinator::opt(parse_type_annotation)(i)?;
-    let type_assigned = if type_annotation.is_none() {
-        None
-    } else {
-        Some(type_annotation.unwrap().type_assigned)
-    };
+    let type_assigned = type_annotation.map(|t_a| t_a.type_assigned);
     let (i, _) = preceded(nom::character::complete::space0, left_brace)(i)?;
     let (i, _) = whitespace(i)?;
 
@@ -401,12 +385,7 @@ fn parse_function_signature_declaration(
     i: Span,
 ) -> nom::IResult<Span, FunctionSignatureDeclaration> {
     let (i, attributes) = parse_attributes(i)?;
-    let mut payable = false;
-    for attribute in &attributes {
-        if attribute.identifier_token == "payable".to_string() {
-            payable = true;
-        }
-    }
+    let payable = attributes.iter().any(|a| a.identifier_token == "payable");
     let (i, _) = whitespace(i)?;
     let (i, modifiers) = parse_modifiers(i)?;
     let (i, _) = nom::character::complete::space0(i)?;
@@ -464,12 +443,8 @@ fn parse_asset_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
 
 fn parse_asset_member(i: Span) -> nom::IResult<Span, AssetMember> {
     alt((
-        map(parse_function_declaration, |f| {
-            AssetMember::FunctionDeclaration(f)
-        }),
-        map(parse_special_declaration, |s| {
-            AssetMember::SpecialDeclaration(s)
-        }),
+        map(parse_function_declaration, AssetMember::FunctionDeclaration),
+        map(parse_special_declaration, AssetMember::SpecialDeclaration),
         map(parse_variable_declaration_enclosing, |(dec, _)| {
             AssetMember::VariableDeclaration(dec)
         }),
@@ -520,12 +495,8 @@ fn parse_struct_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> 
 
 fn parse_struct_member(i: Span) -> nom::IResult<Span, StructMember> {
     alt((
-        map(parse_function_declaration, |f| {
-            StructMember::FunctionDeclaration(f)
-        }),
-        map(parse_special_declaration, |s| {
-            StructMember::SpecialDeclaration(s)
-        }),
+        map(parse_function_declaration, StructMember::FunctionDeclaration),
+        map(parse_special_declaration, StructMember::SpecialDeclaration),
         map(parse_variable_declaration_enclosing, |(dec, modifier)| {
             StructMember::VariableDeclaration(dec, modifier)
         }),
@@ -578,24 +549,12 @@ fn parse_trait_modifier(i: Span) -> nom::IResult<Span, FunctionCall> {
 
 fn parse_trait_member(i: Span) -> nom::IResult<Span, TraitMember> {
     alt((
-        map(parse_function_declaration, |f| {
-            TraitMember::FunctionDeclaration(f)
-        }),
-        map(parse_special_declaration, |s| {
-            TraitMember::SpecialDeclaration(s)
-        }),
-        map(parse_function_signature_declaration, |f| {
-            TraitMember::FunctionSignatureDeclaration(f)
-        }),
-        map(parse_special_signature_declaration, |s| {
-            TraitMember::SpecialSignatureDeclaration(s)
-        }),
-        map(parse_event_declaration, |e| {
-            TraitMember::EventDeclaration(e)
-        }),
-        map(parse_contract_behaviour_declaration, |c| {
-            TraitMember::ContractBehaviourDeclaration(c)
-        }),
+        map(parse_function_declaration, TraitMember::FunctionDeclaration),
+        map(parse_special_declaration, TraitMember::SpecialDeclaration),
+        map(parse_function_signature_declaration, TraitMember::FunctionSignatureDeclaration),
+        map(parse_special_signature_declaration, TraitMember::SpecialSignatureDeclaration),
+        map(parse_event_declaration, TraitMember::EventDeclaration),
+        map(parse_contract_behaviour_declaration, TraitMember::ContractBehaviourDeclaration),
     ))(i)
 }
 

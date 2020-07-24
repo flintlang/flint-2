@@ -5,10 +5,12 @@ mod environment;
 mod moveir;
 mod parser;
 mod semantic_analysis;
-mod solidity;
 mod type_assigner;
 mod type_checker;
 mod visitor;
+
+#[allow(clippy::all)] // Solidity is deprecated, no need to lint
+mod solidity;
 
 use crate::ast_processor::Target;
 use std::env;
@@ -37,11 +39,9 @@ fn main() {
     let mut file =
         File::open(filename).expect(&*format!("Unable to open file at path {} ", filename));
 
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
+    let mut program = String::new();
+    file.read_to_string(&mut program)
         .expect("Unable to read the file");
-    let mut program = contents.clone();
-
     if let Target::Move = target {
         /* TURN OFF LIBRA
         let mut file =

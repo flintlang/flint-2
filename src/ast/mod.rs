@@ -1,4 +1,5 @@
 pub mod calls;
+#[allow(clippy::large_enum_variant)]
 pub mod declarations;
 pub mod expressions;
 pub mod literals;
@@ -82,7 +83,7 @@ impl TypeInfo {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == "module".to_string())
+            .filter(|f| f.identifier.token == "module")
             .collect();
 
         if modifiers.is_empty() {
@@ -96,7 +97,7 @@ impl TypeInfo {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| f.identifier.token == "resource".to_string())
+            .filter(|f| f.identifier.token == "resource")
             .collect();
 
         if modifiers.is_empty() {
@@ -111,8 +112,8 @@ impl TypeInfo {
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
             .filter(|f| {
-                f.identifier.token == "resource".to_string()
-                    || f.identifier.token == "struct".to_string()
+                f.identifier.token == "resource"
+                    || f.identifier.token == "struct"
             })
             .collect();
 
@@ -239,7 +240,7 @@ impl FunctionInformation {
         identifiers
             .into_iter()
             .filter(|i| i.expression.is_none())
-            .map(|p| p.identifier.clone())
+            .map(|p| p.identifier)
             .collect()
     }
 }
@@ -411,10 +412,10 @@ impl CodeGen {
         for line in code.as_ref().lines() {
             let line = line.trim();
             let indent_change =
-                (line.matches("{").count() as i32) - (line.matches("}").count() as i32);
+                (line.matches('{').count() as i32) - (line.matches('}').count() as i32);
             let new_indent_level = max(0, self.indent_level + indent_change);
 
-            let this_line_indent = if line.starts_with("}") || line.ends_with(":") {
+            let this_line_indent = if line.starts_with('}') || line.ends_with(':') {
                 self.indent_level - 1
             } else {
                 self.indent_level
@@ -424,7 +425,7 @@ impl CodeGen {
                 self.code.push(' ');
             }
             self.code.push_str(line);
-            self.code.push_str("\n");
+            self.code.push('\n');
 
             self.indent_level = new_indent_level;
         }
