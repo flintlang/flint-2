@@ -22,5 +22,4 @@ script:
   - cargo run libra tests/move_tests/typestates_counter.flint
   - python3 run_move_tests.py compilation
   - cargo test --verbose
-cache:
-  - cargo
+cache: cargo
