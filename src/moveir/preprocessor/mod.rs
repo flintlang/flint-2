@@ -2,7 +2,7 @@ use self::utils::*;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 use crate::visitor::Visitor;
 
 pub mod utils;
@@ -614,7 +614,7 @@ impl Visitor for MovePreProcessor {
             });
         }
 
-        if !_ctx.environment.is_initiliase_call(&call)
+        if !_ctx.environment.is_initialise_call(&call)
             && !_ctx.environment.is_trait_declared(&call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(&call, _ctx);

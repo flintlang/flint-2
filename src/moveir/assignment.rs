@@ -6,7 +6,7 @@ use super::r#type::MoveType;
 use super::MovePosition;
 use crate::ast::{mangle, Expression, Type};
 use crate::moveir::expression::is_signer_type;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 
 #[derive(Debug)]
 pub(crate) struct MoveAssignment {

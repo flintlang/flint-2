@@ -50,20 +50,19 @@ impl Environment {
 
     pub fn conflicting_trait_signatures(&self, type_id: &str) -> bool {
         if let Some(type_info) = self.types.get(type_id) {
-            let conflicting = |f: &[FunctionInformation]| {
-                if let Some(first_signature) = f.get(0) {
+            let conflicting = |funcs: &[FunctionInformation]| {
+                if let Some(first_signature) = funcs.get(0) {
                     let first_parameter = &first_signature.declaration.head;
-                    for function in f {
-                        if function.get_parameter_types() == first_signature.get_parameter_types()
-                            && function.declaration.head.is_equal(first_parameter.clone())
-                        {
-                            return true;
-                        }
+                    if funcs.iter().any(|func|
+                        func.get_parameter_types() == first_signature.get_parameter_types()
+                            && func.declaration.head.is_equal(first_parameter.clone())
+                    ) {
+                        return true;
                     }
                 }
                 false
             };
-            return !type_info
+            return type_info
                 .trait_functions()
                 .into_iter()
                 .any(|(_, v)| v.len() > 1 && conflicting(&v));

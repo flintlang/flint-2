@@ -2,7 +2,7 @@ use super::ast::*;
 use super::context::*;
 use super::visitor::*;
 use crate::environment::FunctionCallMatchResult::{MatchedFunction, MatchedInitializer};
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 
 pub struct SemanticAnalysis {}
 
@@ -600,24 +600,24 @@ impl Visitor for SemanticAnalysis {
     fn start_function_call(&mut self, t: &mut FunctionCall, ctx: &mut Context) -> VResult {
         let contract_name = ctx.contract_behaviour_declaration_context.clone();
         if let Some(context) = contract_name {
-            let contract_name = &context.identifier.token.clone();
+            let contract_name = context.identifier.token.clone();
 
             let function_info = ctx.environment.match_function_call(
                 &t,
-                contract_name,
+                &contract_name,
                 &context.caller_protections,
                 ctx.scope_context.as_ref().unwrap_or_default(),
             );
             return match function_info {
                 MatchedFunction(info) => check_if_correct_type_state_possible(
                     context,
-                    ctx.environment.get_contract_state(contract_name),
+                    ctx.environment.get_contract_state(&contract_name),
                     info.type_states,
                     t.identifier.clone(),
                 ),
                 MatchedInitializer(info) => check_if_correct_type_state_possible(
                     context,
-                    ctx.environment.get_contract_state(contract_name),
+                    ctx.environment.get_contract_state(&contract_name),
                     info.type_states,
                     t.identifier.clone(),
                 ),

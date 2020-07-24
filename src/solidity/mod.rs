@@ -1,4 +1,4 @@
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;

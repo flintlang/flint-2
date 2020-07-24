@@ -4,7 +4,7 @@ use crate::ast::{
 };
 use crate::context::ScopeContext;
 use crate::environment::*;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 
 impl Environment {
     pub fn add_function(
@@ -19,7 +19,7 @@ impl Environment {
         let function_information = FunctionInformation {
             declaration: f,
             mutating,
-            caller_protections: caller_protections,
+            caller_protections,
             type_states,
             ..Default::default()
         };
@@ -66,7 +66,7 @@ impl Environment {
     ) {
         let name = signature.identifier.token.clone();
         let function_declaration = FunctionDeclaration {
-            head: signature.clone(),
+            head: signature,
             body: vec![],
             scope_context: None,
             tags: vec![],
@@ -77,7 +77,7 @@ impl Environment {
         let function_information = FunctionInformation {
             declaration: function_declaration.clone(),
             mutating: function_declaration.is_mutating(),
-            caller_protections: caller_protections,
+            caller_protections,
             type_states,
             is_signature: true,
         };
@@ -286,7 +286,7 @@ impl Environment {
             .collect();
 
         let regular_match =
-            self.match_regular_function(&call, type_id, caller_protections.clone(), scope);
+            self.match_regular_function(&call, type_id, caller_protections, scope);
 
         let initaliser_match =
             self.match_initialiser_function(call, &argument_types, caller_protections);

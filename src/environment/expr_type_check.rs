@@ -5,9 +5,9 @@ use crate::ast::{
 };
 use crate::context::ScopeContext;
 use crate::environment::*;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 
-impl ExpressionCheck for Environment {
+impl ExpressionChecker for Environment {
     fn get_expression_type(
         &self,
         expression: &Expression,
@@ -178,8 +178,8 @@ impl Environment {
         let element_type = self.get_expression_type(
             &*expression.start_expression,
             type_id,
-            type_states.clone(),
-            caller_protections.clone(),
+            type_states,
+            caller_protections,
             scope,
         );
         let bound_type = self.get_expression_type(
@@ -214,8 +214,8 @@ impl Environment {
             let lhs_type = self.get_expression_type(
                 &*binary.lhs_expression,
                 type_id,
-                type_states.clone(),
-                caller_protections.clone(),
+                type_states,
+                caller_protections,
                 scope,
             );
             match lhs_type {

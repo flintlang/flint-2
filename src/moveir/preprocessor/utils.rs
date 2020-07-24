@@ -7,7 +7,7 @@ use crate::ast::{
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::MovePreProcessor;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 
 pub fn convert_default_parameter_functions(
     base: FunctionDeclaration,

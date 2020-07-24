@@ -7,7 +7,7 @@ use type_error::StateTypeError;
 
 pub struct TypeChecker {}
 
-pub trait ExpressionCheck {
+pub trait ExpressionChecker {
     fn get_expression_type(
         &self,
         expr: &Expression,

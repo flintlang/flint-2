@@ -10,7 +10,7 @@ use crate::context::ScopeContext;
 use crate::environment::Environment;
 use crate::moveir::preprocessor::utils::release;
 use crate::moveir::utils::*;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 
 #[derive(Debug)]
 pub(crate) struct MoveFunction {

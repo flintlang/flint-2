@@ -110,14 +110,12 @@ impl Environment {
                     caller_protections,
                 });
             }
-        } else {
-            if let Some(type_info) = self.types.get_mut(type_id) {
-                type_info.fallbacks.push(SpecialInformation {
-                    declaration: special,
-                    type_states,
-                    caller_protections,
-                });
-            }
+        } else if let Some(type_info) = self.types.get_mut(type_id) {
+            type_info.fallbacks.push(SpecialInformation {
+                declaration: special,
+                type_states,
+                caller_protections,
+            });
         }
     }
     fn add_type_state(&mut self, contract_name: &str, type_state: TypeState) {
@@ -318,7 +316,7 @@ impl Environment {
         self.types.get(type_id).is_some()
     }
 
-    pub fn is_initiliase_call(&self, call: &FunctionCall) -> bool {
+    pub fn is_initialise_call(&self, call: &FunctionCall) -> bool {
         self.is_struct_declared(&call.identifier.token)
             || self.is_asset_declared(&call.identifier.token)
     }

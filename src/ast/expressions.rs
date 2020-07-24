@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::context::Context;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 use crate::visitor::*;
 
 #[allow(dead_code)]

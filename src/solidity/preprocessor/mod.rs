@@ -5,7 +5,7 @@ use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
 use crate::solidity::preprocessor::utils::*;
-use crate::type_checker::ExpressionCheck;
+use crate::type_checker::ExpressionChecker;
 use crate::visitor::Visitor;
 
 pub(crate) struct SolidityPreProcessor {}
@@ -75,7 +75,7 @@ impl Visitor for SolidityPreProcessor {
                 }
             } else if let BinOp::Equal = binary.op {
                 if let Expression::FunctionCall(mut call) = *binary.rhs_expression.clone() {
-                    if _ctx.environment.is_initiliase_call(&call) {
+                    if _ctx.environment.is_initialise_call(&call) {
                         let inout = Expression::InoutExpression(InoutExpression {
                             ampersand_token: "&".to_string(),
                             expression: binary.lhs_expression.clone(),
@@ -219,7 +219,7 @@ impl Visitor for SolidityPreProcessor {
         }
 
         let mut f_call = call.clone();
-        if _ctx.environment.is_initiliase_call(&f_call) {
+        if _ctx.environment.is_initialise_call(&f_call) {
             let mut temp = f_call.clone();
             if _ctx.function_declaration_context.is_some()
                 || _ctx.special_declaration_context.is_some() && !temp.arguments.is_empty()
@@ -308,7 +308,7 @@ impl Visitor for SolidityPreProcessor {
             }
         }
 
-        println!("{:?}", _ctx.environment.is_initiliase_call(&f_call));
+        println!("{:?}", _ctx.environment.is_initialise_call(&f_call));
         println!("{:?}", f_call.mangled_identifier);
         let scope = _ctx.scope_context.clone();
         let scope = scope.unwrap_or(ScopeContext {
