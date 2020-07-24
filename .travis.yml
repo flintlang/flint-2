@@ -4,7 +4,7 @@ dist: xenial
 before_script:
   - rustup component add clippy
   - sudo apt-get update
-  - sudo apt-get install python3
+  - sudo apt-get install python3.7
 
 script:
   - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -W clippy::unnecessary-unwrap --verbose

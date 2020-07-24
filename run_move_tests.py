@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import NamedTuple, Optional, List, Iterable, Union
+from typing import NamedTuple, Optional, List, Iterable
 import subprocess, os, sys, shutil
 from contextlib import contextmanager
 import json
