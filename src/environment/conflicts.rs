@@ -53,10 +53,10 @@ impl Environment {
             let conflicting = |funcs: &[FunctionInformation]| {
                 if let Some(first_signature) = funcs.get(0) {
                     let first_parameter = &first_signature.declaration.head;
-                    if funcs.iter().any(|func|
+                    if funcs.iter().any(|func| {
                         func.get_parameter_types() == first_signature.get_parameter_types()
                             && func.declaration.head.is_equal(first_parameter.clone())
-                    ) {
+                    }) {
                         return true;
                     }
                 }

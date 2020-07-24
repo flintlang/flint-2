@@ -285,8 +285,7 @@ impl Environment {
             .map(|a| self.get_expression_type(&a.expression, type_id, &[], &[], &scope))
             .collect();
 
-        let regular_match =
-            self.match_regular_function(&call, type_id, caller_protections, scope);
+        let regular_match = self.match_regular_function(&call, type_id, caller_protections, scope);
 
         let initaliser_match =
             self.match_initialiser_function(call, &argument_types, caller_protections);
