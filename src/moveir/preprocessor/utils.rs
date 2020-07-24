@@ -191,8 +191,12 @@ pub fn generate_contract_wrapper(
     }
 
     let contract_address_parameter = Parameter {
-        identifier: Identifier::generated("_address_this"),
-        type_assignment: Type::Address,
+        identifier: Identifier::generated("address_this"),
+        type_assignment: Type::UserDefinedType(Identifier {
+            token: "&signer".to_string(),
+            enclosing_type: None,
+            line_info: Default::default(),
+        }),
         expression: None,
         line_info: Default::default(),
     };
@@ -229,7 +233,7 @@ pub fn generate_contract_wrapper(
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "Signer.address_of(move({param}))",
-                param = mangle(&contract_address_parameter.identifier.token)
+                param = &contract_address_parameter.identifier.token
             ),
             None,
         )),
@@ -268,23 +272,13 @@ pub fn generate_contract_wrapper(
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
-        let caller = Identifier::generated("_caller");
+        let caller_id: Identifier;
 
-        wrapper.body.insert(
-            0,
-            Statement::Expression(Expression::VariableDeclaration(VariableDeclaration {
-                declaration_token: None,
-                identifier: Identifier {
-                    token: mangle(&caller.token),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                variable_type: Type::Address,
-                expression: None,
-            })),
-        );
-
-        wrapper.body.push(generate_caller_statement(caller.clone()));
+        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
+            caller_id = caller.clone();
+        } else {
+            caller_id = Identifier::generated("caller");
+        }
 
         let predicates = contract_behaviour_declaration.caller_protections.clone();
 
@@ -310,7 +304,10 @@ pub fn generate_contract_wrapper(
                 match c_type {
                     Type::Address => Expression::BinaryExpression(BinaryExpression {
                         lhs_expression: Box::new(Expression::Identifier(ident)),
-                        rhs_expression: Box::new(Expression::Identifier(caller.clone())),
+                        rhs_expression: Box::new(Expression::RawAssembly(
+                            format!("Signer.address_of(copy({}))", caller_id.token),
+                            None,
+                        )),
                         op: BinOp::DoubleEqual,
                         line_info: Default::default(),
                     }),
@@ -456,33 +453,48 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
         }
         Expression::SubscriptExpression(e1) => {
             if let Expression::SubscriptExpression(e2) = second {
-                return e1.base_expression == e2.base_expression && cmp_expressions(&e1.index_expression, &e2.index_expression);
+                return e1.base_expression == e2.base_expression
+                    && cmp_expressions(&e1.index_expression, &e2.index_expression);
             }
         }
         Expression::AttemptExpression(e1) => {
             if let Expression::AttemptExpression(e2) = second {
-                return e1.kind == e2.kind && cmp_expressions(&Expression::FunctionCall(e1.function_call.clone()), &Expression::FunctionCall(e2.function_call.clone()));
+                return e1.kind == e2.kind
+                    && cmp_expressions(
+                        &Expression::FunctionCall(e1.function_call.clone()),
+                        &Expression::FunctionCall(e2.function_call.clone()),
+                    );
             }
         }
         Expression::RangeExpression(e1) => {
             if let Expression::RangeExpression(e2) = second {
-                return e1.op == e2.op && cmp_expressions(&e1.start_expression, &e2.start_expression) && cmp_expressions(&e1.end_expression, &e2.end_expression);
+                return e1.op == e2.op
+                    && cmp_expressions(&e1.start_expression, &e2.start_expression)
+                    && cmp_expressions(&e1.end_expression, &e2.end_expression);
             }
         }
         Expression::VariableDeclaration(v1) => {
             if let Expression::VariableDeclaration(v2) = second {
-                if v1.declaration_token == v2.declaration_token && v1.identifier == v2.identifier && v1.variable_type == v2.variable_type {
+                if v1.declaration_token == v2.declaration_token
+                    && v1.identifier == v2.identifier
+                    && v1.variable_type == v2.variable_type
+                {
                     if let Some(e1) = &v1.expression {
                         if let Some(e2) = &v2.expression {
                             return cmp_expressions(&e1, &e2);
                         }
                     }
-                } 
+                }
             }
         }
         Expression::ExternalCall(e1) => {
             if let Expression::ExternalCall(e2) = second {
-                return e1.arguments == e2.arguments && e1.external_trait_name == e2.external_trait_name && cmp_expressions(&Expression::BinaryExpression(e1.function_call.clone()), &Expression::BinaryExpression(e2.function_call.clone()));
+                return e1.arguments == e2.arguments
+                    && e1.external_trait_name == e2.external_trait_name
+                    && cmp_expressions(
+                        &Expression::BinaryExpression(e1.function_call.clone()),
+                        &Expression::BinaryExpression(e2.function_call.clone()),
+                    );
             }
         }
         Expression::ArrayLiteral(first_exprs) => {
@@ -520,7 +532,8 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
                 let mut found = false;
                 for expr in &first_mappings.elements {
                     for other_expr in &second_mappings.elements {
-                        found |= cmp_expressions(&expr.0, &other_expr.0) && cmp_expressions(&expr.1, &other_expr.1);
+                        found |= cmp_expressions(&expr.0, &other_expr.0)
+                            && cmp_expressions(&expr.1, &other_expr.1);
                     }
                     if !found {
                         return false;
@@ -668,20 +681,6 @@ pub fn pre_assign(
     } else {
         Expression::Identifier(temp_identifier)
     }
-}
-
-pub fn generate_caller_statement(caller: Identifier) -> Statement {
-    let assignment = BinaryExpression {
-        lhs_expression: Box::new(Expression::Identifier(caller.clone())),
-        rhs_expression: Box::new(Expression::RawAssembly(
-            "get_txn_sender()".to_string(),
-            Option::from(Type::Address),
-        )),
-        op: BinOp::Equal,
-        line_info: caller.line_info,
-    };
-
-    Statement::Expression(Expression::BinaryExpression(assignment))
 }
 
 pub fn generate_assertion(

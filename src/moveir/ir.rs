@@ -340,8 +340,10 @@ pub enum MoveIRType {
     Address,
     Bool,
     ByteArray,
+    Signer,
     Resource(String),
     StructType(String),
+    Reference(Box<MoveIRType>),
     MutableReference(Box<MoveIRType>),
     Vector(Box<MoveIRType>),
 }
@@ -350,11 +352,13 @@ impl fmt::Display for MoveIRType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             MoveIRType::U64 => write!(f, "u64"),
-            MoveIRType::Address => write!(f, "&signer"),
+            MoveIRType::Address => write!(f, "address"),
             MoveIRType::Bool => write!(f, "bool"),
+            MoveIRType::Signer => write!(f, "signer"),
             MoveIRType::ByteArray => write!(f, "vector<u8>"),
             MoveIRType::Resource(s) => write!(f, "{}", s),
             MoveIRType::StructType(s) => write!(f, "{}", s),
+            MoveIRType::Reference(base) => write!(f, "&{base}", base = base),
             MoveIRType::MutableReference(base) => write!(f, "&mut {base}", base = base),
             MoveIRType::Vector(base) => write!(f, "vector<{base}>", base = base),
         }
