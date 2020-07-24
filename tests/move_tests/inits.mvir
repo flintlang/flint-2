@@ -1,0 +1,16 @@
+import {{default}}.Inits;
+
+main(account: &signer) {
+    Inits.publish(10, true, copy(account));
+    assert(Inits.getA(copy(account)) == 10, 1);
+    assert(Inits.getB(copy(account)) == 0x1000, 1);
+    assert(Inits.getS(copy(account)) == true, 1);
+    assert(Inits.getZ(copy(account)) == 0x72981077347248757091884308802679, 1);
+
+    Inits.setT(copy(account), 5, true);
+    assert(Inits.getTx(copy(account)) == 5, 1);
+    assert(Inits.getTy(copy(account)) == true, 1);
+    assert(Inits.getTs(copy(account)) == false, 1);
+
+    return;
+}

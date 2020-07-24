@@ -43,7 +43,9 @@ impl MoveStruct {
                 _ => None,
             })
             .collect();
+
         let members: Vec<String> = members.into_iter().map(|e| format!("{}", e)).collect();
+
         let members = members.join(",\n");
         let kind = MoveType::move_type(
             Type::UserDefinedType(self.struct_declaration.identifier.clone()),
@@ -297,6 +299,20 @@ impl MoveStructInitialiser {
                 .into_iter()
                 .map(|f| {
                     let name = format!("__this_{}", f.identifier.token);
+                    if let Some(expr) = f.expression {
+                        function_context.emit(MoveIRStatement::Expression(
+                            MoveIRExpression::Assignment(crate::moveir::ir::MoveIRAssignment {
+                                identifier: name.clone(),
+                                expression: Box::from(
+                                    crate::moveir::expression::MoveExpression {
+                                        expression: *expr,
+                                        position: Default::default(),
+                                    }
+                                    .generate(&function_context),
+                                ),
+                            }),
+                        ));
+                    }
                     (
                         f.identifier.token,
                         MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(

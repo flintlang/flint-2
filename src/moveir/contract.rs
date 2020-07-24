@@ -163,23 +163,23 @@ impl MoveContract {
                     MoveType::move_type(d.variable_type, Option::from(self.environment.clone()));
                 let result_type = result_type.generate(&function_context);
                 format!(
-                    "_get_{r_name}(__address_this: address): {r_type} acquires {r_name} {{
+                    "_get_{r_name}(_address_this: address): {r_type} acquires {r_name} {{
     let this: &mut Self.{r_name};
     let temp: &{r_type};
     let result: {r_type};
-    this = borrow_global_mut<{r_name}>(move(__address_this));
+    this = borrow_global_mut<{r_name}>(move(_address_this));
     temp = &copy(this).value;
     result = *copy(temp);
     return move(result);
   }}
 
-        _insert_{r_name}(__address_this: address, v: {r_type}) acquires {r_name} {{
+        _insert_{r_name}(_address_this: address, v: {r_type}) acquires {r_name} {{
     let new_value: Self.{r_name};
     let cur: &mut Self.{r_name};
     let b: bool;
-    b = exists<{r_name}>(copy(__address_this));
+    b = exists<{r_name}>(copy(_address_this));
     if (move(b)) {{
-      cur = borrow_global_mut<{r_name}>(move(__address_this));
+      cur = borrow_global_mut<{r_name}>(move(_address_this));
       *(&mut move(cur).value) = move(v);
     }} else {{
        new_value = {r_name} {{
@@ -337,6 +337,7 @@ impl MoveContract {
             .collect();
 
         let mut statements = initialiser_declaration.body;
+
         let properties = self
             .contract_declaration
             .get_variable_declarations_without_dict();

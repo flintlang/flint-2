@@ -22,7 +22,7 @@ impl MoveStatement {
                     expression: e,
                     position: Default::default(),
                 }
-                    .generate(function_context),
+                .generate(function_context),
             ),
             Statement::BecomeStatement(_) => {
                 panic!("Should have been implemented in the preprocessor")
@@ -42,7 +42,7 @@ impl MoveStatement {
                     expression: a.expression,
                     position: Default::default(),
                 }
-                    .generate(function_context),
+                .generate(function_context),
                 a.line_info.line,
             ),
         }

@@ -146,17 +146,24 @@ impl Visitable for ContractBehaviourDeclaration {
             caller_protections: self.caller_protections.clone(),
         });
 
-        let mut local_variables: Vec<VariableDeclaration> = vec![];
-        if let Some(ref caller_binding) = self.caller_binding {
-            local_variables.push(VariableDeclaration {
-                declaration_token: None,
-                identifier: caller_binding.clone(),
-                variable_type: Type::Address,
+        let local_variables: Vec<VariableDeclaration> = vec![];
+        let mut parameters: Vec<Parameter> = vec![];
+
+        if let Some(caller) = &self.caller_binding {
+            parameters.push(Parameter {
+                identifier: caller.clone(),
+                type_assignment: Type::UserDefinedType(Identifier {
+                    token: "&signer".to_string(),
+                    enclosing_type: None,
+                    line_info: Default::default(),
+                }),
                 expression: None,
+                line_info: Default::default(),
             })
         }
+
         let scope = ScopeContext {
-            parameters: vec![],
+            parameters,
             local_variables,
             ..Default::default()
         };
@@ -778,6 +785,20 @@ impl Visitable for SpecialDeclaration {
             for parameter in &self.head.parameters {
                 scope_context.parameters.push(parameter.clone());
             }
+            scope_context.parameters.push(Parameter {
+                identifier: Identifier {
+                    token: "caller".to_string(),
+                    enclosing_type: None,
+                    line_info: Default::default(),
+                },
+                type_assignment: Type::UserDefinedType(Identifier {
+                    token: "&signer".to_string(),
+                    enclosing_type: None,
+                    line_info: Default::default(),
+                }),
+                expression: None,
+                line_info: Default::default(),
+            });
         }
 
         let mut statements: Vec<Vec<Statement>> = vec![];
@@ -785,6 +806,16 @@ impl Visitable for SpecialDeclaration {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
             statement.visit(v, ctx)?;
+            if let Statement::Expression(Expression::BinaryExpression(be)) = statement {
+                if let Expression::Identifier(id) = &*be.rhs_expression {
+                    if id.token == "caller" {
+                        be.rhs_expression = Box::new(Expression::RawAssembly(
+                            "Signer.address_of(copy(caller))".to_string(),
+                            None,
+                        ));
+                    }
+                }
+            }
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }

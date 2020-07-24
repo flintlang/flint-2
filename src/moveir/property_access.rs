@@ -24,7 +24,7 @@ impl MovePropertyAccess {
                             expression: property.property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                            .generate(function_context);
+                        .generate(function_context);
                     }
                 }
             }

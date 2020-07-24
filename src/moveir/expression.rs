@@ -380,11 +380,20 @@ impl MoveBinaryExpression {
             position: self.position.clone(),
         }
         .generate(function_context);
-        let rhs = MoveExpression {
-            expression: *self.expression.rhs_expression.clone(),
-            position: self.position.clone(),
+
+        let rhs: MoveIRExpression;
+
+        let (is_signer, id) = is_signer_type(&*self.expression.rhs_expression, function_context);
+
+        if is_signer {
+            rhs = MoveIRExpression::Inline(format!("Signer.address_of(copy({}))", id));
+        } else {
+            rhs = MoveExpression {
+                expression: *self.expression.rhs_expression.clone(),
+                position: self.position.clone(),
+            }
+            .generate(function_context);
         }
-        .generate(function_context);
 
         match self.expression.op.clone() {
             BinOp::Plus => {
@@ -455,4 +464,24 @@ impl MoveBinaryExpression {
             }
         }
     }
+}
+
+pub fn is_signer_type(
+    expression: &Expression,
+    function_context: &FunctionContext,
+) -> (bool, String) {
+    if let Expression::Identifier(id) = expression {
+        if let Some(identifier_type) = function_context.scope_context.type_for(&id.token) {
+            return (
+                identifier_type
+                    == Type::UserDefinedType(Identifier {
+                        token: "&signer".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    }),
+                id.token.clone(),
+            );
+        }
+    }
+    (false, String::from(""))
 }

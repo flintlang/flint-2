@@ -10,8 +10,10 @@ pub(crate) enum MoveType {
     Address,
     Bool,
     ByteArray,
+    Signer,
     Resource(String),
     StructType(String),
+    Reference(Box<MoveType>),
     MutableReference(Box<MoveType>),
     Vector(Box<MoveType>),
     External(String, Box<MoveType>),
@@ -25,6 +27,7 @@ impl MoveType {
             MoveType::Address => MoveIRType::Address,
             MoveType::Bool => MoveIRType::Bool,
             MoveType::ByteArray => MoveIRType::ByteArray,
+            MoveType::Signer => MoveIRType::Signer,
             MoveType::Resource(s) => {
                 let wei = "Wei".to_string();
                 let libra = "Libra".to_string();
@@ -57,6 +60,9 @@ impl MoveType {
                 let string = format!("Self.{}", string);
                 MoveIRType::StructType(string)
             }
+            MoveType::Reference(base_type) => {
+                MoveIRType::Reference(Box::from(base_type.generate(function_context)))
+            }
             MoveType::MutableReference(base_type) => {
                 MoveIRType::MutableReference(Box::from(base_type.generate(function_context)))
             }
@@ -88,7 +94,11 @@ impl MoveType {
             Type::DictionaryType(d) => MoveType::move_type(*d.value_type, None),
             Type::UserDefinedType(i) => {
                 if let Some(environment) = environment {
-                    if MoveType::is_resource_type(original.clone(), &i.token, &environment) {
+                    if i.token == "&signer" {
+                        return MoveType::Reference(Box::new(MoveType::Signer));
+                    } else if i.token == "signer" {
+                        return MoveType::Signer;
+                    } else if MoveType::is_resource_type(original.clone(), &i.token, &environment) {
                         return MoveType::Resource(i.token);
                     } else if original.is_external_contract(environment.clone()) {
                         return MoveType::Address;

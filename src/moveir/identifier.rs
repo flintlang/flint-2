@@ -39,7 +39,15 @@ impl MoveIdentifier {
             .generate(function_context, force);
         }
 
-        let ir_identifier = MoveIRExpression::Identifier(mangle(&self.identifier.token));
+        let ir_identifier: MoveIRExpression;
+        if function_context
+            .scope_context
+            .contains_variable_declaration(mangle(&self.identifier.token.clone()))
+        {
+            ir_identifier = MoveIRExpression::Identifier(mangle(&self.identifier.token.clone()));
+        } else {
+            ir_identifier = MoveIRExpression::Identifier(self.identifier.token.clone());
+        }
 
         if force {
             return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
