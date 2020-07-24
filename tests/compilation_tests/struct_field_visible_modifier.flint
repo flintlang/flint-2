@@ -13,7 +13,7 @@ MyContract :: (any) {
   }
 
   public func shouldNotCompile() mutates (aStruct) {
-    //! Fail compile line 17
+    //! compile fail line 17
     self.aStruct.value = 5
   }
 }

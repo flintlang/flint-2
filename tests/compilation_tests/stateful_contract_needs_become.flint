@@ -3,6 +3,6 @@ contract MyContract (One, Two) {
 }
 
 MyContract :: (any) {
-    //! Fail compile must have a become statement
+    //! compile fail must have a `become` statement
     public init() {}
 }

@@ -5,7 +5,7 @@ contract MyContract {
 MyContract :: (any) {
   public init() {}
 
-  //! Fail compile not declared mutating at line 9
+  //! compile fail not declared mutating at line 9
   public func shouldNotCompile() {
     // NOTE: only catches the error if self. is used
     self.value += 5

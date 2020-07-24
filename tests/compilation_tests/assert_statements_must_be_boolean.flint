@@ -4,7 +4,7 @@ contract MyContract {
 
 MyContract :: (any) {
     public init() {
-        //! Fail compile line 8
+        //! compile fail line 8
         assert 5 + 4
     }
 }

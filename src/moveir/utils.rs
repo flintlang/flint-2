@@ -298,7 +298,6 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
                 }
                 MoveIRExpression::Vector(vec) => {
                     // iterate backwards through arguments until an element matches the statement or we reach the end of arguments
-                    // TODO this look like it's broken, much is unused within it
                     let mut elements = vec.elements.clone();
                     for element in elements.iter_mut().rev() {
                         if remove_move(&statement, &element).is_some() {
@@ -353,22 +352,29 @@ mod test {
 
     #[test]
     fn test_remove_moves() {
-        let inner = Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-            Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
-                Box::new(MoveIRExpression::Operation(
-                    MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
-                        MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
-                            "_temp__3".to_string(),
-                        ))),
-                    ))),
-                )),
-            ))),
-            "width".to_string(),
-        )));
         let expr = MoveIRExpression::Operation(MoveIROperation::Add(
-            inner.clone(),
             Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
-                inner,
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                    Box::new(MoveIRExpression::Operation(
+                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                                "_temp__3".to_string(),
+                            ))),
+                        ))),
+                    )),
+                ))),
+                "width".to_string(),
+            ))),
+            Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
+                Box::new(MoveIRExpression::Operation(MoveIROperation::Dereference(
+                    Box::new(MoveIRExpression::Operation(
+                        MoveIROperation::MutableReference(Box::new(MoveIRExpression::Transfer(
+                            MoveIRTransfer::Copy(Box::new(MoveIRExpression::Identifier(
+                                "_temp__3".to_string(),
+                            ))),
+                        ))),
+                    )),
+                ))),
                 "height".to_string(),
             ))),
         ));

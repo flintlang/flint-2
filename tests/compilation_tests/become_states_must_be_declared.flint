@@ -6,7 +6,7 @@ StatesCorrect :: (any) {
     public init() {}
 
     public func badStateChange() {
-        //! Fail compile line 10
+        //! compile fail line 10
         become Four
     }
 }

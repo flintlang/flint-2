@@ -8,7 +8,7 @@ MyContract :: (any) {
   }
 
   public func shouldNotCompile() -> Int {
-    //! Fail compile line 12
+    //! compile fail line 12
     return self.aStruct.value
   }
 }

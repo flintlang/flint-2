@@ -10,7 +10,7 @@ MyContract :: (any) {
 
 MyContract @(One, Two) :: (any) {
     public func foo() {
-        //! Fail compile line 14
+        //! compile fail line 14
         bar()  // Should fail since we may not be in state Two
     }
 }

@@ -306,9 +306,10 @@ class TestRunner(NamedTuple):
         passed = set()
         for programme in self.compilation_tests:
             should_fail = False
-            error_msg = re.search("//! Fail compile ([\w ]+)",
+            error_msg = re.search("//! compile fail ([\w ]+)",
                                   programme.contents())
             if error_msg:
+                print("Should fail", programme.name, error_msg)
                 error_msg = error_msg.group(1)
                 should_fail = True
             try:

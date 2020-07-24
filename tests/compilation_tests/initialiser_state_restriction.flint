@@ -2,7 +2,7 @@ contract MyContract (One, Two) {
     var dummy: Int = 0
 }
 
-//! Fail compile cannot have type state restrictions
+//! compile fail cannot have type state restrictions
 MyContract @(One) :: (any) {
     public init() {
         become Two
