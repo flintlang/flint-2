@@ -91,6 +91,7 @@ impl MoveReturnStatement {
             line_info: self.statement.line_info.clone(),
         };
         let expression = self.statement.expression.clone().unwrap();
+
         let expression = MoveExpression {
             expression,
             position: Default::default(),
@@ -98,7 +99,6 @@ impl MoveReturnStatement {
         .generate(&function_context);
 
         let (cleanup, expression) = remove_moves(self.statement.cleanup.clone(), expression);
-
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
             expression: Box::from(expression),

@@ -144,11 +144,9 @@ impl PropertyInformation {
         }
     }
 
+    // Perhaps this should be removed
     pub fn get_modifier(&self) -> &Option<Modifier> {
-        match &self.property {
-            Property::VariableDeclaration(_, modifier) => modifier,
-            _ => &None,
-        }
+        self.property.get_modifier()
     }
 }
 
@@ -184,6 +182,13 @@ impl Property {
                 }
             }
             Property::EnumCase(e) => e.hidden_value.clone(),
+        }
+    }
+
+    pub fn get_modifier(&self) -> &Option<Modifier> {
+        match self {
+            Property::VariableDeclaration(_, modifier) => modifier,
+            _ => &None,
         }
     }
 }

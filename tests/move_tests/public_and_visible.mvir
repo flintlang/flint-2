@@ -1,0 +1,9 @@
+import {{default}}.MyContract;
+
+main(account: &signer) {
+  MyContract.publish(copy(account));
+  Counter.getValue(copy(account));
+  Counter.getOtherValue(copy(account));
+  Counter.setOtherValue(copy(account));
+
+}

@@ -28,11 +28,6 @@ impl Environment {
             self.add_type_state(&c.identifier.token, type_state.clone());
         }
 
-        // Set initial state of contract to first listed
-        if let Some(state) = c.type_states.first() {
-            self.set_contract_state(&c.identifier.token, state.clone());
-        }
-
         let members = &c.contract_members;
         for member in members {
             match member {

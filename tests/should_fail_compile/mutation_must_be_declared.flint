@@ -1,0 +1,12 @@
+contract MyContract {
+  var value: Int = 0
+}
+
+MyContract :: (any) {
+  public init() {}
+
+  public func shouldNotCompile() {
+    // NOTE: only catches the error if self. is used
+    self.value += 5
+  }
+}

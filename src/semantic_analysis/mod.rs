@@ -460,10 +460,6 @@ impl Visitor for SemanticAnalysis {
                             panic!("Should be in a special or function declaration")
                         };
 
-                    println!("Token: {} at line {}", token, line_number);
-                    println!("LHS: {:?}", Some(enclosing_type));
-                    println!("RHS: {:?}", current_enclosing_type);
-                    // TODO check for assigning to public, visible, private with structs when not in struct declaration
                     if Some(enclosing_type) != current_enclosing_type.as_ref() {
                         match property.get_modifier() {
                             Some(Modifier::Visible) => {
@@ -491,7 +487,8 @@ impl Visitor for SemanticAnalysis {
                         if !function_declaration_context
                             .mutates()
                             .iter()
-                            .any(|id| &id.token == token) && ctx.is_lvalue
+                            .any(|id| &id.token == token)
+                            && ctx.is_lvalue
                         {
                             return Err(Box::from(format!(
                                 "Mutating identifier {} which is not declared mutating at line {}",
@@ -522,7 +519,8 @@ impl Visitor for SemanticAnalysis {
                         )));
                     }
                 } else if !ctx.environment.is_enum_declared(token) {
-                    identifier.enclosing_type = Option::from(ctx.enclosing_type_identifier().unwrap().token)
+                    identifier.enclosing_type =
+                        Option::from(ctx.enclosing_type_identifier().unwrap().token)
                 } else if !ctx.is_enclosing {
                     return Err(Box::from(format!(
                         "Invalid reference to {} on line {}",
