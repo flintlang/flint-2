@@ -11,10 +11,6 @@ Counter :: (any) {
     count += by
     become Counting
   }
-
-  public func getCountManual() -> Int {
-    return self.count
-  }
 }
 
 Counter @(Counting) :: (any) {

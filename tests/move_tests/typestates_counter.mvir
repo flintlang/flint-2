@@ -7,7 +7,7 @@ main (account: &signer) {
   assert(Counter.getCount(copy(account)) == 1, 2);
   Counter.reset(copy(account));
   assert(Counter.getCount(copy(account)) == 0, 3);
-  //! expect fail 20
+  //! expect fail 16
   Counter.reset(copy(account));
   return;
 }

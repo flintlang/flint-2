@@ -342,23 +342,17 @@ impl Visitor for MovePreProcessor {
 
             declaration.head.parameters.insert(0, parameter.clone());
             declaration
+                .head
                 .parameters
-                .append(&mut _ctx.scope_context.as_ref().unwrap().parameters.clone());
+                .append(&mut ctx.scope_context.as_ref().unwrap().parameters.clone());
 
             if let Some(scope) = ctx.scope_context() {
                 let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
                 ctx.scope_context = Some(scope);
             }
-
-            if let Some(caller) = contract.caller {
-                declaration
-                    .body
-                    .insert(0, generate_caller_statement(caller))
-            }
         }
 
-        // TODO here is where scope context should be assigned!!!!!
         if let Some(ref scope) = declaration.scope_context {
             let mut scope = scope.clone();
             scope.parameters = declaration.head.parameters.clone();
@@ -949,7 +943,6 @@ fn generate_and_add_setter(
     let member_identifier = member.get_identifier();
 
     // converts the name to start with a capital, so value becomes setValue
-
     let setter_name = format!(
         "set{}{}",
         member_identifier
@@ -997,7 +990,7 @@ fn generate_and_add_setter(
     let setter_declaration = FunctionDeclaration {
         head: setter_signature,
         body: vec![assignment],
-        scope_context: None,
+        scope_context: Some(Default::default()),
         tags: vec![],
         mangled_identifier: None,
         is_external: false,
