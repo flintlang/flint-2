@@ -308,15 +308,14 @@ impl Visitor for MovePreProcessor {
             };
 
             _t.head.parameters.insert(0, parameter.clone());
+            _t.head
+                .parameters
+                .append(&mut _ctx.scope_context.as_ref().unwrap().parameters.clone());
 
             if let Some(scope) = _ctx.scope_context() {
                 let mut scope = scope.clone();
                 scope.parameters.insert(0, parameter);
                 _ctx.scope_context = Some(scope);
-            }
-
-            if let Some(caller) = contract.caller {
-                _t.body.insert(0, generate_caller_statement(caller))
             }
         }
 
@@ -409,8 +408,21 @@ impl Visitor for MovePreProcessor {
         _t.body = members;
         if let Some(ref b_ctx) = _ctx.contract_behaviour_declaration_context {
             let caller_binding = b_ctx.caller.clone();
-            if let Some(caller_binding) = caller_binding {
-                _t.body.insert(0, generate_caller_statement(caller_binding))
+            if let Some(_) = caller_binding {
+                _t.head.parameters.push(Parameter {
+                    identifier: Identifier {
+                        token: "caller".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    },
+                    type_assignment: Type::UserDefinedType(Identifier {
+                        token: "&signer".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    }),
+                    expression: None,
+                    line_info: Default::default(),
+                });
             }
         }
         Ok(())

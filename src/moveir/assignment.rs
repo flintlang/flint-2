@@ -5,6 +5,7 @@ use super::ir::{MoveIRAssignment, MoveIRExpression};
 use super::r#type::MoveType;
 use super::MovePosition;
 use crate::ast::{mangle, Expression, Type};
+use crate::moveir::expression::is_signer_type;
 use crate::type_checker::ExpressionCheck;
 
 #[derive(Debug)]
@@ -59,11 +60,19 @@ impl MoveAssignment {
             }
         }
 
-        let rhs_ir = MoveExpression {
-            expression: self.rhs.clone(),
-            position: Default::default(),
+        let rhs_ir: MoveIRExpression;
+
+        let (is_signer, id) = is_signer_type(&self.rhs, function_context);
+
+        if is_signer {
+            rhs_ir = MoveIRExpression::Inline(format!("Signer.address_of(copy({}))", id));
+        } else {
+            rhs_ir = MoveExpression {
+                expression: self.rhs.clone(),
+                position: Default::default(),
+            }
+            .generate(function_context);
         }
-        .generate(function_context);
 
         if let Expression::VariableDeclaration(_) = lhs {
             unimplemented!()

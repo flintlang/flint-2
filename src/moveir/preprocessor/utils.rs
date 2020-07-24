@@ -6,6 +6,8 @@ use crate::ast::{
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
+use crate::moveir::expression::MoveExpression;
+use crate::moveir::function::FunctionContext;
 use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionCheck;
 
@@ -193,8 +195,12 @@ pub fn generate_contract_wrapper(
     }
 
     let contract_address_parameter = Parameter {
-        identifier: Identifier::generated("_address_this"),
-        type_assignment: Type::Address,
+        identifier: Identifier::generated("address_this"),
+        type_assignment: Type::UserDefinedType(Identifier {
+            token: "&signer".to_string(),
+            enclosing_type: None,
+            line_info: Default::default(),
+        }),
         expression: None,
         line_info: Default::default(),
     };
@@ -242,7 +248,7 @@ pub fn generate_contract_wrapper(
         rhs_expression: Box::new(Expression::RawAssembly(
             format!(
                 "Signer.address_of(move({param}))",
-                param = mangle(&contract_address_parameter.identifier.token)
+                param = &contract_address_parameter.identifier.token
             ),
             None,
         )),
@@ -319,23 +325,13 @@ pub fn generate_contract_wrapper(
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
-        let caller = Identifier::generated("_caller");
+        let caller_id: Identifier;
 
-        wrapper.body.insert(
-            0,
-            Statement::Expression(Expression::VariableDeclaration(VariableDeclaration {
-                declaration_token: None,
-                identifier: Identifier {
-                    token: mangle(&caller.token),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                variable_type: Type::Address,
-                expression: None,
-            })),
-        );
-
-        wrapper.body.push(generate_caller_statement(caller.clone()));
+        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
+            caller_id = caller.clone();
+        } else {
+            caller_id = Identifier::generated("caller");
+        }
 
         let predicates = contract_behaviour_declaration.caller_protections.clone();
 
@@ -361,7 +357,10 @@ pub fn generate_contract_wrapper(
                 match c_type {
                     Type::Address => Expression::BinaryExpression(BinaryExpression {
                         lhs_expression: Box::new(Expression::Identifier(ident)),
-                        rhs_expression: Box::new(Expression::Identifier(caller.clone())),
+                        rhs_expression: Box::new(Expression::RawAssembly(
+                            format!("Signer.address_of(copy({}))", caller_id.token),
+                            None,
+                        )),
                         op: BinOp::DoubleEqual,
                         line_info: Default::default(),
                     }),
@@ -522,9 +521,9 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
             if let Expression::AttemptExpression(e2) = second {
                 return e1.kind == e2.kind
                     && cmp_expressions(
-                    &Expression::FunctionCall(e1.function_call.clone()),
-                    &Expression::FunctionCall(e2.function_call.clone()),
-                );
+                        &Expression::FunctionCall(e1.function_call.clone()),
+                        &Expression::FunctionCall(e2.function_call.clone()),
+                    );
             }
         }
         Expression::RangeExpression(e1) => {
@@ -553,9 +552,9 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
                 return e1.arguments == e2.arguments
                     && e1.external_trait_name == e2.external_trait_name
                     && cmp_expressions(
-                    &Expression::BinaryExpression(e1.function_call.clone()),
-                    &Expression::BinaryExpression(e2.function_call.clone()),
-                );
+                        &Expression::BinaryExpression(e1.function_call.clone()),
+                        &Expression::BinaryExpression(e2.function_call.clone()),
+                    );
             }
         }
         Expression::ArrayLiteral(first_exprs) => {
@@ -744,18 +743,41 @@ pub fn pre_assign(
     }
 }
 
-pub fn generate_caller_statement(caller: Identifier) -> Statement {
-    let assignment = BinaryExpression {
-        lhs_expression: Box::new(Expression::Identifier(caller.clone())),
-        rhs_expression: Box::new(Expression::RawAssembly(
-            "get_txn_sender()".to_string(),
-            Option::from(Type::Address),
-        )),
-        op: BinOp::Equal,
-        line_info: caller.line_info,
-    };
+pub fn generate_assertion(
+    predicate: Vec<Expression>,
+    function_context: FunctionContext,
+) -> Statement {
+    let mut predicates = predicate;
+    if predicates.len() >= 2 {
+        let or_expression = Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(predicates.remove(0)),
+            rhs_expression: Box::new(predicates.remove(0)),
+            op: BinOp::Or,
+            line_info: Default::default(),
+        });
+        while !predicates.is_empty() {
+            unimplemented!()
+        }
+        let expression = MoveExpression {
+            expression: or_expression,
+            position: Default::default(),
+        }
+        .generate(&function_context);
+        let string = format!("assert({ex}, 1)", ex = expression);
+        return Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)));
+    }
 
-    Statement::Expression(Expression::BinaryExpression(assignment))
+    if predicates.is_empty() {
+        unimplemented!()
+    }
+    let expression = predicates.remove(0);
+    let expression = MoveExpression {
+        expression,
+        position: Default::default(),
+    }
+    .generate(&function_context);
+    let string = format!("assert({ex}, 1)", ex = expression);
+    Statement::Expression(Expression::RawAssembly(string, Option::from(Type::Error)))
 }
 
 pub fn release(expression: Expression, expression_type: Type) -> Statement {
