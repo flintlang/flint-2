@@ -11,6 +11,7 @@ pub(crate) enum MoveRuntimeFunction {
     RevertIfGreater,
     Transfer,
     WithdrawAll,
+    Power,
 }
 
 impl MoveRuntimeFunction {
@@ -35,13 +36,39 @@ impl MoveRuntimeFunction {
         })
     }
 
+    pub fn power(first: MoveIRExpression, second: MoveIRExpression) -> MoveIRExpression {
+        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
+            identifier: MoveRuntimeFunction::Power.mangle_runtime(),
+            arguments: vec![first, second],
+        })
+    }
+
+    pub fn get_power() -> String {
+        //TODO: change function name?
+        "_Power(b: u64, e: u64): u64 { 
+        let ret: u64;
+        let i: u64;
+        ret = 1;
+        i = 0;
+        while (copy(i) < copy(e)) { 
+            ret = copy(ret) * copy(b); 
+            i = copy(i) + 1; 
+        } 
+        _ = move(b);
+        _ = move(e);
+        _ = move(i);
+        return move(ret); 
+    }"
+        .to_string()
+    }
+
     pub fn mangle_runtime(&self) -> String {
         let string = mangle(&format!("{}", self));
         format!("Self.{}", string)
     }
 
     pub fn get_all_functions() -> Vec<String> {
-        vec![]
+        vec![MoveRuntimeFunction::get_power()]
         /* TURN OFF LIBRA
         vec![
             MoveRuntimeFunction::get_revert_if_greater(),

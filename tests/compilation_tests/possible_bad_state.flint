@@ -3,11 +3,14 @@ contract MyContract (One, Two) {
 }
 
 MyContract :: (any) {
-    public init() {}
+    public init() {
+      become One
+    }
 }
 
 MyContract @(One, Two) :: (any) {
     public func foo() {
+        //! Fail compile line 14
         bar()  // Should fail since we may not be in state Two
     }
 }

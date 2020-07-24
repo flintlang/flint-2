@@ -8,7 +8,7 @@ MyContract :: (any) {
   }
 
   public func shouldNotCompile() -> Int {
-    // Attempt to access private value
+    //! Fail compile line 12
     return self.aStruct.value
   }
 }

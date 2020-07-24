@@ -221,7 +221,7 @@ class TestFormatter:
 """)
 
     @classmethod
-    def compilation_failure_passed(cls, test):
+    def compilation_success(cls, test):
         print(f"Compilation test: {test}: {cls.SUCCESS}passed{cls.END}")
 
     @classmethod
@@ -241,7 +241,7 @@ class TestFormatter:
     @classmethod
     def complete_compilation_checks(cls):
         print(
-            f"\n\t{cls.SUCCESS}All compilation failure tests passed!{cls.END}\n")
+            f"\n\t{cls.SUCCESS}All compilation tests passed!{cls.END}\n")
 
     @classmethod
     def not_configured(cls):
@@ -253,9 +253,9 @@ To run them please set "libraPath" in ~/.flint/flint_config.json to the root of 
 
 class TestRunner(NamedTuple):
     behaviour_tests: List[BehaviourTest]
-    fail_compilation_tests: List[FlintProgramme]
+    compilation_tests: List[FlintProgramme]
     default_behaviour_path = Path("tests/move_tests")
-    default_compilation_fail_path = Path("tests/should_fail_compile")
+    default_compilation_test_path = Path("tests/compilation_tests")
 
     @classmethod
     def from_all(cls, names=[], config=None):
@@ -266,7 +266,7 @@ class TestRunner(NamedTuple):
 
                           [FlintProgramme(file, config=config)
                            for file in
-                           cls.default_compilation_fail_path.iterdir()
+                           cls.default_compilation_test_path.iterdir()
                            if file.suffix.endswith("flint")
                            if not names or file.stem in names])
 
@@ -296,17 +296,39 @@ class TestRunner(NamedTuple):
             return 0
 
     def run_compilation_tests(self):
+        """
+        Attempts to compile all tests in the compilation test folder. If you want
+        a test to fail compilation, write somewhere in that file
+        //! Fail compile <msg>
+        where <msg> is a snippet of the error message that is expected does not
+        have to be the whole thing
+        """
         passed = set()
-        for programme in self.fail_compilation_tests:
+        for programme in self.compilation_tests:
+            should_fail = False
+            error_msg = re.search("//! Fail compile ([\w ]+)",
+                                  programme.contents())
+            if error_msg:
+                error_msg = error_msg.group(1)
+                should_fail = True
             try:
                 programme.compile()
-                TestFormatter.compilation_failed(programme.name,
-                                                 "Did not fail to compile")
-            except FlintCompilationError:
-                passed.add(programme)
-                TestFormatter.compilation_failure_passed(programme.name)
+                if should_fail:
+                    TestFormatter.compilation_failed(programme.name,
+                                                     "Did not fail to compile")
+                else:
+                    TestFormatter.compilation_success(programme.name)
+                    passed.add(programme)
 
-        failed = set(self.fail_compilation_tests) - passed
+            except FlintCompilationError as e:
+                if should_fail and error_msg in str(e):
+                    passed.add(programme)
+                    TestFormatter.compilation_success(programme.name)
+                else:
+                    TestFormatter.compilation_failed(programme.name,
+                                                     "Failed to compile")
+
+        failed = set(self.compilation_tests) - passed
         if failed:
             TestFormatter.all_failed(set(map(lambda t: t.name, failed)))
             return 1
