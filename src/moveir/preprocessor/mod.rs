@@ -615,9 +615,7 @@ impl Visitor for MovePreProcessor {
         }
 
         if !_ctx.environment.is_initiliase_call(&call)
-            && !_ctx
-                .environment
-                .is_trait_declared(&call.identifier.token)
+            && !_ctx.environment.is_trait_declared(&call.identifier.token)
         {
             let is_global_function_call = is_global_function_call(&call, _ctx);
 
@@ -670,7 +668,12 @@ impl Visitor for MovePreProcessor {
 
                 let result_type = match expression {
                     Expression::Identifier(ref i) => {
-                        if let Some(ref result) = _ctx.scope_context.as_ref().unwrap_or_default().type_for(&i.token) {
+                        if let Some(ref result) = _ctx
+                            .scope_context
+                            .as_ref()
+                            .unwrap_or_default()
+                            .type_for(&i.token)
+                        {
                             result.clone()
                         } else {
                             _ctx.environment.get_expression_type(
@@ -726,9 +729,13 @@ impl Visitor for MovePreProcessor {
         }
         let enclosing = _ctx.enclosing_type_identifier().unwrap().token;
         let receiver = &*_t.function_call.lhs_expression;
-        let receiver_type =
-            _ctx.environment
-                .get_expression_type(&receiver, &enclosing, &[], &[], _ctx.scope_context.as_ref().unwrap());
+        let receiver_type = _ctx.environment.get_expression_type(
+            &receiver,
+            &enclosing,
+            &[],
+            &[],
+            _ctx.scope_context.as_ref().unwrap(),
+        );
         _t.external_trait_name = Option::from(receiver_type.name());
         Ok(())
     }

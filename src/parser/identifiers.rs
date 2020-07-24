@@ -1,9 +1,9 @@
+use crate::ast::{Identifier, LineInfo};
 use crate::parser::operators::*;
 use crate::parser::utils::*;
-use crate::ast::{Identifier, LineInfo};
+use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::multi::many0;
-use nom::branch::alt;
 use nom::sequence::preceded;
 
 pub fn parse_enclosing_identifier(i: Span) -> nom::IResult<Span, Identifier> {

@@ -1,5 +1,7 @@
+use crate::ast::{
+    is_redeclaration, FunctionDeclaration, FunctionInformation, Identifier, PropertyInformation,
+};
 use crate::environment::*;
-use crate::ast::{Identifier, is_redeclaration, PropertyInformation, FunctionInformation, FunctionDeclaration};
 
 impl Environment {
     pub fn is_conflicting(&self, identifier: &Identifier) -> bool {
@@ -29,14 +31,9 @@ impl Environment {
         false
     }
 
-    pub fn conflicting_property_declaration(
-        &self,
-        identifier: &Identifier,
-        type_id: &str,
-    ) -> bool {
+    pub fn conflicting_property_declaration(&self, identifier: &Identifier, type_id: &str) -> bool {
         if let Some(type_info) = self.types.get(type_id) {
-            let properties: Vec<&PropertyInformation> =
-                type_info.properties.values().collect();
+            let properties: Vec<&PropertyInformation> = type_info.properties.values().collect();
 
             let identifiers: Vec<Identifier> = properties
                 .into_iter()
@@ -66,7 +63,8 @@ impl Environment {
                 }
                 false
             };
-            return !type_info.trait_functions()
+            return !type_info
+                .trait_functions()
                 .into_iter()
                 .any(|(_, v)| v.len() > 1 && conflicting(&v));
         }

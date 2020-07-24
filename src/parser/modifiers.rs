@@ -1,5 +1,5 @@
-use crate::parser::utils::*;
 use crate::ast::Modifier;
+use crate::parser::utils::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::multi::many0;

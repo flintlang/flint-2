@@ -65,7 +65,7 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                    .as_str(),
+                .as_str(),
             ));
         }
 
@@ -365,9 +365,9 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .is_contract_stateful(&context.identifier.token)
                 && !declaration
-                .body
-                .iter()
-                .any(|state| matches!(state, Statement::BecomeStatement(_)))
+                    .body
+                    .iter()
+                    .any(|state| matches!(state, Statement::BecomeStatement(_)))
             {
                 return Err(Box::from(
                     "Initialiser of a contract with typestates must have a `become` statement"
@@ -439,7 +439,8 @@ impl Visitor for SemanticAnalysis {
                                 "Cannot reassign to constant `{}` on line {}",
                                 token, line_number
                             )));
-                        } else {}
+                        } else {
+                        }
                     }
 
                     let current_enclosing_type =
@@ -472,7 +473,7 @@ impl Visitor for SemanticAnalysis {
                     }
 
                     if let Some(function_declaration_context) =
-                    ctx.function_declaration_context.as_ref()
+                        ctx.function_declaration_context.as_ref()
                     {
                         // Check: Do not allow mutation of identifier if it is not declared mutating
                         if !function_declaration_context
@@ -529,7 +530,8 @@ impl Visitor for SemanticAnalysis {
         let start = _t.start_expression.clone();
         let end = _t.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
+        } else {
             return Err(Box::from(format!("Invalid Range Declaration: {:?}", _t)));
         }
 
@@ -544,8 +546,8 @@ impl Visitor for SemanticAnalysis {
         if _ctx.enclosing_type_identifier().is_some()
             && !_t.is_any()
             && !_ctx
-            .environment
-            .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
+                .environment
+                .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -633,7 +635,6 @@ impl Visitor for SemanticAnalysis {
 
         match condition {
             Expression::BinaryExpression(b) => {
-
                 if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
                     if !v.is_constant() {
                         return Err(Box::from(
@@ -676,8 +677,7 @@ impl Visitor for SemanticAnalysis {
             &type_states,
             &caller_protections,
             ctx.scope_context.as_ref().unwrap_or_default(),
-        )
-        {
+        ) {
             Ok(())
         } else {
             Err(Box::from(format!(
@@ -704,8 +704,8 @@ fn check_if_correct_type_state_possible(
     if allowed_states.is_empty()
         || current_possible_states.is_empty()
         || current_possible_states
-        .iter()
-        .all(|state| allowed_states.contains(state))
+            .iter()
+            .all(|state| allowed_states.contains(state))
     {
         Ok(())
     } else {

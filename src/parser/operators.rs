@@ -1,5 +1,5 @@
-use crate::parser::utils::*;
 use crate::ast::BinOp;
+use crate::parser::utils::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 

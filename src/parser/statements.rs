@@ -1,12 +1,15 @@
+use crate::ast::{
+    Assertion, BecomeStatement, DoCatchStatement, EmitStatement, ForStatement, IfStatement,
+    LineInfo, ReturnStatement, Statement,
+};
 use crate::parser::calls::parse_function_call;
 use crate::parser::declarations::parse_variable_declaration;
 use crate::parser::expressions::parse_expression;
 use crate::parser::type_states::parse_type_state;
 use crate::parser::utils::*;
-use crate::ast::{Statement, Assertion, LineInfo, DoCatchStatement, IfStatement, ForStatement, EmitStatement, ReturnStatement, BecomeStatement};
-use nom::combinator::map;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
+use nom::combinator::map;
 use nom::multi::many0;
 use nom::sequence::preceded;
 

@@ -49,7 +49,7 @@ impl Type {
             self,
             Type::UserDefinedType(ref i)
                 if i.token == "Wei" || i.token == "Libra" || i.token == "LibraCoin.T"
-        )
+        );
     }
 
     #[allow(dead_code)]
@@ -58,7 +58,7 @@ impl Type {
             self,
             Type::UserDefinedType(ref i)
                 if i.token == "Wei" || i.token == "Libra"
-        )
+        );
     }
 
     pub fn is_dynamic_type(&self) -> bool {

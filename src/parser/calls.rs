@@ -1,12 +1,12 @@
+use crate::ast::{ExternalCall, FunctionArgument, FunctionCall};
 use crate::parser::expressions::*;
 use crate::parser::identifiers::*;
+use crate::parser::operators::{colon, left_parens, right_parens};
 use crate::parser::utils::*;
-use nom::bytes::complete::tag;
-use crate::ast::{ExternalCall, FunctionCall, FunctionArgument};
-use crate::parser::operators::{left_parens, right_parens, colon};
-use nom::sequence::preceded;
 use nom::branch::alt;
+use nom::bytes::complete::tag;
 use nom::combinator::map;
+use nom::sequence::preceded;
 
 pub fn parse_external_call(i: Span) -> nom::IResult<Span, ExternalCall> {
     let (i, _) = tag("call")(i)?;

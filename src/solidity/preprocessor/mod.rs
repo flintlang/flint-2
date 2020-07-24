@@ -326,9 +326,9 @@ impl Visitor for SolidityPreProcessor {
             i.token
         };
 
-        let match_result =
-            _ctx.environment
-                .match_function_call(&f_call, &enclosing, &[], &scope);
+        let match_result = _ctx
+            .environment
+            .match_function_call(&f_call, &enclosing, &[], &scope);
 
         let mut is_external = false;
         if let FunctionCallMatchResult::MatchedFunction(m) = match_result.clone() {

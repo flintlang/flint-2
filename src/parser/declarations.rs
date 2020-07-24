@@ -1,3 +1,11 @@
+use crate::ast::{
+    AssetDeclaration, AssetMember, Attribute, CallerProtection, Conformance,
+    ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration, ContractMember,
+    EnumDeclaration, EnumMember, EventDeclaration, FunctionCall, FunctionDeclaration,
+    FunctionSignatureDeclaration, Identifier, Modifier, SpecialDeclaration,
+    SpecialSignatureDeclaration, StructDeclaration, StructMember, TopLevelDeclaration,
+    TraitDeclaration, TraitMember, Type, VariableDeclaration,
+};
 use crate::parser::calls::parse_function_call;
 use crate::parser::expressions::*;
 use crate::parser::identifiers::*;
@@ -7,17 +15,19 @@ use crate::parser::parameters::*;
 use crate::parser::type_states::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
-use crate::ast::{TopLevelDeclaration, EventDeclaration, ContractMember, ContractDeclaration, Conformance, ContractBehaviourDeclaration, ContractBehaviourMember, Identifier, CallerProtection, VariableDeclaration, Modifier, EnumDeclaration, Type, EnumMember, SpecialDeclaration, SpecialSignatureDeclaration, Attribute, FunctionDeclaration, FunctionSignatureDeclaration, AssetMember, StructMember, StructDeclaration, TraitDeclaration, FunctionCall, TraitMember, AssetDeclaration};
-use nom::sequence::preceded;
-use nom::multi::many0;
 use nom::branch::alt;
-use nom::combinator::map;
 use nom::bytes::complete::tag;
+use nom::combinator::map;
+use nom::multi::many0;
+use nom::sequence::preceded;
 
 pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> {
     let (i, top) = alt((
         parse_contract_declaration,
-        map(parse_contract_behaviour_declaration, TopLevelDeclaration::ContractBehaviourDeclaration),
+        map(
+            parse_contract_behaviour_declaration,
+            TopLevelDeclaration::ContractBehaviourDeclaration,
+        ),
         parse_struct_declaration,
         parse_asset_declaration,
         parse_enum_declaration,
@@ -161,10 +171,22 @@ fn parse_contract_behaviour_declaration(
 
 fn parse_contract_behaviour_member(i: Span) -> nom::IResult<Span, ContractBehaviourMember> {
     alt((
-        map(parse_function_declaration, ContractBehaviourMember::FunctionDeclaration),
-        map(parse_special_declaration, ContractBehaviourMember::SpecialDeclaration),
-        map(parse_special_signature_declaration, ContractBehaviourMember::SpecialSignatureDeclaration),
-        map(parse_function_signature_declaration, ContractBehaviourMember::FunctionSignatureDeclaration),
+        map(
+            parse_function_declaration,
+            ContractBehaviourMember::FunctionDeclaration,
+        ),
+        map(
+            parse_special_declaration,
+            ContractBehaviourMember::SpecialDeclaration,
+        ),
+        map(
+            parse_special_signature_declaration,
+            ContractBehaviourMember::SpecialSignatureDeclaration,
+        ),
+        map(
+            parse_function_signature_declaration,
+            ContractBehaviourMember::FunctionSignatureDeclaration,
+        ),
     ))(i)
 }
 
@@ -501,7 +523,10 @@ fn parse_struct_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration> 
 
 fn parse_struct_member(i: Span) -> nom::IResult<Span, StructMember> {
     alt((
-        map(parse_function_declaration, StructMember::FunctionDeclaration),
+        map(
+            parse_function_declaration,
+            StructMember::FunctionDeclaration,
+        ),
         map(parse_special_declaration, StructMember::SpecialDeclaration),
         map(parse_variable_declaration_enclosing, |(dec, modifier)| {
             StructMember::VariableDeclaration(dec, modifier)
@@ -557,10 +582,19 @@ fn parse_trait_member(i: Span) -> nom::IResult<Span, TraitMember> {
     alt((
         map(parse_function_declaration, TraitMember::FunctionDeclaration),
         map(parse_special_declaration, TraitMember::SpecialDeclaration),
-        map(parse_function_signature_declaration, TraitMember::FunctionSignatureDeclaration),
-        map(parse_special_signature_declaration, TraitMember::SpecialSignatureDeclaration),
+        map(
+            parse_function_signature_declaration,
+            TraitMember::FunctionSignatureDeclaration,
+        ),
+        map(
+            parse_special_signature_declaration,
+            TraitMember::SpecialSignatureDeclaration,
+        ),
         map(parse_event_declaration, TraitMember::EventDeclaration),
-        map(parse_contract_behaviour_declaration, TraitMember::ContractBehaviourDeclaration),
+        map(
+            parse_contract_behaviour_declaration,
+            TraitMember::ContractBehaviourDeclaration,
+        ),
     ))(i)
 }
 

@@ -50,49 +50,55 @@ pub fn generate(module: Module, context: &mut Context) {
         })
         .collect();
 
-    let contracts: Vec<MoveContract> = module.declarations.iter().filter_map(|declaration| {
-        if let TopLevelDeclaration::ContractDeclaration(contract) = declaration {
-            let contract_behaviour_declarations: Vec<ContractBehaviourDeclaration> = module
-                .declarations
-                .clone()
-                .into_iter()
-                .filter_map(|d| match d {
-                    TopLevelDeclaration::ContractBehaviourDeclaration(cbd) => Some(cbd),
-                    _ => None,
-                })
-                .filter(|cbd| cbd.identifier.token == contract.identifier.token)
-                .collect();
+    let contracts: Vec<MoveContract> = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| {
+            if let TopLevelDeclaration::ContractDeclaration(contract) = declaration {
+                let contract_behaviour_declarations: Vec<ContractBehaviourDeclaration> = module
+                    .declarations
+                    .clone()
+                    .into_iter()
+                    .filter_map(|d| match d {
+                        TopLevelDeclaration::ContractBehaviourDeclaration(cbd) => Some(cbd),
+                        _ => None,
+                    })
+                    .filter(|cbd| cbd.identifier.token == contract.identifier.token)
+                    .collect();
 
-            let struct_declarations: Vec<StructDeclaration> = module
-                .declarations
-                .clone()
-                .into_iter()
-                .filter_map(|d| match d {
-                    TopLevelDeclaration::StructDeclaration(s) => Some(s),
-                    _ => None,
-                })
-                .collect();
+                let struct_declarations: Vec<StructDeclaration> = module
+                    .declarations
+                    .clone()
+                    .into_iter()
+                    .filter_map(|d| match d {
+                        TopLevelDeclaration::StructDeclaration(s) => Some(s),
+                        _ => None,
+                    })
+                    .collect();
 
-            let asset_declarations: Vec<AssetDeclaration> = module
-                .declarations
-                .clone()
-                .into_iter()
-                .filter_map(|d| match d {
-                    TopLevelDeclaration::AssetDeclaration(a) => Some(a),
-                    _ => None,
-                })
-                .collect();
+                let asset_declarations: Vec<AssetDeclaration> = module
+                    .declarations
+                    .clone()
+                    .into_iter()
+                    .filter_map(|d| match d {
+                        TopLevelDeclaration::AssetDeclaration(a) => Some(a),
+                        _ => None,
+                    })
+                    .collect();
 
-            Some(MoveContract {
-                contract_declaration: contract.clone(),
-                contract_behaviour_declarations,
-                struct_declarations,
-                asset_declarations,
-                environment: context.environment.clone(),
-                external_traits: trait_declarations.clone(),
-            })
-        } else { None }
-    }).collect();
+                Some(MoveContract {
+                    contract_declaration: contract.clone(),
+                    contract_behaviour_declarations,
+                    struct_declarations,
+                    asset_declarations,
+                    environment: context.environment.clone(),
+                    external_traits: trait_declarations.clone(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
 
     for contract in contracts {
         let c = contract.generate();

@@ -1,7 +1,6 @@
 use crate::ast::{
-    CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration,
-    FunctionInformation, FunctionSignatureDeclaration, Type, TypeInfo, TypeState,
-    VariableDeclaration,
+    CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration, FunctionInformation,
+    FunctionSignatureDeclaration, Type, TypeInfo, TypeState, VariableDeclaration,
 };
 use crate::context::ScopeContext;
 use crate::environment::*;
@@ -48,8 +47,8 @@ impl Environment {
                         /* The original code had this without the !(..), it was added
                         as it seems to be the desired intent */
                         !(f.declaration.head.identifier.token == name
-                            && f.declaration.parameters_and_types() == function.parameters_and_types()
-                            )
+                            && f.declaration.parameters_and_types()
+                                == function.parameters_and_types())
                     })
                     .collect();
                 type_info.functions.insert(name, function_set);
@@ -108,24 +107,21 @@ impl Environment {
     ) -> FunctionCallMatchResult {
         let mut candidates = Vec::new();
 
-        let argument_types: Vec<Type> = call.arguments
+        let argument_types: Vec<Type> = call
+            .arguments
             .iter()
-            .map(|a| {
-                self.get_expression_type(&a.expression, type_id, &[], &[], &scope)
-            })
+            .map(|a| self.get_expression_type(&a.expression, type_id, &[], &[], &scope))
             .collect();
 
         if let Some(type_info) = self.types.get(type_id) {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
-                    if self.function_call_arguments_compatible(
-                        function,
-                        call,
-                        type_id,
-                        scope) && self.compatible_caller_protections(
-                        protections,
-                        &function.caller_protections,
-                        ) {
+                    if self.function_call_arguments_compatible(function, call, type_id, scope)
+                        && self.compatible_caller_protections(
+                            protections,
+                            &function.caller_protections,
+                        )
+                    {
                         return FunctionCallMatchResult::MatchedFunction(function.clone());
                     }
                     candidates.push(function.clone());
@@ -180,9 +176,7 @@ impl Environment {
         if let Some(type_info) = self.types.get(&call.identifier.token) {
             let fallbacks = &type_info.fallbacks;
             for fallback in fallbacks {
-                if self
-                    .compatible_caller_protections(protections, &fallback.caller_protections)
-                {
+                if self.compatible_caller_protections(protections, &fallback.caller_protections) {
                     // TODO Return MatchedFallBackFunction
                 } else {
                     candidates.push(fallback);
@@ -212,10 +206,8 @@ impl Environment {
                 }
 
                 if equal_types
-                    && self.compatible_caller_protections(
-                    protections,
-                    &initialiser.caller_protections,
-                    )
+                    && self
+                        .compatible_caller_protections(protections, &initialiser.caller_protections)
                 {
                     return FunctionCallMatchResult::MatchedInitializer(initialiser.clone());
                 } else {
@@ -245,11 +237,13 @@ impl Environment {
             if let Some(functions) = type_info.functions.get(&call.identifier.token) {
                 for function in functions {
                     let parameter_types = function.get_parameter_types();
-                    let equal_types = argument_types.iter().all(|argument_type| parameter_types.contains(argument_type));
+                    let equal_types = argument_types
+                        .iter()
+                        .all(|argument_type| parameter_types.contains(argument_type));
                     if equal_types
                         && self.compatible_caller_protections(
-                        protections,
-                        &function.caller_protections,
+                            protections,
+                            &function.caller_protections,
                         )
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
@@ -285,27 +279,19 @@ impl Environment {
             ..Default::default()
         });
 
-        let argument_types: Vec<_> = call.arguments
+        let argument_types: Vec<_> = call
+            .arguments
             .iter()
-            .map(|a| {
-                self.get_expression_type(&a.expression, type_id, &[], &[], &scope)
-            })
+            .map(|a| self.get_expression_type(&a.expression, type_id, &[], &[], &scope))
             .collect();
 
         let regular_match =
             self.match_regular_function(&call, type_id, caller_protections.clone(), scope);
 
-        let initaliser_match = self.match_initialiser_function(
-            call,
-            &argument_types,
-            caller_protections,
-        );
+        let initaliser_match =
+            self.match_initialiser_function(call, &argument_types, caller_protections);
 
-        let global_match = self.match_global_function(
-            call,
-            &argument_types,
-            caller_protections,
-        );
+        let global_match = self.match_global_function(call, &argument_types, caller_protections);
 
         let result = result.merge(regular_match);
         let result = result.merge(initaliser_match);
@@ -334,7 +320,8 @@ impl Environment {
         type_id: &str,
         scope: &ScopeContext,
     ) -> bool {
-        let no_self_declaration_type = Environment::replace_self(source.get_parameter_types(), type_id);
+        let no_self_declaration_type =
+            Environment::replace_self(source.get_parameter_types(), type_id);
 
         let parameters: Vec<_> = source
             .declaration
@@ -367,7 +354,6 @@ impl Environment {
         scope: &ScopeContext,
         declared_types: &[Type],
     ) -> bool {
-
         let required_parameters: Vec<&VariableDeclaration> = parameters
             .iter()
             .filter(|f| f.expression.is_none())
@@ -385,13 +371,8 @@ impl Environment {
             // Check Types
             let declared_type = &declared_types[index];
             let argument_expression = &arguments[index].expression;
-            let argument_type = self.get_expression_type(
-                argument_expression,
-                enclosing,
-                &[],
-                &[],
-                &scope,
-            );
+            let argument_type =
+                self.get_expression_type(argument_expression, enclosing, &[], &[], &scope);
 
             if argument_type != *declared_type {
                 return false;

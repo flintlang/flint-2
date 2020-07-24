@@ -1,7 +1,11 @@
+use crate::ast::{
+    ArrayLiteral, ArrayType, AttemptExpression, BinOp, BinaryExpression, CallerProtection,
+    Expression, FunctionCall, Identifier, InoutType, Literal, RangeExpression, RangeType, Type,
+    TypeState,
+};
+use crate::context::ScopeContext;
 use crate::environment::*;
 use crate::type_checker::ExpressionCheck;
-use crate::context::ScopeContext;
-use crate::ast::{CallerProtection, TypeState, Expression, Type, InoutType, Identifier, Literal, AttemptExpression, RangeExpression, RangeType, BinaryExpression, BinOp, ArrayType, ArrayLiteral, FunctionCall};
 
 impl ExpressionCheck for Environment {
     fn get_expression_type(
@@ -62,9 +66,13 @@ impl ExpressionCheck for Environment {
                 self.get_function_call_type(f, enclosing_type, caller_protections, scope)
             }
             Expression::VariableDeclaration(v) => v.variable_type.clone(),
-            Expression::BracketedExpression(e) => {
-                self.get_expression_type(&*e.expression, type_id, type_states, caller_protections, scope)
-            }
+            Expression::BracketedExpression(e) => self.get_expression_type(
+                &*e.expression,
+                type_id,
+                type_states,
+                caller_protections,
+                scope,
+            ),
             Expression::AttemptExpression(a) => {
                 self.get_attempt_expression_type(a, type_id, type_states, caller_protections, scope)
             }
@@ -107,7 +115,8 @@ impl ExpressionCheck for Environment {
 
 impl Environment {
     pub fn get_property_type(&self, name: &str, type_id: &str, scope: &ScopeContext) -> Type {
-        self.types.get(type_id)
+        self.types
+            .get(type_id)
             .and_then(|enclosing| enclosing.properties.get(name))
             .map(|info| info.property.get_type())
             .unwrap_or_else(|| {
@@ -142,7 +151,11 @@ impl Environment {
         }
 
         let function_call = &expression.function_call;
-        let enclosing_type = expression.function_call.identifier.enclosing_type.as_deref()
+        let enclosing_type = expression
+            .function_call
+            .identifier
+            .enclosing_type
+            .as_deref()
             .unwrap_or_else(|| type_id);
 
         self.get_expression_type(
@@ -247,7 +260,13 @@ impl Environment {
                 scope,
             )
         } else {
-            self.get_expression_type(&*binary.rhs_expression, type_id, type_states, caller_protections, scope)
+            self.get_expression_type(
+                &*binary.rhs_expression,
+                type_id,
+                type_states,
+                caller_protections,
+                scope,
+            )
         }
     }
 
@@ -262,13 +281,8 @@ impl Environment {
         let mut element_type: Option<Type> = None;
 
         for elements in &array.elements {
-            let elements_type = self.get_expression_type(
-                elements,
-                type_id,
-                type_states,
-                caller_protections,
-                scope,
-            );
+            let elements_type =
+                self.get_expression_type(elements, type_id, type_states, caller_protections, scope);
 
             if let Some(ref comparison_type) = element_type {
                 if comparison_type != &elements_type {

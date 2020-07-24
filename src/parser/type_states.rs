@@ -1,12 +1,12 @@
-use crate::ast::{Identifier, TypeState, LineInfo};
+use crate::ast::{Identifier, LineInfo, TypeState};
 use crate::parser::operators::{left_parens, right_parens};
 use crate::parser::utils::*;
-use nom::error::ErrorKind;
-use std::collections::HashSet;
-use nom::sequence::preceded;
-use nom::bytes::complete::tag;
-use nom::multi::many0;
 use nom::branch::alt;
+use nom::bytes::complete::tag;
+use nom::error::ErrorKind;
+use nom::multi::many0;
+use nom::sequence::preceded;
+use std::collections::HashSet;
 
 pub fn parse_type_states(i: Span) -> nom::IResult<Span, Vec<TypeState>> {
     let (i, _) = left_parens(i)?;
@@ -64,7 +64,7 @@ pub fn parse_type_state(i: Span) -> nom::IResult<Span, TypeState> {
 mod test {
     use super::parse_type_state;
     use super::parse_type_states;
-    use crate::ast::{TypeState, LineInfo, Identifier};
+    use crate::ast::{Identifier, LineInfo, TypeState};
     use nom_locate::LocatedSpan;
 
     fn create_states(state_names: Vec<&str>, line_info: Vec<(u32, usize)>) -> Vec<TypeState> {

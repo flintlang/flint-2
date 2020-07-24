@@ -1,15 +1,18 @@
+use crate::ast::{
+    AttemptExpression, BinaryExpression, BracketedExpression, CastExpression, Expression,
+    Identifier, InoutExpression, LineInfo, RangeExpression, SubscriptExpression,
+};
 use crate::parser::calls::*;
+use crate::parser::declarations::parse_variable_declaration;
 use crate::parser::identifiers::parse_identifier;
 use crate::parser::literals::*;
 use crate::parser::operators::*;
 use crate::parser::types::*;
 use crate::parser::utils::*;
-use crate::ast::{Expression, Identifier, SubscriptExpression, RangeExpression, CastExpression, InoutExpression, BracketedExpression, AttemptExpression, BinaryExpression, LineInfo};
+use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::map;
-use nom::branch::alt;
 use nom::sequence::preceded;
-use crate::parser::declarations::parse_variable_declaration;
 
 pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
     alt((
@@ -26,7 +29,10 @@ pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
         map(parse_bracketed_expression, Expression::BracketedExpression),
         map(parse_array_literal, Expression::ArrayLiteral),
         map(parse_dictionary_literal, Expression::DictionaryLiteral),
-        map(parse_dictionary_empty_literal, Expression::DictionaryLiteral),
+        map(
+            parse_dictionary_empty_literal,
+            Expression::DictionaryLiteral,
+        ),
         map(parse_range_expression, Expression::RangeExpression),
     ))(i)
 }
@@ -44,7 +50,10 @@ pub fn parse_expression_left(i: Span) -> nom::IResult<Span, Expression> {
         map(parse_identifier, Expression::Identifier),
         map(parse_bracketed_expression, Expression::BracketedExpression),
         map(parse_array_literal, Expression::ArrayLiteral),
-        map(parse_dictionary_empty_literal, Expression::DictionaryLiteral),
+        map(
+            parse_dictionary_empty_literal,
+            Expression::DictionaryLiteral,
+        ),
         map(parse_range_expression, Expression::RangeExpression),
     ))(i)
 }

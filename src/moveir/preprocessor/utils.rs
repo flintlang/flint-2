@@ -1,4 +1,9 @@
-use crate::ast::{mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection, ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration, Identifier, InoutExpression, InoutType, Literal::U8Literal, Parameter, ReturnStatement, Statement, Type, VariableDeclaration, TypeState};
+use crate::ast::{
+    mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
+    ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
+    Identifier, InoutExpression, InoutType, Literal::U8Literal, Parameter, ReturnStatement,
+    Statement, Type, TypeState, VariableDeclaration,
+};
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::MovePreProcessor;
@@ -68,8 +73,12 @@ pub fn convert_default_parameter_functions(
                 } else {
                     (vec![], vec![])
                 };
-            _ctx.environment
-                .add_function(removed.clone(), type_id, protections.clone(), type_states.clone());
+            _ctx.environment.add_function(
+                removed.clone(),
+                type_id,
+                protections.clone(),
+                type_states.clone(),
+            );
 
             processed.push(removed);
 
@@ -119,8 +128,12 @@ pub fn convert_default_parameter_functions(
                 assigned_function.body = vec![function_call];
             }
 
-            _ctx.environment
-                .add_function(assigned_function.clone(), type_id, protections, type_states);
+            _ctx.environment.add_function(
+                assigned_function.clone(),
+                type_id,
+                protections,
+                type_states,
+            );
 
             processed.push(assigned_function);
         }
@@ -610,13 +623,9 @@ pub fn pre_assign(
     let enclosing_type = ctx.enclosing_type_identifier().unwrap();
     let scope = ctx.scope_context.clone();
     let mut scope = scope.unwrap();
-    let mut expression_type = ctx.environment.get_expression_type(
-        &expression,
-        &enclosing_type.token,
-        &[],
-        &[],
-        &scope,
-    );
+    let mut expression_type =
+        ctx.environment
+            .get_expression_type(&expression, &enclosing_type.token, &[], &[], &scope);
 
     if expression_type.is_external_contract(ctx.environment.clone()) {
         expression_type = Type::Address
@@ -766,9 +775,12 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
         let scope = &ctx.scope_context.as_ref().unwrap_or_default();
 
-        let match_result =
-            ctx.environment
-                .match_function_call(&function_call, &enclosing_type, caller_protections, scope);
+        let match_result = ctx.environment.match_function_call(
+            &function_call,
+            &enclosing_type,
+            caller_protections,
+            scope,
+        );
 
         match match_result {
             FunctionCallMatchResult::MatchedFunction(fi) => {
@@ -832,12 +844,12 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
 pub fn is_global_function_call(function_call: &FunctionCall, ctx: &Context) -> bool {
     let enclosing = ctx.enclosing_type_identifier().unwrap().token;
-    let caller_protections: &[CallerProtection] = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context
-    {
-        &behaviour.caller_protections
-    } else {
-        &[]
-    };
+    let caller_protections: &[CallerProtection] =
+        if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+            &behaviour.caller_protections
+        } else {
+            &[]
+        };
 
     let scope = ctx.scope_context.as_ref().unwrap_or_default();
 

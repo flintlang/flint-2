@@ -1,7 +1,7 @@
-use crate::solidity::preprocessor::*;
-use crate::ast::{Type, FunctionCall, mangle_function_move, Property, Statement};
+use crate::ast::{mangle_function_move, FunctionCall, Property, Statement, Type};
 use crate::context::Context;
-use crate::environment::{FunctionCallMatchResult, CallableInformation};
+use crate::environment::{CallableInformation, FunctionCallMatchResult};
+use crate::solidity::preprocessor::*;
 
 pub fn mangle_solidity_function_name(
     string: String,
@@ -47,12 +47,9 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
         let scope = ctx.scope_context.as_ref().unwrap_or_default();
 
-        let match_result = ctx.environment.match_function_call(
-            &call,
-            &enclosing_type,
-            &caller_protections,
-            scope,
-        );
+        let match_result =
+            ctx.environment
+                .match_function_call(&call, &enclosing_type, &caller_protections, scope);
 
         match match_result.clone() {
             FunctionCallMatchResult::MatchedFunction(fi) => {
@@ -157,11 +154,12 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
     let enclosing = ctx.enclosing_type_identifier().clone();
     let enclosing = enclosing.unwrap();
     let enclosing = enclosing.token.clone();
-    let caller_protections: &[_] = if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
-        &behaviour.caller_protections
-    } else {
-        &[]
-    };
+    let caller_protections: &[_] =
+        if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+            &behaviour.caller_protections
+        } else {
+            &[]
+        };
 
     let scope = ctx.scope_context.as_ref().unwrap_or_default();
 

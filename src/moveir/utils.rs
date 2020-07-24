@@ -369,7 +369,7 @@ mod test {
             inner.clone(),
             Box::new(MoveIRExpression::Operation(MoveIROperation::Access(
                 inner,
-                "height".to_string()
+                "height".to_string(),
             ))),
         ));
         let statement = Expression(BinaryExpression(BinaryExpression {

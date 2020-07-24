@@ -1,10 +1,8 @@
 use crate::ast::*;
 use crate::environment::Environment;
+use crate::parser::operators::{left_brace, parse_comment, right_brace};
 use crate::parser::statements::*;
-use crate::parser::operators::{left_brace, right_brace, parse_comment};
-use nom::{
-    branch::alt, multi::many0,
-};
+use nom::{branch::alt, multi::many0};
 use nom_locate::LocatedSpan;
 
 pub type ParseResult = Result<(Module, Environment), String>;

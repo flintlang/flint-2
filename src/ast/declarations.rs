@@ -420,9 +420,7 @@ impl TraitDeclaration {
             .filter(|f| f.identifier.token == "module")
             .collect();
 
-        if let Some(argument) = modifiers
-            .first()
-            .and_then(|m| m.arguments.first()) {
+        if let Some(argument) = modifiers.first().and_then(|m| m.arguments.first()) {
             if let Some(ref identifier) = argument.identifier {
                 let name = &identifier.token;
                 if name == "address" {
@@ -590,7 +588,9 @@ impl Visitable for FunctionDeclaration {
         });
 
         if let Some(ref mut scope_context) = ctx.scope_context {
-            scope_context.parameters.extend(self.head.parameters.iter().cloned());
+            scope_context
+                .parameters
+                .extend(self.head.parameters.iter().cloned());
         }
 
         let mut statements: Vec<Vec<Statement>> = vec![];
@@ -773,7 +773,9 @@ impl Visitable for SpecialDeclaration {
         });
 
         if let Some(ref mut scope_context) = ctx.scope_context {
-            scope_context.parameters.extend(self.head.parameters.iter().cloned());
+            scope_context
+                .parameters
+                .extend(self.head.parameters.iter().cloned());
 
             scope_context.parameters.push(Parameter {
                 identifier: Identifier {

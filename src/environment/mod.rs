@@ -104,23 +104,19 @@ impl Environment {
                 }
             }
             if let Some(type_info) = self.types.get_mut(type_id) {
-                type_info
-                    .initialisers
-                    .push(SpecialInformation {
-                        declaration: special,
-                        type_states,
-                        caller_protections,
-                    });
+                type_info.initialisers.push(SpecialInformation {
+                    declaration: special,
+                    type_states,
+                    caller_protections,
+                });
             }
         } else {
             if let Some(type_info) = self.types.get_mut(type_id) {
-                type_info
-                    .fallbacks
-                    .push(SpecialInformation {
-                        declaration: special,
-                        type_states,
-                        caller_protections,
-                    });
+                type_info.fallbacks.push(SpecialInformation {
+                    declaration: special,
+                    type_states,
+                    caller_protections,
+                });
             }
         }
     }
@@ -138,11 +134,7 @@ impl Environment {
         }
     }
 
-    pub fn contains_type_state(
-        &mut self,
-        contract_name: &str,
-        type_state: &TypeState,
-    ) -> bool {
+    pub fn contains_type_state(&mut self, contract_name: &str, type_state: &TypeState) -> bool {
         self.get_contract_type_states(contract_name)
             .contains(type_state)
     }
@@ -164,7 +156,8 @@ impl Environment {
     }
 
     pub fn contains_caller_protection(&self, protection: &CallerProtection, type_id: &str) -> bool {
-        self.declared_caller_protections(type_id).contains(&protection.name())
+        self.declared_caller_protections(type_id)
+            .contains(&protection.name())
     }
 
     fn declared_caller_protections(&self, type_id: &str) -> Vec<String> {
@@ -208,17 +201,24 @@ impl Environment {
             }
             false
         };
-        self.types.get(type_id)
+        self.types
+            .get(type_id)
             .into_iter()
-            .flat_map(|type_info| type_info.properties.iter()
-                .filter(|(_, v)| caller_protection_property(v))
-                .map(|(k, _)| k.clone())
-                .chain(
-                type_info.functions.iter()
-                    .filter(|(_, v)| v.iter().any(caller_protection_function))
+            .flat_map(|type_info| {
+                type_info
+                    .properties
+                    .iter()
+                    .filter(|(_, v)| caller_protection_property(v))
                     .map(|(k, _)| k.clone())
+                    .chain(
+                        type_info
+                            .functions
+                            .iter()
+                            .filter(|(_, v)| v.iter().any(caller_protection_function))
+                            .map(|(k, _)| k.clone()),
                     )
-            ).collect()
+            })
+            .collect()
     }
 
     fn external_trait_init() -> SpecialSignatureDeclaration {
@@ -238,11 +238,18 @@ impl Environment {
     }
 
     pub fn has_public_initialiser(&mut self, type_id: &str) -> bool {
-        self.types.get_mut(type_id).unwrap().public_initializer.is_some()
+        self.types
+            .get_mut(type_id)
+            .unwrap()
+            .public_initializer
+            .is_some()
     }
 
     pub fn is_contract_declared(&self, type_id: &str) -> bool {
-        let contract = &self.contract_declarations.iter().find(|&x| x.token.eq(type_id));
+        let contract = &self
+            .contract_declarations
+            .iter()
+            .find(|&x| x.token.eq(type_id));
         contract.is_some()
     }
 
@@ -263,17 +270,26 @@ impl Environment {
     }
 
     pub fn is_struct_declared(&self, type_id: &str) -> bool {
-        let struct_decl = &self.struct_declarations.iter().find(|&x| x.token.eq(type_id));
+        let struct_decl = &self
+            .struct_declarations
+            .iter()
+            .find(|&x| x.token.eq(type_id));
         struct_decl.is_some()
     }
 
     pub fn is_trait_declared(&self, type_id: &str) -> bool {
-        let identifier = &self.trait_declarations.iter().find(|&x| x.token.eq(type_id));
+        let identifier = &self
+            .trait_declarations
+            .iter()
+            .find(|&x| x.token.eq(type_id));
         identifier.is_some()
     }
 
     pub fn is_asset_declared(&self, type_id: &str) -> bool {
-        let identifier = &self.asset_declarations.iter().find(|&x| x.token.eq(type_id));
+        let identifier = &self
+            .asset_declarations
+            .iter()
+            .find(|&x| x.token.eq(type_id));
         identifier.is_some()
     }
 
@@ -326,7 +342,8 @@ impl Environment {
                     unimplemented!()
                 }
 
-                self.types.get(&i.token)
+                self.types
+                    .get(&i.token)
                     .into_iter()
                     .flat_map(|enclosing| &enclosing.properties)
                     .map(|(_, v)| self.type_size(&v.property.get_type()))

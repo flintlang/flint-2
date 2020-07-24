@@ -27,7 +27,7 @@ impl MoveIdentifier {
                     right: Expression::Identifier(self.identifier.clone()),
                     position: self.position.clone(),
                 }
-                    .generate(function_context, f_call)
+                .generate(function_context, f_call)
             };
         };
 
@@ -36,7 +36,7 @@ impl MoveIdentifier {
                 token: self.identifier.token.clone(),
                 position: self.position.clone(),
             }
-                .generate(function_context, force);
+            .generate(function_context, force);
         }
 
         let ir_identifier = if function_context

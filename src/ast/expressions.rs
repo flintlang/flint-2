@@ -35,7 +35,9 @@ impl Expression {
                 b.lhs_expression.assign_enclosing_type(type_id);
             }
             Expression::ExternalCall(e) => {
-                e.function_call.lhs_expression.assign_enclosing_type(type_id);
+                e.function_call
+                    .lhs_expression
+                    .assign_enclosing_type(type_id);
             }
             Expression::FunctionCall(f) => {
                 f.identifier.enclosing_type = Some(String::from(type_id));
@@ -284,13 +286,9 @@ impl Visitable for BinaryExpression {
         let enclosing = ctx.enclosing_type_identifier();
         let enclosing = enclosing.unwrap_or_default();
         let enclosing = enclosing.token;
-        let lhs_type = ctx.environment.get_expression_type(
-            &*self.lhs_expression,
-            &enclosing,
-            &[],
-            &[],
-            scope,
-        );
+        let lhs_type =
+            ctx.environment
+                .get_expression_type(&*self.lhs_expression, &enclosing, &[], &[], scope);
 
         match lhs_type {
             Type::DictionaryType(_) | Type::ArrayType(_) | Type::FixedSizedArrayType(_) => {}

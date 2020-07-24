@@ -111,10 +111,7 @@ impl TypeInfo {
         let modifiers = self.modifiers.clone();
         let modifiers: Vec<FunctionCall> = modifiers
             .into_iter()
-            .filter(|f| {
-                f.identifier.token == "resource"
-                    || f.identifier.token == "struct"
-            })
+            .filter(|f| f.identifier.token == "resource" || f.identifier.token == "struct")
             .collect();
 
         if modifiers.is_empty() {

@@ -223,11 +223,7 @@ impl ScopeContext {
         }
     }
 
-    pub fn enclosing_parameter(
-        &self,
-        expression: &Expression,
-        type_id: &str,
-    ) -> Option<String> {
+    pub fn enclosing_parameter(&self, expression: &Expression, type_id: &str) -> Option<String> {
         let expression_enclosing = expression.enclosing_type().unwrap_or_default();
         if expression_enclosing == type_id {
             if let Some(enclosing_identifier) = expression.enclosing_identifier() {
@@ -243,7 +239,7 @@ impl ScopeContext {
 const DEFAULT_SCOPE_CONTEXT_REF: &ScopeContext = &ScopeContext {
     parameters: vec![],
     local_variables: vec![],
-    counter: 0
+    counter: 0,
 };
 
 impl Default for &ScopeContext {

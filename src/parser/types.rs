@@ -1,13 +1,16 @@
 use std::collections::HashSet;
 
+use crate::ast::{
+    ArrayType, DictionaryType, FixedSizedArrayType, InoutType, Literal, SolidityType, Type,
+    TypeAnnotation,
+};
 use crate::parser::identifiers::parse_identifier;
 use crate::parser::literals::*;
 use crate::parser::operators::*;
 use crate::parser::utils::*;
-use crate::ast::{Type, SolidityType, FixedSizedArrayType, Literal, InoutType, ArrayType, DictionaryType, TypeAnnotation};
+use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::map;
-use nom::branch::alt;
 use nom::sequence::preceded;
 
 pub fn parse_type_annotation(i: Span) -> nom::IResult<Span, TypeAnnotation> {

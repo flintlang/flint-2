@@ -8,7 +8,7 @@ pub enum Statement {
     Expression(Expression),
     BecomeStatement(BecomeStatement),
     EmitStatement(EmitStatement),
-    ForStatement(Box<ForStatement>),   // Boxed as rare and large
+    ForStatement(Box<ForStatement>), // Boxed as rare and large
     IfStatement(IfStatement),
     DoCatchStatement(DoCatchStatement),
     Assertion(Assertion),
@@ -205,7 +205,10 @@ impl Visitable for ForStatement {
         let initial_pre_statements = ctx.pre_statements.clone();
         let initial_post_statements = ctx.post_statements.clone();
 
-        let blocks_scope = self.for_body_scope_context.as_ref().or_else(|| ctx.scope_context());
+        let blocks_scope = self
+            .for_body_scope_context
+            .as_ref()
+            .or_else(|| ctx.scope_context());
         let block_context = BlockContext {
             scope_context: blocks_scope.unwrap().clone(),
         };
