@@ -1,8 +1,6 @@
 <p align="center">
-  <img width="460" height="300" src="docs/logo.svg">
+  <img width="460" src="docs/logo.svg">
 </p>
-
-<br/>
 
 Flint 2 is a new Rust-based implementation of Flint, designed for better blockchain-agnostic smart contracts, with the
 same safety-oriented language features as before. Flint 2 includes:
@@ -12,7 +10,7 @@ same safety-oriented language features as before. Flint 2 includes:
  * Abstraction features such as *structs*, *traits*, and *assets* allow structures code on any blockchain
  * Safety-first language features reduce accidental developer mistakes
 
-Flint 2 has been developed thanks to the work at the [Department of Computing](https://doc.ic.ac.uk/), 
+Flint 2 has been developed thanks to the work at the [Department of Computing](https://www.doc.ic.ac.uk/), 
 [Imperial College London](https://imperial.ac.uk) under the supervision of Professor Susan Eisenbach, undertaken by
 Jessica Lally, Matthew Ross Rachar, and George Stacey, with the core of the project the Quartz research compiler by Ali
 Chaudhry, built for his MEng thesis.
