@@ -16,14 +16,10 @@ impl Visitor for TypeAssigner {
                 context.local_variables.push(_t.clone());
             }
 
-            if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
-            }
-
-            if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
+                function_declaration_context.local_variables.push(_t.clone());
+            } else if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
+                special_declaration_context.local_variables.push(_t.clone());
             }
         }
         Ok(())

@@ -1,5 +1,5 @@
 use crate::ast::{
-    is_redeclaration, FunctionDeclaration, FunctionInformation, Identifier, PropertyInformation,
+    is_redeclaration, FunctionDeclaration, FunctionInformation, Identifier,
 };
 use crate::environment::*;
 
@@ -20,32 +20,16 @@ impl Environment {
         false
     }
 
-    pub fn conflicting(&self, identifier: &Identifier, list: Vec<&Vec<Identifier>>) -> bool {
-        let list: Vec<&Identifier> = list.iter().flat_map(|s| s.iter()).collect();
-
-        for i in list {
-            if is_redeclaration(i, identifier) {
-                return true;
-            }
-        }
-        false
+    pub fn conflicting<'a, T: IntoIterator<Item=&'a Identifier>>(&self, identifier: &Identifier, idents: T) -> bool {
+        idents.into_iter().any(|ident| is_redeclaration(identifier, &ident))
     }
 
     pub fn conflicting_property_declaration(&self, identifier: &Identifier, type_id: &str) -> bool {
-        if let Some(type_info) = self.types.get(type_id) {
-            let properties: Vec<&PropertyInformation> = type_info.properties.values().collect();
-
-            let identifiers: Vec<Identifier> = properties
-                .into_iter()
+        self.types.get(type_id).map(|type_info|
+            type_info.properties.values()
                 .map(|p| p.property.get_identifier())
-                .collect();
-            for i in identifiers {
-                if is_redeclaration(&i, identifier) {
-                    return true;
-                }
-            }
-        }
-        false
+                .any(|i| is_redeclaration(&i, identifier))
+        ).unwrap_or(false)
     }
 
     pub fn conflicting_trait_signatures(&self, type_id: &str) -> bool {
@@ -77,52 +61,28 @@ impl Environment {
         identifier: &str,
     ) -> bool {
         if self.is_contract_declared(identifier) {
-            let type_info = &self.types.get(identifier);
-            let mut list = vec![&self.contract_declarations, &self.struct_declarations];
-            let mut value = Vec::new();
-            if type_info
-                .unwrap()
-                .functions
-                .contains_key(&function_declaration.head.identifier.token)
-            {
-                for function in self
-                    .types
-                    .get(identifier)
-                    .unwrap()
-                    .functions
+            let type_info = self.types.get(identifier).unwrap();
+            let declarations = self.contract_declarations.iter()
+                .chain(self.struct_declarations.iter())
+                .chain(type_info.functions
                     .get(&function_declaration.head.identifier.token)
-                    .unwrap()
-                {
-                    value.push(function.declaration.head.identifier.clone());
-                }
-                list.push(&value);
-            }
-            return self.conflicting(&function_declaration.head.identifier, list);
+                    .into_iter()
+                    .flat_map(|functions| functions.iter()
+                        .map(|function| &function.declaration.head.identifier)
+                    ));
+            return self.conflicting(&function_declaration.head.identifier, declarations);
         }
-        let type_info = &self.types.get(identifier);
-        if type_info.is_some()
-            && type_info
-                .unwrap()
-                .functions
-                .contains_key(&function_declaration.head.identifier.token)
-        {
-            for function in self
-                .types
-                .get(identifier)
-                .unwrap()
-                .functions
-                .get(&function_declaration.head.identifier.token)
-                .unwrap()
-            {
-                let declaration = &function.declaration.head.identifier;
-                let parameters = &function.declaration.head.parameters;
-                if is_redeclaration(&function_declaration.head.identifier, declaration)
-                    && &function_declaration.head.parameters == parameters
-                {
-                    return true;
-                }
-            }
-        }
-        false
+        self.types.get(identifier).and_then(
+            |type_info| type_info.functions.get(&function_declaration.head.identifier.token).map(
+                |functions| functions.iter().any(
+                    |function| {
+                        let declaration = &function.declaration.head.identifier;
+                        let parameters = &function.declaration.head.parameters;
+                        is_redeclaration(&function_declaration.head.identifier, declaration)
+                            && &function_declaration.head.parameters == parameters
+                    }
+                )
+            )
+        ).unwrap_or(false)
     }
 }

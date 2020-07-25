@@ -17,20 +17,13 @@ impl Visitor for SolidityPreProcessor {
         _ctx: &mut Context,
     ) -> VResult {
         let enclosing_identifier = _ctx
-            .enclosing_type_identifier()
-            .unwrap_or(Identifier {
-                token: "".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            })
-            .token
-            .clone();
+            .enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
 
         let param_types = _t.head.parameter_types().clone();
         let mangled_name = mangle_solidity_function_name(
             _t.head.identifier.token.clone(),
             param_types,
-            &enclosing_identifier,
+            enclosing_identifier,
         );
         _t.mangled_identifier = Some(mangled_name);
 
@@ -196,14 +189,10 @@ impl Visitor for SolidityPreProcessor {
                 context.local_variables.push(_t.clone());
             }
 
-            if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
-            }
-
-            if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
+                function_declaration_context.local_variables.push(_t.clone());
+            } else if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
+                special_declaration_context.local_variables.push(_t.clone());
             }
         }
         Ok(())
@@ -242,16 +231,12 @@ impl Visitor for SolidityPreProcessor {
                 });
             }
         } else {
-            let enclosing_type = if is_global_function_call(f_call.clone(), _ctx) {
+            let enclosing_type = if is_global_function_call(&f_call, _ctx) {
                 "Quartz_Global".to_string()
             } else {
-                let trail_last = _ctx.function_call_receiver_trail.last();
-                let trail_last = trail_last.unwrap();
-                let trail_last = trail_last.clone();
+                let trail_last = _ctx.function_call_receiver_trail.last().unwrap();
 
-                let enclosing_ident = _ctx.enclosing_type_identifier().clone();
-                let enclosing_ident = enclosing_ident.unwrap_or_default();
-                let enclosing_ident = enclosing_ident.token;
+                let enclosing_ident = _ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
 
                 let scope = _ctx.scope_context.clone();
                 let scope = scope.unwrap_or(ScopeContext {
@@ -261,8 +246,8 @@ impl Visitor for SolidityPreProcessor {
                 });
 
                 let d_type = _ctx.environment.get_expression_type(
-                    &trail_last,
-                    &enclosing_ident,
+                    trail_last,
+                    enclosing_ident,
                     &[],
                     &[],
                     &scope,
@@ -271,26 +256,17 @@ impl Visitor for SolidityPreProcessor {
                 d_type.name()
             };
 
-            let mangled = mangle_function_call_name(&f_call, _ctx);
-            if mangled.is_some() {
-                let mangled = mangled.unwrap();
-                println!("MAngled is");
-                println!("{:?}", mangled.clone());
-                println!("{:?}", f_call.identifier.line_info.clone());
+            if let Some(mangled) = mangle_function_call_name(&f_call, _ctx) {
                 call.mangled_identifier = Option::from(Identifier {
                     token: mangled.clone(),
                     enclosing_type: None,
                     line_info: Default::default(),
                 });
-                f_call.mangled_identifier = Option::from(Identifier {
-                    token: mangled,
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                });
+                f_call.mangled_identifier = Option::from(Identifier::generated(&mangled));
             }
 
             if _ctx.environment.is_struct_declared(&enclosing_type)
-                && !is_global_function_call(f_call.clone(), _ctx)
+                && !is_global_function_call(&f_call, _ctx)
             {
                 let receiver = construct_expression(_ctx.function_call_receiver_trail.clone());
                 let inout_expression = InoutExpression {
@@ -317,13 +293,10 @@ impl Visitor for SolidityPreProcessor {
             counter: 0,
         });
 
-        let enclosing = if f_call.identifier.enclosing_type.is_some() {
-            let i = f_call.identifier.enclosing_type.clone();
-            i.unwrap()
+        let enclosing: &str = if let Some(ref enclosing) =  f_call.identifier.enclosing_type {
+            *&enclosing
         } else {
-            let i = _ctx.enclosing_type_identifier().clone();
-            let i = i.unwrap_or_default();
-            i.token
+            _ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap()
         };
 
         let match_result = _ctx

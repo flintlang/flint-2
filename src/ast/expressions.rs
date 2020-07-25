@@ -283,12 +283,10 @@ impl Visitable for BinaryExpression {
 
         let scope = ctx.scope_context.as_ref().unwrap_or_default();
 
-        let enclosing = ctx.enclosing_type_identifier();
-        let enclosing = enclosing.unwrap_or_default();
-        let enclosing = enclosing.token;
+        let enclosing = ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
         let lhs_type =
             ctx.environment
-                .get_expression_type(&*self.lhs_expression, &enclosing, &[], &[], scope);
+                .get_expression_type(&*self.lhs_expression, enclosing, &[], &[], scope);
 
         match lhs_type {
             Type::DictionaryType(_) | Type::ArrayType(_) | Type::FixedSizedArrayType(_) => {}

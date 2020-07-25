@@ -573,18 +573,16 @@ impl Visitable for FunctionDeclaration {
         v.start_function_declaration(self, ctx)?;
         self.head.visit(v, ctx)?;
 
-        let local_variables = {
-            if ctx.has_scope_context() {
-                let scope = ctx.scope_context.clone();
-                let scope = scope.unwrap();
-                scope.local_variables
+        let local_variables: &[_] = {
+            if let Some(ref scope_context) = ctx.scope_context {
+                &scope_context.local_variables
             } else {
-                vec![]
+                &[]
             }
         };
         ctx.function_declaration_context = Some(FunctionDeclarationContext {
             declaration: self.clone(),
-            local_variables,
+            local_variables: local_variables.to_vec(),
         });
 
         if let Some(ref mut scope_context) = ctx.scope_context {
@@ -613,11 +611,8 @@ impl Visitable for FunctionDeclaration {
 
         let declarations = ctx.function_declaration_context.clone();
         let declarations = declarations.unwrap().local_variables;
-        if ctx.has_scope_context() {
-            let scope = ctx.scope_context.clone();
-            let mut scope = scope.unwrap();
-            scope.local_variables = declarations;
-            ctx.scope_context = Some(scope);
+        if let Some(ref mut scope_context) = ctx.scope_context {
+            scope_context.local_variables = declarations;
         }
         ctx.function_declaration_context = None;
         v.finish_function_declaration(self, ctx)?;
@@ -758,18 +753,14 @@ impl Visitable for SpecialDeclaration {
 
         self.head.visit(v, ctx)?;
 
-        let local_variables = {
-            if ctx.has_scope_context() {
-                let scope = ctx.scope_context.clone();
-                let scope = scope.unwrap();
-                scope.local_variables
-            } else {
-                vec![]
-            }
+        let local_variables: &[_] = if let Some(ref scope_context) = ctx.scope_context {
+            &scope_context.local_variables
+        } else {
+            &[]
         };
         ctx.special_declaration_context = Some(SpecialDeclarationContext {
             declaration: self.clone(),
-            local_variables,
+            local_variables: local_variables.to_vec(),
         });
 
         if let Some(ref mut scope_context) = ctx.scope_context {
@@ -820,13 +811,9 @@ impl Visitable for SpecialDeclaration {
 
         self.body = statements;
 
-        let declarations = ctx.special_declaration_context.clone();
-        let declarations = declarations.unwrap().local_variables;
-        if ctx.has_scope_context() {
-            let scope = ctx.scope_context.clone();
-            let mut scope = scope.unwrap();
-            scope.local_variables = declarations;
-            ctx.scope_context = Some(scope);
+        if let Some(ref mut scope_context) = ctx.scope_context {
+            scope_context.local_variables = ctx.special_declaration_context
+                .as_ref().unwrap().local_variables.clone();
         }
         ctx.special_declaration_context = None;
         v.finish_special_declaration(self, ctx)?;

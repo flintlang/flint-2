@@ -160,9 +160,7 @@ impl Visitor for SemanticAnalysis {
         }
 
         if _ctx.in_function_or_special() {
-            if _ctx.has_scope_context() {
-                let scope_context = _ctx.scope_context.as_mut().unwrap();
-
+            if let Some(ref mut scope_context) = _ctx.scope_context {
                 let redeclaration = scope_context.declaration(&_t.identifier.token);
                 if redeclaration.is_some() {
                     return Err(Box::from(format!(
@@ -172,7 +170,7 @@ impl Visitor for SemanticAnalysis {
                 }
                 scope_context.local_variables.push(_t.clone());
             }
-        } else if let Some(ref identifier) = _ctx.enclosing_type_identifier() {
+        } else if let Some(identifier) = _ctx.enclosing_type_identifier() {
             if _ctx
                 .environment
                 .conflicting_property_declaration(&_t.identifier, &identifier.token)
@@ -512,7 +510,7 @@ impl Visitor for SemanticAnalysis {
                     }
                 } else if !ctx.environment.is_enum_declared(token) {
                     identifier.enclosing_type =
-                        Option::from(ctx.enclosing_type_identifier().unwrap().token)
+                        Option::from(ctx.enclosing_type_identifier().unwrap().token.clone())
                 } else if !ctx.is_enclosing {
                     return Err(Box::from(format!(
                         "Invalid reference to `{}` on line {}",
@@ -663,7 +661,7 @@ impl Visitor for SemanticAnalysis {
     }
 
     fn start_assertion(&mut self, assertion: &mut Assertion, ctx: &mut Context) -> VResult {
-        let enclosing_type = &ctx.enclosing_type_identifier().unwrap_or_default().token;
+        let enclosing_type = ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
         let (type_states, caller_protections) =
             if let Some(info) = &ctx.contract_behaviour_declaration_context {
                 (info.type_states.clone(), info.caller_protections.clone())

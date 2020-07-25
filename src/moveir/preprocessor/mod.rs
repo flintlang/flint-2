@@ -180,18 +180,18 @@ impl Visitor for MovePreProcessor {
         _ctx: &mut Context,
     ) -> VResult {
         if _ctx.in_function_or_special() {
-            if let Some(context_ref) = &mut _ctx.scope_context {
-                context_ref.local_variables.push(_t.clone());
+            if let Some(ref mut scope_context) = _ctx.scope_context {
+                scope_context.local_variables.push(_t.clone());
             }
 
-            if _ctx.is_function_declaration_context() {
-                let context_ref = _ctx.function_declaration_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            // If is function declaration context
+            if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
+                function_declaration_context.local_variables.push(_t.clone());
             }
 
-            if _ctx.is_special_declaration_context() {
-                let context_ref = _ctx.special_declaration_context.as_mut().unwrap();
-                context_ref.local_variables.push(_t.clone());
+            // If is special declaration context  // TODO should these be else ifs?
+            if let Some(ref mut special_declaration_context) =  _ctx.special_declaration_context {
+                special_declaration_context.local_variables.push(_t.clone());
             }
         }
         Ok(())
@@ -203,13 +203,7 @@ impl Visitor for MovePreProcessor {
         ctx: &mut Context,
     ) -> VResult {
         let enclosing_identifier = ctx
-            .enclosing_type_identifier()
-            .unwrap_or(Identifier {
-                token: "".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            })
-            .token;
+            .enclosing_type_identifier().map(|id| id.token.to_string()).unwrap_or_default();
 
         let mangled_name = mangle_function_move(
             &declaration.head.identifier.token,
@@ -295,11 +289,8 @@ impl Visitor for MovePreProcessor {
             };
 
             declaration.head.parameters.insert(0, parameter.clone());
-            if let Some(ref scope) = ctx.scope_context {
-                let mut scope = scope.clone();
+            if let Some(ref mut scope) = ctx.scope_context {
                 scope.parameters.insert(0, parameter);
-
-                ctx.scope_context = Some(scope);
             }
         }
 
@@ -320,20 +311,16 @@ impl Visitor for MovePreProcessor {
             };
 
             declaration.head.parameters.insert(0, parameter.clone());
-            if let Some(ref scope) = ctx.scope_context {
-                let mut scope = scope.clone();
+            if let Some(ref mut scope) = ctx.scope_context {
                 scope.parameters.insert(0, parameter);
-
-                ctx.scope_context = Some(scope);
             }
         }
 
-        if ctx.is_contract_behaviour_declaration_context() {
-            let contract = ctx.contract_behaviour_declaration_context.clone().unwrap();
-            let identifier = contract.identifier;
-            let parameter_type = Type::UserDefinedType(identifier);
+        // If is contract behaviour declaration context
+        if let Some(ref contract) = ctx.contract_behaviour_declaration_context {
+            let identifier = &contract.identifier;
             let parameter_type = Type::InoutType(InoutType {
-                key_type: Box::new(parameter_type),
+                key_type: Box::new(Type::UserDefinedType(identifier.clone())),
             });
             let parameter = Parameter {
                 identifier: Identifier::generated(Identifier::SELF),
@@ -346,12 +333,10 @@ impl Visitor for MovePreProcessor {
             declaration
                 .head
                 .parameters
-                .append(&mut ctx.scope_context.as_ref().unwrap().parameters.clone());
+                .append(&mut ctx.scope_context.as_mut().unwrap().parameters);
 
-            if let Some(scope) = ctx.scope_context() {
-                let mut scope = scope.clone();
+            if let Some(ref mut scope) = ctx.scope_context {
                 scope.parameters.insert(0, parameter);
-                ctx.scope_context = Some(scope);
             }
         }
 
@@ -511,33 +496,15 @@ impl Visitor for MovePreProcessor {
                         line_info: b.line_info.clone(),
                     });
                     *_t = expression;
-                    if _ctx.is_function_declaration_context() {
-                        let mut context = _ctx.function_declaration_context.clone().unwrap();
-                        context.local_variables.push(variable.clone());
-
-                        let scope = context.declaration.scope_context.clone();
-                        let mut scope = scope.unwrap();
-                        scope.local_variables.push(variable);
-
-                        context.declaration.scope_context = Some(scope);
-                        _ctx.function_declaration_context = Some(context)
-                    } else if _ctx.is_special_declaration_context() {
-                        let context = _ctx.special_declaration_context.clone();
-                        let mut context = context.unwrap();
-                        context.local_variables.push(variable.clone());
-
-                        let scope = context.declaration.scope_context.clone();
-                        let mut scope = scope;
-                        scope.local_variables.push(variable);
-
-                        context.declaration.scope_context = scope;
-                        _ctx.special_declaration_context = Some(context);
-                    } else if _ctx.has_scope_context() {
-                        let scope = _ctx.scope_context.clone();
-                        let mut scope = scope.unwrap();
-                        scope.local_variables.push(variable);
-
-                        _ctx.scope_context = Some(scope)
+                    // If is function declaration context, or else if special declaration context
+                    if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
+                        function_declaration_context.local_variables.push(variable.clone());
+                        function_declaration_context.declaration.scope_context.as_mut().unwrap().local_variables.push(variable);
+                    } else if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
+                        special_declaration_context.local_variables.push(variable.clone());
+                        special_declaration_context.declaration.scope_context.local_variables.push(variable);
+                    } else if let Some(ref mut scope_context) = _ctx.scope_context {
+                        scope_context.local_variables.push(variable);
                     }
                 }
             }
@@ -619,13 +586,13 @@ impl Visitor for MovePreProcessor {
         {
             let is_global_function_call = is_global_function_call(&call, _ctx);
 
-            let enclosing_type = _ctx.enclosing_type_identifier().unwrap_or_default().token;
+            let enclosing_type = _ctx.enclosing_type_identifier().map(|id| id.token.to_string()).unwrap_or_default();
 
-            let caller_protections =
+            let caller_protections: &[_] =
                 if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
-                    behaviour.caller_protections.clone()
+                    &behaviour.caller_protections
                 } else {
-                    vec![]
+                    &[]
                 };
 
             let receiver_trail = &mut _ctx.function_call_receiver_trail;
@@ -643,7 +610,7 @@ impl Visitor for MovePreProcessor {
                         receiver,
                         &enclosing_type,
                         &[],
-                        &caller_protections,
+                        caller_protections,
                         _ctx.scope_context.as_ref().unwrap_or_default(),
                     )
                     .name()
@@ -655,10 +622,8 @@ impl Visitor for MovePreProcessor {
                 || _ctx.environment.is_asset_declared(&declared_enclosing)
                     && !is_global_function_call
             {
-                let expressions = receiver_trail;
-
-                let mut expression = construct_expression(expressions.clone());
-                let enclosing_type = _ctx.enclosing_type_identifier().unwrap_or_default().token;
+                let mut expression = construct_expression(&receiver_trail);
+                let enclosing_type = _ctx.enclosing_type_identifier().map(|id| id.token.to_string()).unwrap_or_default();
 
                 if expression.enclosing_type().is_some() {
                     expression = expand_properties(expression, _ctx, false);
@@ -727,7 +692,7 @@ impl Visitor for MovePreProcessor {
         if _ctx.enclosing_type_identifier().is_none() {
             panic!("Not Enough Information To Workout External Trait name")
         }
-        let enclosing = _ctx.enclosing_type_identifier().unwrap().token;
+        let enclosing = _ctx.enclosing_type_identifier().unwrap().token.to_string();
         let receiver = &*_t.function_call.lhs_expression;
         let receiver_type = _ctx.environment.get_expression_type(
             &receiver,
@@ -834,7 +799,7 @@ impl Visitor for MovePreProcessor {
                 .position(|state| state == &bs.state)
                 .unwrap() as u8;
 
-            let state_variable = if context.is_special_declaration_context() {
+            let state_variable = if context.special_declaration_context.is_some() {
                 // Special declarations have no 'this' yet as it is being constructed
                 // TODO the mangling is a problem
                 Expression::Identifier(Identifier::generated(&format!(

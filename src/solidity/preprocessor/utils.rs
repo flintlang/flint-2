@@ -150,10 +150,8 @@ pub fn construct_parameter(name: String, t: Type) -> Parameter {
     }
 }
 
-pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bool {
-    let enclosing = ctx.enclosing_type_identifier().clone();
-    let enclosing = enclosing.unwrap();
-    let enclosing = enclosing.token.clone();
+pub fn is_global_function_call(function_call: &FunctionCall, ctx: &Context) -> bool {
+    let enclosing = ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
     let caller_protections: &[_] =
         if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
             &behaviour.caller_protections
@@ -165,7 +163,7 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
 
     let result =
         ctx.environment
-            .match_function_call(&function_call, &enclosing, caller_protections, scope);
+            .match_function_call(function_call, &enclosing, caller_protections, scope);
 
     if let FunctionCallMatchResult::MatchedGlobalFunction(_) = result {
         return true;
@@ -175,9 +173,7 @@ pub fn is_global_function_call(function_call: FunctionCall, ctx: &Context) -> bo
 }
 
 pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
-    let enclosing = ctx.enclosing_type_identifier().clone();
-    let enclosing = enclosing.unwrap_or_default();
-    let enclosing = enclosing.token;
+    let enclosing = ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
 
     let properties_in_enclosing = ctx.environment.property_declarations(&enclosing);
     let properties_in_enclosing: Vec<Property> = properties_in_enclosing
@@ -189,7 +185,7 @@ pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
         .into_iter()
         .map(|p| {
             let mut identifier = p.get_identifier();
-            identifier.enclosing_type = Some(enclosing.clone());
+            identifier.enclosing_type = Some(enclosing.to_string());
             Statement::Expression(Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(Expression::Identifier(identifier)),
                 rhs_expression: Box::new(p.get_value().unwrap()),
