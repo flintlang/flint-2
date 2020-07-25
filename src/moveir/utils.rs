@@ -316,21 +316,18 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
     None
 }
 
-pub fn remove_moves(
-    statements: Vec<Statement>,
+pub fn remove_moves<T: IntoIterator<Item=Statement>>(
+    statements: T,
     expression: MoveIRExpression,
 ) -> (Vec<Statement>, MoveIRExpression) {
     let mut curr_expr = expression.clone();
-    let mut post_statements = Vec::new();
-
-    for statement in statements {
+    let statements = statements.into_iter().flat_map(|statement| {
         if let Some(expr) = remove_move(&statement, &expression) {
             curr_expr = expr;
-        } else {
-            post_statements.push(statement);
-        }
-    }
-    (post_statements, curr_expr)
+            None
+        } else { Some(statement) }
+    });
+    (statements.collect(), curr_expr)
 }
 
 #[cfg(test)]
@@ -407,7 +404,7 @@ mod test {
             },
         }));
 
-        let result = remove_moves(vec![statement], expr);
+        let result = remove_moves(std::iter::once(statement), expr);
 
         assert_eq!(
             result.1,

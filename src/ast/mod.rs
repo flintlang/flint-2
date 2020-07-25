@@ -344,10 +344,9 @@ pub fn is_redeclaration(identifier1: &Identifier, identifier2: &Identifier) -> b
     false
 }
 
-pub fn is_return_or_become_statement(statement: Statement) -> bool {
+pub fn is_return_or_become_statement(statement: &Statement) -> bool {
     match statement {
-        Statement::ReturnStatement(_) => true,
-        Statement::BecomeStatement(_) => false,
+        Statement::ReturnStatement(_) | Statement::BecomeStatement(_) => true,
         _ => false,
     }
 }

@@ -7,13 +7,13 @@ pub struct SolidityInterface {
 
 impl SolidityInterface {
     pub fn generate(&self) -> String {
-        let behaviour_declarations = self.contract.behaviour_declarations.clone();
+        let behaviour_declarations = &self.contract.behaviour_declarations;
         let mut functions: Vec<FunctionDeclaration> = vec![];
-        for declarations in behaviour_declarations.clone() {
-            for function in declarations.members.clone() {
+        for declarations in behaviour_declarations {
+            for function in &declarations.members {
                 match function {
                     ContractBehaviourMember::FunctionDeclaration(f) => {
-                        functions.push(f);
+                        functions.push(f.clone());
                     }
                     _ => {}
                 }

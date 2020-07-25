@@ -98,7 +98,7 @@ impl MoveReturnStatement {
         }
         .generate(&function_context);
 
-        let (cleanup, expression) = remove_moves(self.statement.cleanup.clone(), expression);
+        let (cleanup, expression) = remove_moves(self.statement.cleanup.iter().cloned(), expression);
         let assignment = MoveIRExpression::Assignment(MoveIRAssignment {
             identifier: return_identifier.token.clone(),
             expression: Box::from(expression),

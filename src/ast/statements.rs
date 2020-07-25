@@ -66,13 +66,7 @@ pub struct IfStatement {
 
 impl IfStatement {
     pub fn ends_with_return(&self) -> bool {
-        let body = self.body.clone();
-        for b in body {
-            if let Statement::ReturnStatement(_) = b {
-                return true;
-            }
-        }
-        false
+        self.body.iter().any(|s| matches!(s, Statement::ReturnStatement(_)))
     }
 }
 

@@ -3,6 +3,7 @@ use super::context::*;
 use super::visitor::*;
 use crate::environment::FunctionCallMatchResult::{MatchedFunction, MatchedInitializer};
 use crate::type_checker::ExpressionChecker;
+use crate::utils::unique::Unique;
 
 pub struct SemanticAnalysis {}
 
@@ -29,7 +30,7 @@ impl Visitor for SemanticAnalysis {
             )));
         }
 
-        if is_conformance_repeated(_t.conformances.clone()) {
+        if is_conformance_repeated(&_t.conformances) {
             return Err(Box::from("Conformances are repeated".to_owned()));
         }
 
@@ -65,7 +66,7 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                .as_str(),
+                    .as_str(),
             ));
         }
 
@@ -106,7 +107,7 @@ impl Visitor for SemanticAnalysis {
             )));
         }
 
-        if is_conformance_repeated(_t.conformances.clone()) {
+        if is_conformance_repeated(&_t.conformances) {
             return Err(Box::from("Conformances are repeated".to_owned()));
         }
 
@@ -203,41 +204,32 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let parameters: Vec<String> = _t
-            .head
-            .parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.identifier.token)
-            .collect();
-        let duplicates =
-            (1..parameters.len()).any(|i| parameters[i..].contains(&parameters[i - 1]));
-
-        if duplicates {
+        if !_t.head.parameters.iter()
+            .map(|p| &p.identifier.token)
+            .unique() {
             return Err(Box::from(format!(
                 "Fuction {} has duplicate parameters",
                 _t.head.identifier.token
             )));
         }
 
-        let payable_parameters = _t.head.parameters.clone();
-        let remaining_parameters: Vec<Parameter> = payable_parameters
-            .into_iter()
+        let remaining_parameters = _t.head.parameters
+            .iter()
             .filter(|p| p.is_payable())
-            .collect();
+            .count();
         if _t.is_payable() {
-            if remaining_parameters.is_empty() {
+            if remaining_parameters == 0 {
                 return Err(Box::from(format!(
                     "Payable Function {} does not have payable parameter",
                     _t.head.identifier.token
                 )));
-            } else if remaining_parameters.len() > 1 {
+            } else if remaining_parameters > 1 {
                 return Err(Box::from(format!(
                     "Payable parameter is ambiguous in function {}",
                     _t.head.identifier.token
                 )));
             }
-        } else if !remaining_parameters.is_empty() {
+        } else if remaining_parameters > 0 {
             return Err(Box::from(format!(
                 "Function not marked payable but has payable parameter: {:?}",
                 remaining_parameters
@@ -245,14 +237,13 @@ impl Visitor for SemanticAnalysis {
         }
 
         if _t.is_public() {
-            let parameters: Vec<Parameter> = _t
+            let parameters = _t
                 .head
                 .parameters
-                .clone()
-                .into_iter()
+                .iter()
                 .filter(|p| p.is_dynamic() && !p.is_payable())
-                .collect();
-            if !parameters.is_empty() {
+                .count();
+            if parameters > 0 {
                 return Err(Box::from(format!(
                     "Public Function {} has dynamic parameters",
                     _t.head.identifier.token
@@ -267,15 +258,10 @@ impl Visitor for SemanticAnalysis {
             )));
         }
 
-        let statements = _t.body.clone();
         let mut return_statements = Vec::new();
         let mut become_statements = Vec::new();
 
-        let remaining = statements
-            .into_iter()
-            .skip_while(|s| !is_return_or_become_statement(s.clone()));
-
-        for statement in _t.body.clone() {
+        for statement in &_t.body {
             match statement {
                 Statement::ReturnStatement(ret) => return_statements.push(ret),
                 Statement::BecomeStatement(bec) => become_statements.push(bec),
@@ -283,7 +269,11 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s.clone()));
+        let remaining = _t.body
+            .iter()
+            .skip_while(|s| !is_return_or_become_statement(s));
+
+        let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s));
         if remaining_after_end.count() > 0 {
             return Err(Box::from(format!(
                 "Statements after `return` in {}",
@@ -363,9 +353,9 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .is_contract_stateful(&context.identifier.token)
                 && !declaration
-                    .body
-                    .iter()
-                    .any(|state| matches!(state, Statement::BecomeStatement(_)))
+                .body
+                .iter()
+                .any(|state| matches!(state, Statement::BecomeStatement(_)))
             {
                 return Err(Box::from(
                     "Initialiser of a contract with typestates must have a `become` statement"
@@ -437,8 +427,7 @@ impl Visitor for SemanticAnalysis {
                                 "Cannot reassign to constant `{}` on line {}",
                                 token, line_number
                             )));
-                        } else {
-                        }
+                        } else {}
                     }
 
                     let current_enclosing_type =
@@ -471,7 +460,7 @@ impl Visitor for SemanticAnalysis {
                     }
 
                     if let Some(function_declaration_context) =
-                        ctx.function_declaration_context.as_ref()
+                    ctx.function_declaration_context.as_ref()
                     {
                         // Check: Do not allow mutation of identifier if it is not declared mutating
                         if !function_declaration_context
@@ -528,8 +517,7 @@ impl Visitor for SemanticAnalysis {
         let start = _t.start_expression.clone();
         let end = _t.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
-        } else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
             return Err(Box::from(format!("Invalid Range Declaration: {:?}", _t)));
         }
 
@@ -544,8 +532,8 @@ impl Visitor for SemanticAnalysis {
         if _ctx.enclosing_type_identifier().is_some()
             && !_t.is_any()
             && !_ctx
-                .environment
-                .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
+            .environment
+            .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -702,8 +690,8 @@ fn check_if_correct_type_state_possible(
     if allowed_states.is_empty()
         || current_possible_states.is_empty()
         || current_possible_states
-            .iter()
-            .all(|state| allowed_states.contains(state))
+        .iter()
+        .all(|state| allowed_states.contains(state))
     {
         Ok(())
     } else {
@@ -720,10 +708,9 @@ fn check_if_correct_type_state_possible(
     }
 }
 
-fn is_conformance_repeated(conformances: Vec<Conformance>) -> bool {
-    let slice: Vec<String> = conformances
+fn is_conformance_repeated<'a, T: IntoIterator<Item=&'a Conformance>>(conformances: T) -> bool {
+    !conformances
         .into_iter()
-        .map(|c| c.identifier.token)
-        .collect();
-    (1..slice.len()).any(|i| slice[i..].contains(&slice[i - 1]))
+        .map(|c| &c.identifier.token)
+        .unique()
 }
