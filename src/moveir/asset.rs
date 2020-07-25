@@ -73,7 +73,11 @@ impl MoveAsset {
                     declaration: i,
                     identifier: self.declaration.identifier.clone(),
                     environment: self.environment.clone(),
-                    properties: self.declaration.get_variable_declarations().cloned().collect(),
+                    properties: self
+                        .declaration
+                        .get_variable_declarations()
+                        .cloned()
+                        .collect(),
                 }
                 .generate()
             })

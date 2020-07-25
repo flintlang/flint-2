@@ -57,28 +57,26 @@ impl ContractDeclaration {
     }
 
     #[allow(dead_code)]
-    pub fn get_variable_declarations(&self) -> impl Iterator<Item=&VariableDeclaration> {
-        self.contract_members
-            .iter()
-            .filter_map(|c| match c {
-                ContractMember::VariableDeclaration(v, _) => Some(v),
-                ContractMember::EventDeclaration(_) => None,
-            })
+    pub fn get_variable_declarations(&self) -> impl Iterator<Item = &VariableDeclaration> {
+        self.contract_members.iter().filter_map(|c| match c {
+            ContractMember::VariableDeclaration(v, _) => Some(v),
+            ContractMember::EventDeclaration(_) => None,
+        })
     }
 
-    pub fn get_variable_declarations_without_dict(&self) -> impl Iterator<Item=&VariableDeclaration> {
-        self.contract_members
-            .iter()
-            .filter_map(|c| match c {
-                ContractMember::VariableDeclaration(v, _) => {
-                    if v.variable_type.is_dictionary_type() {
-                        None
-                    } else {
-                        Some(v)
-                    }
+    pub fn get_variable_declarations_without_dict(
+        &self,
+    ) -> impl Iterator<Item = &VariableDeclaration> {
+        self.contract_members.iter().filter_map(|c| match c {
+            ContractMember::VariableDeclaration(v, _) => {
+                if v.variable_type.is_dictionary_type() {
+                    None
+                } else {
+                    Some(v)
                 }
-                ContractMember::EventDeclaration(_) => None,
-            })
+            }
+            ContractMember::EventDeclaration(_) => None,
+        })
     }
 }
 
@@ -223,15 +221,13 @@ pub struct AssetDeclaration {
 
 impl AssetDeclaration {
     pub fn get_variable_declarations(&self) -> impl Iterator<Item = &VariableDeclaration> {
-        self.members
-            .iter()
-            .filter_map(|m| {
-                if let AssetMember::VariableDeclaration(v) = m {
-                    Some(v)
-                } else {
-                    None
-                }
-            })
+        self.members.iter().filter_map(|m| {
+            if let AssetMember::VariableDeclaration(v) = m {
+                Some(v)
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -299,15 +295,14 @@ pub struct StructDeclaration {
 }
 
 impl StructDeclaration {
-    pub fn get_variable_declarations(&self) -> impl Iterator<Item=&VariableDeclaration> {
-        self.members.iter()
-            .filter_map(|m| {
-                if let StructMember::VariableDeclaration(v, _) = m {
-                    Some(v)
-                } else {
-                    None
-                }
-            })
+    pub fn get_variable_declarations(&self) -> impl Iterator<Item = &VariableDeclaration> {
+        self.members.iter().filter_map(|m| {
+            if let StructMember::VariableDeclaration(v, _) = m {
+                Some(v)
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -803,8 +798,12 @@ impl Visitable for SpecialDeclaration {
         self.body = statements;
 
         if let Some(ref mut scope_context) = ctx.scope_context {
-            scope_context.local_variables = ctx.special_declaration_context
-                .as_ref().unwrap().local_variables.clone();
+            scope_context.local_variables = ctx
+                .special_declaration_context
+                .as_ref()
+                .unwrap()
+                .local_variables
+                .clone();
         }
         ctx.special_declaration_context = None;
         v.finish_special_declaration(self, ctx)?;

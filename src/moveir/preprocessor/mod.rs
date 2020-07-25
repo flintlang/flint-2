@@ -186,11 +186,13 @@ impl Visitor for MovePreProcessor {
 
             // If is function declaration context
             if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
-                function_declaration_context.local_variables.push(_t.clone());
+                function_declaration_context
+                    .local_variables
+                    .push(_t.clone());
             }
 
             // If is special declaration context  // TODO should these be else ifs?
-            if let Some(ref mut special_declaration_context) =  _ctx.special_declaration_context {
+            if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
                 special_declaration_context.local_variables.push(_t.clone());
             }
         }
@@ -203,7 +205,9 @@ impl Visitor for MovePreProcessor {
         ctx: &mut Context,
     ) -> VResult {
         let enclosing_identifier = ctx
-            .enclosing_type_identifier().map(|id| id.token.to_string()).unwrap_or_default();
+            .enclosing_type_identifier()
+            .map(|id| id.token.to_string())
+            .unwrap_or_default();
 
         let mangled_name = mangle_function_move(
             &declaration.head.identifier.token,
@@ -497,12 +501,30 @@ impl Visitor for MovePreProcessor {
                     });
                     *_t = expression;
                     // If is function declaration context, or else if special declaration context
-                    if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
-                        function_declaration_context.local_variables.push(variable.clone());
-                        function_declaration_context.declaration.scope_context.as_mut().unwrap().local_variables.push(variable);
-                    } else if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
-                        special_declaration_context.local_variables.push(variable.clone());
-                        special_declaration_context.declaration.scope_context.local_variables.push(variable);
+                    if let Some(ref mut function_declaration_context) =
+                        _ctx.function_declaration_context
+                    {
+                        function_declaration_context
+                            .local_variables
+                            .push(variable.clone());
+                        function_declaration_context
+                            .declaration
+                            .scope_context
+                            .as_mut()
+                            .unwrap()
+                            .local_variables
+                            .push(variable);
+                    } else if let Some(ref mut special_declaration_context) =
+                        _ctx.special_declaration_context
+                    {
+                        special_declaration_context
+                            .local_variables
+                            .push(variable.clone());
+                        special_declaration_context
+                            .declaration
+                            .scope_context
+                            .local_variables
+                            .push(variable);
                     } else if let Some(ref mut scope_context) = _ctx.scope_context {
                         scope_context.local_variables.push(variable);
                     }
@@ -586,7 +608,10 @@ impl Visitor for MovePreProcessor {
         {
             let is_global_function_call = is_global_function_call(&call, _ctx);
 
-            let enclosing_type = _ctx.enclosing_type_identifier().map(|id| id.token.to_string()).unwrap_or_default();
+            let enclosing_type = _ctx
+                .enclosing_type_identifier()
+                .map(|id| id.token.to_string())
+                .unwrap_or_default();
 
             let caller_protections: &[_] =
                 if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
@@ -623,7 +648,10 @@ impl Visitor for MovePreProcessor {
                     && !is_global_function_call
             {
                 let mut expression = construct_expression(&receiver_trail);
-                let enclosing_type = _ctx.enclosing_type_identifier().map(|id| id.token.to_string()).unwrap_or_default();
+                let enclosing_type = _ctx
+                    .enclosing_type_identifier()
+                    .map(|id| id.token.to_string())
+                    .unwrap_or_default();
 
                 if expression.enclosing_type().is_some() {
                     expression = expand_properties(expression, _ctx, false);

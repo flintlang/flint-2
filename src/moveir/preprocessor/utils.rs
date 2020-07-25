@@ -312,8 +312,10 @@ pub fn generate_contract_wrapper(
         let allowed_type_states_as_u8s: Vec<_> = extract_allowed_states(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
-        ).collect();
-        let condition = generate_type_state_condition(state_identifier, &allowed_type_states_as_u8s);
+        )
+        .collect();
+        let condition =
+            generate_type_state_condition(state_identifier, &allowed_type_states_as_u8s);
         let assertion = Assertion {
             expression: Expression::BinaryExpression(condition),
             line_info: contract_behaviour_declaration.identifier.line_info.clone(),
@@ -340,7 +342,8 @@ pub fn generate_contract_wrapper(
             caller_id = Identifier::generated("caller");
         }
 
-        let predicate = contract_behaviour_declaration.caller_protections
+        let predicate = contract_behaviour_declaration
+            .caller_protections
             .iter()
             .cloned()
             .map(|c| {
@@ -373,13 +376,14 @@ pub fn generate_contract_wrapper(
                     _ => unimplemented!(),
                 }
             })
-            .fold1(|left, right|
+            .fold1(|left, right| {
                 Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(left),
                     rhs_expression: Box::new(right),
                     op: BinOp::Or,
                     line_info: Default::default(),
-                }));
+                })
+            });
 
         let assertion = Assertion {
             expression: predicate.unwrap(),
@@ -516,9 +520,9 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
             if let Expression::AttemptExpression(e2) = second {
                 return e1.kind == e2.kind
                     && cmp_expressions(
-                    &Expression::FunctionCall(e1.function_call.clone()),
-                    &Expression::FunctionCall(e2.function_call.clone()),
-                );
+                        &Expression::FunctionCall(e1.function_call.clone()),
+                        &Expression::FunctionCall(e2.function_call.clone()),
+                    );
             }
         }
         Expression::RangeExpression(e1) => {
@@ -547,9 +551,9 @@ fn cmp_expressions(first: &Expression, second: &Expression) -> bool {
                 return e1.arguments == e2.arguments
                     && e1.external_trait_name == e2.external_trait_name
                     && cmp_expressions(
-                    &Expression::BinaryExpression(e1.function_call.clone()),
-                    &Expression::BinaryExpression(e2.function_call.clone()),
-                );
+                        &Expression::BinaryExpression(e1.function_call.clone()),
+                        &Expression::BinaryExpression(e2.function_call.clone()),
+                    );
             }
         }
         Expression::ArrayLiteral(first_exprs) => {
@@ -677,27 +681,38 @@ pub fn pre_assign(
             var
         };
 
-        ctx.pre_statements.push(Statement::Expression(Expression::BinaryExpression(
-            BinaryExpression {
-                lhs_expression: Box::new(Expression::Identifier(temp_identifier.clone())),
-                rhs_expression: Box::new(expression),
-                op: BinOp::Equal,
-                line_info: temp_identifier.line_info.clone(),
-            },
-        )));
+        ctx.pre_statements
+            .push(Statement::Expression(Expression::BinaryExpression(
+                BinaryExpression {
+                    lhs_expression: Box::new(Expression::Identifier(temp_identifier.clone())),
+                    rhs_expression: Box::new(expression),
+                    op: BinOp::Equal,
+                    line_info: temp_identifier.line_info.clone(),
+                },
+            )));
 
         // If is function declaration context
         if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
-            function_declaration_context.local_variables.push(declaration.clone());
+            function_declaration_context
+                .local_variables
+                .push(declaration.clone());
 
-            if let Some(ref mut scope_context) = function_declaration_context.declaration.scope_context {
+            if let Some(ref mut scope_context) =
+                function_declaration_context.declaration.scope_context
+            {
                 scope_context.local_variables.push(declaration.clone());
             }
         }
         // Otherwise if special declaration context
         else if let Some(ref mut special_declaration_context) = ctx.special_declaration_context {
-            special_declaration_context.local_variables.push(declaration.clone());
-            special_declaration_context.declaration.scope_context.local_variables.push(declaration.clone());
+            special_declaration_context
+                .local_variables
+                .push(declaration.clone());
+            special_declaration_context
+                .declaration
+                .scope_context
+                .local_variables
+                .push(declaration.clone());
         }
         scope.local_variables.push(declaration);
     }
@@ -845,16 +860,14 @@ pub fn construct_expression(expressions: &[Expression]) -> Expression {
 fn extract_allowed_states<'a>(
     permitted_states: &'a [TypeState],
     declared_states: &'a [TypeState],
-) -> impl Iterator<Item=u8> + 'a {
+) -> impl Iterator<Item = u8> + 'a {
     assert!(declared_states.len() < 256);
-    permitted_states
-        .iter()
-        .map(move |permitted_state| {
-            declared_states
-                .iter()
-                .position(|declared_state| declared_state == permitted_state)
-                .unwrap() as u8
-        })
+    permitted_states.iter().map(move |permitted_state| {
+        declared_states
+            .iter()
+            .position(|declared_state| declared_state == permitted_state)
+            .unwrap() as u8
+    })
 }
 
 fn generate_type_state_condition(id: Identifier, allowed: &[u8]) -> BinaryExpression {
@@ -873,5 +886,6 @@ fn generate_type_state_condition(id: Identifier, allowed: &[u8]) -> BinaryExpres
             rhs_expression: Box::from(Expression::BinaryExpression(right)),
             op: BinOp::Or,
             line_info: Default::default(),
-        }).unwrap()
+        })
+        .unwrap()
 }

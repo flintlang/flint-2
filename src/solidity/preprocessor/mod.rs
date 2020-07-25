@@ -17,7 +17,9 @@ impl Visitor for SolidityPreProcessor {
         _ctx: &mut Context,
     ) -> VResult {
         let enclosing_identifier = _ctx
-            .enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
+            .enclosing_type_identifier()
+            .map(|id| &*id.token)
+            .unwrap_or_default();
 
         let param_types = _t.head.parameter_types().clone();
         let mangled_name = mangle_solidity_function_name(
@@ -190,8 +192,12 @@ impl Visitor for SolidityPreProcessor {
             }
 
             if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
-                function_declaration_context.local_variables.push(_t.clone());
-            } else if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
+                function_declaration_context
+                    .local_variables
+                    .push(_t.clone());
+            } else if let Some(ref mut special_declaration_context) =
+                _ctx.special_declaration_context
+            {
                 special_declaration_context.local_variables.push(_t.clone());
             }
         }
@@ -236,7 +242,10 @@ impl Visitor for SolidityPreProcessor {
             } else {
                 let trail_last = _ctx.function_call_receiver_trail.last().unwrap();
 
-                let enclosing_ident = _ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
+                let enclosing_ident = _ctx
+                    .enclosing_type_identifier()
+                    .map(|id| &*id.token)
+                    .unwrap_or_default();
 
                 let scope = _ctx.scope_context.clone();
                 let scope = scope.unwrap_or(ScopeContext {
@@ -293,10 +302,12 @@ impl Visitor for SolidityPreProcessor {
             counter: 0,
         });
 
-        let enclosing: &str = if let Some(ref enclosing) =  f_call.identifier.enclosing_type {
+        let enclosing: &str = if let Some(ref enclosing) = f_call.identifier.enclosing_type {
             *&enclosing
         } else {
-            _ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap()
+            _ctx.enclosing_type_identifier()
+                .map(|id| &*id.token)
+                .unwrap()
         };
 
         let match_result = _ctx

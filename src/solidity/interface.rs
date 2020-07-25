@@ -25,7 +25,7 @@ impl SolidityInterface {
             .flat_map(|declaration| &declaration.members)
             .filter_map(|function| match function {
                 ContractBehaviourMember::FunctionDeclaration(f) => Some(f),
-                _ => None
+                _ => None,
             })
             .filter_map(SolidityInterface::render_function)
             .collect();

@@ -66,7 +66,9 @@ pub struct IfStatement {
 
 impl IfStatement {
     pub fn ends_with_return(&self) -> bool {
-        self.body.iter().any(|s| matches!(s, Statement::ReturnStatement(_)))
+        self.body
+            .iter()
+            .any(|s| matches!(s, Statement::ReturnStatement(_)))
     }
 }
 

@@ -31,21 +31,21 @@ impl MoveAssignment {
                         expression: self.lhs.clone(),
                         position: MovePosition::Left,
                     }
-                        .generate(function_context);
+                    .generate(function_context);
 
                     if let Expression::ArrayLiteral(_) = self.rhs {
                         let rhs_ir = MoveExpression {
                             expression: self.rhs.clone(),
                             position: Default::default(),
                         }
-                            .generate(function_context);
+                        .generate(function_context);
 
                         if let MoveIRExpression::Vector(mut vector) = rhs_ir {
                             let vec_type = MoveType::move_type(
                                 *a.key_type,
                                 Option::from(function_context.environment.clone()),
                             )
-                                .generate(function_context);
+                            .generate(function_context);
                             vector.vec_type = Option::from(vec_type);
                             let rhs_ir = MoveIRExpression::Vector(vector);
                             return MoveIRExpression::Assignment(MoveIRAssignment {
@@ -71,7 +71,7 @@ impl MoveAssignment {
                 expression: self.rhs.clone(),
                 position: Default::default(),
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         if let Expression::VariableDeclaration(_) = lhs {
@@ -93,7 +93,7 @@ impl MoveAssignment {
                 position: MovePosition::Left,
                 rhs: Option::from(rhs_ir),
             }
-                .generate(function_context);
+            .generate(function_context);
         }
 
         if let Expression::RawAssembly(s, _) = lhs {
@@ -106,7 +106,7 @@ impl MoveAssignment {
                                 identifier: i.clone(),
                                 position: Default::default(),
                             }
-                                .generate(function_context, true, false),
+                            .generate(function_context, true, false),
                         ),
                     });
                 }
@@ -117,7 +117,7 @@ impl MoveAssignment {
             expression: self.lhs.clone(),
             position: MovePosition::Left,
         }
-            .generate(function_context);
+        .generate(function_context);
 
         if function_context.in_struct_function {
             return MoveIRExpression::Assignment(MoveIRAssignment {
@@ -127,7 +127,8 @@ impl MoveAssignment {
         } else if let Some(enclosing) = self.lhs.enclosing_identifier() {
             if function_context
                 .scope_context
-                .contains_variable_declaration(&enclosing.token) {
+                .contains_variable_declaration(&enclosing.token)
+            {
                 return MoveIRExpression::Assignment(MoveIRAssignment {
                     identifier: enclosing.token.clone(),
                     expression: Box::new(rhs_ir),

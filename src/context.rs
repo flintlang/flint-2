@@ -33,16 +33,20 @@ pub struct Context {
 
 impl Context {
     pub fn enclosing_type_identifier(&self) -> Option<&Identifier> {
-        self.contract_behaviour_declaration_context.as_ref().map(|c| &c.identifier)
-            .or_else(
-                || self.struct_declaration_context.as_ref().map(|c| &c.identifier)
-                    .or_else(
-                        || self.contract_declaration_context.as_ref().map(|c| &c.identifier)
-                            .or_else(
-                                || self.asset_context.as_ref().map(|c| &c.identifier)
-                            )
-                    )
-            )
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &c.identifier)
+            .or_else(|| {
+                self.struct_declaration_context
+                    .as_ref()
+                    .map(|c| &c.identifier)
+                    .or_else(|| {
+                        self.contract_declaration_context
+                            .as_ref()
+                            .map(|c| &c.identifier)
+                            .or_else(|| self.asset_context.as_ref().map(|c| &c.identifier))
+                    })
+            })
     }
 
     pub fn is_trait_declaration_context(&self) -> bool {
@@ -112,19 +116,31 @@ pub struct ScopeContext {
 }
 
 impl ScopeContext {
-    fn first_local_or_parameter<P: Fn(&VariableDeclaration) -> bool>(&self, predicate: P) -> Option<VariableDeclaration> {
+    fn first_local_or_parameter<P: Fn(&VariableDeclaration) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Option<VariableDeclaration> {
         self.local_variables
-            .iter().find(|&p| predicate(p)).cloned().or_else(
-            || self.parameters.iter().map(Parameter::as_variable_declaration).find(predicate)
-        )
+            .iter()
+            .find(|&p| predicate(p))
+            .cloned()
+            .or_else(|| {
+                self.parameters
+                    .iter()
+                    .map(Parameter::as_variable_declaration)
+                    .find(predicate)
+            })
     }
+
     pub fn declaration(&self, name: &str) -> Option<VariableDeclaration> {
         self.first_local_or_parameter(|v: &VariableDeclaration| v.identifier.token.as_str() == name)
     }
 
     pub fn type_for(&self, variable: &str) -> Option<Type> {
-        self.first_local_or_parameter(|v| v.identifier.token == variable || mangle(variable) == v.identifier.token)
-            .map(|i| i.variable_type)
+        self.first_local_or_parameter(|v| {
+            v.identifier.token == variable || mangle(variable) == v.identifier.token
+        })
+        .map(|i| i.variable_type)
     }
 
     pub fn contains_variable_declaration(&self, name: &str) -> bool {

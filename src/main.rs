@@ -7,8 +7,8 @@ mod parser;
 mod semantic_analysis;
 mod type_assigner;
 mod type_checker;
-mod visitor;
 mod utils;
+mod visitor;
 
 #[allow(clippy::all)] // Solidity is deprecated, no need to lint
 mod solidity;

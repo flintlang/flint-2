@@ -16,9 +16,13 @@ impl MovePropertyAccess {
     pub fn generate(&self, function_context: &FunctionContext, f_call: bool) -> MoveIRExpression {
         if let Expression::Identifier(ref identifier) = self.left {
             if let Expression::Identifier(ref property) = self.right {
-                if function_context.environment.is_enum_declared(&identifier.token) {
-                    if let Some(property) =
-                        function_context.environment.property(&property.token, &identifier.token)
+                if function_context
+                    .environment
+                    .is_enum_declared(&identifier.token)
+                {
+                    if let Some(property) = function_context
+                        .environment
+                        .property(&property.token, &identifier.token)
                     {
                         return MoveExpression {
                             expression: property.property.get_value().unwrap(),

@@ -151,7 +151,10 @@ pub fn construct_parameter(name: String, t: Type) -> Parameter {
 }
 
 pub fn is_global_function_call(function_call: &FunctionCall, ctx: &Context) -> bool {
-    let enclosing = ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
+    let enclosing = ctx
+        .enclosing_type_identifier()
+        .map(|id| &*id.token)
+        .unwrap_or_default();
     let caller_protections: &[_] =
         if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
             &behaviour.caller_protections
@@ -173,7 +176,10 @@ pub fn is_global_function_call(function_call: &FunctionCall, ctx: &Context) -> b
 }
 
 pub fn default_assignments(ctx: &Context) -> Vec<Statement> {
-    let enclosing = ctx.enclosing_type_identifier().map(|id| &*id.token).unwrap_or_default();
+    let enclosing = ctx
+        .enclosing_type_identifier()
+        .map(|id| &*id.token)
+        .unwrap_or_default();
 
     let properties_in_enclosing = ctx.environment.property_declarations(&enclosing);
     let properties_in_enclosing: Vec<Property> = properties_in_enclosing

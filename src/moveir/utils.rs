@@ -316,7 +316,7 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
     None
 }
 
-pub fn remove_moves<T: IntoIterator<Item=Statement>>(
+pub fn remove_moves<T: IntoIterator<Item = Statement>>(
     statements: T,
     expression: MoveIRExpression,
 ) -> (Vec<Statement>, MoveIRExpression) {
@@ -325,7 +325,9 @@ pub fn remove_moves<T: IntoIterator<Item=Statement>>(
         if let Some(expr) = remove_move(&statement, &expression) {
             curr_expr = expr;
             None
-        } else { Some(statement) }
+        } else {
+            Some(statement)
+        }
     });
     (statements.collect(), curr_expr)
 }
