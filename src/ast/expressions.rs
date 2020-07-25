@@ -66,16 +66,16 @@ impl Expression {
         }
     }
 
-    pub fn enclosing_identifier(&self) -> Option<Identifier> {
-        match self.clone() {
+    pub fn enclosing_identifier(&self) -> Option<&Identifier> {
+        match self {
             Expression::Identifier(i) => Some(i),
             Expression::BinaryExpression(b) => b.rhs_expression.enclosing_identifier(),
             Expression::InoutExpression(i) => i.expression.enclosing_identifier(),
             Expression::ExternalCall(e) => e.function_call.lhs_expression.enclosing_identifier(),
-            Expression::FunctionCall(f) => Some(f.identifier),
-            Expression::VariableDeclaration(v) => Some(v.identifier),
+            Expression::FunctionCall(f) => Some(&f.identifier),
+            Expression::VariableDeclaration(v) => Some(&v.identifier),
             Expression::BracketedExpression(b) => b.expression.enclosing_identifier(),
-            Expression::SubscriptExpression(s) => Some(s.base_expression),
+            Expression::SubscriptExpression(s) => Some(&s.base_expression),
             _ => None,
         }
     }

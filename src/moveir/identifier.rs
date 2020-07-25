@@ -41,7 +41,7 @@ impl MoveIdentifier {
 
         let ir_identifier = if function_context
             .scope_context
-            .contains_variable_declaration(mangle(&self.identifier.token.clone()))
+            .contains_variable_declaration(&mangle(&self.identifier.token.clone()))
         {
             MoveIRExpression::Identifier(mangle(&self.identifier.token.clone()))
         } else {

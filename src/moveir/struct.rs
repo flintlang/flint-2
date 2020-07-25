@@ -94,7 +94,7 @@ impl MoveStruct {
                     declaration: i,
                     identifier: self.struct_declaration.identifier.clone(),
                     environment: self.environment.clone(),
-                    properties: self.struct_declaration.get_variable_declarations(),
+                    properties: self.struct_declaration.get_variable_declarations().cloned().collect(),
                 }
                 .generate()
             })

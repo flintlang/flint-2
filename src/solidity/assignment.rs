@@ -54,7 +54,7 @@ impl SolidityAssignment {
                 } else if let Some(enclosing) = self.lhs.enclosing_identifier() {
                     if function_context
                         .scope_context
-                        .contains_variable_declaration(enclosing.token.clone())
+                        .contains_variable_declaration(&enclosing.token)
                     {
                         return SolidityRuntimeFunction::store_bool(lhs_code, rhs_code, true);
                     }

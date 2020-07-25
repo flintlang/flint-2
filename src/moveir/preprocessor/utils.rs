@@ -8,6 +8,7 @@ use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionChecker;
+use itertools::Itertools;
 
 pub fn convert_default_parameter_functions(
     base: FunctionDeclaration,
@@ -308,11 +309,11 @@ pub fn generate_contract_wrapper(
             )));
 
         let contract_name = &contract_behaviour_declaration.identifier.token;
-        let allowed_type_states_as_u8s = extract_allowed_states(
+        let allowed_type_states_as_u8s: Vec<_> = extract_allowed_states(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
-        );
-        let condition = generate_type_state_condition(state_identifier, allowed_type_states_as_u8s);
+        ).collect();
+        let condition = generate_type_state_condition(state_identifier, &allowed_type_states_as_u8s);
         let assertion = Assertion {
             expression: Expression::BinaryExpression(condition),
             line_info: contract_behaviour_declaration.identifier.line_info.clone(),
@@ -339,10 +340,9 @@ pub fn generate_contract_wrapper(
             caller_id = Identifier::generated("caller");
         }
 
-        let predicates = contract_behaviour_declaration.caller_protections.clone();
-
-        let predicates: Vec<Expression> = predicates
-            .into_iter()
+        let predicate = contract_behaviour_declaration.caller_protections
+            .iter()
+            .cloned()
             .map(|c| {
                 let mut ident = c.identifier;
                 ident.enclosing_type =
@@ -373,24 +373,16 @@ pub fn generate_contract_wrapper(
                     _ => unimplemented!(),
                 }
             })
-            .collect();
-
-        assert!(!predicates.is_empty());
-        let first_cond = predicates.first().unwrap().clone();
-        let predicate = predicates
-            .into_iter()
-            .skip(1)
-            .fold(first_cond, |left, right| {
+            .fold1(|left, right|
                 Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(left),
                     rhs_expression: Box::new(right),
                     op: BinOp::Or,
                     line_info: Default::default(),
-                })
-            });
+                }));
 
         let assertion = Assertion {
-            expression: predicate,
+            expression: predicate.unwrap(),
             line_info: contract_behaviour_declaration.identifier.line_info.clone(),
         };
 
@@ -850,26 +842,25 @@ pub fn construct_expression(expressions: &[Expression]) -> Expression {
     }
 }
 
-fn extract_allowed_states(
-    permitted_states: &[TypeState],
-    declared_states: &[TypeState],
-) -> Vec<u8> {
+fn extract_allowed_states<'a>(
+    permitted_states: &'a [TypeState],
+    declared_states: &'a [TypeState],
+) -> impl Iterator<Item=u8> + 'a {
     assert!(declared_states.len() < 256);
     permitted_states
         .iter()
-        .map(|permitted_state| {
+        .map(move |permitted_state| {
             declared_states
                 .iter()
                 .position(|declared_state| declared_state == permitted_state)
                 .unwrap() as u8
         })
-        .collect()
 }
 
-fn generate_type_state_condition(id: Identifier, allowed: Vec<u8>) -> BinaryExpression {
+fn generate_type_state_condition(id: Identifier, allowed: &[u8]) -> BinaryExpression {
     assert!(!allowed.is_empty());
 
-    let conjuncts = allowed
+    allowed
         .iter()
         .map(|state| BinaryExpression {
             lhs_expression: Box::from(Expression::Identifier(id.clone())),
@@ -877,18 +868,10 @@ fn generate_type_state_condition(id: Identifier, allowed: Vec<u8>) -> BinaryExpr
             op: BinOp::DoubleEqual,
             line_info: Default::default(),
         })
-        .collect::<Vec<BinaryExpression>>();
-
-    let first_conjunct = conjuncts.first().unwrap().clone();
-    // Unfortunately rusts fold_first is unstable at time of writing. If this changes,
-    // change this to use it
-    conjuncts
-        .into_iter()
-        .skip(1)
-        .fold(first_conjunct, |left, right| BinaryExpression {
+        .fold1(|left, right| BinaryExpression {
             lhs_expression: Box::from(Expression::BinaryExpression(left)),
             rhs_expression: Box::from(Expression::BinaryExpression(right)),
             op: BinOp::Or,
             line_info: Default::default(),
-        })
+        }).unwrap()
 }

@@ -20,11 +20,15 @@ impl SolidityInterface {
             }
         }
 
-        let functions: Vec<Option<String>> = functions
-            .into_iter()
-            .map(SolidityInterface::render_function)
+        let functions: Vec<String> = behaviour_declarations
+            .iter()
+            .flat_map(|declaration| &declaration.members)
+            .filter_map(|function| match function {
+                ContractBehaviourMember::FunctionDeclaration(f) => Some(f),
+                _ => None
+            })
+            .filter_map(SolidityInterface::render_function)
             .collect();
-        let functions: Vec<String> = functions.into_iter().filter_map(|s| s).collect();
         let functions = functions.join("\n");
 
         return format!(
@@ -34,7 +38,7 @@ impl SolidityInterface {
         );
     }
 
-    pub fn render_function(function_declaration: FunctionDeclaration) -> Option<String> {
+    pub fn render_function(function_declaration: &FunctionDeclaration) -> Option<String> {
         if function_declaration.is_public() {
             let params = function_declaration.head.parameters.clone();
             let params: Vec<String> = params

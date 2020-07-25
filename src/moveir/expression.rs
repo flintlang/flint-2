@@ -120,10 +120,9 @@ impl MoveCastExpression {
             &[],
             &function_context.scope_context,
         );
-        let target_type = self.expression.cast_type.clone();
 
-        let original_type_information = MoveCastExpression::get_type_info(original_type);
-        let target_type_information = MoveCastExpression::get_type_info(target_type);
+        let original_type_information = MoveCastExpression::get_type_info(&original_type);
+        let target_type_information = MoveCastExpression::get_type_info(&self.expression.cast_type);
 
         let expression_code = MoveExpression {
             expression: (*self.expression.expression).clone(),
@@ -140,7 +139,7 @@ impl MoveCastExpression {
         MoveRuntimeFunction::revert_if_greater(expression_code, MoveIRExpression::Inline(target))
     }
 
-    pub fn get_type_info(input: Type) -> (u64, bool) {
+    pub fn get_type_info(input: &Type) -> (u64, bool) {
         match input {
             Type::Bool => (256, false),
             Type::Int => (256, true),

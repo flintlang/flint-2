@@ -343,9 +343,9 @@ impl Visitor for SolidityPreProcessor {
                     let arg_enclosing = arg.expression.enclosing_identifier().clone();
                     let arg_enclosing = arg_enclosing.unwrap();
 
-                    if scope.contains_variable_declaration(arg_enclosing.token.clone()) {
+                    if scope.contains_variable_declaration(&arg_enclosing.token) {
                         is_mem = Expression::Literal(Literal::BooleanLiteral(true));
-                    } else if scope.contains_parameter_declaration(arg_enclosing.token.clone()) {
+                    } else if scope.contains_parameter_declaration(&arg_enclosing.token) {
                         is_mem = Expression::Identifier(Identifier::generated(&mangle_mem(
                             &arg_enclosing.token,
                         )));

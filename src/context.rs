@@ -112,57 +112,33 @@ pub struct ScopeContext {
 }
 
 impl ScopeContext {
+    fn first_local_or_parameter<P: Fn(&VariableDeclaration) -> bool>(&self, predicate: P) -> Option<VariableDeclaration> {
+        self.local_variables
+            .iter().find(|&p| predicate(p)).cloned().or_else(
+            || self.parameters.iter().map(Parameter::as_variable_declaration).find(predicate)
+        )
+    }
     pub fn declaration(&self, name: &str) -> Option<VariableDeclaration> {
-        let mut identifiers: Vec<VariableDeclaration> = self
-            .local_variables
-            .clone()
-            .into_iter()
-            .chain(
-                self.parameters
-                    .clone()
-                    .into_iter()
-                    .map(|p| p.as_variable_declaration()),
-            )
-            .collect();
-        identifiers = identifiers
-            .into_iter()
-            .filter(|v| v.identifier.token.as_str() == name)
-            .collect();
-        identifiers.first().cloned()
+        self.first_local_or_parameter(|v: &VariableDeclaration| v.identifier.token.as_str() == name)
     }
 
     pub fn type_for(&self, variable: &str) -> Option<Type> {
-        self.local_variables
-            .clone()
-            .into_iter()
-            .chain(
-                self.parameters
-                    .clone()
-                    .into_iter()
-                    .map(|p| p.as_variable_declaration()),
-            )
-            .find(|v| v.identifier.token == variable || mangle(variable) == v.identifier.token)
+        self.first_local_or_parameter(|v| v.identifier.token == variable || mangle(variable) == v.identifier.token)
             .map(|i| i.variable_type)
     }
 
-    pub fn contains_variable_declaration(&self, name: String) -> bool {
-        let variables: Vec<String> = self
-            .local_variables
-            .clone()
-            .into_iter()
-            .map(|v| v.identifier.token)
-            .collect();
-        variables.contains(&name)
+    pub fn contains_variable_declaration(&self, name: &str) -> bool {
+        self.local_variables
+            .iter()
+            .map(|v| &*v.identifier.token)
+            .any(|id| id == name)
     }
 
-    pub fn contains_parameter_declaration(&self, name: String) -> bool {
-        let parameters: Vec<String> = self
-            .parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.identifier.token)
-            .collect();
-        parameters.contains(&name)
+    pub fn contains_parameter_declaration(&self, name: &str) -> bool {
+        self.parameters
+            .iter()
+            .map(|p| &*p.identifier.token)
+            .any(|id| id == name)
     }
 
     pub fn fresh_identifier(&mut self, line_info: LineInfo) -> Identifier {
@@ -180,8 +156,8 @@ impl ScopeContext {
         let expression_enclosing = expression.enclosing_type().unwrap_or_default();
         if expression_enclosing == type_id {
             if let Some(enclosing_identifier) = expression.enclosing_identifier() {
-                if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {
-                    return Some(enclosing_identifier.token);
+                if self.contains_parameter_declaration(&enclosing_identifier.token) {
+                    return Some(enclosing_identifier.token.clone());
                 }
             }
         }

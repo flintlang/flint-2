@@ -57,21 +57,18 @@ impl ContractDeclaration {
     }
 
     #[allow(dead_code)]
-    pub fn get_variable_declarations(&self) -> Vec<VariableDeclaration> {
-        let members = self.contract_members.clone();
-        members
-            .into_iter()
+    pub fn get_variable_declarations(&self) -> impl Iterator<Item=&VariableDeclaration> {
+        self.contract_members
+            .iter()
             .filter_map(|c| match c {
                 ContractMember::VariableDeclaration(v, _) => Some(v),
                 ContractMember::EventDeclaration(_) => None,
             })
-            .collect()
     }
 
-    pub fn get_variable_declarations_without_dict(&self) -> Vec<VariableDeclaration> {
-        let members = self.contract_members.clone();
-        members
-            .into_iter()
+    pub fn get_variable_declarations_without_dict(&self) -> impl Iterator<Item=&VariableDeclaration> {
+        self.contract_members
+            .iter()
             .filter_map(|c| match c {
                 ContractMember::VariableDeclaration(v, _) => {
                     if v.variable_type.is_dictionary_type() {
@@ -82,7 +79,6 @@ impl ContractDeclaration {
                 }
                 ContractMember::EventDeclaration(_) => None,
             })
-            .collect()
     }
 }
 
@@ -226,10 +222,9 @@ pub struct AssetDeclaration {
 }
 
 impl AssetDeclaration {
-    pub fn get_variable_declarations(&self) -> Vec<VariableDeclaration> {
-        let members = self.members.clone();
-        members
-            .into_iter()
+    pub fn get_variable_declarations(&self) -> impl Iterator<Item = &VariableDeclaration> {
+        self.members
+            .iter()
             .filter_map(|m| {
                 if let AssetMember::VariableDeclaration(v) = m {
                     Some(v)
@@ -237,7 +232,6 @@ impl AssetDeclaration {
                     None
                 }
             })
-            .collect()
     }
 }
 
@@ -305,10 +299,8 @@ pub struct StructDeclaration {
 }
 
 impl StructDeclaration {
-    pub fn get_variable_declarations(&self) -> Vec<VariableDeclaration> {
-        let members = self.members.clone();
-        members
-            .into_iter()
+    pub fn get_variable_declarations(&self) -> impl Iterator<Item=&VariableDeclaration> {
+        self.members.iter()
             .filter_map(|m| {
                 if let StructMember::VariableDeclaration(v, _) = m {
                     Some(v)
@@ -316,7 +308,6 @@ impl StructDeclaration {
                     None
                 }
             })
-            .collect()
     }
 }
 

@@ -14,11 +14,11 @@ pub(crate) struct MovePropertyAccess {
 
 impl MovePropertyAccess {
     pub fn generate(&self, function_context: &FunctionContext, f_call: bool) -> MoveIRExpression {
-        if let Expression::Identifier(e) = self.left.clone() {
-            if let Expression::Identifier(p) = self.right.clone() {
-                if function_context.environment.is_enum_declared(&e.token) {
+        if let Expression::Identifier(ref identifier) = self.left {
+            if let Expression::Identifier(ref property) = self.right {
+                if function_context.environment.is_enum_declared(&identifier.token) {
                     if let Some(property) =
-                        function_context.environment.property(&p.token, &e.token)
+                        function_context.environment.property(&property.token, &identifier.token)
                     {
                         return MoveExpression {
                             expression: property.property.get_value().unwrap(),
@@ -33,7 +33,7 @@ impl MovePropertyAccess {
         if let Some(rhs_enclosing) = self.right.enclosing_identifier() {
             if function_context.is_constructor {
                 return MoveIdentifier {
-                    identifier: rhs_enclosing,
+                    identifier: rhs_enclosing.clone(),
                     position: self.position.clone(),
                 }
                 .generate(function_context, false, false);
@@ -49,19 +49,18 @@ impl MovePropertyAccess {
             }
             .generate(function_context);
             if f_call {
-                let exp = lhs.clone();
-                if let MoveIRExpression::Operation(o) = exp {
-                    if let MoveIROperation::Dereference(e) = o {
+                if let MoveIRExpression::Operation(ref operation) = lhs {
+                    if let MoveIROperation::Dereference(ref deref) = operation {
                         return MoveIRExpression::Operation(MoveIROperation::Access(
-                            e,
-                            rhs_enclosing.token,
+                            deref.clone(),
+                            rhs_enclosing.token.clone(),
                         ));
                     }
                 }
             }
             MoveIRExpression::Operation(MoveIROperation::Access(
                 Box::from(lhs),
-                rhs_enclosing.token,
+                rhs_enclosing.token.clone(),
             ))
         } else {
             panic!("Fatal Error: {:?}", self)

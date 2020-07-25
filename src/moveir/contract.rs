@@ -338,9 +338,10 @@ impl MoveContract {
 
         let mut statements = initialiser_declaration.body;
 
-        let properties = self
+        let properties: Vec<_> = self
             .contract_declaration
-            .get_variable_declarations_without_dict();
+            .get_variable_declarations_without_dict()
+            .collect();
 
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
@@ -353,7 +354,7 @@ impl MoveContract {
 
         let body;
 
-        for property in properties.clone() {
+        for property in &properties {
             let property_type = MoveType::move_type(
                 property.variable_type.clone(),
                 Option::from(self.environment.clone()),
@@ -362,21 +363,21 @@ impl MoveContract {
             let identifier = format!("__this_{}", property.identifier.token);
             function_context.emit(MoveIRStatement::Expression(
                 MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                    identifier: identifier.clone(),
+                    identifier,
                     declaration_type: property_type,
                 }),
             ));
         }
 
         for property in properties {
-            if let Some(expr) = property.expression {
+            if let Some(ref expr) = property.expression {
                 let identifier = format!("__this_{}", property.identifier.token);
                 function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
                     MoveIRAssignment {
                         identifier,
                         expression: Box::from(
                             MoveExpression {
-                                expression: *expr,
+                                expression: (**expr).clone(),
                                 position: Default::default(),
                             }
                             .generate(&function_context),
@@ -386,18 +387,18 @@ impl MoveContract {
             }
         }
 
-        let unassigned = self
+        let mut unassigned: Vec<_> = self
             .contract_declaration
-            .get_variable_declarations_without_dict();
-        let mut unassigned: Vec<Identifier> =
-            unassigned.into_iter().map(|v| v.identifier).collect();
+            .get_variable_declarations_without_dict()
+            .map(|v| &v.identifier)
+            .collect();
 
+        // TODO refactor this loop
         while !(statements.is_empty() || unassigned.is_empty()) {
-            let statement = statements.remove(0);
-            if let Statement::Expression(e) = statement.clone() {
-                if let Expression::BinaryExpression(b) = e {
+            if let Statement::Expression(e) = statements.remove(0) {
+                if let Expression::BinaryExpression(ref b) = e {
                     if let BinOp::Equal = b.op {
-                        if let Expression::Identifier(i) = *b.lhs_expression.clone() {
+                        if let Expression::Identifier(ref i) = &*b.lhs_expression {
                             if let Some(ref enclosing) = i.enclosing_type {
                                 if *enclosing == self.contract_declaration.identifier.token {
                                     unassigned = unassigned
@@ -406,10 +407,10 @@ impl MoveContract {
                                         .collect();
                                 }
                             }
-                            if let Expression::BinaryExpression(lb) = *b.lhs_expression.clone() {
+                            if let Expression::BinaryExpression(ref lb) = &*b.lhs_expression {
                                 let op = lb.op.clone();
-                                let lhs = *lb.lhs_expression;
-                                let rhs = *lb.rhs_expression;
+                                let lhs = &*lb.lhs_expression;
+                                let rhs = &*lb.rhs_expression;
                                 if let BinOp::Dot = op {
                                     if let Expression::SelfExpression = lhs {
                                         if let Expression::Identifier(i) = rhs {
@@ -425,7 +426,7 @@ impl MoveContract {
                     }
                 }
                 let move_statement = MoveStatement {
-                    statement: statement.clone(),
+                    statement: Statement::Expression(e),
                 }
                 .generate(&mut function_context);
                 function_context.emit(move_statement);
@@ -434,10 +435,7 @@ impl MoveContract {
 
         let fields = self
             .contract_declaration
-            .get_variable_declarations_without_dict();
-
-        let fields: Vec<(String, MoveIRExpression)> = fields
-            .into_iter()
+            .get_variable_declarations_without_dict()
             .map(|p| {
                 (
                     p.identifier.token.clone(),
