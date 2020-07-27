@@ -213,6 +213,22 @@ impl MoveFunction {
     }
 }
 
+pub fn reorder_statements(statements: &Vec<MoveIRStatement>) -> Vec<MoveIRStatement>{
+    let mut declarations = vec![];
+    let mut expressions = vec![];
+
+    for statement in statements {
+        if let MoveIRStatement::Expression(MoveIRExpression::VariableDeclaration(_)) = statement {
+            declarations.push(statement.clone());
+        } else {
+            expressions.push(statement.clone());
+        }
+    };
+
+    declarations.append(&mut expressions);
+    declarations
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct FunctionContext {
     pub environment: Environment,
@@ -228,6 +244,7 @@ impl FunctionContext {
         let block = self.block_stack.last();
         if !self.block_stack.is_empty() {
             let statements = block.unwrap().statements.clone();
+            let statements = reorder_statements(&statements);
             let statements: Vec<String> = statements
                 .into_iter()
                 .map(|s| format!("{s}", s = s))
