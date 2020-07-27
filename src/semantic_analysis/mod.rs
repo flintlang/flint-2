@@ -145,36 +145,37 @@ impl Visitor for SemanticAnalysis {
 
     fn start_variable_declaration(
         &mut self,
-        _t: &mut VariableDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut VariableDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        let type_declared = match &_t.variable_type {
-            Type::UserDefinedType(t) => _ctx.environment.is_type_declared(&t.token.clone()),
+        let type_declared = match &declaration.variable_type {
+            Type::UserDefinedType(t) => ctx.environment.is_type_declared(&t.token.clone()),
             _ => true,
         };
 
         if !type_declared {
             return Err(Box::from(format!(
                 "Type {:?} is not declared",
-                _t.variable_type
+                declaration.variable_type
             )));
         }
 
-        if _ctx.in_function_or_special() {
-            if let Some(ref mut scope_context) = _ctx.scope_context {
-                let redeclaration = scope_context.declaration(&_t.identifier.token);
+        if ctx.in_function_or_special() {
+            if let Some(ref mut scope_context) = ctx.scope_context {
+                dbg!(&scope_context.local_variables);
+                let redeclaration = scope_context.declaration(&declaration.identifier.token);
                 if redeclaration.is_some() {
                     return Err(Box::from(format!(
-                        "Redeclaration of identifier {}",
-                        _t.identifier.token
+                        "Redeclaration of identifier {} on line {}",
+                        declaration.identifier.token, declaration.identifier.line_info.line,
                     )));
                 }
-                scope_context.local_variables.push(_t.clone());
+                scope_context.local_variables.push(declaration.clone());
             }
-        } else if let Some(identifier) = _ctx.enclosing_type_identifier() {
-            if _ctx
+        } else if let Some(identifier) = ctx.enclosing_type_identifier() {
+            if ctx
                 .environment
-                .conflicting_property_declaration(&_t.identifier, &identifier.token)
+                .conflicting_property_declaration(&declaration.identifier, &identifier.token)
             {
                 return Err(Box::from("Conflicting property declarations".to_owned()));
             }
@@ -499,7 +500,10 @@ impl Visitor for SemanticAnalysis {
             } else if let Some(scope) = &ctx.scope_context {
                 if let Some(declaration) = scope.declaration(token) {
                     // Previously we had checks for ctx.in_subscript and !declaration.variable_type.is_inout_type()
-                    if declaration.is_constant() && ctx.is_lvalue {
+                    // TODO the is_enclosing conjunct is required for now because of naming conflicts: the analyser cannot
+                    // yet distinguish self.<var> from <var> when reassigning. So could have const self.<var> and
+                    // local <var>, try to reassign to <var> and it think you are reassigning to self.<var>
+                    if declaration.is_constant() && ctx.is_lvalue && !ctx.is_enclosing {
                         return Err(Box::from(format!(
                             "Reassignment to constant `{}` on line {}",
                             token, line_number
@@ -649,6 +653,7 @@ impl Visitor for SemanticAnalysis {
                 "Invalid condition type in `if` statement".to_owned(),
             ));
         }
+
         Ok(())
     }
 
