@@ -16,11 +16,22 @@ impl MoveIdentifier {
         force: bool,
         f_call: bool,
     ) -> MoveIRExpression {
+        dbg!(self.identifier.clone());
+        dbg!(self.position.clone());
         if self.identifier.enclosing_type.is_some() {
             //REMOVEBEFOREFLIGHT
             return if function_context.is_constructor {
                 let name = "__this_".to_owned() + &self.identifier.token.clone();
-                MoveIRExpression::Identifier(name)
+
+                if let MovePosition::Left = self.position {
+                    MoveIRExpression::Identifier(name)
+                } else {
+                    let expression =
+                    MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(MoveIRExpression::Identifier(name))));
+                
+                    return expression;
+                }
+                
             } else {
                 MovePropertyAccess {
                     left: Expression::SelfExpression,
@@ -47,7 +58,7 @@ impl MoveIdentifier {
         } else {
             MoveIRExpression::Identifier(self.identifier.token.clone())
         };
-
+        dbg!(ir_identifier.clone());
         if force {
             return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
         }
@@ -62,21 +73,30 @@ impl MoveIdentifier {
             if identifier_type.is_currency_type() {
                 return ir_identifier;
             }
-            if !identifier_type.is_inout_type() && identifier_type.is_user_defined_type() {
+            if identifier_type.is_inout_type() && identifier_type.is_user_defined_type() {
+                dbg!(ir_identifier.clone());
                 if f_call {
                     return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
                         ir_identifier,
                     )));
                 } else {
+                    /*let expression =
+                        MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
+                    let expression = MoveIRExpression::Operation(MoveIROperation::MutableReference(
+                        Box::from(expression),
+                    ));
+                    return expression;*/
                     return ir_identifier;
                 }
             }
         }
+        dbg!(ir_identifier.clone());
 
         if let MovePosition::Left = self.position {
             return ir_identifier;
         }
 
+        dbg!(ir_identifier.clone());
         if f_call {
             if let MovePosition::Accessed = self.position.clone() {
                 let expression =
@@ -110,8 +130,15 @@ pub(crate) struct MoveSelf {
 
 impl MoveSelf {
     pub fn generate(&self, function_context: &FunctionContext, force: bool) -> MoveIRExpression {
-        if function_context.is_constructor {}
-        if let MovePosition::Left = self.position {
+        if function_context.is_constructor {
+            if let MovePosition::Left = self.position {
+                MoveIRExpression::Identifier(self.name())
+            } else {
+                MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(
+                    MoveIRExpression::Identifier(self.name())
+                )))
+            }
+        } else if let MovePosition::Left = self.position {
             MoveIRExpression::Identifier(self.name())
         } else if force {
             MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(

@@ -395,7 +395,8 @@ impl MoveContract {
 
         // TODO refactor this loop
         while !(statements.is_empty() || unassigned.is_empty()) {
-            if let Statement::Expression(e) = statements.remove(0) {
+            let statement = statements.remove(0);
+            if let Statement::Expression(e) = statement {
                 if let Expression::BinaryExpression(ref b) = e {
                     if let BinOp::Equal = b.op {
                         if let Expression::Identifier(ref i) = &*b.lhs_expression {
@@ -430,6 +431,9 @@ impl MoveContract {
                 }
                 .generate(&mut function_context);
                 function_context.emit(move_statement);
+            } else {
+                let statement = MoveStatement { statement }.generate(&mut function_context);
+                function_context.emit(statement);
             }
         }
 
@@ -451,6 +455,7 @@ impl MoveContract {
         });
 
         if !(statements.is_empty()) {
+            dbg!(statements.clone());
             function_context.is_constructor = false;
 
             let shadow = "Quartz$self";

@@ -348,6 +348,7 @@ struct MoveBinaryExpression {
 
 impl MoveBinaryExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+        dbg!(self.expression.clone());
         if let BinOp::Dot = self.expression.op {
             if let Expression::FunctionCall(f) = *self.expression.rhs_expression.clone() {
                 return MoveFunctionCall {
