@@ -213,20 +213,24 @@ impl MoveFunction {
     }
 }
 
-pub fn reorder_statements(statements: &Vec<MoveIRStatement>) -> Vec<MoveIRStatement>{
-    let mut declarations = vec![];
-    let mut expressions = vec![];
+pub fn reorder_statements(
+    statements: &[MoveIRStatement],
+) -> impl Iterator<Item=&MoveIRStatement> + '_ {
+    let declarations = statements.into_iter().filter(|statement| {
+        matches!(
+            statement,
+            MoveIRStatement::Expression(MoveIRExpression::VariableDeclaration(_))
+        )
+    });
 
-    for statement in statements {
-        if let MoveIRStatement::Expression(MoveIRExpression::VariableDeclaration(_)) = statement {
-            declarations.push(statement.clone());
-        } else {
-            expressions.push(statement.clone());
-        }
-    };
+    let non_declarations = statements.into_iter().filter(|statement| {
+        !matches!(
+            statement,
+            MoveIRStatement::Expression(MoveIRExpression::VariableDeclaration(_))
+        )
+    });
 
-    declarations.append(&mut expressions);
-    declarations
+    declarations.chain(non_declarations)
 }
 
 #[derive(Debug, Default, Clone)]

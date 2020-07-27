@@ -162,7 +162,6 @@ impl Visitor for SemanticAnalysis {
 
         if ctx.in_function_or_special() {
             if let Some(ref mut scope_context) = ctx.scope_context {
-                dbg!(&scope_context.local_variables);
                 let redeclaration = scope_context.declaration(&declaration.identifier.token);
                 if redeclaration.is_some() {
                     return Err(Box::from(format!(
