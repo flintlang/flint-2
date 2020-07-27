@@ -66,7 +66,7 @@ fn parse_contract_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclaration
 
     let (i, _) = whitespace(i)?;
     let (i, conformances) = parse_conformances(i)?;
-    let (i, _identifier_group) = nom::combinator::opt(parse_identifier_group)(i)?;
+    let (i, _) = nom::combinator::opt(parse_identifier_group)(i)?;
     let (i, _) = preceded(nom::character::complete::space0, left_brace)(i)?;
     let (i, mut contract_members) = many0(nom::sequence::terminated(
         preceded(whitespace, parse_contract_member),

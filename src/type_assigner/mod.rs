@@ -49,7 +49,9 @@ impl Visitor for TypeAssigner {
                 if ctx.environment.is_enum_declared(&i.token) {
                     bin_expr.rhs_expression.assign_enclosing_type(&i.token)
                 } else {
-                    bin_expr.rhs_expression.assign_enclosing_type(&lhs_type.name());
+                    bin_expr
+                        .rhs_expression
+                        .assign_enclosing_type(&lhs_type.name());
                 }
             } else if let Type::SelfType = lhs_type {
                 if let Some(ref trait_ctx) = ctx.trait_declaration_context {
@@ -58,7 +60,9 @@ impl Visitor for TypeAssigner {
                     bin_expr.rhs_expression.assign_enclosing_type(trait_name);
                 }
             } else {
-                bin_expr.rhs_expression.assign_enclosing_type(&lhs_type.name());
+                bin_expr
+                    .rhs_expression
+                    .assign_enclosing_type(&lhs_type.name());
             }
         }
         Ok(())
