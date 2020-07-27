@@ -1,5 +1,5 @@
 contract C {
-  var s: S = S(0, 0x0000000000000000000000000000000000000000)
+  var s: S = S(0, 0x00000000000000000000000000000000)
   var v: V = V(2)
 }
 
@@ -7,32 +7,32 @@ C :: (any) {
   public init() {}
 
   public func setS(a: Int, b: Address)
-  mutates (s) {
-    let s: S = S(a, b)
+  mutates (s, s.a, s.s) {
+    var s: S = S(a, b)
     s.incrementA()
     self.s = S(s.a, s.s)
   }
 
   public func setV1(a: Int)
-  mutates (v) {
-    let t1: V = V(a)
+  mutates (v, v.x) {
+    var t1: V = V(a)
     let t2: V = V(a + 1)
 
     self.v = V(t1.x)
   }
 
   public func setV2(a: Int)
-  mutates (v) {
+  mutates (v, v.x) {
     let t1: V = V(a)
-    let t2: V = V(a + 1)
+    var t2: V = V(a + 1)
 
     self.v = V(t2.x)
   }
 
   public func setV3(c: Bool, a: Int, b: Int)
-  mutates (v) {
+  mutates (v, v.x) {
     if c {
-      let v: V = V(a)
+      var v: V = V(a)
       v.increment()
       self.v = V(v.x)
     } else {
@@ -56,9 +56,9 @@ C :: (any) {
 }
 
 struct S {
-  var a: Int
+  public var a: Int
   var b: Int = 3
-  var s: Address
+  public var s: Address
   var v: V = V(0)
 
   init(a: Int, s: Address) {
@@ -73,7 +73,7 @@ struct S {
 }
 
 struct V {
-  var x: Int
+  public var x: Int
 
   init(x: Int) {
     self.x = x

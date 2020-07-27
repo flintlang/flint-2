@@ -31,34 +31,34 @@ impl Visitor for TypeAssigner {
 
     fn finish_binary_expression(
         &mut self,
-        _t: &mut BinaryExpression,
-        _ctx: &mut Context,
+        bin_expr: &mut BinaryExpression,
+        ctx: &mut Context,
     ) -> VResult {
-        if let BinOp::Dot = _t.op {
-            let enclosing = _ctx.enclosing_type_identifier();
+        if let BinOp::Dot = bin_expr.op {
+            let enclosing = ctx.enclosing_type_identifier();
             let enclosing = enclosing.unwrap();
-            let scope = &_ctx.scope_context.as_ref().unwrap_or_default();
-            let lhs_type = _ctx.environment.get_expression_type(
-                &*_t.lhs_expression,
+            let scope = &ctx.scope_context.as_ref().unwrap_or_default();
+            let lhs_type = ctx.environment.get_expression_type(
+                &*bin_expr.lhs_expression,
                 &enclosing.token,
                 &[],
                 &[],
                 scope,
             );
-            if let Expression::Identifier(i) = &*_t.lhs_expression {
-                if _ctx.environment.is_enum_declared(&i.token) {
-                    _t.rhs_expression.assign_enclosing_type(&i.token)
+            if let Expression::Identifier(i) = &*bin_expr.lhs_expression {
+                if ctx.environment.is_enum_declared(&i.token) {
+                    bin_expr.rhs_expression.assign_enclosing_type(&i.token)
                 } else {
-                    _t.rhs_expression.assign_enclosing_type(&lhs_type.name());
+                    bin_expr.rhs_expression.assign_enclosing_type(&lhs_type.name());
                 }
             } else if let Type::SelfType = lhs_type {
-                if let Some(ref trait_ctx) = _ctx.trait_declaration_context {
+                if let Some(ref trait_ctx) = ctx.trait_declaration_context {
                     let trait_name = &trait_ctx.identifier.token;
 
-                    _t.rhs_expression.assign_enclosing_type(trait_name);
+                    bin_expr.rhs_expression.assign_enclosing_type(trait_name);
                 }
             } else {
-                _t.rhs_expression.assign_enclosing_type(&lhs_type.name());
+                bin_expr.rhs_expression.assign_enclosing_type(&lhs_type.name());
             }
         }
         Ok(())

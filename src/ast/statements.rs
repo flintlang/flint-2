@@ -145,6 +145,10 @@ impl Visitable for IfStatement {
             scope_context: block_scope.clone(),
         };
 
+        ctx.scope_context = scope.clone();
+        ctx.pre_statements = pre_statements.clone();
+        ctx.post_statements = post_statements.clone();
+
         ctx.block_context = Some(block_context);
 
         let mut statements: Vec<Vec<Statement>> = vec![];

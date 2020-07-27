@@ -68,7 +68,7 @@ C :: (any) {
     return b.x.x
   }
 
-  public func setBxx(x: Int) mutates (b.x.x) {
+  public func setBxx(x: Int) mutates (b.x) {
     b.x.x = x
   }
 
@@ -76,8 +76,7 @@ C :: (any) {
     return b.getXx()
   }
 
-  public func getBxx3() -> Int
-   mutates (b) {
+  public func getBxx3() -> Int mutates (b) {
     setBxx(x: 2 ** 8)
     return b.getXx2()
   }
@@ -110,7 +109,7 @@ C :: (any) {
     return b.x.y
   }
 
-  public func setBxy(y: Bool) mutates (b) {
+  public func setBxy(y: Bool) mutates (b.x, b.y) {
     let marker: Int = 1000020
     b.x.y = y
   }
@@ -119,7 +118,7 @@ C :: (any) {
     return b.y
   }
 
-  public func setBy(y: Int) mutates (b) {
+  public func setBy(y: Int) mutates (b, b.y) {
     b.y = y
   }
 
@@ -146,7 +145,7 @@ C :: (any) {
 
 struct Maybe {
   var element: Int
-  var size: Int
+  visible var size: Int
 
   public init() {
     element = 0

@@ -7,7 +7,7 @@ before_script:
   - sudo apt-get install python3
 
 script:
-  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -W clippy::unnecessary-unwrap --verbose
+  - cargo clippy -- -D warnings
   - mkdir output
   - cargo run libra tests/move_tests/counter.flint
   - cargo run libra tests/move_tests/rectangle.flint

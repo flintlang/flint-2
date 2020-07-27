@@ -6,24 +6,20 @@ contract C {
 C :: (any) {
     public init() {}
 
-    public func setFirstBValue(val: Int) 
-    mutates (b) {
+    public func setFirstBValue(val: Int) mutates (b, b.storedValue) {
       b.storedValue = val
     }
 
-    public func setSecondBValue(val: Int) 
-    mutates (otherB) {
+    public func setSecondBValue(val: Int) mutates (otherB, otherB.storedValue) {
       otherB.storedValue = val
     }
 
-    public func add() -> Int 
-    mutates (b) {
+    public func add() -> Int mutates (b) {
       b.add(other: &otherB)
       return b.getStoredValue()
     }
 
-    public func addNoDefault() -> Int
-    mutates (b) {
+    public func addNoDefault() -> Int mutates (b) {
       b.addNoDefault(other: &otherB)
       return b.getStoredValue()
     }
@@ -41,7 +37,7 @@ struct trait A {
 }
 
 struct B: A {
-    var storedValue: Int = 0
+    public var storedValue: Int = 0
 
     func getStoredValue() -> Int {
         return storedValue

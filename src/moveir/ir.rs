@@ -404,7 +404,7 @@ impl fmt::Display for MoveIROperation {
             MoveIROperation::GreaterThan(l, r) => write!(f, "({l} > {r})", l = l, r = r),
             MoveIROperation::LessThan(l, r) => write!(f, "({l} < {r})", l = l, r = r),
             MoveIROperation::Divide(l, r) => write!(f, "({l} / {r})", l = l, r = r),
-            MoveIROperation::Modulo(l, r) => write!(f, "({l} & {r})", l = l, r = r),
+            MoveIROperation::Modulo(l, r) => write!(f, "({l} % {r})", l = l, r = r),
             MoveIROperation::GreaterThanEqual(l, r) => write!(f, "({l} >= {r})", l = l, r = r),
             MoveIROperation::LessThanEqual(l, r) => write!(f, "({l} <= {r})", l = l, r = r),
             MoveIROperation::Equal(l, r) => write!(f, "({l} == {r})", l = l, r = r),

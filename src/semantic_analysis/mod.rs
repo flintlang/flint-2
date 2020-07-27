@@ -145,36 +145,37 @@ impl Visitor for SemanticAnalysis {
 
     fn start_variable_declaration(
         &mut self,
-        _t: &mut VariableDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut VariableDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        let type_declared = match &_t.variable_type {
-            Type::UserDefinedType(t) => _ctx.environment.is_type_declared(&t.token.clone()),
+        let type_declared = match &declaration.variable_type {
+            Type::UserDefinedType(t) => ctx.environment.is_type_declared(&t.token.clone()),
             _ => true,
         };
 
         if !type_declared {
             return Err(Box::from(format!(
                 "Type {:?} is not declared",
-                _t.variable_type
+                declaration.variable_type
             )));
         }
 
-        if _ctx.in_function_or_special() {
-            if let Some(ref mut scope_context) = _ctx.scope_context {
-                let redeclaration = scope_context.declaration(&_t.identifier.token);
+        if ctx.in_function_or_special() {
+            if let Some(ref mut scope_context) = ctx.scope_context {
+                dbg!(&scope_context.local_variables);
+                let redeclaration = scope_context.declaration(&declaration.identifier.token);
                 if redeclaration.is_some() {
                     return Err(Box::from(format!(
-                        "Redeclaration of identifier {}",
-                        _t.identifier.token
+                        "Redeclaration of identifier {} on line {}",
+                        declaration.identifier.token, declaration.identifier.line_info.line,
                     )));
                 }
-                scope_context.local_variables.push(_t.clone());
+                scope_context.local_variables.push(declaration.clone());
             }
-        } else if let Some(identifier) = _ctx.enclosing_type_identifier() {
-            if _ctx
+        } else if let Some(identifier) = ctx.enclosing_type_identifier() {
+            if ctx
                 .environment
-                .conflicting_property_declaration(&_t.identifier, &identifier.token)
+                .conflicting_property_declaration(&declaration.identifier, &identifier.token)
             {
                 return Err(Box::from("Conflicting property declarations".to_owned()));
             }
@@ -185,17 +186,17 @@ impl Visitor for SemanticAnalysis {
 
     fn start_function_declaration(
         &mut self,
-        _t: &mut FunctionDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut FunctionDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        if let Some(ref identifier) = _ctx.enclosing_type_identifier() {
-            if _ctx
+        if let Some(ref identifier) = ctx.enclosing_type_identifier() {
+            if ctx
                 .environment
-                .is_conflicting_function_declaration(&_t, &identifier.token)
+                .is_conflicting_function_declaration(&declaration, &identifier.token)
             {
                 return Err(Box::from(format!(
                     "Conflicting Function Declarations for {}",
-                    _t.head.identifier.token
+                    declaration.head.identifier.token
                 )));
             }
 
@@ -204,7 +205,7 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        if !_t
+        if !declaration
             .head
             .parameters
             .iter()
@@ -213,21 +214,26 @@ impl Visitor for SemanticAnalysis {
         {
             return Err(Box::from(format!(
                 "Fuction {} has duplicate parameters",
-                _t.head.identifier.token
+                declaration.head.identifier.token
             )));
         }
 
-        let remaining_parameters = _t.head.parameters.iter().filter(|p| p.is_payable()).count();
-        if _t.is_payable() {
+        let remaining_parameters = declaration
+            .head
+            .parameters
+            .iter()
+            .filter(|p| p.is_payable())
+            .count();
+        if declaration.is_payable() {
             if remaining_parameters == 0 {
                 return Err(Box::from(format!(
                     "Payable Function {} does not have payable parameter",
-                    _t.head.identifier.token
+                    declaration.head.identifier.token
                 )));
             } else if remaining_parameters > 1 {
                 return Err(Box::from(format!(
                     "Payable parameter is ambiguous in function {}",
-                    _t.head.identifier.token
+                    declaration.head.identifier.token
                 )));
             }
         } else if remaining_parameters > 0 {
@@ -237,8 +243,8 @@ impl Visitor for SemanticAnalysis {
             )));
         }
 
-        if _t.is_public() {
-            let parameters = _t
+        if declaration.is_public() {
+            let parameters = declaration
                 .head
                 .parameters
                 .iter()
@@ -247,22 +253,22 @@ impl Visitor for SemanticAnalysis {
             if parameters > 0 {
                 return Err(Box::from(format!(
                     "Public Function {} has dynamic parameters",
-                    _t.head.identifier.token
+                    declaration.head.identifier.token
                 )));
             }
         }
 
-        if let Some(Type::UserDefinedType(_)) = _t.head.result_type {
+        if let Some(Type::UserDefinedType(_)) = declaration.head.result_type {
             return Err(Box::from(format!(
                 "Not allowed to return struct in function {}",
-                _t.head.identifier.token
+                declaration.head.identifier.token
             )));
         }
 
         let mut return_statements = Vec::new();
         let mut become_statements = Vec::new();
 
-        for statement in &_t.body {
+        for statement in &declaration.body {
             match statement {
                 Statement::ReturnStatement(ret) => return_statements.push(ret),
                 Statement::BecomeStatement(bec) => become_statements.push(bec),
@@ -270,7 +276,7 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let remaining = _t
+        let remaining = declaration
             .body
             .iter()
             .skip_while(|s| !is_return_or_become_statement(s));
@@ -279,28 +285,28 @@ impl Visitor for SemanticAnalysis {
         if remaining_after_end.count() > 0 {
             return Err(Box::from(format!(
                 "Statements after `return` in {}",
-                _t.head.identifier.token
+                declaration.head.identifier.token
             )));
         }
 
-        if _t.head.result_type.is_some() && return_statements.is_empty() {
+        if declaration.head.result_type.is_some() && !code_block_returns(&declaration.body) {
             return Err(Box::from(format!(
-                "Missing `return` in function {}",
-                _t.head.identifier.token
+                "Function {} does not necessarily return",
+                declaration.head.identifier.token
             )));
         }
 
         if return_statements.len() > 1 {
             return Err(Box::from(format!(
                 "Multiple `return`s in function {}",
-                _t.head.identifier.token
+                declaration.head.identifier.token
             )));
         }
 
         if become_statements.len() > 1 {
             return Err(Box::from(format!(
                 "Multiple `become` statements in {}",
-                _t.head.identifier.token
+                declaration.head.identifier.token
             )));
         }
 
@@ -311,7 +317,7 @@ impl Visitor for SemanticAnalysis {
                 {
                     return Err(Box::from(format!(
                         "`return` statement after `become` in function {}",
-                        _t.head.identifier.token
+                        declaration.head.identifier.token
                     )));
                 }
             }
@@ -494,7 +500,10 @@ impl Visitor for SemanticAnalysis {
             } else if let Some(scope) = &ctx.scope_context {
                 if let Some(declaration) = scope.declaration(token) {
                     // Previously we had checks for ctx.in_subscript and !declaration.variable_type.is_inout_type()
-                    if declaration.is_constant() && ctx.is_lvalue {
+                    // TODO the is_enclosing conjunct is required for now because of naming conflicts: the analyser cannot
+                    // yet distinguish self.<var> from <var> when reassigning. So could have const self.<var> and
+                    // local <var>, try to reassign to <var> and it think you are reassigning to self.<var>
+                    if declaration.is_constant() && ctx.is_lvalue && !ctx.is_enclosing {
                         return Err(Box::from(format!(
                             "Reassignment to constant `{}` on line {}",
                             token, line_number
@@ -644,6 +653,7 @@ impl Visitor for SemanticAnalysis {
                 "Invalid condition type in `if` statement".to_owned(),
             ));
         }
+
         Ok(())
     }
 
@@ -715,9 +725,34 @@ fn check_if_correct_type_state_possible(
     }
 }
 
-fn is_conformance_repeated<'a, T: IntoIterator<Item = &'a Conformance>>(conformances: T) -> bool {
+fn is_conformance_repeated<'a, T: IntoIterator<Item=&'a Conformance>>(conformances: T) -> bool {
     !conformances
         .into_iter()
         .map(|c| &c.identifier.token)
         .unique()
+}
+
+fn code_block_returns(block: &[Statement]) -> bool {
+    // This needs to be mutable for the any method later
+    let mut block = block.iter();
+    // This needs to be an &mut for the all method later
+    let branches = &mut block
+        .clone()
+        .filter_map(|statement| {
+            if let Statement::IfStatement(branch) = statement {
+                Some(branch)
+            } else {
+                None
+            }
+        })
+        .peekable();
+
+    // Checks we have at least one if statement to check
+    let does_branch = branches.peek().is_some();
+
+    block.any(|statements| matches!(statements, Statement::ReturnStatement(_)))
+        || (does_branch
+        && branches.all(|branch| {
+        code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
+    }))
 }

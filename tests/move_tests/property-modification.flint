@@ -11,12 +11,12 @@ C :: (any) {
     v()
     u = 2
     let x: Int = u
-    assert(u == x)
+    assert u == x
   }
 
-  public func v() mutates(v) {
+  public func v() mutates(v.x) {
     var v: V = V(1)
-    assert(v.x == 1)
+    assert v.x == 1
     v.x = 1
   }
 }
