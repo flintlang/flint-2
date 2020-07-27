@@ -216,14 +216,14 @@ impl MoveFunction {
 pub fn reorder_statements(
     statements: &[MoveIRStatement],
 ) -> impl Iterator<Item=&MoveIRStatement> + '_ {
-    let declarations = statements.into_iter().filter(|statement| {
+    let declarations = statements.iter().filter(|statement| {
         matches!(
             statement,
             MoveIRStatement::Expression(MoveIRExpression::VariableDeclaration(_))
         )
     });
 
-    let non_declarations = statements.into_iter().filter(|statement| {
+    let non_declarations = statements.iter().filter(|statement| {
         !matches!(
             statement,
             MoveIRStatement::Expression(MoveIRExpression::VariableDeclaration(_))
@@ -250,7 +250,6 @@ impl FunctionContext {
             let statements = block.unwrap().statements.clone();
             let statements = reorder_statements(&statements);
             let statements: Vec<String> = statements
-                .into_iter()
                 .map(|s| format!("{s}", s = s))
                 .collect();
             return statements.join("\n");
