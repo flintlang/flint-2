@@ -56,4 +56,8 @@ Operators :: (any) {
   public func power(a: Int, b: Int) -> Int {
     return a ** b
   }
+
+  public func remainder(a: Int, b: Int) -> Int {
+    return a % b
+  }
 }

@@ -46,6 +46,7 @@ pub fn parse_binary_op(i: Span) -> nom::IResult<Span, BinOp> {
         power_operator,
         times_operator,
         divide_operator,
+        remainder_operator,
         dot_operator,
         equal_operator,
         less_than_operator,
@@ -216,9 +217,9 @@ pub fn double_slash(i: Span) -> nom::IResult<Span, Span> {
     tag("//")(i)
 }
 
-#[allow(dead_code)]
-pub fn percent(i: Span) -> nom::IResult<Span, Span> {
-    tag("//")(i)
+pub fn remainder_operator(i: Span) -> nom::IResult<Span, BinOp> {
+    let (i, _) = tag("%")(i)?;
+    Ok((i, BinOp::Percent))
 }
 
 #[allow(dead_code)]
