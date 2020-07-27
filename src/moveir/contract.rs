@@ -395,45 +395,51 @@ impl MoveContract {
 
         // TODO refactor this loop
         while !(statements.is_empty() || unassigned.is_empty()) {
-            let statement = statements.remove(0);
-            if let Statement::Expression(e) = statement {
-                if let Expression::BinaryExpression(ref b) = e {
-                    if let BinOp::Equal = b.op {
-                        if let Expression::Identifier(ref i) = &*b.lhs_expression {
-                            if let Some(ref enclosing) = i.enclosing_type {
-                                if *enclosing == self.contract_declaration.identifier.token {
-                                    unassigned = unassigned
-                                        .into_iter()
-                                        .filter(|u| u.token != i.token)
-                                        .collect();
+            match statements.remove(0) {
+                Statement::Expression(e) => {
+                    if let Expression::BinaryExpression(ref b) = e {
+                        if let BinOp::Equal = b.op {
+                            if let Expression::Identifier(ref i) = &*b.lhs_expression {
+                                if let Some(ref enclosing) = i.enclosing_type {
+                                    if *enclosing == self.contract_declaration.identifier.token {
+                                        unassigned = unassigned
+                                            .into_iter()
+                                            .filter(|u| u.token != i.token)
+                                            .collect();
+                                    }
                                 }
-                            }
-                            if let Expression::BinaryExpression(ref lb) = &*b.lhs_expression {
-                                let op = lb.op.clone();
-                                let lhs = &*lb.lhs_expression;
-                                let rhs = &*lb.rhs_expression;
-                                if let BinOp::Dot = op {
-                                    if let Expression::SelfExpression = lhs {
-                                        if let Expression::Identifier(i) = rhs {
-                                            unassigned = unassigned
-                                                .into_iter()
-                                                .filter(|u| u.token != i.token)
-                                                .collect();
+                                if let Expression::BinaryExpression(ref lb) = &*b.lhs_expression {
+                                    let op = lb.op.clone();
+                                    let lhs = &*lb.lhs_expression;
+                                    let rhs = &*lb.rhs_expression;
+                                    if let BinOp::Dot = op {
+                                        if let Expression::SelfExpression = lhs {
+                                            if let Expression::Identifier(i) = rhs {
+                                                unassigned = unassigned
+                                                    .into_iter()
+                                                    .filter(|u| u.token != i.token)
+                                                    .collect();
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                    let move_statement = MoveStatement {
+                        statement: Statement::Expression(e),
+                    }
+                        .generate(&mut function_context);
+                    function_context.emit(move_statement);
                 }
-                let move_statement = MoveStatement {
-                    statement: Statement::Expression(e),
+                assertion @Statement::Assertion(_) => {
+                    let move_statement = MoveStatement {
+                        statement: assertion,
+                    }
+                        .generate(&mut function_context);
+                    function_context.emit(move_statement);
                 }
-                .generate(&mut function_context);
-                function_context.emit(move_statement);
-            } else {
-                let statement = MoveStatement { statement }.generate(&mut function_context);
-                function_context.emit(statement);
+                _ => (),
             }
         }
 
