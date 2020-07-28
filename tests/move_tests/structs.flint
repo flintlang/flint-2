@@ -1,8 +1,11 @@
 struct A {
-  public var x: Int = 0
-  public var y: Bool = false
+  public var x: Int
+  public var y: Bool
 
-  public init() {}
+  public init() {
+    x = 0
+    y = false
+  }
 
   func getX() -> Int {
     return x
@@ -18,10 +21,13 @@ struct A {
 }
 
 struct B {
-  public var x: A = A()
-  public var y: Int = 0
+  public var x: A
+  public var y: Int
 
-  public init() {}
+  public init() {
+    x = A()
+    y = 0
+  }
 
   func getXx() -> Int {
     return x.getX()
@@ -67,7 +73,6 @@ C :: (any) {
 
   public func setAy(y: Bool) mutates (a.y) {
     a.y = y
-    let x: Int = 10
   }
 
   public func getBxx() -> Int {
@@ -92,7 +97,7 @@ C :: (any) {
   }
 
   public func setBxx3(x: Int) mutates (b, a) {
-    setB(b: &b, x: x)
+    setB(b: &self.b, x: x)
   }
 
   public func setCxx(x: Int) mutates (c) {
@@ -145,7 +150,7 @@ C :: (any) {
   }
 
   public func getE() -> Bool {
-    return true
+    return self.e
   }
 }
 
