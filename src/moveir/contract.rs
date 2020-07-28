@@ -432,7 +432,7 @@ impl MoveContract {
                         .generate(&mut function_context);
                     function_context.emit(move_statement);
                 }
-                assertion @Statement::Assertion(_) => {
+                assertion @ Statement::Assertion(_) => {
                     let move_statement = MoveStatement {
                         statement: assertion,
                     }
@@ -461,7 +461,6 @@ impl MoveContract {
         });
 
         if !(statements.is_empty()) {
-            dbg!(statements.clone());
             function_context.is_constructor = false;
 
             let shadow = "Quartz$self";

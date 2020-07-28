@@ -249,9 +249,7 @@ impl FunctionContext {
         if !self.block_stack.is_empty() {
             let statements = block.unwrap().statements.clone();
             let statements = reorder_statements(&statements);
-            let statements: Vec<String> = statements
-                .map(|s| format!("{s}", s = s))
-                .collect();
+            let statements: Vec<String> = statements.map(|s| format!("{s}", s = s)).collect();
             return statements.join("\n");
         }
 
