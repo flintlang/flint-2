@@ -693,9 +693,21 @@ pub fn pre_assign(
 
         // If is function declaration context
         if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
-            function_declaration_context
+            let mut variable_present = false;
+                
+            for local_variable in function_declaration_context.local_variables.clone() {
+                if local_variable.identifier == declaration.identifier && local_variable.variable_type == declaration.variable_type {
+                    // do not add to local variables
+                    variable_present = true;
+                    break;
+                }
+            }
+
+            if !variable_present {
+                function_declaration_context
                 .local_variables
                 .push(declaration.clone());
+            }
 
             if let Some(ref mut scope_context) =
                 function_declaration_context.declaration.scope_context
