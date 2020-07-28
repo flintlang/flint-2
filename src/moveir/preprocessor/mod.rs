@@ -409,10 +409,10 @@ impl Visitor for MovePreProcessor {
 
     fn start_special_declaration(
         &mut self,
-        _t: &mut SpecialDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut SpecialDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        let members = _t.body.clone();
+        let members = declaration.body.clone();
 
         let members = members
             .into_iter()
@@ -430,10 +430,10 @@ impl Visitor for MovePreProcessor {
             })
             .collect();
 
-        _t.body = members;
-        if let Some(ref b_ctx) = _ctx.contract_behaviour_declaration_context {
+        declaration.body = members;
+        if let Some(ref b_ctx) = ctx.contract_behaviour_declaration_context {
             if b_ctx.caller.is_some() {
-                _t.head.parameters.push(Parameter {
+                declaration.head.parameters.push(Parameter {
                     identifier: Identifier {
                         token: "caller".to_string(),
                         enclosing_type: None,
