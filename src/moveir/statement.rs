@@ -61,17 +61,38 @@ impl MoveIfStatement {
         }
         .generate(function_context);
         println!("With new block");
+
         let count = function_context.push_block();
+        
         for statement in self.statement.body.clone() {
             let statement = MoveStatement { statement }.generate(function_context);
             function_context.emit(statement);
         }
+
         let body = function_context.with_new_block(count);
-        MoveIRStatement::If(MoveIRIf {
-            expression: condition,
-            block: body,
-            else_block: None,
-        })
+
+        if self.statement.else_body.is_empty() {
+            MoveIRStatement::If(MoveIRIf {
+                expression: condition,
+                block: body,
+                else_block: None,
+            })
+        } else {
+            let count = function_context.push_block();
+
+            for statement in self.statement.else_body.clone() {
+                let statement = MoveStatement { statement }.generate(function_context);
+                function_context.emit(statement);
+            }
+    
+            let else_block = function_context.with_new_block(count);
+            
+            MoveIRStatement::If(MoveIRIf {
+                expression: condition,
+                block: body,
+                else_block: Some(else_block),
+            })
+        }
     }
 }
 
