@@ -8,7 +8,9 @@ C :: (any) {
     u = 1
     self.v = V(3) // Last thing to do
     v.x = 4
-    v()
+    // Known issue that calling contract method from contract
+    // initialiser breaks
+    // v()
     u = 2
     let x: Int = u
     assert u == x

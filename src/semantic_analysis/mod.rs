@@ -732,11 +732,8 @@ fn is_conformance_repeated<'a, T: IntoIterator<Item=&'a Conformance>>(conformanc
 }
 
 fn code_block_returns(block: &[Statement]) -> bool {
-    // This needs to be mutable for the any method later
-    let mut block = block.iter();
-    // This needs to be an &mut for the all method later
-    let branches = &mut block
-        .clone()
+    let mut branches = block
+        .iter()
         .filter_map(|statement| {
             if let Statement::IfStatement(branch) = statement {
                 Some(branch)
@@ -746,11 +743,10 @@ fn code_block_returns(block: &[Statement]) -> bool {
         })
         .peekable();
 
-    // Checks we have at least one if statement to check
-    let does_branch = branches.peek().is_some();
-
-    block.any(|statements| matches!(statements, Statement::ReturnStatement(_)))
-        || (does_branch
+    block
+        .iter()
+        .any(|statements| matches!(statements, Statement::ReturnStatement(_)))
+        || (branches.peek().is_some()
         && branches.all(|branch| {
         code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
     }))
