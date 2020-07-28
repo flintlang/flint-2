@@ -14,7 +14,7 @@ script:
   - cargo run libra tests/move_tests/shapes.flint
   - cargo run libra tests/move_tests/traffic_lights.flint
   - cargo run libra tests/move_tests/assert.flint
-  - cargo run libra tests/move_tests/callerprotections-counter.flint
+  - cargo run libra tests/move_tests/callerprotections_counter.flint
   - cargo run libra tests/move_tests/factorial.flint
   - cargo run libra tests/move_tests/inits.flint
   - cargo run libra tests/move_tests/operators.flint
