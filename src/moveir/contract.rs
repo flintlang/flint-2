@@ -78,6 +78,7 @@ impl MoveContract {
             })
             .map(|f| f.generate(true))
             .collect();
+        
         let functions = functions.join("\n\n");
 
         let function_context = FunctionContext {

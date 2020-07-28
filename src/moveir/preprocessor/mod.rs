@@ -487,7 +487,7 @@ impl Visitor for MovePreProcessor {
                 }
             } else if let BinOp::Equal = b.op {
                 if let Expression::VariableDeclaration(v) = &*b.lhs_expression {
-                    let variable = v.clone();
+                    let mut variable = v.clone();
                     let identifier = if v.identifier.is_self() {
                         Expression::SelfExpression
                     } else {
@@ -504,7 +504,33 @@ impl Visitor for MovePreProcessor {
                     if let Some(ref mut function_declaration_context) =
                         _ctx.function_declaration_context
                     {
-                        function_declaration_context
+                        let mut variable_present = false;
+
+                        for local_variable in function_declaration_context.local_variables.clone() {
+                            if local_variable.identifier == variable.identifier && local_variable.variable_type == variable.variable_type {
+                                // do not add to local variables
+                                if local_variable.declaration_token == Some("var".to_string()) {
+                                    variable.declaration_token = Some("var".to_string());
+                                }
+                                variable_present = true;
+                                break;
+                            }
+                        }
+
+                        if !variable_present {
+                            function_declaration_context
+                            .local_variables
+                            .push(variable.clone());
+
+                            function_declaration_context
+                            .declaration
+                            .scope_context
+                            .as_mut()
+                            .unwrap()
+                            .local_variables
+                            .push(variable);
+                        }
+                        /*function_declaration_context
                             .local_variables
                             .push(variable.clone());
                         function_declaration_context
@@ -513,7 +539,7 @@ impl Visitor for MovePreProcessor {
                             .as_mut()
                             .unwrap()
                             .local_variables
-                            .push(variable);
+                            .push(variable);*/
                     } else if let Some(ref mut special_declaration_context) =
                         _ctx.special_declaration_context
                     {
