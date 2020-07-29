@@ -672,8 +672,10 @@ pub fn pre_assign(
                 }),
                 expression: None,
             };
+
+            let mangled_identifier = Identifier::generated(&mangle(&temp_identifier.token));
             ctx.post_statements.push(release(
-                Expression::Identifier(temp_identifier.clone()),
+                Expression::Identifier(mangled_identifier),
                 Type::InoutType(InoutType {
                     key_type: Box::new(expression_type),
                 }),
@@ -694,9 +696,11 @@ pub fn pre_assign(
         // If is function declaration context
         if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
             let mut variable_present = false;
-                
+
             for local_variable in function_declaration_context.local_variables.clone() {
-                if local_variable.identifier == declaration.identifier && local_variable.variable_type == declaration.variable_type {
+                if local_variable.identifier == declaration.identifier
+                    && local_variable.variable_type == declaration.variable_type
+                {
                     // do not add to local variables
                     variable_present = true;
                     break;
@@ -705,8 +709,8 @@ pub fn pre_assign(
 
             if !variable_present {
                 function_declaration_context
-                .local_variables
-                .push(declaration.clone());
+                    .local_variables
+                    .push(declaration.clone());
             }
 
             if let Some(ref mut scope_context) =

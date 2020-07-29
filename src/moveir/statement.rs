@@ -63,7 +63,7 @@ impl MoveIfStatement {
         println!("With new block");
 
         let count = function_context.push_block();
-        
+
         for statement in self.statement.body.clone() {
             let statement = MoveStatement { statement }.generate(function_context);
             function_context.emit(statement);
@@ -84,9 +84,9 @@ impl MoveIfStatement {
                 let statement = MoveStatement { statement }.generate(function_context);
                 function_context.emit(statement);
             }
-    
+
             let else_block = function_context.with_new_block(count);
-            
+
             MoveIRStatement::If(MoveIRIf {
                 expression: condition,
                 block: body,

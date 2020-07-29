@@ -193,7 +193,9 @@ impl Visitor for MovePreProcessor {
 
             // If is special declaration context  // TODO should these be else ifs?
             if let Some(ref mut special_declaration_context) = ctx.special_declaration_context {
-                special_declaration_context.local_variables.push(declaration.clone());
+                special_declaration_context
+                    .local_variables
+                    .push(declaration.clone());
             }
         }
         Ok(())
@@ -455,9 +457,9 @@ impl Visitor for MovePreProcessor {
     fn finish_special_declaration(
         &mut self,
         special: &mut SpecialDeclaration,
-        _ctx: &mut Context,
+        ctx: &mut Context,
     ) -> VResult {
-        let mut statements = get_declaration(_ctx);
+        let mut statements = get_declaration(ctx);
         statements.append(&mut special.body.clone());
         special.body = statements;
 
@@ -507,7 +509,9 @@ impl Visitor for MovePreProcessor {
                         let mut variable_present = false;
 
                         for local_variable in function_declaration_context.local_variables.clone() {
-                            if local_variable.identifier == variable.identifier && local_variable.variable_type == variable.variable_type {
+                            if local_variable.identifier == variable.identifier
+                                && local_variable.variable_type == variable.variable_type
+                            {
                                 // do not add to local variables
                                 if local_variable.declaration_token == Some("var".to_string()) {
                                     variable.declaration_token = Some("var".to_string());
@@ -519,16 +523,16 @@ impl Visitor for MovePreProcessor {
 
                         if !variable_present {
                             function_declaration_context
-                            .local_variables
-                            .push(variable.clone());
+                                .local_variables
+                                .push(variable.clone());
 
                             function_declaration_context
-                            .declaration
-                            .scope_context
-                            .as_mut()
-                            .unwrap()
-                            .local_variables
-                            .push(variable);
+                                .declaration
+                                .scope_context
+                                .as_mut()
+                                .unwrap()
+                                .local_variables
+                                .push(variable);
                         }
                         /*function_declaration_context
                             .local_variables
@@ -562,39 +566,38 @@ impl Visitor for MovePreProcessor {
 
     fn start_binary_expression(
         &mut self,
-        _t: &mut BinaryExpression,
-        _ctx: &mut Context,
+        bin_expr: &mut BinaryExpression,
+        ctx: &mut Context,
     ) -> VResult {
-        if _t.op.is_assignment_shorthand() {
-            let op = _t.op.get_assignment_shorthand();
-            _t.op = BinOp::Equal;
+        if bin_expr.op.is_assignment_shorthand() {
+            let op = bin_expr.op.get_assignment_shorthand();
+            bin_expr.op = BinOp::Equal;
 
             let rhs = BinaryExpression {
-                lhs_expression: _t.lhs_expression.clone(),
-                rhs_expression: _t.rhs_expression.clone(),
+                lhs_expression: bin_expr.lhs_expression.clone(),
+                rhs_expression: bin_expr.rhs_expression.clone(),
                 op,
-                line_info: _t.line_info.clone(),
+                line_info: bin_expr.line_info.clone(),
             };
-            _t.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
-        } else if let BinOp::Dot = _t.op {
-            _ctx.function_call_receiver_trail
-                .push(*_t.lhs_expression.clone());
-            match *_t.lhs_expression.clone() {
+            bin_expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
+        } else if let BinOp::Dot = bin_expr.op {
+            ctx.function_call_receiver_trail
+                .push(*bin_expr.lhs_expression.clone());
+            match *bin_expr.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *_t.rhs_expression {
-                    } else {
-                        let lhs = _t.lhs_expression.clone();
+                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {} else {
+                        let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
-                        let lhs = expand_properties(lhs, _ctx, false);
-                        _t.lhs_expression = Box::from(lhs);
+                        let lhs = expand_properties(lhs, ctx, false);
+                        bin_expr.lhs_expression = Box::from(lhs);
                     }
                 }
                 Expression::BinaryExpression(b) => {
                     if let BinOp::Dot = b.op {
-                        let lhs = _t.lhs_expression.clone();
+                        let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
-                        let lhs = expand_properties(lhs, _ctx, false);
-                        _t.lhs_expression = Box::from(lhs);
+                        let lhs = expand_properties(lhs, ctx, false);
+                        bin_expr.lhs_expression = Box::from(lhs);
                     }
                 }
                 _ => {}

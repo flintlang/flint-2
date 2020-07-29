@@ -78,7 +78,7 @@ impl MoveContract {
             })
             .map(|f| f.generate(true))
             .collect();
-        
+
         let functions = functions.join("\n\n");
 
         let function_context = FunctionContext {
@@ -344,9 +344,27 @@ impl MoveContract {
             .get_variable_declarations_without_dict()
             .collect();
 
+        let scope_context = statements
+            .clone()
+            .into_iter()
+            .filter_map(|statement| {
+                if let Statement::Expression(Expression::VariableDeclaration(declaration)) =
+                statement
+                {
+                    Some(declaration)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<VariableDeclaration>>();
+
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
-            scope_context: Default::default(),
+            scope_context: ScopeContext {
+                parameters: vec![],
+                local_variables: scope_context,
+                counter: 0,
+            },
             enclosing_type: self.contract_declaration.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: false,
