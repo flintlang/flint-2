@@ -35,14 +35,14 @@ impl MovePropertyAccess {
                                 Identifier(mangle(identifier.token.as_str())),
                             )));
                             return MoveIRExpression::Operation(MoveIROperation::Dereference(
-                                Box::from(MoveIRExpression::Operation(MoveIROperation::MutableReference(
-                                    Box::from(MoveIRExpression::Operation(
-                                        MoveIROperation::Access(
+                                Box::from(MoveIRExpression::Operation(
+                                    MoveIROperation::MutableReference(Box::from(
+                                        MoveIRExpression::Operation(MoveIROperation::Access(
                                             Box::from(copied_struct),
                                             property.token.clone(),
-                                        ),
+                                        )),
                                     )),
-                                ))),
+                                )),
                             ));
                         }
                     }

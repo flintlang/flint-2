@@ -77,23 +77,24 @@ fn parse_if_statement(i: Span) -> nom::IResult<Span, Statement> {
     let (i, _) = whitespace(i)?;
     let (i, statements) = parse_code_block(i)?;
     let (i, _) = whitespace(i)?;
+
     let (i, else_token) = nom::combinator::opt(tag("else"))(i)?;
-    if else_token.is_some() {
+    let (i, else_body) = if else_token.is_some() {
         let (i, _) = whitespace(i)?;
-        let (i, else_statements) = parse_code_block(i)?;
-        let if_statement = IfStatement {
-            condition,
-            body: statements,
-            else_body: else_statements,
-            if_body_scope_context: None,
-            else_body_scope_context: None,
-        };
-        return Ok((i, Statement::IfStatement(if_statement)));
-    }
+        let (i, nested_if) = nom::combinator::opt(parse_if_statement)(i)?;
+        if let Some(nested) = nested_if {
+            (i, vec![nested])
+        } else {
+            parse_code_block(i)?
+        }
+    } else {
+        (i, vec![])
+    };
+
     let if_statement = IfStatement {
         condition,
         body: statements,
-        else_body: Vec::new(),
+        else_body,
         if_body_scope_context: None,
         else_body_scope_context: None,
     };
@@ -266,8 +267,52 @@ mod tests {
 
     #[test]
     fn test_if_statement() {
-        let input = LocatedSpan::new("if x<5 {return x}");
+        let input = LocatedSpan::new("if x<5 {return x} else if x<10 {return x} else {return 0}");
         let (_rest, result) = parse_if_statement(input).expect("Error parsing if statement");
+        let else_if = Statement::IfStatement(IfStatement {
+            condition: Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::Identifier(Identifier {
+                    token: "x".to_string(),
+                    enclosing_type: None,
+                    line_info: LineInfo {
+                        line: 1,
+                        offset: 26,
+                    },
+                })),
+                rhs_expression: Box::new(Expression::Literal(IntLiteral(10))),
+                op: BinOp::LessThan,
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 26,
+                },
+            }),
+            body: vec![Statement::ReturnStatement(ReturnStatement {
+                expression: Some(Expression::Identifier(Identifier {
+                    token: String::from("x"),
+                    enclosing_type: None,
+                    line_info: LineInfo {
+                        line: 1,
+                        offset: 39,
+                    },
+                })),
+                cleanup: vec![],
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 32,
+                },
+            })],
+            else_body: vec![Statement::ReturnStatement(ReturnStatement {
+                expression: Some(Expression::Literal(IntLiteral(0))),
+                cleanup: vec![],
+                line_info: LineInfo {
+                    line: 1,
+                    offset: 48,
+                },
+            })],
+            if_body_scope_context: None,
+            else_body_scope_context: None,
+        });
+
         assert_eq!(
             result,
             Statement::IfStatement(IfStatement {
@@ -296,7 +341,7 @@ mod tests {
                     line_info: LineInfo { line: 1, offset: 8 },
                 })],
 
-                else_body: vec![],
+                else_body: vec![else_if],
                 if_body_scope_context: None,
                 else_body_scope_context: None,
             })
