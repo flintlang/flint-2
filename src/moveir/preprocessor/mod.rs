@@ -1,4 +1,5 @@
 use self::utils::*;
+use crate::ast::Literal::BooleanLiteral;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
@@ -35,6 +36,20 @@ impl Visitor for MovePreProcessor {
                     },
                     None,
                 ))
+        }
+
+        if contract.contract_members.is_empty() {
+            contract
+                .contract_members
+                .push(ContractMember::VariableDeclaration(
+                    VariableDeclaration {
+                        declaration_token: None,
+                        identifier: Identifier::generated("__dummy_to_prevent_empty_struct__"),
+                        variable_type: Type::Bool,
+                        expression: Some(Box::from(Expression::Literal(BooleanLiteral(true)))),
+                    },
+                    None,
+                ));
         }
 
         Ok(())

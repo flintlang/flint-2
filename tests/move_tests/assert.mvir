@@ -3,7 +3,7 @@ import {{default}}.Assert;
 main(account: &signer) {
     Assert.publish(copy(account));
     Assert.shouldNotCrash(copy(account));
-    //! expect fail 9
+    //! expect fail 7
     Assert.shouldCrash(copy(account));
     return;
 }
