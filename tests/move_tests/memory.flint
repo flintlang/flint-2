@@ -7,14 +7,14 @@ C :: (any) {
   public init() {}
 
   public func setS(a: Int, b: Address)
-  mutates (s, s.a, s.s) {
+  mutates (s) {
     var s: S = S(a, b)
     s.incrementA()
     self.s = S(s.a, s.s)
   }
 
   public func setV1(a: Int)
-  mutates (v, v.x) {
+  mutates (v) {
     var t1: V = V(a)
     let t2: V = V(a + 1)
 
@@ -22,7 +22,7 @@ C :: (any) {
   }
 
   public func setV2(a: Int)
-  mutates (v, v.x) {
+  mutates (v) {
     let t1: V = V(a)
     var t2: V = V(a + 1)
 
@@ -30,7 +30,7 @@ C :: (any) {
   }
 
   public func setV3(c: Bool, a: Int, b: Int)
-  mutates (v, v.x) {
+  mutates (v) {
     if c {
       var v: V = V(a)
       v.increment()

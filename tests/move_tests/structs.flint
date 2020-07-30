@@ -63,7 +63,7 @@ C :: (any) {
     return a.x
   }
 
-  public func setAx(x: Int) mutates (a.x) {
+  public func setAx(x: Int) mutates (a) {
     a.x = x
   }
 
@@ -71,7 +71,7 @@ C :: (any) {
     return a.y
   }
 
-  public func setAy(y: Bool) mutates (a.y) {
+  public func setAy(y: Bool) mutates (a) {
     a.y = y
   }
 
@@ -79,7 +79,7 @@ C :: (any) {
     return b.x.x
   }
 
-  public func setBxx(x: Int) mutates (b.x) {
+  public func setBxx(x: Int) mutates (b) {
     b.x.x = x
   }
 
@@ -122,7 +122,7 @@ C :: (any) {
     return b.x.y
   }
 
-  public func setBxy(y: Bool) mutates (b.x, b.y) {
+  public func setBxy(y: Bool) mutates (b) {
     let marker: Int = 1000020
     b.x.y = y
   }
@@ -131,7 +131,7 @@ C :: (any) {
     return b.y
   }
 
-  public func setBy(y: Int) mutates (b, b.y) {
+  public func setBy(y: Int) mutates (b) {
     b.y = y
   }
 
