@@ -220,147 +220,7 @@ impl MoveStructInitialiser {
         let result_type = Type::from_identifier(self.identifier.clone());
         let result_type = MoveType::move_type(result_type, Option::from(self.environment.clone()));
         let result_type = result_type.generate(&function_context);
-
-        let mut function_context = FunctionContext {
-            environment: self.environment.clone(),
-            scope_context: self.declaration.scope_context.clone(),
-            enclosing_type: self.identifier.token.clone(),
-            block_stack: vec![MoveIRBlock { statements: vec![] }],
-            in_struct_function: true,
-            is_constructor: true,
-        };
-
-        let body = if self.declaration.body.is_empty() {
-            "".to_string()
-        } else {
-            let mut properties = self.properties.clone();
-            for _ in &self.properties {
-                let property = properties.remove(0);
-                let property_type = MoveType::move_type(
-                    property.variable_type,
-                    Option::from(self.environment.clone()),
-                )
-                .generate(&function_context);
-                let name = format!("__this_{}", property.identifier.token);
-                function_context.emit(MoveIRStatement::Expression(
-                    MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                        identifier: name,
-                        declaration_type: property_type,
-                    }),
-                ));
-            }
-
-            let mut unassigned: Vec<Identifier> = self
-                .properties
-                .clone()
-                .into_iter()
-                .map(|v| v.identifier)
-                .collect();
-            let mut statements = self.declaration.body.clone();
-            while !(statements.is_empty() || unassigned.is_empty()) {
-                let statement = statements.remove(0);
-                if let Statement::Expression(e) = statement.clone() {
-                    if let Expression::BinaryExpression(b) = e {
-                        if let BinOp::Equal = b.op {
-                            match *b.lhs_expression {
-                                Expression::Identifier(i) => {
-                                    if let Some(ref enclosing) = i.enclosing_type {
-                                        if self.identifier.token == *enclosing {
-                                            unassigned = unassigned
-                                                .into_iter()
-                                                .filter(|u| u.token != i.token)
-                                                .collect();
-                                        }
-                                    }
-                                }
-                                Expression::BinaryExpression(be) => {
-                                    let op = be.op.clone();
-                                    let lhs = *be.lhs_expression;
-                                    let rhs = *be.rhs_expression;
-                                    if let BinOp::Dot = op {
-                                        if let Expression::SelfExpression = lhs {
-                                            if let Expression::Identifier(i) = rhs {
-                                                unassigned = unassigned
-                                                    .into_iter()
-                                                    .filter(|u| u.token != i.token)
-                                                    .collect();
-                                            }
-                                        }
-                                    }
-                                }
-                                _ => break,
-                            }
-                        }
-                    }
-                }
-
-                let statement = MoveStatement { statement }.generate(&mut function_context);
-                function_context.emit(statement);
-            }
-
-            let fields = self.properties.clone();
-            let fields = fields
-                .into_iter()
-                .map(|f| {
-                    let name = format!("__this_{}", f.identifier.token);
-                    if let Some(expr) = f.expression {
-                        function_context.emit(MoveIRStatement::Expression(
-                            MoveIRExpression::Assignment(crate::moveir::ir::MoveIRAssignment {
-                                identifier: name.clone(),
-                                expression: Box::from(
-                                    crate::moveir::expression::MoveExpression {
-                                        expression: *expr,
-                                        position: Default::default(),
-                                    }
-                                    .generate(&function_context),
-                                ),
-                            }),
-                        ));
-                    }
-                    (
-                        f.identifier.token,
-                        MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
-                            MoveIRExpression::Identifier(name),
-                        ))),
-                    )
-                })
-                .collect();
-
-            let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
-                identifier: self.identifier.clone(),
-                fields,
-            });
-
-            if statements.is_empty() {
-                function_context.emit_release_references();
-                function_context.emit(MoveIRStatement::Return(constructor));
-                function_context.generate()
-            } else {
-                function_context.is_constructor = false;
-
-                function_context.emit_release_references();
-
-                let self_type = MoveType::move_type(
-                    Type::type_from_identifier(self.identifier.clone()),
-                    Option::from(self.environment.clone()),
-                )
-                .generate(&function_context);
-
-                let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                    identifier: "this".to_string(),
-                    declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
-                });
-                function_context.emit(MoveIRStatement::Expression(emit));
-
-                let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                    identifier: "".to_string(),
-                    declaration_type: self_type,
-                });
-                function_context.emit(MoveIRStatement::Expression(emit));
-
-                function_context.generate()
-            }
-        };
+        let body = self.generate_body();
 
         format!(
             "{modifiers} {name}_init({parameters}): {result_type} {{ \n\n {body} \n\n }}",
@@ -370,5 +230,144 @@ impl MoveStructInitialiser {
             parameters = parameters,
             body = body
         )
+    }
+
+    fn generate_body(&self) -> String {
+        let mut function_context = FunctionContext {
+            environment: self.environment.clone(),
+            scope_context: self.declaration.scope_context.clone(),
+            enclosing_type: self.identifier.token.clone(),
+            block_stack: vec![MoveIRBlock { statements: vec![] }],
+            in_struct_function: true,
+            is_constructor: true,
+        };
+
+        let mut properties = self.properties.clone();
+        for _ in &self.properties {
+            let property = properties.remove(0);
+            let property_type = MoveType::move_type(
+                property.variable_type,
+                Option::from(self.environment.clone()),
+            )
+                .generate(&function_context);
+            let name = format!("__this_{}", property.identifier.token);
+            function_context.emit(MoveIRStatement::Expression(
+                MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
+                    identifier: name,
+                    declaration_type: property_type,
+                }),
+            ));
+        }
+
+        let mut unassigned: Vec<Identifier> = self
+            .properties
+            .clone()
+            .into_iter()
+            .map(|v| v.identifier)
+            .collect();
+        let mut statements = self.declaration.body.clone();
+        while !(statements.is_empty() || unassigned.is_empty()) {
+            let statement = statements.remove(0);
+            if let Statement::Expression(e) = statement.clone() {
+                if let Expression::BinaryExpression(b) = e {
+                    if let BinOp::Equal = b.op {
+                        match *b.lhs_expression {
+                            Expression::Identifier(i) => {
+                                if let Some(ref enclosing) = i.enclosing_type {
+                                    if self.identifier.token == *enclosing {
+                                        unassigned = unassigned
+                                            .into_iter()
+                                            .filter(|u| u.token != i.token)
+                                            .collect();
+                                    }
+                                }
+                            }
+                            Expression::BinaryExpression(be) => {
+                                let op = be.op.clone();
+                                let lhs = *be.lhs_expression;
+                                let rhs = *be.rhs_expression;
+                                if let BinOp::Dot = op {
+                                    if let Expression::SelfExpression = lhs {
+                                        if let Expression::Identifier(i) = rhs {
+                                            unassigned = unassigned
+                                                .into_iter()
+                                                .filter(|u| u.token != i.token)
+                                                .collect();
+                                        }
+                                    }
+                                }
+                            }
+                            _ => break,
+                        }
+                    }
+                }
+            }
+
+            let statement = MoveStatement { statement }.generate(&mut function_context);
+            function_context.emit(statement);
+        }
+
+        let fields = self.properties.clone();
+        let fields = fields
+            .into_iter()
+            .map(|f| {
+                let name = format!("__this_{}", f.identifier.token);
+                if let Some(expr) = f.expression {
+                    function_context.emit(MoveIRStatement::Expression(
+                        MoveIRExpression::Assignment(crate::moveir::ir::MoveIRAssignment {
+                            identifier: name.clone(),
+                            expression: Box::from(
+                                crate::moveir::expression::MoveExpression {
+                                    expression: *expr,
+                                    position: Default::default(),
+                                }
+                                    .generate(&function_context),
+                            ),
+                        }),
+                    ));
+                }
+                (
+                    f.identifier.token,
+                    MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
+                        MoveIRExpression::Identifier(name),
+                    ))),
+                )
+            })
+            .collect();
+
+        let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
+            identifier: self.identifier.clone(),
+            fields,
+        });
+
+        if statements.is_empty() {
+            function_context.emit_release_references();
+            function_context.emit(MoveIRStatement::Return(constructor));
+            function_context.generate()
+        } else {
+            function_context.is_constructor = false;
+
+            function_context.emit_release_references();
+
+            let self_type = MoveType::move_type(
+                Type::type_from_identifier(self.identifier.clone()),
+                Option::from(self.environment.clone()),
+            )
+                .generate(&function_context);
+
+            let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
+                identifier: "this".to_string(),
+                declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
+            });
+            function_context.emit(MoveIRStatement::Expression(emit));
+
+            let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
+                identifier: "".to_string(),
+                declaration_type: self_type,
+            });
+            function_context.emit(MoveIRStatement::Expression(emit));
+
+            function_context.generate()
+        }
     }
 }

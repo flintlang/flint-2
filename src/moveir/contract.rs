@@ -15,9 +15,8 @@ use super::statement::MoveStatement;
 use super::MovePosition;
 use crate::ast::{
     mangle, mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
-    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, FunctionDeclaration,
-    Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type,
-    VariableDeclaration,
+    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, Identifier,
+    InoutType, Statement, StructDeclaration, TraitDeclaration, Type, VariableDeclaration,
 };
 use crate::context::ScopeContext;
 use crate::environment::Environment;
@@ -34,30 +33,11 @@ pub struct MoveContract {
 
 impl MoveContract {
     pub(crate) fn generate(&self) -> String {
-        let imports = self.external_traits.clone();
-        let mut imports: Vec<MoveIRStatement> = imports
-            .into_iter()
-            .filter_map(|i| {
-                i.get_module_address().map(|module_address| {
-                    MoveIRStatement::Import(MoveIRModuleImport {
-                        name: i.identifier.token,
-                        address: module_address,
-                    })
-                })
-            })
-            .collect();
-        let mut runtime_imports = move_runtime_types::get_all_imports();
-        imports.append(&mut runtime_imports);
-
-        let import_code = imports
-            .into_iter()
-            .map(|a| format!("{}", a))
-            .collect::<Vec<String>>()
-            .join("\n");
+        let import_code = self.generate_imports();
 
         let runtime_functions = MoveRuntimeFunction::get_all_functions().join("\n\n");
 
-        let functions: Vec<FunctionDeclaration> = self
+        let functions = self
             .contract_behaviour_declarations
             .clone()
             .into_iter()
@@ -67,15 +47,14 @@ impl MoveContract {
                     _ => None,
                 })
             })
-            .collect();
-
-        let functions: Vec<String> = functions
-            .into_iter()
-            .map(|f| MoveFunction {
-                function_declaration: f,
-                environment: self.environment.clone(),
-                is_contract_function: false,
-                enclosing_type: self.contract_declaration.identifier.clone(),
+            .map(|f| {
+                MoveFunction {
+                    function_declaration: f,
+                    environment: self.environment.clone(),
+                    is_contract_function: false,
+                    enclosing_type: self.contract_declaration.identifier.clone(),
+                }
+                    .generate(true)
             })
             .map(|f| f.generate(true))
             .collect();
@@ -91,7 +70,7 @@ impl MoveContract {
             is_constructor: false,
         };
 
-        let members: Vec<VariableDeclaration> = self
+        let variable_declarations = self
             .contract_declaration
             .contract_members
             .clone()
@@ -103,163 +82,71 @@ impl MoveContract {
                     None
                 }
             })
-            .collect();
+            .collect::<Vec<VariableDeclaration>>();
 
-        let members: Vec<VariableDeclaration> = members
+        let members = variable_declarations
+            .clone()
             .into_iter()
             .filter(|m| !m.variable_type.is_dictionary_type())
-            .collect();
-
-        let members: Vec<String> = members
-            .into_iter()
             .map(|v| {
-                let declaration =
-                    MoveFieldDeclaration { declaration: v }.generate(&function_context);
-                return format!("{declaration}", declaration = declaration);
-            })
-            .collect();
-        let members = members.join(",\n");
-
-        let dict_resources: Vec<VariableDeclaration> = self
-            .contract_declaration
-            .contract_members
-            .clone()
-            .into_iter()
-            .filter_map(|m| {
-                if let ContractMember::VariableDeclaration(v, _) = m {
-                    Some(v)
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        let dict_resources: Vec<VariableDeclaration> = dict_resources
-            .into_iter()
-            .filter(|m| m.variable_type.is_dictionary_type())
-            .collect();
-        let dict_runtime = dict_resources.clone();
-        let dict_resources: Vec<String> = dict_resources
-            .into_iter()
-            .map(|d| {
-                let result_type = MoveType::move_type(
-                    d.variable_type.clone(),
-                    Option::from(self.environment.clone()),
-                );
-                let result_type = result_type.generate(&function_context);
                 format!(
-                    "resource {name} {{ \n value: {dic_type} \n }}",
-                    name = mangle_dictionary(&d.identifier.token),
-                    dic_type = result_type
+                    "{}",
+                    MoveFieldDeclaration { declaration: v }.generate(&function_context)
                 )
             })
-            .collect();
+            .collect::<Vec<String>>()
+            .join(",\n");
 
-        let dict_resources = dict_resources.join("\n\n");
+        let (dict_resources, dict_runtime) =
+            self.get_dict_code(&function_context, &*variable_declarations);
 
-        let dict_runtime: Vec<String> = dict_runtime
-            .into_iter()
-            .map(|d| {
-                let r_name = mangle_dictionary(&d.identifier.token);
-                let result_type =
-                    MoveType::move_type(d.variable_type, Option::from(self.environment.clone()));
-                let result_type = result_type.generate(&function_context);
-                format!(
-                    "_get_{r_name}(_address_this: address): {r_type} acquires {r_name} {{
-    let this: &mut Self.{r_name};
-    let temp: &{r_type};
-    let result: {r_type};
-    this = borrow_global_mut<{r_name}>(move(_address_this));
-    temp = &copy(this).value;
-    result = *copy(temp);
-    return move(result);
-  }}
-
-        _insert_{r_name}(_address_this: address, v: {r_type}) acquires {r_name} {{
-    let new_value: Self.{r_name};
-    let cur: &mut Self.{r_name};
-    let b: bool;
-    b = exists<{r_name}>(copy(_address_this));
-    if (move(b)) {{
-      cur = borrow_global_mut<{r_name}>(move(_address_this));
-      *(&mut move(cur).value) = move(v);
-    }} else {{
-       new_value = {r_name} {{
-      value: move(v)
-    }};
-    move_to_sender<{r_name}>(move(new_value));
-    }}
-    return;
-  }}",
-                    r_name = r_name,
-                    r_type = result_type
-                )
-            })
-            .collect();
-
-        let dict_runtime = dict_runtime.join("\n\n");
-
-        let structs: Vec<StructDeclaration> = self
+        let structs_declarations = self
             .struct_declarations
             .clone()
             .into_iter()
             .filter(|s| s.identifier.token != "Quartz_Global")
-            .collect();
-        let mut structs: Vec<String> = structs
-            .into_iter()
-            .map(|s| {
-                MoveStruct {
-                    struct_declaration: s,
-                    environment: self.environment.clone(),
-                }
-                .generate()
+            .map(|s| MoveStruct {
+                struct_declaration: s,
+                environment: self.environment.clone(),
             })
-            .collect();
+            .collect::<Vec<MoveStruct>>();
+
+        let mut structs = structs_declarations
+            .iter()
+            .map(|dec| dec.generate())
+            .collect::<Vec<String>>();
+
         let mut runtime_structs = move_runtime_types::get_all_declarations();
         structs.append(&mut runtime_structs);
         let structs = structs.join("\n\n");
 
-        let struct_functions: Vec<String> = self
-            .struct_declarations
-            .clone()
+        let struct_functions = structs_declarations
             .into_iter()
-            .map(|s| {
-                MoveStruct {
-                    struct_declaration: s,
-                    environment: self.environment.clone(),
-                }
-                .generate_all_functions()
-            })
-            .collect();
-        let struct_functions = struct_functions.join("\n\n");
+            .map(|s| s.generate_all_functions())
+            .collect::<Vec<String>>()
+            .join("\n\n");
 
-        let assets: Vec<String> = self
+        let asset_declarations = self
             .asset_declarations
             .clone()
             .into_iter()
-            .map(|a| {
-                MoveAsset {
-                    declaration: a,
-                    environment: self.environment.clone(),
-                }
-                .generate()
+            .map(|a| MoveAsset {
+                declaration: a,
+                environment: self.environment.clone(),
             })
-            .collect();
-        let assets = assets.join("\n");
+            .collect::<Vec<MoveAsset>>();
 
-        let asset_functions: Vec<String> = self
-            .asset_declarations
-            .clone()
-            .into_iter()
-            .map(|s| {
-                MoveAsset {
-                    declaration: s,
-                    environment: self.environment.clone(),
-                }
-                .generate_all_functions()
-            })
-            .collect();
-        let asset_functions = asset_functions.join("\n\n");
+        let assets = asset_declarations
+            .iter()
+            .map(|dec| dec.generate())
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let asset_functions = asset_declarations
+            .iter()
+            .map(|dec| dec.generate_all_functions())
+            .collect::<Vec<String>>()
+            .join("\n\n");
 
         let mut initialiser_declaration = None;
         for declarations in self.contract_behaviour_declarations.clone() {
@@ -293,44 +180,41 @@ impl MoveContract {
         };
 
         let params = initialiser_declaration.head.parameters.clone();
-        let params: Vec<MoveIRExpression> = params
+        let params: Vec<String> = params
             .into_iter()
             .map(|p| {
                 MoveIdentifier {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
+                    .to_string()
             })
             .collect();
-        let params: Vec<String> = params.into_iter().map(|i| format!("{}", i)).collect();
 
         let params_values = initialiser_declaration.head.parameters.clone();
-        let params_values: Vec<MoveIRExpression> = params_values
+        let params_values = params_values
             .into_iter()
             .map(|p| {
                 MoveIdentifier {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, true, false)
+                    .generate(&function_context, true, false)
+                    .to_string()
             })
-            .collect();
-        let params_values: Vec<String> = params_values
-            .into_iter()
-            .map(|i| format!("{}", i))
-            .collect();
-        let params_values = params_values.join(", ");
+            .collect::<Vec<String>>()
+            .join(", ");
 
         let param_types = initialiser_declaration.head.parameters.clone();
-        let param_types: Vec<MoveIRType> = param_types
+        let param_types = param_types
             .into_iter()
             .map(|p| {
                 MoveType::move_type(p.type_assignment, Option::from(self.environment.clone()))
                     .generate(&function_context)
+                    .to_string()
             })
-            .collect();
-        let param_types: Vec<String> = param_types.into_iter().map(|i| format!("{}", i)).collect();
+            .collect::<Vec<String>>();
 
         let mut parameters: Vec<String> = params
             .into_iter()
@@ -345,9 +229,27 @@ impl MoveContract {
             .get_variable_declarations_without_dict()
             .collect();
 
+        let scope_context = statements
+            .clone()
+            .into_iter()
+            .filter_map(|statement| {
+                if let Statement::Expression(Expression::VariableDeclaration(declaration)) =
+                statement
+                {
+                    Some(declaration)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<VariableDeclaration>>();
+
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
-            scope_context: Default::default(),
+            scope_context: ScopeContext {
+                parameters: vec![],
+                local_variables: scope_context,
+                counter: 0,
+            },
             enclosing_type: self.contract_declaration.identifier.token.clone(),
             block_stack: vec![MoveIRBlock { statements: vec![] }],
             in_struct_function: false,
@@ -584,6 +486,102 @@ impl MoveContract {
                        init = initialiser, publish = publisher, struct_functions = struct_functions, imports = import_code,
                        runtime = runtime_functions, dict_runtime = dict_runtime
         );
+    }
+
+    fn generate_imports(&self) -> String {
+        let imports = self.external_traits.clone();
+        let mut imports: Vec<MoveIRStatement> = imports
+            .into_iter()
+            .filter_map(|i| {
+                i.get_module_address().map(|module_address| {
+                    MoveIRStatement::Import(MoveIRModuleImport {
+                        name: i.identifier.token,
+                        address: module_address,
+                    })
+                })
+            })
+            .collect();
+        let mut runtime_imports = move_runtime_types::get_all_imports();
+        imports.append(&mut runtime_imports);
+
+        imports
+            .into_iter()
+            .map(|a| format!("{}", a))
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+
+    fn get_dict_code(
+        &self,
+        function_context: &FunctionContext,
+        variable_declarations: &[VariableDeclaration],
+    ) -> (String, String) {
+        let dict_resources: Vec<&VariableDeclaration> = variable_declarations
+            .iter()
+            .filter(|m| m.variable_type.is_dictionary_type())
+            .collect();
+        let dict_runtime = dict_resources.clone();
+        let dict_resources = dict_resources
+            .into_iter()
+            .map(|d| {
+                let result_type = MoveType::move_type(
+                    d.variable_type.clone(),
+                    Option::from(self.environment.clone()),
+                );
+                let result_type = result_type.generate(&function_context);
+                format!(
+                    "resource {name} {{ \n value: {dic_type} \n }}",
+                    name = mangle_dictionary(&d.identifier.token),
+                    dic_type = result_type
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n\n");
+
+        let dict_runtime = dict_runtime
+            .into_iter()
+            .map(|d| {
+                let r_name = mangle_dictionary(&d.identifier.token);
+                let result_type = MoveType::move_type(
+                    d.variable_type.clone(),
+                    Option::from(self.environment.clone()),
+                );
+                let result_type = result_type.generate(&function_context);
+                format!(
+                    "_get_{r_name}(_address_this: address): {r_type} acquires {r_name} {{
+    let this: &mut Self.{r_name};
+    let temp: &{r_type};
+    let result: {r_type};
+    this = borrow_global_mut<{r_name}>(move(_address_this));
+    temp = &copy(this).value;
+    result = *copy(temp);
+    return move(result);
+  }}
+
+        _insert_{r_name}(_address_this: address, v: {r_type}) acquires {r_name} {{
+    let new_value: Self.{r_name};
+    let cur: &mut Self.{r_name};
+    let b: bool;
+    b = exists<{r_name}>(copy(_address_this));
+    if (move(b)) {{
+      cur = borrow_global_mut<{r_name}>(move(_address_this));
+      *(&mut move(cur).value) = move(v);
+    }} else {{
+       new_value = {r_name} {{
+      value: move(v)
+    }};
+    move_to_sender<{r_name}>(move(new_value));
+    }}
+    return;
+  }}",
+                    r_name = r_name,
+                    r_type = result_type
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n\n");
+
+        (dict_resources, dict_runtime)
     }
 }
 

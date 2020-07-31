@@ -12,7 +12,7 @@ MyContract :: (any) {
     return self.aStruct.value
   }
 
-  public func shouldAlsoCompile() mutates (aStruct, aStruct.value) {
+  public func shouldAlsoCompile() mutates (aStruct) {
     // Should be able to assign to public values
     self.aStruct.value = 5
   }

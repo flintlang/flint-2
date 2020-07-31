@@ -1,4 +1,5 @@
 use self::utils::*;
+use crate::ast::Literal::BooleanLiteral;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
@@ -35,6 +36,20 @@ impl Visitor for MovePreProcessor {
                     },
                     None,
                 ))
+        }
+
+        if contract.contract_members.is_empty() {
+            contract
+                .contract_members
+                .push(ContractMember::VariableDeclaration(
+                    VariableDeclaration {
+                        declaration_token: None,
+                        identifier: Identifier::generated("__dummy_to_prevent_empty_struct__"),
+                        variable_type: Type::Bool,
+                        expression: Some(Box::from(Expression::Literal(BooleanLiteral(true)))),
+                    },
+                    None,
+                ));
         }
 
         Ok(())
@@ -126,17 +141,52 @@ impl Visitor for MovePreProcessor {
 
     fn start_struct_declaration(
         &mut self,
-        _t: &mut StructDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut StructDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        _t.members = _t
+        let is_initialiser = |member: &StructMember| {
+            if let StructMember::SpecialDeclaration(dec) = member {
+                dec.head.special_token == "init"
+            } else {
+                false
+            }
+        };
+
+        if !declaration.members.iter().any(|m| is_initialiser(m)) {
+            let initialiser = SpecialDeclaration {
+                head: SpecialSignatureDeclaration {
+                    special_token: "init".to_string(),
+                    enclosing_type: Option::from(declaration.identifier.token.clone()),
+                    attributes: vec![],
+                    modifiers: vec![Modifier::Public],
+                    mutates: vec![],
+                    parameters: vec![],
+                },
+                body: vec![],
+                scope_context: Default::default(),
+                generated: false,
+            };
+
+            declaration
+                .members
+                .push(StructMember::SpecialDeclaration(initialiser.clone()));
+
+            ctx.environment.add_special(
+                initialiser,
+                declaration.identifier.token.as_str(),
+                vec![],
+                vec![],
+            );
+        }
+
+        declaration.members = declaration
             .members
             .clone()
             .into_iter()
             .flat_map(|f| {
                 if let StructMember::FunctionDeclaration(fd) = f {
                     let functions =
-                        convert_default_parameter_functions(fd, &_t.identifier.token, _ctx);
+                        convert_default_parameter_functions(fd, &declaration.identifier.token, ctx);
                     functions
                         .into_iter()
                         .map(StructMember::FunctionDeclaration)
@@ -176,17 +226,26 @@ impl Visitor for MovePreProcessor {
 
     fn start_variable_declaration(
         &mut self,
-        _t: &mut VariableDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut VariableDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        if _ctx.in_function_or_special() {
-            if let Some(ref mut scope_context) = _ctx.scope_context {
-                scope_context.local_variables.push(_t.clone());
+        if ctx.in_function_or_special() {
+            if let Some(ref mut scope_context) = ctx.scope_context {
+                scope_context.local_variables.push(declaration.clone());
+            }
+
+            // If is function declaration context
+            if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
+                function_declaration_context
+                    .local_variables
+                    .push(declaration.clone());
             }
 
             // If is special declaration context  // TODO should these be else ifs?
-            if let Some(ref mut special_declaration_context) = _ctx.special_declaration_context {
-                special_declaration_context.local_variables.push(_t.clone());
+            if let Some(ref mut special_declaration_context) = ctx.special_declaration_context {
+                special_declaration_context
+                    .local_variables
+                    .push(declaration.clone());
             }
         }
         Ok(())
@@ -402,10 +461,10 @@ impl Visitor for MovePreProcessor {
 
     fn start_special_declaration(
         &mut self,
-        _t: &mut SpecialDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut SpecialDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        let members = _t.body.clone();
+        let members = declaration.body.clone();
 
         let members = members
             .into_iter()
@@ -423,10 +482,10 @@ impl Visitor for MovePreProcessor {
             })
             .collect();
 
-        _t.body = members;
-        if let Some(ref b_ctx) = _ctx.contract_behaviour_declaration_context {
+        declaration.body = members;
+        if let Some(ref b_ctx) = ctx.contract_behaviour_declaration_context {
             if b_ctx.caller.is_some() {
-                _t.head.parameters.push(Parameter {
+                declaration.head.parameters.push(Parameter {
                     identifier: Identifier {
                         token: "caller".to_string(),
                         enclosing_type: None,
@@ -448,9 +507,9 @@ impl Visitor for MovePreProcessor {
     fn finish_special_declaration(
         &mut self,
         special: &mut SpecialDeclaration,
-        _ctx: &mut Context,
+        ctx: &mut Context,
     ) -> VResult {
-        let mut statements = get_declaration(_ctx);
+        let mut statements = get_declaration(ctx);
         statements.append(&mut special.body.clone());
         special.body = statements;
 
@@ -547,39 +606,38 @@ impl Visitor for MovePreProcessor {
 
     fn start_binary_expression(
         &mut self,
-        _t: &mut BinaryExpression,
-        mut _ctx: &mut Context,
+        bin_expr: &mut BinaryExpression,
+        ctx: &mut Context,
     ) -> VResult {
-        if _t.op.is_assignment_shorthand() {
-            let op = _t.op.get_assignment_shorthand();
-            _t.op = BinOp::Equal;
+        if bin_expr.op.is_assignment_shorthand() {
+            let op = bin_expr.op.get_assignment_shorthand();
+            bin_expr.op = BinOp::Equal;
 
             let rhs = BinaryExpression {
-                lhs_expression: _t.lhs_expression.clone(),
-                rhs_expression: _t.rhs_expression.clone(),
+                lhs_expression: bin_expr.lhs_expression.clone(),
+                rhs_expression: bin_expr.rhs_expression.clone(),
                 op,
-                line_info: _t.line_info.clone(),
+                line_info: bin_expr.line_info.clone(),
             };
-            _t.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
-        } else if let BinOp::Dot = _t.op {
-            _ctx.function_call_receiver_trail
-                .push(*_t.lhs_expression.clone());
-            match *_t.lhs_expression.clone() {
+            bin_expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
+        } else if let BinOp::Dot = bin_expr.op {
+            ctx.function_call_receiver_trail
+                .push(*bin_expr.lhs_expression.clone());
+            match *bin_expr.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *_t.rhs_expression {
-                    } else {
-                        let lhs = _t.lhs_expression.clone();
+                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {} else {
+                        let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
-                        let lhs = expand_properties(lhs, _ctx, false);
-                        _t.lhs_expression = Box::from(lhs);
+                        let lhs = expand_properties(lhs, ctx, false);
+                        bin_expr.lhs_expression = Box::from(lhs);
                     }
                 }
                 Expression::BinaryExpression(b) => {
                     if let BinOp::Dot = b.op {
-                        let lhs = _t.lhs_expression.clone();
+                        let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
-                        let lhs = expand_properties(lhs, _ctx, false);
-                        _t.lhs_expression = Box::from(lhs);
+                        let lhs = expand_properties(lhs, ctx, false);
+                        bin_expr.lhs_expression = Box::from(lhs);
                     }
                 }
                 _ => {}
@@ -629,12 +687,12 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
-    fn start_function_call(&mut self, call: &mut FunctionCall, _ctx: &mut Context) -> VResult {
+    fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(call) {
             return Ok(());
         }
 
-        if let Some(mangled) = mangle_function_call_name(call, _ctx) {
+        if let Some(mangled) = mangle_function_call_name(call, ctx) {
             call.mangled_identifier = Option::from(Identifier {
                 token: mangled,
                 enclosing_type: None,
@@ -642,24 +700,24 @@ impl Visitor for MovePreProcessor {
             });
         }
 
-        if !_ctx.environment.is_initialise_call(&call)
-            && !_ctx.environment.is_trait_declared(&call.identifier.token)
+        if !ctx.environment.is_initialise_call(&call)
+            && !ctx.environment.is_trait_declared(&call.identifier.token)
         {
-            let is_global_function_call = is_global_function_call(&call, _ctx);
+            let is_global_function_call = is_global_function_call(&call, ctx);
 
-            let enclosing_type = _ctx
+            let enclosing_type = ctx
                 .enclosing_type_identifier()
                 .map(|id| id.token.to_string())
                 .unwrap_or_default();
 
             let caller_protections: &[_] =
-                if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
+                if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
                     &behaviour.caller_protections
                 } else {
                     &[]
                 };
 
-            let receiver_trail = &mut _ctx.function_call_receiver_trail;
+            let receiver_trail = &mut ctx.function_call_receiver_trail;
 
             if receiver_trail.is_empty() {
                 *receiver_trail = vec![Expression::SelfExpression]
@@ -669,33 +727,33 @@ impl Visitor for MovePreProcessor {
                 "Quartz_Global".to_string()
             } else {
                 let receiver = receiver_trail.last().unwrap();
-                _ctx.environment
+                ctx.environment
                     .get_expression_type(
                         receiver,
                         &enclosing_type,
                         &[],
                         caller_protections,
-                        _ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_context.as_ref().unwrap_or_default(),
                     )
                     .name()
             };
 
-            if _ctx.environment.is_struct_declared(&declared_enclosing)
-                || _ctx.environment.is_contract_declared(&declared_enclosing)
-                || _ctx.environment.is_trait_declared(&declared_enclosing)
-                || _ctx.environment.is_asset_declared(&declared_enclosing)
-                    && !is_global_function_call
+            if ctx.environment.is_struct_declared(&declared_enclosing)
+                || ctx.environment.is_contract_declared(&declared_enclosing)
+                || ctx.environment.is_trait_declared(&declared_enclosing)
+                || ctx.environment.is_asset_declared(&declared_enclosing)
+                && !is_global_function_call
             {
                 let mut expression = construct_expression(&receiver_trail);
-                let enclosing_type = _ctx
+                let enclosing_type = ctx
                     .enclosing_type_identifier()
                     .map(|id| id.token.to_string())
                     .unwrap_or_default();
 
                 if expression.enclosing_type().is_some() {
-                    expression = expand_properties(expression, _ctx, false);
+                    expression = expand_properties(expression, ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression {
-                    expression = expand_properties(expression, _ctx, false);
+                    expression = expand_properties(expression, ctx, false);
                 }
 
                 if expression != Expression::SelfExpression {
@@ -819,7 +877,7 @@ impl Visitor for MovePreProcessor {
 
                 let result_type = match expression {
                     Expression::Identifier(ref i) => {
-                        if let Some(ref result) = _ctx
+                        if let Some(ref result) = ctx
                             .scope_context
                             .as_ref()
                             .unwrap_or_default()
@@ -827,21 +885,21 @@ impl Visitor for MovePreProcessor {
                         {
                             result.clone()
                         } else {
-                            _ctx.environment.get_expression_type(
+                            ctx.environment.get_expression_type(
                                 &expression,
                                 &enclosing_type,
                                 &[],
                                 &[],
-                                _ctx.scope_context.as_ref().unwrap_or_default(),
+                                ctx.scope_context.as_ref().unwrap_or_default(),
                             )
                         }
                     }
-                    _ => _ctx.environment.get_expression_type(
+                    _ => ctx.environment.get_expression_type(
                         &expression,
                         &enclosing_type,
                         &[],
                         &[],
-                        _ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_context.as_ref().unwrap_or_default(),
                     ),
                 };
 
@@ -865,7 +923,7 @@ impl Visitor for MovePreProcessor {
                 call.arguments = arguments;
             }
         }
-        _ctx.function_call_receiver_trail = vec![];
+        ctx.function_call_receiver_trail = vec![];
 
         Ok(())
     }

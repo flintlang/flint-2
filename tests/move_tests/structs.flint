@@ -1,11 +1,6 @@
 struct A {
-  public var x: Int
-  public var y: Bool
-
-  public init() {
-    x = 0
-    y = false
-  }
+  public var x: Int = 0
+  public var y: Bool = false
 
   func getX() -> Int {
     return x
@@ -21,13 +16,8 @@ struct A {
 }
 
 struct B {
-  public var x: A
-  public var y: Int
-
-  public init() {
-    x = A()
-    y = 0
-  }
+  public var x: A = A()
+  public var y: Int = 0
 
   func getXx() -> Int {
     return x.getX()
@@ -39,6 +29,28 @@ struct B {
 
   func setXx(y: Int) mutates (x) {
     x.setX(x: y)
+  }
+}
+
+struct Maybe {
+  var element: Int = 0
+  visible var size: Int = 0
+
+  func add(value: Int) mutates (element, size) {
+    element = value
+    size = 1
+  }
+
+  func get(n: Int) -> Int {
+    if (self.size != 0) {
+      return self.element
+    } else {
+      return 0
+    }
+  }
+
+  func getSize() -> Int {
+    return size
   }
 }
 
@@ -63,7 +75,7 @@ C :: (any) {
     return a.x
   }
 
-  public func setAx(x: Int) mutates (a.x) {
+  public func setAx(x: Int) mutates (a) {
     a.x = x
   }
 
@@ -71,7 +83,7 @@ C :: (any) {
     return a.y
   }
 
-  public func setAy(y: Bool) mutates (a.y) {
+  public func setAy(y: Bool) mutates (a) {
     a.y = y
   }
 
@@ -79,7 +91,7 @@ C :: (any) {
     return b.x.x
   }
 
-  public func setBxx(x: Int) mutates (b.x) {
+  public func setBxx(x: Int) mutates (b) {
     b.x.x = x
   }
 
@@ -112,6 +124,8 @@ C :: (any) {
     return c.getXx()
   }
 
+  // TODO this is where this test fails. It does not alter the same copy of b
+  // b.setXx works correctly on its b, but it does not affect the b passed in.
   func setB(b: inout B, x: Int) mutates (b) {
     b.setXx(y: x)
   }
@@ -120,7 +134,7 @@ C :: (any) {
     return b.x.y
   }
 
-  public func setBxy(y: Bool) mutates (b.x, b.y) {
+  public func setBxy(y: Bool) mutates (b) {
     let marker: Int = 1000020
     b.x.y = y
   }
@@ -129,7 +143,7 @@ C :: (any) {
     return b.y
   }
 
-  public func setBy(y: Int) mutates (b, b.y) {
+  public func setBy(y: Int) mutates (b) {
     b.y = y
   }
 
@@ -151,32 +165,5 @@ C :: (any) {
 
   public func getE() -> Bool {
     return self.e
-  }
-}
-
-struct Maybe {
-  var element: Int
-  visible var size: Int
-
-  public init() {
-    element = 0
-    size = 0
-  }
-
-  func add(value: Int) mutates (element, size) {
-    element = value
-    size = 1
-  }
-
-  func get(n: Int) -> Int {
-    if (self.size != 0) {
-      return self.element
-    } else {
-      return 0
-    }
-  }
-
-  func getSize() -> Int {
-    return size
   }
 }

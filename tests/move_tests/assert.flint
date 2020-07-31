@@ -1,6 +1,4 @@
-contract Assert {
-    var dummy: Int = 0
-}
+contract Assert {}
 
 Assert :: (any) {
     public init() {}

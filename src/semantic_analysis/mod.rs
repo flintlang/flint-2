@@ -428,14 +428,14 @@ impl Visitor for SemanticAnalysis {
                     // Check: Do not allow reassignment to constants: This does not work since we never know
                     // if something is assigned to yet TODO add RHS expression when something is not yet defined
                     // So we know when something has been assigned to
-                    if property.is_constant() && ctx.is_lvalue {
-                        if property.property.get_value().is_some() {
-                            return Err(Box::from(format!(
-                                "Cannot reassign to constant `{}` on line {}",
-                                token, line_number
-                            )));
-                        } else {
-                        }
+                    if property.is_constant()
+                        && ctx.is_lvalue
+                        && property.property.get_value().is_some()
+                    {
+                        return Err(Box::from(format!(
+                            "Cannot reassign to constant `{}` on line {}",
+                            token, line_number
+                        )));
                     }
 
                     let current_enclosing_type =
@@ -465,32 +465,11 @@ impl Visitor for SemanticAnalysis {
                             }
                             Some(Modifier::Public) => (),
                         }
-                    }
-
-                    if let Some(function_declaration_context) =
-                        ctx.function_declaration_context.as_ref()
-                    {
-                        // Check: Do not allow mutation of identifier if it is not declared mutating
-                        if !function_declaration_context
-                            .mutates()
-                            .iter()
-                            .any(|id| &id.token == token)
-                            && ctx.is_lvalue
-                        {
-                            return Err(Box::from(format!(
-                                "Mutating identifier `{}` which is not declared mutating at line {}",
-                                token,
-                                function_declaration_context
-                                    .declaration
-                                    .head
-                                    .identifier
-                                    .line_info
-                                    .line
-                            )));
-                        }
+                    } else {
+                        ensure_mutation_declared(token, ctx)?;
                     }
                 } else {
-                    // Check: cannot find property definition
+                    // Check: cannot find property definition and it has an enclosing type
                     return Err(Box::from(format!(
                         "Use of undeclared identifier `{}` at line {}",
                         token, line_number
@@ -510,7 +489,21 @@ impl Visitor for SemanticAnalysis {
                     }
                 } else if !ctx.environment.is_enum_declared(token) {
                     identifier.enclosing_type =
-                        Option::from(ctx.enclosing_type_identifier().unwrap().token.clone())
+                        Option::from(ctx.enclosing_type_identifier().unwrap().token.clone());
+                    if let Some(type_id) = &identifier.enclosing_type {
+                        if ctx.environment.is_property_defined(token, type_id) {
+                            ensure_mutation_declared(token, ctx)?;
+                        } else if let Some(scope) = &ctx.scope_context {
+                            return if scope.is_declared(token) {
+                                Ok(())
+                            } else {
+                                Err(Box::from(format!(
+                                    "Use of undeclared identifier `{}` at line {}",
+                                    token, line_number
+                                )))
+                            };
+                        }
+                    }
                 } else if !ctx.is_enclosing {
                     return Err(Box::from(format!(
                         "Invalid reference to `{}` on line {}",
@@ -747,7 +740,31 @@ fn code_block_returns(block: &[Statement]) -> bool {
         .iter()
         .any(|statements| matches!(statements, Statement::ReturnStatement(_)))
         || (branches.peek().is_some()
-            && branches.all(|branch| {
-                code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
-            }))
+        && branches.all(|branch| {
+        code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
+    }))
+}
+
+fn ensure_mutation_declared(token: &str, ctx: &Context) -> VResult {
+    if let Some(function_declaration_context) = ctx.function_declaration_context.as_ref() {
+        // Check: Do not allow mutation of identifier if it is not declared mutating
+        if !function_declaration_context
+            .mutates()
+            .iter()
+            .any(|id| id.token == token)
+            && ctx.is_lvalue
+        {
+            return Err(Box::from(format!(
+                "Mutating identifier `{}` which is not declared mutating at line {}",
+                token,
+                function_declaration_context
+                    .declaration
+                    .head
+                    .identifier
+                    .line_info
+                    .line
+            )));
+        }
+    }
+    Ok(())
 }

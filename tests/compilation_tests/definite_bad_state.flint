@@ -1,6 +1,4 @@
-contract MyContract (One, Two, Three) {
-    var dummy: Int = 0
-}
+contract MyContract (One, Two, Three) {}
 
 MyContract :: (any) {
     public init() {
@@ -10,7 +8,7 @@ MyContract :: (any) {
 
 MyContract @(One, Three) :: (any) {
     public func foo() {
-        //! compile fail line 14
+        //! compile fail line 12
         bar() // Should fail since we are not in state Two
     }
 }

@@ -7,7 +7,6 @@ MyContract :: (any) {
 
   //! compile fail not declared mutating at line 9
   public func shouldNotCompile() {
-    // NOTE: only catches the error if self. is used
-    self.value += 5
+    value += 5
   }
 }

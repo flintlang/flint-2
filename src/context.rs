@@ -132,6 +132,10 @@ impl ScopeContext {
             })
     }
 
+    pub fn is_declared(&self, name: &str) -> bool {
+        self.declaration(name).is_some()
+    }
+
     pub fn declaration(&self, name: &str) -> Option<VariableDeclaration> {
         self.first_local_or_parameter(|v: &VariableDeclaration| v.identifier.token.as_str() == name)
     }
@@ -140,7 +144,7 @@ impl ScopeContext {
         self.first_local_or_parameter(|v| {
             v.identifier.token == variable || mangle(variable) == v.identifier.token
         })
-        .map(|i| i.variable_type)
+            .map(|i| i.variable_type)
     }
 
     pub fn contains_variable_declaration(&self, name: &str) -> bool {

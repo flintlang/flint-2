@@ -673,8 +673,10 @@ pub fn pre_assign(
                 }),
                 expression: None,
             };
+
+            let mangled_identifier = Identifier::generated(&mangle(&temp_identifier.token));
             ctx.post_statements.push(release(
-                Expression::Identifier(temp_identifier.clone()),
+                Expression::Identifier(mangled_identifier),
                 Type::InoutType(InoutType {
                     key_type: Box::new(expression_type),
                 }),

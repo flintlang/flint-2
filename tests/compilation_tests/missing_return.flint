@@ -1,6 +1,4 @@
-contract MyContract {
-  var dummy: Int = 0
-}
+contract MyContract {}
 
 MyContract :: (any) {
   public init() {}
@@ -9,12 +7,10 @@ MyContract :: (any) {
   public func shouldNotCompile() -> Int {
     if true {
       return 6
+    } else if false {
+      return 7
     } else {
-      if false {
-        return 7
-      } else {
-        let ret = 8
-      }
+      let x = 10
     }
   }
 }

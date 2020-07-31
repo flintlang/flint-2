@@ -1,6 +1,4 @@
-contract MyContract (One, Two) {
-    var dummy: Int = 0
-}
+contract MyContract (One, Two) {}
 
 //! compile fail cannot have type state restrictions
 MyContract @(One) :: (any) {
