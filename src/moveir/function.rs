@@ -215,7 +215,7 @@ impl MoveFunction {
 
 pub fn reorder_statements(
     statements: &[MoveIRStatement],
-) -> impl Iterator<Item=&MoveIRStatement> + '_ {
+) -> impl Iterator<Item = &MoveIRStatement> + '_ {
     let declarations = statements.iter().filter(|statement| {
         matches!(
             statement,

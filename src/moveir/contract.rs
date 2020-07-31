@@ -4,8 +4,9 @@ use super::expression::MoveExpression;
 use super::function::{FunctionContext, MoveFunction};
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRModuleImport, MoveIRStatement,
-    MoveIRStructConstructor, MoveIRTransfer, MoveIRType, MoveIRVariableDeclaration,
+    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRModuleImport, MoveIROperation,
+    MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
+    MoveIRVariableDeclaration,
 };
 use super::r#struct::MoveStruct;
 use super::r#type::{move_runtime_types, MoveType};
@@ -78,7 +79,7 @@ impl MoveContract {
             })
             .map(|f| f.generate(true))
             .collect();
-        
+
         let functions = functions.join("\n\n");
 
         let function_context = FunctionContext {
@@ -355,6 +356,8 @@ impl MoveContract {
 
         let body;
 
+        let mut field_declarations = vec![];
+
         for property in &properties {
             let property_type = MoveType::move_type(
                 property.variable_type.clone(),
@@ -362,6 +365,14 @@ impl MoveContract {
             );
             let property_type = property_type.generate(&function_context);
             let identifier = format!("__this_{}", property.identifier.token);
+
+            field_declarations.push(MoveIRStatement::Expression(
+                MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
+                    identifier: identifier.clone(),
+                    declaration_type: property_type.clone(),
+                }),
+            ));
+
             function_context.emit(MoveIRStatement::Expression(
                 MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                     identifier,
@@ -430,14 +441,14 @@ impl MoveContract {
                     let move_statement = MoveStatement {
                         statement: Statement::Expression(e),
                     }
-                        .generate(&mut function_context);
+                    .generate(&mut function_context);
                     function_context.emit(move_statement);
                 }
                 assertion @ Statement::Assertion(_) => {
                     let move_statement = MoveStatement {
                         statement: assertion,
                     }
-                        .generate(&mut function_context);
+                    .generate(&mut function_context);
                     function_context.emit(move_statement);
                 }
                 _ => (),
@@ -456,10 +467,40 @@ impl MoveContract {
                 )
             })
             .collect();
-        let constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
+        let mut constructor = MoveIRExpression::StructConstructor(MoveIRStructConstructor {
             identifier: Identifier::generated("T"),
             fields,
         });
+
+        let initialiser_statements: Vec<MoveIRStatement> =
+            function_context.clone().pop_block().statements;
+
+        for initialiser_statement in initialiser_statements {
+            if let MoveIRStatement::Expression(MoveIRExpression::Assignment(assignment)) =
+                initialiser_statement
+            {
+                if let MoveIRExpression::Operation(MoveIROperation::MutableReference(id)) =
+                    *assignment.expression.clone()
+                {
+                    if let MoveIRExpression::Identifier(id) = *id {
+                        for field_declaration in &field_declarations {
+                            if let MoveIRStatement::Expression(
+                                MoveIRExpression::VariableDeclaration(vd),
+                            ) = field_declaration
+                            {
+                                if id == vd.identifier {
+                                    replace_borrowed_references(
+                                        &mut constructor,
+                                        &vd.identifier,
+                                        &assignment.identifier,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
@@ -543,5 +584,36 @@ impl MoveContract {
                        init = initialiser, publish = publisher, struct_functions = struct_functions, imports = import_code,
                        runtime = runtime_functions, dict_runtime = dict_runtime
         );
+    }
+}
+
+fn replace_borrowed_references(
+    constructor: &mut MoveIRExpression,
+    field_declaration: &str,
+    declaration: &str,
+) {
+    let mut fields = vec![];
+
+    if let MoveIRExpression::StructConstructor(constructor) = constructor {
+        for field in &constructor.fields {
+            if let (token, MoveIRExpression::Transfer(MoveIRTransfer::Move(identifier))) = field {
+                if let MoveIRExpression::Identifier(id) = &**identifier {
+                    if *id == *field_declaration {
+                        fields.push((
+                            token.clone(),
+                            MoveIRExpression::Operation(MoveIROperation::Dereference(Box::new(
+                                MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::new(
+                                    MoveIRExpression::Identifier(declaration.to_string()),
+                                ))),
+                            ))),
+                        ));
+                        break;
+                    }
+                }
+            }
+
+            fields.push(field.clone());
+        }
+        constructor.fields = fields;
     }
 }

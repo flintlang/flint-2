@@ -498,9 +498,11 @@ impl Visitor for MovePreProcessor {
                         _ctx.function_declaration_context
                     {
                         let mut variable_present = false;
-                
+
                         for local_variable in function_declaration_context.local_variables.clone() {
-                            if local_variable.identifier == variable.identifier && local_variable.variable_type == variable.variable_type {
+                            if local_variable.identifier == variable.identifier
+                                && local_variable.variable_type == variable.variable_type
+                            {
                                 // do not add to local variables
                                 if local_variable.declaration_token == Some("var".to_string()) {
                                     variable.declaration_token = Some("var".to_string());
@@ -512,27 +514,17 @@ impl Visitor for MovePreProcessor {
 
                         if !variable_present {
                             function_declaration_context
-                            .local_variables
-                            .push(variable.clone());
+                                .local_variables
+                                .push(variable.clone());
 
                             function_declaration_context
-                            .declaration
-                            .scope_context
-                            .as_mut()
-                            .unwrap()
-                            .local_variables
-                            .push(variable);
+                                .declaration
+                                .scope_context
+                                .as_mut()
+                                .unwrap()
+                                .local_variables
+                                .push(variable);
                         }
-                        /*function_declaration_context
-                            .local_variables
-                            .push(variable.clone());
-                        function_declaration_context
-                            .declaration
-                            .scope_context
-                            .as_mut()
-                            .unwrap()
-                            .local_variables
-                            .push(variable);*/
                     } else if let Some(ref mut special_declaration_context) =
                         _ctx.special_declaration_context
                     {
@@ -556,7 +548,7 @@ impl Visitor for MovePreProcessor {
     fn start_binary_expression(
         &mut self,
         _t: &mut BinaryExpression,
-        _ctx: &mut Context,
+        mut _ctx: &mut Context,
     ) -> VResult {
         if _t.op.is_assignment_shorthand() {
             let op = _t.op.get_assignment_shorthand();
@@ -591,6 +583,34 @@ impl Visitor for MovePreProcessor {
                     }
                 }
                 _ => {}
+            }
+        } else if _t.op.is_assignment() {
+            if let Expression::BinaryExpression(be) = &mut *_t.lhs_expression {
+                let id = get_mutable_reference(&be, _ctx);
+
+                if let Some(id) = id {
+                    be.lhs_expression = Box::new(Expression::Identifier(id));
+                }
+            } else if let Expression::BinaryExpression(be) = &mut *_t.rhs_expression {
+                let id = get_mutable_reference(&be, _ctx);
+
+                if let Some(id) = id {
+                    be.rhs_expression = Box::new(Expression::Identifier(id));
+                }
+            }
+        } else if let BinOp::DoubleEqual = _t.op {
+            if let Expression::BinaryExpression(be) = &mut *_t.lhs_expression {
+                let id = get_mutable_reference(&be, _ctx);
+
+                if let Some(id) = id {
+                    be.lhs_expression = Box::new(Expression::Identifier(id));
+                }
+            } else if let Expression::BinaryExpression(be) = &mut *_t.rhs_expression {
+                let id = get_mutable_reference(&be, _ctx);
+
+                if let Some(id) = id {
+                    be.rhs_expression = Box::new(Expression::Identifier(id));
+                }
             }
         }
 
@@ -676,6 +696,125 @@ impl Visitor for MovePreProcessor {
                     expression = expand_properties(expression, _ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression {
                     expression = expand_properties(expression, _ctx, false);
+                }
+
+                if expression != Expression::SelfExpression {
+                    let expression_type = _ctx.environment.get_expression_type(
+                        &expression,
+                        &enclosing_type,
+                        &[],
+                        &[],
+                        _ctx.scope_context.as_ref().unwrap_or_default(),
+                    );
+
+                    if let Type::UserDefinedType(_) = expression_type {
+                        if let Some(context) = &mut _ctx.function_declaration_context {
+                            let scope = _ctx.scope_context.as_mut().unwrap();
+                            let mut temp_identifier =
+                                scope.fresh_identifier(expression.get_line_info());
+                            let mut new_declaration = {
+                                VariableDeclaration {
+                                    declaration_token: None,
+                                    identifier: temp_identifier.clone(),
+                                    variable_type: Type::InoutType(InoutType {
+                                        key_type: Box::new(expression_type),
+                                    }),
+                                    expression: None,
+                                }
+                            };
+
+                            let mut in_scope_context = false;
+
+                            for local_var in context.local_variables.clone() {
+                                if local_var.variable_type == new_declaration.variable_type {
+                                    new_declaration = local_var.clone();
+                                    temp_identifier = local_var.identifier;
+                                    in_scope_context = true;
+                                    break;
+                                }
+                            }
+
+                            let mut in_block_context = false;
+
+                            if let Some(block_context) = &_ctx.block_context {
+                                for local_var in block_context.scope_context.local_variables.clone()
+                                {
+                                    if local_var.variable_type == new_declaration.variable_type {
+                                        new_declaration = local_var.clone();
+                                        temp_identifier = local_var.identifier;
+                                        in_block_context = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            for parameter in context.declaration.head.parameters.clone() {
+                                if parameter.type_assignment == new_declaration.variable_type {
+                                    temp_identifier = parameter.identifier;
+                                    in_scope_context = true;
+                                    in_block_context = true;
+                                    break;
+                                }
+                            }
+
+                            if !in_scope_context {
+                                context.local_variables.push(new_declaration.clone());
+
+                                if let Some(ref mut scope_context) =
+                                    context.declaration.scope_context
+                                {
+                                    scope_context.local_variables.push(new_declaration.clone());
+                                }
+
+                                if let Some(block_context) = &mut _ctx.block_context {
+                                    block_context
+                                        .scope_context
+                                        .local_variables
+                                        .push(new_declaration);
+                                }
+
+                                _ctx.pre_statements.push(Statement::Expression(
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(Expression::Identifier(
+                                            temp_identifier.clone(),
+                                        )),
+                                        rhs_expression: Box::new(Expression::InoutExpression(
+                                            InoutExpression {
+                                                ampersand_token: "&".to_string(),
+                                                expression: Box::new(expression.clone()),
+                                            },
+                                        )),
+                                        op: BinOp::Equal,
+                                        line_info: temp_identifier.line_info.clone(),
+                                    }),
+                                ));
+                            } else if !in_block_context {
+                                if let Some(block_context) = &mut _ctx.block_context {
+                                    block_context
+                                        .scope_context
+                                        .local_variables
+                                        .push(new_declaration);
+                                }
+
+                                _ctx.pre_statements.push(Statement::Expression(
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(Expression::Identifier(
+                                            temp_identifier.clone(),
+                                        )),
+                                        rhs_expression: Box::new(Expression::InoutExpression(
+                                            InoutExpression {
+                                                ampersand_token: "&".to_string(),
+                                                expression: Box::new(expression.clone()),
+                                            },
+                                        )),
+                                        op: BinOp::Equal,
+                                        line_info: temp_identifier.line_info.clone(),
+                                    }),
+                                ));
+                            }
+                            expression = Expression::Identifier(temp_identifier);
+                        }
+                    }
                 }
 
                 let result_type = match expression {
@@ -1007,4 +1146,184 @@ fn generate_and_add_setter(
         .push(ContractBehaviourMember::FunctionDeclaration(
             setter_declaration,
         ));
+}
+
+fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Option<Identifier> {
+    // returns a mutable reference to a local struct variable if it is not already mutably referenced
+    if let Expression::Identifier(id) = *_t.rhs_expression.clone() {
+        if id.enclosing_type.is_some() {
+            if let Some(context) = &mut _ctx.function_declaration_context {
+                for local_var in context.local_variables.clone() {
+                    if let Expression::Identifier(_) = *_t.lhs_expression.clone() {
+                        if let Type::InoutType(_) = local_var.variable_type {
+                        } else {
+                            // we require a temporary variable that is a reference to the variable containing the struct
+                            let scope = _ctx.scope_context.as_mut().unwrap();
+                            let mut temp_identifier = scope
+                                .fresh_identifier(_t.lhs_expression.clone().get_line_info());
+                            let mut new_declaration = {
+                                VariableDeclaration {
+                                    declaration_token: None,
+                                    identifier: temp_identifier.clone(),
+                                    variable_type: Type::InoutType(InoutType {
+                                        key_type: Box::new(local_var.variable_type),
+                                    }),
+                                    expression: None,
+                                }
+                            };
+
+                            let mut in_scope_context = false;
+
+                            for local_var in context.local_variables.clone() {
+                                if local_var.variable_type == new_declaration.variable_type {
+                                    new_declaration = local_var.clone();
+                                    temp_identifier = local_var.identifier;
+                                    in_scope_context = true;
+                                    break;
+                                }
+                            }
+
+                            let mut in_block_context = false;
+
+                            if let Some(block_context) = &_ctx.block_context {
+                                for local_var in
+                                    block_context.scope_context.local_variables.clone()
+                                {
+                                    if local_var.variable_type == new_declaration.variable_type
+                                    {
+                                        new_declaration = local_var.clone();
+                                        temp_identifier = local_var.identifier;
+                                        in_block_context = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if !in_scope_context {
+                                context.local_variables.push(new_declaration.clone());
+
+                                if let Some(ref mut scope_context) =
+                                    context.declaration.scope_context
+                                {
+                                    scope_context.local_variables.push(new_declaration.clone());
+                                }
+
+                                if let Some(block_context) = &mut _ctx.block_context {
+                                    block_context
+                                        .scope_context
+                                        .local_variables
+                                        .push(new_declaration);
+                                }
+
+                                _ctx.pre_statements.push(Statement::Expression(
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(Expression::Identifier(
+                                            temp_identifier.clone(),
+                                        )),
+                                        rhs_expression: Box::new(Expression::InoutExpression(
+                                            InoutExpression {
+                                                ampersand_token: "&".to_string(),
+                                                expression: _t.lhs_expression.clone(),
+                                            },
+                                        )),
+                                        op: BinOp::Equal,
+                                        line_info: temp_identifier.line_info.clone(),
+                                    }),
+                                ));
+                            } else if !in_block_context {
+                                if let Some(block_context) = &mut _ctx.block_context {
+                                    block_context
+                                        .scope_context
+                                        .local_variables
+                                        .push(new_declaration);
+
+                                    _ctx.pre_statements.push(Statement::Expression(
+                                        Expression::BinaryExpression(BinaryExpression {
+                                            lhs_expression: Box::new(Expression::Identifier(
+                                                temp_identifier.clone(),
+                                            )),
+                                            rhs_expression: Box::new(
+                                                Expression::InoutExpression(InoutExpression {
+                                                    ampersand_token: "&".to_string(),
+                                                    expression: _t.lhs_expression.clone(),
+                                                }),
+                                            ),
+                                            op: BinOp::Equal,
+                                            line_info: temp_identifier.line_info.clone(),
+                                        }),
+                                    ));
+                                }
+                            }
+
+                            return Some(temp_identifier);
+                        }
+                    }
+                }
+            } else if let Some(context) = &mut _ctx.special_declaration_context {
+                // we require a temporary variable that is a reference to the variable containing the struct
+                if let Expression::Identifier(id) = *_t.lhs_expression.clone() {
+                    let scope = _ctx.scope_context.as_mut().unwrap();
+                    let temp_identifier =
+                        scope.fresh_identifier(_t.lhs_expression.clone().get_line_info());
+
+                    if let Some(contract_context) = &_ctx.contract_declaration_context {
+                        if let Some(property_info) = &_ctx
+                            .environment
+                            .property(&id.token, &contract_context.identifier.token)
+                        {
+                            if let Property::VariableDeclaration(declaration, _) =
+                                &property_info.property
+                            {
+                                if declaration.identifier.token == id.token {
+                                    let v_type = &declaration.variable_type;
+
+                                    if let Type::InoutType(_) = v_type {
+                                    } else {
+                                        let new_declaration = {
+                                            VariableDeclaration {
+                                                declaration_token: None,
+                                                identifier: temp_identifier.clone(),
+                                                variable_type: Type::InoutType(InoutType {
+                                                    key_type: Box::new(v_type.clone()),
+                                                }),
+                                                expression: None,
+                                            }
+                                        };
+
+                                        context.local_variables.push(new_declaration);
+
+                                        _ctx.pre_statements.push(Statement::Expression(
+                                            Expression::BinaryExpression(BinaryExpression {
+                                                lhs_expression: Box::new(
+                                                    Expression::Identifier(
+                                                        temp_identifier.clone(),
+                                                    ),
+                                                ),
+                                                rhs_expression: Box::new(
+                                                    Expression::InoutExpression(
+                                                        InoutExpression {
+                                                            ampersand_token: "&".to_string(),
+                                                            expression: _t
+                                                                .lhs_expression
+                                                                .clone(),
+                                                        },
+                                                    ),
+                                                ),
+                                                op: BinOp::Equal,
+                                                line_info: temp_identifier.line_info.clone(),
+                                            }),
+                                        ));
+
+                                        return Some(temp_identifier);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    None
 }

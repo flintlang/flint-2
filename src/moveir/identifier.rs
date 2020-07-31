@@ -23,6 +23,9 @@ impl MoveIdentifier {
 
                 if let MovePosition::Left = self.position {
                     MoveIRExpression::Identifier(name)
+                } else if let MovePosition::Inout = self.position {
+                    let expression = MoveIRExpression::Identifier(name);
+                    return expression;
                 } else {
                     let expression = MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(
                         MoveIRExpression::Identifier(name),

@@ -724,7 +724,7 @@ fn check_if_correct_type_state_possible(
     }
 }
 
-fn is_conformance_repeated<'a, T: IntoIterator<Item=&'a Conformance>>(conformances: T) -> bool {
+fn is_conformance_repeated<'a, T: IntoIterator<Item = &'a Conformance>>(conformances: T) -> bool {
     !conformances
         .into_iter()
         .map(|c| &c.identifier.token)
@@ -747,7 +747,7 @@ fn code_block_returns(block: &[Statement]) -> bool {
         .iter()
         .any(|statements| matches!(statements, Statement::ReturnStatement(_)))
         || (branches.peek().is_some()
-        && branches.all(|branch| {
-        code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
-    }))
+            && branches.all(|branch| {
+                code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
+            }))
 }

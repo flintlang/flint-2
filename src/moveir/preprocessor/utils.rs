@@ -6,6 +6,7 @@ use crate::ast::{
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
+use crate::moveir::preprocessor::get_mutable_reference;
 use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionChecker;
 use itertools::Itertools;
@@ -623,7 +624,7 @@ pub fn pre_assign(
         expression_type = Type::Address
     }
 
-    let expression = if borrow || !is_reference || expression_type.is_built_in_type() {
+    let mut expression = if borrow || !is_reference || expression_type.is_built_in_type() {
         expression
     } else {
         Expression::InoutExpression(InoutExpression {
@@ -681,22 +682,26 @@ pub fn pre_assign(
             var
         };
 
-        ctx.pre_statements
-            .push(Statement::Expression(Expression::BinaryExpression(
-                BinaryExpression {
-                    lhs_expression: Box::new(Expression::Identifier(temp_identifier.clone())),
-                    rhs_expression: Box::new(expression),
-                    op: BinOp::Equal,
-                    line_info: temp_identifier.line_info.clone(),
-                },
-            )));
+        if struct_is_mutable_reference(&mut expression, &temp_identifier, ctx) {
+            ctx.pre_statements
+                .push(Statement::Expression(Expression::BinaryExpression(
+                    BinaryExpression {
+                        lhs_expression: Box::new(Expression::Identifier(temp_identifier.clone())),
+                        rhs_expression: Box::new(expression),
+                        op: BinOp::Equal,
+                        line_info: temp_identifier.line_info.clone(),
+                    },
+                )));
+        };
 
         // If is function declaration context
         if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
             let mut variable_present = false;
-                
+
             for local_variable in function_declaration_context.local_variables.clone() {
-                if local_variable.identifier == declaration.identifier && local_variable.variable_type == declaration.variable_type {
+                if local_variable.identifier == declaration.identifier
+                    && local_variable.variable_type == declaration.variable_type
+                {
                     // do not add to local variables
                     variable_present = true;
                     break;
@@ -705,14 +710,14 @@ pub fn pre_assign(
 
             if !variable_present {
                 function_declaration_context
-                .local_variables
-                .push(declaration.clone());
+                    .local_variables
+                    .push(declaration.clone());
             }
 
             if let Some(ref mut scope_context) =
                 function_declaration_context.declaration.scope_context
             {
-                scope_context.local_variables.push(declaration.clone());
+                scope_context.local_variables.push(declaration);
             }
         }
         // Otherwise if special declaration context
@@ -724,9 +729,8 @@ pub fn pre_assign(
                 .declaration
                 .scope_context
                 .local_variables
-                .push(declaration.clone());
+                .push(declaration);
         }
-        scope.local_variables.push(declaration);
     }
     if borrow {
         Expression::InoutExpression(InoutExpression {
@@ -900,4 +904,40 @@ fn generate_type_state_condition(id: Identifier, allowed: &[u8]) -> BinaryExpres
             line_info: Default::default(),
         })
         .unwrap()
+}
+
+fn struct_is_mutable_reference(
+    mut expression: &mut Expression,
+    temp_identifier: &Identifier,
+    ctx: &mut Context,
+) -> bool {
+    if let Expression::BinaryExpression(be) = &mut expression {
+        if let BinOp::Dot = be.op {
+            let id = get_mutable_reference(&be, ctx);
+
+            if let Some(id) = id {
+                ctx.pre_statements
+                    .push(Statement::Expression(Expression::BinaryExpression(
+                        BinaryExpression {
+                            lhs_expression: Box::new(Expression::Identifier(
+                                temp_identifier.clone(),
+                            )),
+                            rhs_expression: Box::new(Expression::BinaryExpression(
+                                BinaryExpression {
+                                    lhs_expression: Box::new(Expression::Identifier(id)),
+                                    rhs_expression: be.rhs_expression.clone(),
+                                    op: BinOp::Dot,
+                                    line_info: be.line_info.clone(),
+                                },
+                            )),
+                            op: BinOp::Equal,
+                            line_info: temp_identifier.line_info.clone(),
+                        },
+                    )));
+
+                return false;
+            }
+        }
+    }
+    true
 }

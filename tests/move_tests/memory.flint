@@ -36,7 +36,7 @@ C :: (any) {
       v.increment()
       self.v = V(v.x)
     } else {
-      let v: V = V(b)
+      var v: V = V(b)
       v.increment()
       self.v = V(v.x)
     }

@@ -3,6 +3,7 @@ use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRExpression, MoveIROperation};
 use super::MovePosition;
+use crate::ast::expressions::Expression::SelfExpression;
 use crate::ast::Expression;
 
 #[derive(Debug)]
@@ -35,7 +36,7 @@ impl MovePropertyAccess {
         }
 
         if let Some(rhs_enclosing) = self.right.enclosing_identifier() {
-            if function_context.is_constructor {
+            if function_context.is_constructor && self.left == SelfExpression {
                 return MoveIdentifier {
                     identifier: rhs_enclosing.clone(),
                     position: self.position.clone(),
