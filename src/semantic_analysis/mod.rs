@@ -428,7 +428,10 @@ impl Visitor for SemanticAnalysis {
                     // Check: Do not allow reassignment to constants: This does not work since we never know
                     // if something is assigned to yet TODO add RHS expression when something is not yet defined
                     // So we know when something has been assigned to
-                    if property.is_constant() && ctx.is_lvalue && property.property.get_value().is_some() {
+                    if property.is_constant()
+                        && ctx.is_lvalue
+                        && property.property.get_value().is_some()
+                    {
                         return Err(Box::from(format!(
                             "Cannot reassign to constant `{}` on line {}",
                             token, line_number

@@ -1,11 +1,6 @@
 struct A {
-  public var x: Int
-  public var y: Bool
-
-  public init() {
-    x = 0
-    y = false
-  }
+  public var x: Int = 0
+  public var y: Bool = false
 
   func getX() -> Int {
     return x
@@ -21,13 +16,8 @@ struct A {
 }
 
 struct B {
-  public var x: A
-  public var y: Int
-
-  public init() {
-    x = A()
-    y = 0
-  }
+  public var x: A = A()
+  public var y: Int = 0
 
   func getXx() -> Int {
     return x.getX()
@@ -39,6 +29,28 @@ struct B {
 
   func setXx(y: Int) mutates (x) {
     x.setX(x: y)
+  }
+}
+
+struct Maybe {
+  var element: Int = 0
+  visible var size: Int = 0
+
+  func add(value: Int) mutates (element, size) {
+    element = value
+    size = 1
+  }
+
+  func get(n: Int) -> Int {
+    if (self.size != 0) {
+      return self.element
+    } else {
+      return 0
+    }
+  }
+
+  func getSize() -> Int {
+    return size
   }
 }
 
@@ -153,32 +165,5 @@ C :: (any) {
 
   public func getE() -> Bool {
     return self.e
-  }
-}
-
-struct Maybe {
-  var element: Int
-  visible var size: Int
-
-  public init() {
-    element = 0
-    size = 0
-  }
-
-  func add(value: Int) mutates (element, size) {
-    element = value
-    size = 1
-  }
-
-  func get(n: Int) -> Int {
-    if (self.size != 0) {
-      return self.element
-    } else {
-      return 0
-    }
-  }
-
-  func getSize() -> Int {
-    return size
   }
 }

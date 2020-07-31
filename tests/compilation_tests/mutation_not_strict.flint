@@ -1,9 +1,5 @@
 struct A {
-  public var a: Int
-
-  public init() {
-    a = 0
-  }
+  public var a: Int = 0
 }
 
 contract MyContract {

@@ -141,17 +141,52 @@ impl Visitor for MovePreProcessor {
 
     fn start_struct_declaration(
         &mut self,
-        _t: &mut StructDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut StructDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        _t.members = _t
+        let is_initialiser = |member: &StructMember| {
+            if let StructMember::SpecialDeclaration(dec) = member {
+                dec.head.special_token == "init"
+            } else {
+                false
+            }
+        };
+
+        if !declaration.members.iter().any(|m| is_initialiser(m)) {
+            let initialiser = SpecialDeclaration {
+                head: SpecialSignatureDeclaration {
+                    special_token: "init".to_string(),
+                    enclosing_type: Option::from(declaration.identifier.token.clone()),
+                    attributes: vec![],
+                    modifiers: vec![Modifier::Public],
+                    mutates: vec![],
+                    parameters: vec![],
+                },
+                body: vec![],
+                scope_context: Default::default(),
+                generated: false,
+            };
+
+            declaration
+                .members
+                .push(StructMember::SpecialDeclaration(initialiser.clone()));
+
+            ctx.environment.add_special(
+                initialiser,
+                declaration.identifier.token.as_str(),
+                vec![],
+                vec![],
+            );
+        }
+
+        declaration.members = declaration
             .members
             .clone()
             .into_iter()
             .flat_map(|f| {
                 if let StructMember::FunctionDeclaration(fd) = f {
                     let functions =
-                        convert_default_parameter_functions(fd, &_t.identifier.token, _ctx);
+                        convert_default_parameter_functions(fd, &declaration.identifier.token, ctx);
                     functions
                         .into_iter()
                         .map(StructMember::FunctionDeclaration)
@@ -634,12 +669,12 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
-    fn start_function_call(&mut self, call: &mut FunctionCall, _ctx: &mut Context) -> VResult {
+    fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(call) {
             return Ok(());
         }
 
-        if let Some(mangled) = mangle_function_call_name(call, _ctx) {
+        if let Some(mangled) = mangle_function_call_name(call, ctx) {
             call.mangled_identifier = Option::from(Identifier {
                 token: mangled,
                 enclosing_type: None,
@@ -647,24 +682,24 @@ impl Visitor for MovePreProcessor {
             });
         }
 
-        if !_ctx.environment.is_initialise_call(&call)
-            && !_ctx.environment.is_trait_declared(&call.identifier.token)
+        if !ctx.environment.is_initialise_call(&call)
+            && !ctx.environment.is_trait_declared(&call.identifier.token)
         {
-            let is_global_function_call = is_global_function_call(&call, _ctx);
+            let is_global_function_call = is_global_function_call(&call, ctx);
 
-            let enclosing_type = _ctx
+            let enclosing_type = ctx
                 .enclosing_type_identifier()
                 .map(|id| id.token.to_string())
                 .unwrap_or_default();
 
             let caller_protections: &[_] =
-                if let Some(ref behaviour) = _ctx.contract_behaviour_declaration_context {
+                if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
                     &behaviour.caller_protections
                 } else {
                     &[]
                 };
 
-            let receiver_trail = &mut _ctx.function_call_receiver_trail;
+            let receiver_trail = &mut ctx.function_call_receiver_trail;
 
             if receiver_trail.is_empty() {
                 *receiver_trail = vec![Expression::SelfExpression]
@@ -674,38 +709,38 @@ impl Visitor for MovePreProcessor {
                 "Quartz_Global".to_string()
             } else {
                 let receiver = receiver_trail.last().unwrap();
-                _ctx.environment
+                ctx.environment
                     .get_expression_type(
                         receiver,
                         &enclosing_type,
                         &[],
                         caller_protections,
-                        _ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_context.as_ref().unwrap_or_default(),
                     )
                     .name()
             };
 
-            if _ctx.environment.is_struct_declared(&declared_enclosing)
-                || _ctx.environment.is_contract_declared(&declared_enclosing)
-                || _ctx.environment.is_trait_declared(&declared_enclosing)
-                || _ctx.environment.is_asset_declared(&declared_enclosing)
-                    && !is_global_function_call
+            if ctx.environment.is_struct_declared(&declared_enclosing)
+                || ctx.environment.is_contract_declared(&declared_enclosing)
+                || ctx.environment.is_trait_declared(&declared_enclosing)
+                || ctx.environment.is_asset_declared(&declared_enclosing)
+                && !is_global_function_call
             {
                 let mut expression = construct_expression(&receiver_trail);
-                let enclosing_type = _ctx
+                let enclosing_type = ctx
                     .enclosing_type_identifier()
                     .map(|id| id.token.to_string())
                     .unwrap_or_default();
 
                 if expression.enclosing_type().is_some() {
-                    expression = expand_properties(expression, _ctx, false);
+                    expression = expand_properties(expression, ctx, false);
                 } else if let Expression::BinaryExpression(_) = expression {
-                    expression = expand_properties(expression, _ctx, false);
+                    expression = expand_properties(expression, ctx, false);
                 }
 
                 let result_type = match expression {
                     Expression::Identifier(ref i) => {
-                        if let Some(ref result) = _ctx
+                        if let Some(ref result) = ctx
                             .scope_context
                             .as_ref()
                             .unwrap_or_default()
@@ -713,21 +748,21 @@ impl Visitor for MovePreProcessor {
                         {
                             result.clone()
                         } else {
-                            _ctx.environment.get_expression_type(
+                            ctx.environment.get_expression_type(
                                 &expression,
                                 &enclosing_type,
                                 &[],
                                 &[],
-                                _ctx.scope_context.as_ref().unwrap_or_default(),
+                                ctx.scope_context.as_ref().unwrap_or_default(),
                             )
                         }
                     }
-                    _ => _ctx.environment.get_expression_type(
+                    _ => ctx.environment.get_expression_type(
                         &expression,
                         &enclosing_type,
                         &[],
                         &[],
-                        _ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_context.as_ref().unwrap_or_default(),
                     ),
                 };
 
@@ -751,7 +786,7 @@ impl Visitor for MovePreProcessor {
                 call.arguments = arguments;
             }
         }
-        _ctx.function_call_receiver_trail = vec![];
+        ctx.function_call_receiver_trail = vec![];
 
         Ok(())
     }
