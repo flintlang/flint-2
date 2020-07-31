@@ -56,10 +56,8 @@ impl MoveContract {
                 }
                     .generate(true)
             })
-            .map(|f| f.generate(true))
-            .collect();
-
-        let functions = functions.join("\n\n");
+            .collect::<Vec<String>>()
+            .join("\n\n");
 
         let function_context = FunctionContext {
             environment: self.environment.clone(),

@@ -3,14 +3,10 @@ use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRExpression, MoveIROperation};
 use super::MovePosition;
-<<<<<<< HEAD
 use crate::ast::expressions::Expression::SelfExpression;
-use crate::ast::Expression;
-=======
 use crate::ast::{mangle, Expression, Type};
 use crate::moveir::ir::MoveIRExpression::{Identifier, Transfer};
 use crate::moveir::ir::MoveIRTransfer;
->>>>>>> 918b06e91c9c1a8174f38352e838c0e62855b584
 
 #[derive(Debug)]
 pub(crate) struct MovePropertyAccess {

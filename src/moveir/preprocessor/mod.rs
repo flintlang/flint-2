@@ -642,29 +642,29 @@ impl Visitor for MovePreProcessor {
                 }
                 _ => {}
             }
-        } else if _t.op.is_assignment() {
-            if let Expression::BinaryExpression(be) = &mut *_t.lhs_expression {
-                let id = get_mutable_reference(&be, _ctx);
+        } else if bin_expr.op.is_assignment() {
+            if let Expression::BinaryExpression(be) = &mut *bin_expr.lhs_expression {
+                let id = get_mutable_reference(&be, ctx);
 
                 if let Some(id) = id {
                     be.lhs_expression = Box::new(Expression::Identifier(id));
                 }
-            } else if let Expression::BinaryExpression(be) = &mut *_t.rhs_expression {
-                let id = get_mutable_reference(&be, _ctx);
+            } else if let Expression::BinaryExpression(be) = &mut *bin_expr.rhs_expression {
+                let id = get_mutable_reference(&be, ctx);
 
                 if let Some(id) = id {
                     be.rhs_expression = Box::new(Expression::Identifier(id));
                 }
             }
-        } else if let BinOp::DoubleEqual = _t.op {
-            if let Expression::BinaryExpression(be) = &mut *_t.lhs_expression {
-                let id = get_mutable_reference(&be, _ctx);
+        } else if let BinOp::DoubleEqual = bin_expr.op {
+            if let Expression::BinaryExpression(be) = &mut *bin_expr.lhs_expression {
+                let id = get_mutable_reference(&be, ctx);
 
                 if let Some(id) = id {
                     be.lhs_expression = Box::new(Expression::Identifier(id));
                 }
-            } else if let Expression::BinaryExpression(be) = &mut *_t.rhs_expression {
-                let id = get_mutable_reference(&be, _ctx);
+            } else if let Expression::BinaryExpression(be) = &mut *bin_expr.rhs_expression {
+                let id = get_mutable_reference(&be, ctx);
 
                 if let Some(id) = id {
                     be.rhs_expression = Box::new(Expression::Identifier(id));
@@ -757,17 +757,17 @@ impl Visitor for MovePreProcessor {
                 }
 
                 if expression != Expression::SelfExpression {
-                    let expression_type = _ctx.environment.get_expression_type(
+                    let expression_type = ctx.environment.get_expression_type(
                         &expression,
                         &enclosing_type,
                         &[],
                         &[],
-                        _ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_context.as_ref().unwrap_or_default(),
                     );
 
                     if let Type::UserDefinedType(_) = expression_type {
-                        if let Some(context) = &mut _ctx.function_declaration_context {
-                            let scope = _ctx.scope_context.as_mut().unwrap();
+                        if let Some(context) = &mut ctx.function_declaration_context {
+                            let scope = ctx.scope_context.as_mut().unwrap();
                             let mut temp_identifier =
                                 scope.fresh_identifier(expression.get_line_info());
                             let mut new_declaration = {
@@ -794,7 +794,7 @@ impl Visitor for MovePreProcessor {
 
                             let mut in_block_context = false;
 
-                            if let Some(block_context) = &_ctx.block_context {
+                            if let Some(block_context) = &ctx.block_context {
                                 for local_var in block_context.scope_context.local_variables.clone()
                                 {
                                     if local_var.variable_type == new_declaration.variable_type {
@@ -824,14 +824,14 @@ impl Visitor for MovePreProcessor {
                                     scope_context.local_variables.push(new_declaration.clone());
                                 }
 
-                                if let Some(block_context) = &mut _ctx.block_context {
+                                if let Some(block_context) = &mut ctx.block_context {
                                     block_context
                                         .scope_context
                                         .local_variables
                                         .push(new_declaration);
                                 }
 
-                                _ctx.pre_statements.push(Statement::Expression(
+                                ctx.pre_statements.push(Statement::Expression(
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(Expression::Identifier(
                                             temp_identifier.clone(),
@@ -847,14 +847,14 @@ impl Visitor for MovePreProcessor {
                                     }),
                                 ));
                             } else if !in_block_context {
-                                if let Some(block_context) = &mut _ctx.block_context {
+                                if let Some(block_context) = &mut ctx.block_context {
                                     block_context
                                         .scope_context
                                         .local_variables
                                         .push(new_declaration);
                                 }
 
-                                _ctx.pre_statements.push(Statement::Expression(
+                                ctx.pre_statements.push(Statement::Expression(
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(Expression::Identifier(
                                             temp_identifier.clone(),
