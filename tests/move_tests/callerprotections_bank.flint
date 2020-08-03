@@ -1,0 +1,29 @@
+contract Bank {
+  let owner: Address
+  var manager: Address = 0x00
+  var accounts: Address = 0x01
+}
+
+Bank :: caller <- (any) {
+    public init() {
+        owner = caller
+    }
+}
+
+Bank :: (manager, accounts) {
+  func forManagerOrCustomers() {
+    // Valid: "manager" is compatible with "manager", and "accounts" is
+    // compatible with "accounts"
+    forManagerOrCustomers2()
+    forManager()
+  }
+}
+
+Bank :: (accounts, manager) {
+  func forManagerOrCustomers2() {}
+}
+
+Bank :: (manager) {
+    func forManager() {}
+}
+

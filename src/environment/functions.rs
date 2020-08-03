@@ -302,13 +302,22 @@ impl Environment {
         source: &[CallerProtection],
         target: &[CallerProtection],
     ) -> bool {
-        for parent in target {
-            for caller_protection in source {
-                if !caller_protection.is_sub_protection(parent) {
-                    return false;
+        // each caller protection in the source must match at least one caller protection in the target
+
+        for caller_protection in source {
+            let mut matched_any_parent = false;
+
+            for parent in target {
+                if caller_protection.is_sub_protection(parent) {
+                    matched_any_parent = true;
                 }
             }
+
+            if !matched_any_parent {
+                return false;
+            }
         }
+
         true
     }
 
