@@ -15,7 +15,9 @@ Bank :: (manager, accounts) {
     // Valid: "manager" is compatible with "manager", and "accounts" is
     // compatible with "accounts"
     forManagerOrCustomers2()
+    forManagerOrCustomers3()
     forManager()
+    try? forManager()
   }
 }
 
@@ -25,5 +27,9 @@ Bank :: (accounts, manager) {
 
 Bank :: (manager) {
     func forManager() {}
+}
+
+Bank :: (manager, any) {
+    func forManagerOrCustomers3() {}
 }
 

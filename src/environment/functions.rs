@@ -154,6 +154,7 @@ impl Environment {
             .collect();
 
         if !matched_candidates.is_empty() {
+            //TODO: if matched candidates is not empty then we have insufficient caller protections
             let matched_candidates = Candidates {
                 candidates: matched_candidates,
             };

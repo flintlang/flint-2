@@ -796,6 +796,8 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     panic!("Unable to find function declaration")
                 }
 
+                dbg!("HERE");
+
                 let candidate = c.candidates[0].clone();
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {

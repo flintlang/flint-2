@@ -22,6 +22,7 @@ pub fn parse_expression(i: Span) -> nom::IResult<Span, Expression> {
         map(parse_binary_expression, Expression::BinaryExpression),
         map(tag(Identifier::SELF), |_| Expression::SelfExpression),
         map(parse_subscript_expression, Expression::SubscriptExpression),
+        map(parse_attempt_expression, Expression::AttemptExpression),
         map(parse_function_call, Expression::FunctionCall),
         map(parse_variable_declaration, Expression::VariableDeclaration),
         map(parse_literal, Expression::Literal),
@@ -45,6 +46,8 @@ pub fn parse_expression_left(i: Span) -> nom::IResult<Span, Expression> {
         map(tag(Identifier::SELF), |_| Expression::SelfExpression),
         map(parse_subscript_expression, Expression::SubscriptExpression),
         map(parse_function_call, Expression::FunctionCall),
+        //TODO: can I have a attempt expression on the left?
+        map(parse_attempt_expression, Expression::AttemptExpression),
         map(parse_variable_declaration, Expression::VariableDeclaration),
         map(parse_literal, Expression::Literal),
         map(parse_identifier, Expression::Identifier),
@@ -119,10 +122,10 @@ fn parse_bracketed_expression(i: Span) -> nom::IResult<Span, BracketedExpression
     Ok((i, bracketed_expression))
 }
 
-#[allow(dead_code)]
 fn parse_attempt_expression(i: Span) -> nom::IResult<Span, AttemptExpression> {
     let (i, _) = tag("try")(i)?;
     let (i, kind) = alt((bang, question))(i)?;
+    let (i, _) = whitespace(i)?;
     let (i, function_call) = parse_function_call(i)?;
     let attempt_expression = AttemptExpression {
         kind: kind.fragment().to_string(),
@@ -319,69 +322,6 @@ mod test {
                 line_info: LineInfo { line: 1, offset: 0 }
             })
         );
-
-        /*let input = LocatedSpan::new("self.rectangle.width * self.rectangle.height");
-        let (_rest, result) = parse_expression(input).expect("Error parsing self expression");
-        assert_eq!(
-            result,
-            BinaryExpression(BinaryExpression {
-                lhs_expression: BinaryExpression(BinaryExpression {
-                    lhs_expression: BinaryExpression(BinaryExpression {
-                        lhs_expression: SelfExpression,
-                        rhs_expression: Identifier(Identifier {
-                            token: "rectangle",
-                            enclosing_type: None,
-                            line_info: LineInfo { line: 1, offset: 5 }
-                        }),
-                        op: Dot,
-                        line_info: LineInfo { line: 1, offset: 0 }
-                    }),
-                    rhs_expression: Identifier(Identifier {
-                        token: "width",
-                        enclosing_type: None,
-                        line_info: LineInfo {
-                            line: 1,
-                            offset: 15
-                        }
-                    }),
-                    op: Dot,
-                    line_info: LineInfo { line: 1, offset: 0 }
-                }),
-                rhs_expression: BinaryExpression(BinaryExpression {
-                    lhs_expression: BinaryExpression(BinaryExpression {
-                        lhs_expression: SelfExpression,
-                        rhs_expression: Identifier(Identifier {
-                            token: "rectangle",
-                            enclosing_type: None,
-                            line_info: LineInfo {
-                                line: 1,
-                                offset: 28
-                            }
-                        }),
-                        op: Dot,
-                        line_info: LineInfo {
-                            line: 1,
-                            offset: 23
-                        }
-                    }),
-                    rhs_expression: Identifier(Identifier {
-                        token: "height",
-                        enclosing_type: None,
-                        line_info: LineInfo {
-                            line: 1,
-                            offset: 38
-                        }
-                    }),
-                    op: Dot,
-                    line_info: LineInfo {
-                        line: 1,
-                        offset: 23
-                    }
-                }),
-                op: Times,
-                line_info: LineInfo { line: 1, offset: 0 }
-            })
-        );*/
     }
 
     #[test]
