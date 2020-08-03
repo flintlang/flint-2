@@ -661,27 +661,18 @@ pub fn pre_assign(
             VariableDeclaration {
                 declaration_token: None,
                 identifier: temp_identifier.clone(),
-                variable_type: expression_type,
+                variable_type: expression_type.clone(),
                 expression: None,
             }
         } else {
-            let var = VariableDeclaration {
+            VariableDeclaration {
                 declaration_token: None,
                 identifier: temp_identifier.clone(),
                 variable_type: Type::InoutType(InoutType {
                     key_type: Box::new(expression_type.clone()),
                 }),
                 expression: None,
-            };
-
-            let mangled_identifier = Identifier::generated(&mangle(&temp_identifier.token));
-            ctx.post_statements.push(release(
-                Expression::Identifier(mangled_identifier),
-                Type::InoutType(InoutType {
-                    key_type: Box::new(expression_type),
-                }),
-            ));
-            var
+            }
         };
 
         if struct_is_mutable_reference(&mut expression, &temp_identifier, ctx) {
@@ -694,7 +685,15 @@ pub fn pre_assign(
                         line_info: temp_identifier.line_info.clone(),
                     },
                 )));
-        };
+        } else {
+            let mangled_identifier = Identifier::generated(&mangle(&temp_identifier.token));
+            ctx.post_statements.push(release(
+                Expression::Identifier(mangled_identifier),
+                Type::InoutType(InoutType {
+                    key_type: Box::new(expression_type),
+                }),
+            ));
+        }
 
         // If is function declaration context
         if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {

@@ -603,13 +603,16 @@ fn replace_borrowed_references(
                                 ))),
                             ))),
                         ));
-                        break;
+
+                        //remove temp variable from post-statements
+                        continue;
                     }
                 }
             }
 
             fields.push(field.clone());
         }
+
         constructor.fields = fields;
     }
 }
