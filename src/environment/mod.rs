@@ -153,6 +153,22 @@ impl Environment {
         }
     }
 
+    pub fn get_caller_protection(
+        &self,
+        protection: &CallerProtection,
+    ) -> Option<PropertyInformation> {
+        if let Some(contract_declaration) = self.contract_declarations.get(0) {
+            if let Some(type_info) = self.types.get(&contract_declaration.token) {
+                for (property, property_info) in &type_info.properties {
+                    if *property == protection.identifier.token {
+                        return Some(property_info.clone());
+                    }
+                }
+            }
+        }
+        None
+    }
+
     pub fn contains_caller_protection(&self, protection: &CallerProtection, type_id: &str) -> bool {
         self.declared_caller_protections(type_id)
             .contains(&protection.name())

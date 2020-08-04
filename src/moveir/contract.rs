@@ -54,7 +54,7 @@ impl MoveContract {
                     is_contract_function: false,
                     enclosing_type: self.contract_declaration.identifier.clone(),
                 }
-                    .generate(true)
+                .generate(true)
             })
             .collect::<Vec<String>>()
             .join("\n\n");
@@ -185,8 +185,8 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
-                    .to_string()
+                .generate(&function_context, false, false)
+                .to_string()
             })
             .collect();
 
@@ -198,8 +198,8 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, true, false)
-                    .to_string()
+                .generate(&function_context, true, false)
+                .to_string()
             })
             .collect::<Vec<String>>()
             .join(", ");
@@ -232,7 +232,7 @@ impl MoveContract {
             .into_iter()
             .filter_map(|statement| {
                 if let Statement::Expression(Expression::VariableDeclaration(declaration)) =
-                statement
+                    statement
                 {
                     Some(declaration)
                 } else {

@@ -26,8 +26,8 @@ impl MovePropertyAccess {
                     if let Type::UserDefinedType(user_defined) = *inout.key_type {
                         if function_context.is_constructor
                             && function_context
-                            .environment
-                            .is_struct_declared(user_defined.token.as_str())
+                                .environment
+                                .is_struct_declared(user_defined.token.as_str())
                         {
                             // TODO this still will not work because you need the reference to it
                             // I will not do that here as I do not know how it will interact with Jess' code
@@ -73,7 +73,7 @@ impl MovePropertyAccess {
                     identifier: rhs_enclosing.clone(),
                     position: self.position.clone(),
                 }
-                    .generate(function_context, false, false);
+                .generate(function_context, false, false);
             }
             let position = if let MovePosition::Inout = self.position {
                 MovePosition::Inout

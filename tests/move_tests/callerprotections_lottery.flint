@@ -1,0 +1,27 @@
+contract Lottery {
+    var winnings: Int = 1000
+}
+
+Lottery :: (any) {
+    public init() {}
+}
+
+Lottery :: (winner) {
+    func winner() -> Address {
+        return 0x2
+    }
+
+    func getWinnings() -> Int {
+        return winnings
+    }
+}
+
+Lottery :: (lucky) {
+  func lucky(caller_address: Address) -> Bool {
+    return true
+  }
+
+  func isWinner() -> Bool {
+      return true
+  }
+}

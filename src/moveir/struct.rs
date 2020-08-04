@@ -249,7 +249,7 @@ impl MoveStructInitialiser {
                 property.variable_type,
                 Option::from(self.environment.clone()),
             )
-                .generate(&function_context);
+            .generate(&function_context);
             let name = format!("__this_{}", property.identifier.token);
             function_context.emit(MoveIRStatement::Expression(
                 MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
@@ -321,7 +321,7 @@ impl MoveStructInitialiser {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                    .generate(&function_context),
+                                .generate(&function_context),
                             ),
                         }),
                     ));
@@ -353,7 +353,7 @@ impl MoveStructInitialiser {
                 Type::type_from_identifier(self.identifier.clone()),
                 Option::from(self.environment.clone()),
             )
-                .generate(&function_context);
+            .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
                 identifier: "this".to_string(),

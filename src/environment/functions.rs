@@ -116,14 +116,20 @@ impl Environment {
         if let Some(type_info) = self.types.get(type_id) {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
-                    if self.function_call_arguments_compatible(function, call, type_id, scope)
-                        && self.compatible_caller_protections(
+                    if self.function_call_arguments_compatible(function, call, type_id, scope) {
+                        if self.compatible_caller_protections(
                             protections,
                             &function.caller_protections,
-                        )
-                    {
-                        return FunctionCallMatchResult::MatchedFunction(function.clone());
+                        ) {
+                            return FunctionCallMatchResult::MatchedFunction(function.clone());
+                        } else {
+                            panic!(
+                                "Insufficient caller protections to call function {}",
+                                call.identifier.token
+                            );
+                        }
                     }
+
                     candidates.push(function.clone());
                     continue;
                 }
@@ -154,7 +160,6 @@ impl Environment {
             .collect();
 
         if !matched_candidates.is_empty() {
-            //TODO: if matched candidates is not empty then we have insufficient caller protections
             let matched_candidates = Candidates {
                 candidates: matched_candidates,
             };
@@ -303,16 +308,19 @@ impl Environment {
         source: &[CallerProtection],
         target: &[CallerProtection],
     ) -> bool {
-        // each caller protection in the source must match at least one caller protection in the target
+        // each caller protection in the source must match at least one caller protection in the targe
 
         for caller_protection in source {
-            let mut matched_any_parent = false;
-
-            for parent in target {
-                if caller_protection.is_sub_protection(parent) {
-                    matched_any_parent = true;
+            let matched_any_parent = if target.is_empty() {
+                true
+            } else {
+                for parent in target {
+                    if caller_protection.is_sub_protection(parent) {
+                        return true;
+                    }
                 }
-            }
+                false
+            };
 
             if !matched_any_parent {
                 return false;

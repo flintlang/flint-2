@@ -105,7 +105,9 @@ impl Type {
             Type::ArrayType(a) => a.key_type.is_built_in_type(),
             Type::RangeType(r) => r.key_type.is_built_in_type(),
             Type::FixedSizedArrayType(a) => a.key_type.is_built_in_type(),
-            Type::DictionaryType(_) => unimplemented!(),
+            Type::DictionaryType(d) => {
+                d.key_type.is_built_in_type() && d.value_type.is_built_in_type()
+            }
             Type::UserDefinedType(_) => false,
             Type::Bool => true,
             Type::Int => true,

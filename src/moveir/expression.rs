@@ -81,6 +81,7 @@ impl MoveExpression {
                     vec_type: None,
                 })
             }
+            //TODO: Implement DictionaryLiteral here
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => MoveSelf {
                 token: Identifier::SELF.to_string(),
@@ -261,6 +262,7 @@ struct MoveAttemptExpression {
 }
 
 impl MoveAttemptExpression {
+    //TODO: dynamic checking of caller protections
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let _function_call = self.expression.function_call.clone();
         let identifier =

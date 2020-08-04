@@ -80,6 +80,7 @@ impl ExpressionChecker for Environment {
             Expression::ArrayLiteral(a) => {
                 self.get_array_literal_type(a, type_id, type_states, caller_protections, scope)
             }
+            //TODO: implement dictionary literal here
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => Type::UserDefinedType(Identifier {
                 token: type_id.to_string(),

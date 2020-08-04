@@ -71,6 +71,7 @@ pub fn parse_dictionary_empty_literal(i: Span) -> nom::IResult<Span, DictionaryL
 }
 
 pub fn parse_dictionary_literal(i: Span) -> nom::IResult<Span, DictionaryLiteral> {
+    let (i, _) = left_square_bracket(i)?;
     let (i, elements) = nom::multi::separated_nonempty_list(
         tag(","),
         nom::sequence::terminated(
@@ -78,12 +79,14 @@ pub fn parse_dictionary_literal(i: Span) -> nom::IResult<Span, DictionaryLiteral
             nom::character::complete::space0,
         ),
     )(i)?;
+    let (i, _) = right_square_bracket(i)?;
     Ok((i, DictionaryLiteral { elements }))
 }
 
 fn parse_dictionary_element(i: Span) -> nom::IResult<Span, (Expression, Expression)> {
     let (i, expression1) = parse_expression_left(i)?;
     let (i, _) = colon(i)?;
+    let (i, _) = whitespace(i)?;
     let (i, expression2) = parse_expression(i)?;
     Ok((i, (expression1, expression2)))
 }

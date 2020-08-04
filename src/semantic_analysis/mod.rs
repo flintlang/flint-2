@@ -740,9 +740,9 @@ fn code_block_returns(block: &[Statement]) -> bool {
         .iter()
         .any(|statements| matches!(statements, Statement::ReturnStatement(_)))
         || (branches.peek().is_some()
-        && branches.all(|branch| {
-        code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
-    }))
+            && branches.all(|branch| {
+                code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
+            }))
 }
 
 fn ensure_mutation_declared(token: &str, ctx: &Context) -> VResult {

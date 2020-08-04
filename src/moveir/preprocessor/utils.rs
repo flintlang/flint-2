@@ -343,55 +343,19 @@ pub fn generate_contract_wrapper(
             caller_id = Identifier::generated("caller");
         }
 
-        let predicate = contract_behaviour_declaration
-            .caller_protections
-            .iter()
-            .cloned()
-            .map(|c| {
-                let mut ident = c.identifier;
-                ident.enclosing_type =
-                    Option::from(contract_behaviour_declaration.identifier.token.clone());
-                let en_ident = contract_behaviour_declaration.identifier.clone();
-                let c_type = context.environment.get_expression_type(
-                    &Expression::Identifier(ident.clone()),
-                    &en_ident.token,
-                    &[],
-                    &[],
-                    &ScopeContext {
-                        parameters: vec![],
-                        local_variables: vec![],
-                        counter: 0,
-                    },
-                );
+        if let Some(predicate) = generate_predicate(
+            &caller_id,
+            &contract_behaviour_declaration,
+            &wrapper.head.identifier.token,
+            &context,
+        ) {
+            let assertion = Assertion {
+                expression: predicate,
+                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+            };
 
-                match c_type {
-                    Type::Address => Expression::BinaryExpression(BinaryExpression {
-                        lhs_expression: Box::new(Expression::Identifier(ident)),
-                        rhs_expression: Box::new(Expression::RawAssembly(
-                            format!("Signer.address_of(copy({}))", caller_id.token),
-                            None,
-                        )),
-                        op: BinOp::DoubleEqual,
-                        line_info: Default::default(),
-                    }),
-                    _ => unimplemented!(),
-                }
-            })
-            .fold1(|left, right| {
-                Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: Box::new(left),
-                    rhs_expression: Box::new(right),
-                    op: BinOp::Or,
-                    line_info: Default::default(),
-                })
-            });
-
-        let assertion = Assertion {
-            expression: predicate.unwrap(),
-            line_info: contract_behaviour_declaration.identifier.line_info.clone(),
-        };
-
-        wrapper.body.push(Statement::Assertion(assertion))
+            wrapper.body.push(Statement::Assertion(assertion));
+        }
     }
 
     let arguments = function
@@ -796,8 +760,6 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     panic!("Unable to find function declaration")
                 }
 
-                dbg!("HERE");
-
                 let candidate = c.candidates[0].clone();
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
@@ -943,4 +905,197 @@ fn struct_is_mutable_reference(
         }
     }
     true
+}
+
+fn generate_predicate(
+    caller_id: &Identifier,
+    contract_behaviour_declaration: &ContractBehaviourDeclaration,
+    function_name: &str,
+    context: &Context,
+) -> Option<Expression> {
+    contract_behaviour_declaration
+        .caller_protections
+        .iter()
+        .cloned()
+        .filter_map(|c| {
+            let mut ident = c.clone().identifier;
+            ident.enclosing_type =
+                Option::from(contract_behaviour_declaration.identifier.token.clone());
+            let en_ident = contract_behaviour_declaration.identifier.clone();
+            let c_type = context.environment.get_expression_type(
+                &Expression::Identifier(ident.clone()),
+                &en_ident.token,
+                &[],
+                &[],
+                &ScopeContext {
+                    parameters: vec![],
+                    local_variables: vec![],
+                    counter: 0,
+                },
+            );
+
+            match c_type {
+                Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::Identifier(ident)),
+                    rhs_expression: Box::new(Expression::RawAssembly(
+                        format!("Signer.address_of(copy({}))", caller_id.token),
+                        None,
+                    )),
+                    op: BinOp::DoubleEqual,
+                    line_info: Default::default(),
+                })),
+                Type::ArrayType(array_type) => {
+                    assert!(
+                        *array_type.key_type == Type::Address,
+                        "Array values for caller protection must have type Address"
+                    );
+                    if let Some(property) = context.environment.get_caller_protection(&c) {
+                        if let Some(Expression::ArrayLiteral(array)) = property.property.get_value()
+                        {
+                            let predicate = array
+                                .elements
+                                .iter()
+                                .cloned()
+                                .map(|c| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(c),
+                                        rhs_expression: Box::new(Expression::RawAssembly(
+                                            format!("Signer.address_of(copy({}))", caller_id.token),
+                                            None,
+                                        )),
+                                        op: BinOp::DoubleEqual,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .fold1(|left, right| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(left),
+                                        rhs_expression: Box::new(right),
+                                        op: BinOp::Or,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .unwrap();
+                            Some(predicate)
+                        } else {
+                            panic!("Mismatching types for {:?}", c)
+                        }
+                    } else {
+                        panic!("{:?} not found in caller protections", c)
+                    }
+                }
+                Type::DictionaryType(dict_type) => {
+                    assert!(
+                        *dict_type.value_type == Type::Address,
+                        "Dictionary values for caller protection must have type Address"
+                    );
+                    if let Some(property) = context.environment.get_caller_protection(&c) {
+                        if let Some(Expression::DictionaryLiteral(dict)) =
+                            property.property.get_value()
+                        {
+                            let predicate = dict
+                                .elements
+                                .iter()
+                                .cloned()
+                                .map(|(_, v)| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(v),
+                                        rhs_expression: Box::new(Expression::RawAssembly(
+                                            format!("Signer.address_of(copy({}))", caller_id.token),
+                                            None,
+                                        )),
+                                        op: BinOp::DoubleEqual,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .fold1(|left, right| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(left),
+                                        rhs_expression: Box::new(right),
+                                        op: BinOp::Or,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .unwrap();
+                            Some(predicate)
+                        } else {
+                            panic!("Mismatching types for {:?}", c)
+                        }
+                    } else {
+                        panic!("{:?} not found in caller protections", c)
+                    }
+                }
+                _ => {
+                    let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&en_ident.token);
+                    if let Some(types) = context.environment.types.get(enclosing_type) {
+                        if let Some(function_info) = types.functions.get(&ident.token) {
+                            if let Some(function) = function_info.get(0) {
+                                let function_signature = &function.declaration.head;
+                                if function_signature.is_predicate() {
+                                    // caller protection is a predicate function
+                                    if ident.token != function_name {
+                                        // prevents predicate being added to the predicate function itself
+                                        return Some(Expression::FunctionCall(FunctionCall {
+                                            identifier: ident,
+                                            arguments: vec![FunctionArgument {
+                                                identifier: None,
+                                                expression: Expression::RawAssembly(
+                                                    format!(
+                                                        "Signer.address_of(copy({}))",
+                                                        caller_id.token
+                                                    ),
+                                                    None,
+                                                ),
+                                            }],
+                                            mangled_identifier: None,
+                                        }));
+                                    } else {
+                                        return None;
+                                    }
+                                } else if function_signature.is_0_ary_function() {
+                                    // caller protection is a 0-ary function
+                                    if ident.token != function_name {
+                                        // prevents 0-ary function being added to the 0-ary function itself
+                                        return Some(Expression::BinaryExpression(
+                                            BinaryExpression {
+                                                lhs_expression: Box::new(Expression::FunctionCall(
+                                                    FunctionCall {
+                                                        identifier: ident,
+                                                        arguments: vec![],
+                                                        mangled_identifier: None,
+                                                    },
+                                                )),
+                                                rhs_expression: Box::new(Expression::RawAssembly(
+                                                    format!(
+                                                        "Signer.address_of(copy({}))",
+                                                        caller_id.token
+                                                    ),
+                                                    None,
+                                                )),
+                                                op: BinOp::DoubleEqual,
+                                                line_info: Default::default(),
+                                            },
+                                        ));
+                                    } else {
+                                        return None;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    panic!(
+                        "Invalid caller protection \"{}\" at line {}",
+                        ident.token, ident.line_info.line
+                    )
+                }
+            }
+        })
+        .fold1(|left, right| {
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(left),
+                rhs_expression: Box::new(right),
+                op: BinOp::Or,
+                line_info: Default::default(),
+            })
+        })
 }

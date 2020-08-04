@@ -143,17 +143,41 @@ impl Visitable for ContractBehaviourDeclaration {
         let local_variables: Vec<VariableDeclaration> = vec![];
         let mut parameters: Vec<Parameter> = vec![];
 
-        if let Some(caller) = &self.caller_binding {
-            parameters.push(Parameter {
-                identifier: caller.clone(),
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
+        let caller_protections: Vec<CallerProtection> = self
+            .caller_protections
+            .clone()
+            .into_iter()
+            .filter(|c| !c.is_any())
+            .collect();
+
+        if !self.caller_protections.is_empty() && !caller_protections.is_empty() {
+            if let Some(caller) = &self.caller_binding {
+                parameters.push(Parameter {
+                    identifier: caller.clone(),
+                    type_assignment: Type::UserDefinedType(Identifier {
+                        token: "&signer".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    }),
+                    expression: None,
                     line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
+                })
+            } else {
+                parameters.push(Parameter {
+                    identifier: Identifier {
+                        token: "caller".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    },
+                    type_assignment: Type::UserDefinedType(Identifier {
+                        token: "&signer".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    }),
+                    expression: None,
+                    line_info: Default::default(),
+                })
+            }
         }
 
         let scope = ScopeContext {
@@ -623,6 +647,18 @@ pub struct FunctionSignatureDeclaration {
 }
 
 impl FunctionSignatureDeclaration {
+    pub fn is_predicate(&self) -> bool {
+        if self.parameters.len() == 1 {
+            return self.parameters.get(0).unwrap().type_assignment == Type::Address
+                && self.result_type == Some(Type::Bool);
+        }
+        false
+    }
+
+    pub fn is_0_ary_function(&self) -> bool {
+        self.parameters.is_empty() && self.result_type == Some(Type::Address)
+    }
+
     pub fn is_payable(&self) -> bool {
         self.payable
     }

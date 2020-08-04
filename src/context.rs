@@ -144,7 +144,7 @@ impl ScopeContext {
         self.first_local_or_parameter(|v| {
             v.identifier.token == variable || mangle(variable) == v.identifier.token
         })
-            .map(|i| i.variable_type)
+        .map(|i| i.variable_type)
     }
 
     pub fn contains_variable_declaration(&self, name: &str) -> bool {

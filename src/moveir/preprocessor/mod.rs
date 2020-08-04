@@ -625,7 +625,8 @@ impl Visitor for MovePreProcessor {
                 .push(*bin_expr.lhs_expression.clone());
             match *bin_expr.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {} else {
+                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {
+                    } else {
                         let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, ctx, false);
@@ -742,7 +743,7 @@ impl Visitor for MovePreProcessor {
                 || ctx.environment.is_contract_declared(&declared_enclosing)
                 || ctx.environment.is_trait_declared(&declared_enclosing)
                 || ctx.environment.is_asset_declared(&declared_enclosing)
-                && !is_global_function_call
+                    && !is_global_function_call
             {
                 let mut expression = construct_expression(&receiver_trail);
                 let enclosing_type = ctx
@@ -1217,8 +1218,8 @@ fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Optio
                         } else {
                             // we require a temporary variable that is a reference to the variable containing the struct
                             let scope = _ctx.scope_context.as_mut().unwrap();
-                            let mut temp_identifier = scope
-                                .fresh_identifier(_t.lhs_expression.clone().get_line_info());
+                            let mut temp_identifier =
+                                scope.fresh_identifier(_t.lhs_expression.clone().get_line_info());
                             let mut new_declaration = {
                                 VariableDeclaration {
                                     declaration_token: None,
@@ -1244,11 +1245,9 @@ fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Optio
                             let mut in_block_context = false;
 
                             if let Some(block_context) = &_ctx.block_context {
-                                for local_var in
-                                    block_context.scope_context.local_variables.clone()
+                                for local_var in block_context.scope_context.local_variables.clone()
                                 {
-                                    if local_var.variable_type == new_declaration.variable_type
-                                    {
+                                    if local_var.variable_type == new_declaration.variable_type {
                                         new_declaration = local_var.clone();
                                         temp_identifier = local_var.identifier;
                                         in_block_context = true;
@@ -1300,12 +1299,12 @@ fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Optio
                                             lhs_expression: Box::new(Expression::Identifier(
                                                 temp_identifier.clone(),
                                             )),
-                                            rhs_expression: Box::new(
-                                                Expression::InoutExpression(InoutExpression {
+                                            rhs_expression: Box::new(Expression::InoutExpression(
+                                                InoutExpression {
                                                     ampersand_token: "&".to_string(),
                                                     expression: _t.lhs_expression.clone(),
-                                                }),
-                                            ),
+                                                },
+                                            )),
                                             op: BinOp::Equal,
                                             line_info: temp_identifier.line_info.clone(),
                                         }),
@@ -1352,20 +1351,14 @@ fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Optio
 
                                         _ctx.pre_statements.push(Statement::Expression(
                                             Expression::BinaryExpression(BinaryExpression {
-                                                lhs_expression: Box::new(
-                                                    Expression::Identifier(
-                                                        temp_identifier.clone(),
-                                                    ),
-                                                ),
+                                                lhs_expression: Box::new(Expression::Identifier(
+                                                    temp_identifier.clone(),
+                                                )),
                                                 rhs_expression: Box::new(
-                                                    Expression::InoutExpression(
-                                                        InoutExpression {
-                                                            ampersand_token: "&".to_string(),
-                                                            expression: _t
-                                                                .lhs_expression
-                                                                .clone(),
-                                                        },
-                                                    ),
+                                                    Expression::InoutExpression(InoutExpression {
+                                                        ampersand_token: "&".to_string(),
+                                                        expression: _t.lhs_expression.clone(),
+                                                    }),
                                                 ),
                                                 op: BinOp::Equal,
                                                 line_info: temp_identifier.line_info.clone(),
