@@ -242,6 +242,35 @@ pub fn generate_contract_wrapper(
     let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
     wrapper.body.push(Statement::Expression(sender_declaration));
 
+    let (state_properties, protection_functions) = split_caller_protections(&contract_behaviour_declaration, &context);
+
+    if !contract_behaviour_declaration.caller_protections.is_empty()
+        && caller_protections.is_empty() && !protection_functions.is_empty()
+    {
+        let caller_id: Identifier;
+
+        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
+            caller_id = caller.clone();
+        } else {
+            caller_id = Identifier::generated("caller");
+        }
+
+        if let Some(predicate) = generate_predicate(
+            &protection_functions,
+            &caller_id,
+            &contract_behaviour_declaration,
+            &wrapper.head.identifier.token,
+            &context,
+        ) {
+            let assertion = Assertion {
+                expression: predicate,
+                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+            };
+
+            wrapper.body.push(Statement::Assertion(assertion));
+        }
+    }
+
     if is_stateful {
         let type_state_declaration = VariableDeclaration {
             declaration_token: None,
@@ -255,32 +284,6 @@ pub fn generate_contract_wrapper(
             .push(Statement::Expression(Expression::VariableDeclaration(
                 type_state_declaration,
             )));
-    }
-
-    if !contract_behaviour_declaration.caller_protections.is_empty()
-        && caller_protections.is_empty()
-    {
-        let caller_id: Identifier;
-
-        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
-            caller_id = caller.clone();
-        } else {
-            caller_id = Identifier::generated("caller");
-        }
-
-        if let Some(predicate) = generate_predicate(
-            &caller_id,
-            &contract_behaviour_declaration,
-            &wrapper.head.identifier.token,
-            &context,
-        ) {
-            let assertion = Assertion {
-                expression: predicate,
-                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
-            };
-
-            wrapper.body.push(Statement::Assertion(assertion));
-        }
     }
 
     let sender_assignment = BinaryExpression {
@@ -316,6 +319,33 @@ pub fn generate_contract_wrapper(
         .push(Statement::Expression(Expression::BinaryExpression(
             self_assignment,
         )));
+
+        if !contract_behaviour_declaration.caller_protections.is_empty()
+        && caller_protections.is_empty()
+    {
+        let caller_id: Identifier;
+
+        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
+            caller_id = caller.clone();
+        } else {
+            caller_id = Identifier::generated("caller");
+        }
+
+        if let Some(predicate) = generate_predicate(
+            &state_properties,
+            &caller_id,
+            &contract_behaviour_declaration,
+            &wrapper.head.identifier.token,
+            &context,
+        ) {
+            let assertion = Assertion {
+                expression: predicate,
+                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+            };
+
+            wrapper.body.push(Statement::Assertion(assertion));
+        }
+    }
 
     if is_stateful {
         // TODO we need the slice [1..] because an extra _ is added to the front for some reason
@@ -906,14 +936,47 @@ fn struct_is_mutable_reference(
     true
 }
 
+fn split_caller_protections(contract_behaviour_declaration: &ContractBehaviourDeclaration, context: &Context) -> (Vec<CallerProtection>, Vec<CallerProtection>) {
+    let mut state_properties = vec![];
+    let mut functions = vec![];
+
+    for caller_protection in &contract_behaviour_declaration.caller_protections {
+        let mut ident = caller_protection.clone().identifier;
+        ident.enclosing_type =
+            Option::from(contract_behaviour_declaration.identifier.token.clone());
+        let en_ident = contract_behaviour_declaration.identifier.clone();
+        let c_type = context.environment.get_expression_type(
+            &Expression::Identifier(ident.clone()),
+            &en_ident.token,
+            &[],
+            &[],
+            &ScopeContext {
+                parameters: vec![],
+                local_variables: vec![],
+                counter: 0,
+            },
+        );
+
+        match c_type {
+            Type::Address => state_properties.push(caller_protection.clone()),
+            Type::ArrayType(_) => state_properties.push(caller_protection.clone()),
+            Type::DictionaryType(_) => state_properties.push(caller_protection.clone()),
+            _ => functions.push(caller_protection.clone()),
+        }
+    }
+
+    (state_properties, functions)
+}
+
 fn generate_predicate(
+    caller_protections: &Vec<CallerProtection>,
     caller_id: &Identifier,
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     function_name: &str,
     context: &Context,
 ) -> Option<Expression> {
-    contract_behaviour_declaration
-        .caller_protections
+    
+    caller_protections
         .iter()
         .cloned()
         .filter_map(|c| {

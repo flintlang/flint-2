@@ -7,9 +7,9 @@ Lottery :: (any) {
     public init() {}
 }
 
-Lottery :: (winner) {
+Lottery :: (winner, manager) {
     func winner() -> Address {
-        return manager
+        return 0x2
     }
 
     func getWinnings() -> Int {

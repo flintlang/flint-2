@@ -1,7 +1,7 @@
 contract Bank {
   let owner: Address
   var manager: Address = 0x0
-  var accounts: [Address] = [0x1, 0x2]
+  var accounts: Address = 0x1
 }
 
 Bank :: caller <- (any) {
