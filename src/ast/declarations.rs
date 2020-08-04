@@ -580,6 +580,7 @@ impl FunctionDeclaration {
 
 impl Visitable for FunctionDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
+        dbg!(self.clone());
         v.start_function_declaration(self, ctx)?;
         self.head.visit(v, ctx)?;
 

@@ -232,6 +232,12 @@ pub fn generate_contract_wrapper(
         .push(Statement::Expression(Expression::VariableDeclaration(
             self_declaration,
         )));
+        let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
+        .caller_protections
+        .clone()
+        .into_iter()
+        .filter(|c| c.is_any())
+        .collect();
 
     let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
     wrapper.body.push(Statement::Expression(sender_declaration));
@@ -249,6 +255,32 @@ pub fn generate_contract_wrapper(
             .push(Statement::Expression(Expression::VariableDeclaration(
                 type_state_declaration,
             )));
+    }
+
+    if !contract_behaviour_declaration.caller_protections.is_empty()
+        && caller_protections.is_empty()
+    {
+        let caller_id: Identifier;
+
+        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
+            caller_id = caller.clone();
+        } else {
+            caller_id = Identifier::generated("caller");
+        }
+
+        if let Some(predicate) = generate_predicate(
+            &caller_id,
+            &contract_behaviour_declaration,
+            &wrapper.head.identifier.token,
+            &context,
+        ) {
+            let assertion = Assertion {
+                expression: predicate,
+                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+            };
+
+            wrapper.body.push(Statement::Assertion(assertion));
+        }
     }
 
     let sender_assignment = BinaryExpression {
@@ -323,39 +355,6 @@ pub fn generate_contract_wrapper(
         };
 
         wrapper.body.push(Statement::Assertion(assertion));
-    }
-
-    let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
-        .caller_protections
-        .clone()
-        .into_iter()
-        .filter(|c| c.is_any())
-        .collect();
-
-    if !contract_behaviour_declaration.caller_protections.is_empty()
-        && caller_protections.is_empty()
-    {
-        let caller_id: Identifier;
-
-        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
-            caller_id = caller.clone();
-        } else {
-            caller_id = Identifier::generated("caller");
-        }
-
-        if let Some(predicate) = generate_predicate(
-            &caller_id,
-            &contract_behaviour_declaration,
-            &wrapper.head.identifier.token,
-            &context,
-        ) {
-            let assertion = Assertion {
-                expression: predicate,
-                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
-            };
-
-            wrapper.body.push(Statement::Assertion(assertion));
-        }
     }
 
     let arguments = function
@@ -1037,16 +1036,40 @@ fn generate_predicate(
                                         // prevents predicate being added to the predicate function itself
                                         return Some(Expression::FunctionCall(FunctionCall {
                                             identifier: ident,
-                                            arguments: vec![FunctionArgument {
-                                                identifier: None,
-                                                expression: Expression::RawAssembly(
-                                                    format!(
-                                                        "Signer.address_of(copy({}))",
-                                                        caller_id.token
+                                            arguments: vec![
+                                                FunctionArgument {
+                                                    identifier: None,
+                                                    expression: Expression::Identifier(
+                                                        Identifier {
+                                                            token: "address_this"
+                                                                .to_string(),
+                                                            enclosing_type: None,
+                                                            line_info: Default::default(
+                                                            ),
+                                                        },
                                                     ),
-                                                    None,
-                                                ),
-                                            }],
+                                                },
+                                                FunctionArgument {
+                                                    identifier: None,
+                                                    expression: Expression::RawAssembly(
+                                                        format!(
+                                                            "Signer.address_of(copy({}))",
+                                                            caller_id.token
+                                                        ),
+                                                        None,
+                                                    ),
+                                                },
+                                                FunctionArgument {
+                                                    identifier: None,
+                                                    expression: Expression::Identifier(
+                                                        Identifier {
+                                                            token: "caller".to_string(),
+                                                            enclosing_type: None,
+                                                            line_info: Default::default(),
+                                                        },
+                                                    ),
+                                                },
+                                            ],
                                             mangled_identifier: None,
                                         }));
                                     } else {
@@ -1061,7 +1084,31 @@ fn generate_predicate(
                                                 lhs_expression: Box::new(Expression::FunctionCall(
                                                     FunctionCall {
                                                         identifier: ident,
-                                                        arguments: vec![],
+                                                        arguments: vec![
+                                                            FunctionArgument {
+                                                                identifier: None,
+                                                                expression: Expression::Identifier(
+                                                                    Identifier {
+                                                                        token: "address_this"
+                                                                            .to_string(),
+                                                                        enclosing_type: None,
+                                                                        line_info: Default::default(
+                                                                        ),
+                                                                    },
+                                                                ),
+                                                            },
+                                                            FunctionArgument {
+                                                                identifier: None,
+                                                                expression: Expression::Identifier(
+                                                                    Identifier {
+                                                                        token: "caller".to_string(),
+                                                                        enclosing_type: None,
+                                                                        line_info: Default::default(
+                                                                        ),
+                                                                    },
+                                                                ),
+                                                            },
+                                                        ],
                                                         mangled_identifier: None,
                                                     },
                                                 )),
