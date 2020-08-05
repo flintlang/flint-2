@@ -130,23 +130,14 @@ pub struct MoveIRVector {
 
 impl fmt::Display for MoveIRVector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let elements: Vec<String> = self
-            .elements
-            .clone()
-            .into_iter()
-            .map(|e| format!("{}", e))
-            .collect();
-        let elements = elements.join(", ");
-
         if let Some(ref move_type) = self.vec_type {
             write!(
                 f,
-                "Vector::empty<{move_type}>({elements})",
+                "Vector.empty<{move_type}>()",
                 move_type = *move_type,
-                elements = elements
             )
         } else {
-            write!(f, "Vector::empty<>({})", elements)
+            write!(f, "Vector.empty<>()")
         }
     }
 }

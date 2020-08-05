@@ -80,12 +80,6 @@ impl MoveIdentifier {
                         ir_identifier,
                     )));
                 } else {
-                    /*let expression =
-                        MoveIRExpression::Transfer(MoveIRTransfer::Copy(Box::from(ir_identifier)));
-                    let expression = MoveIRExpression::Operation(MoveIROperation::MutableReference(
-                        Box::from(expression),
-                    ));
-                    return expression;*/
                     return ir_identifier;
                 }
             }

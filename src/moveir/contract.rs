@@ -280,22 +280,65 @@ impl MoveContract {
                 }),
             ));
         }
-
+        //HERE
         for property in properties {
+
             if let Some(ref expr) = property.expression {
                 let identifier = format!("__this_{}", property.identifier.token);
-                function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
-                    MoveIRAssignment {
-                        identifier,
-                        expression: Box::from(
+
+                if let crate::ast::expressions::Expression::ArrayLiteral(array) = &**expr {
+
+                    let elements: Vec<MoveIRExpression> = array
+                        .clone()
+                        .elements
+                        .into_iter()
+                        .map(|e| {
                             MoveExpression {
-                                expression: (**expr).clone(),
+                                expression: e,
                                 position: Default::default(),
                             }
-                            .generate(&function_context),
-                        ),
-                    },
-                )))
+                            .generate(&function_context)
+                        })
+                        .collect();
+
+                    if let crate::ast::types::Type::ArrayType(array) = &property.variable_type {
+                        let array_type = MoveType::move_type(*array.key_type.clone(), None).generate(&function_context);
+
+                        function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                            MoveIRAssignment {
+                                identifier: identifier.clone(),
+                                expression: Box::from(
+                                    MoveIRExpression::Vector(crate::moveir::ir::MoveIRVector{
+                                        elements: elements.clone(),
+                                        vec_type: Some(array_type.clone())
+                                    })
+                                ),
+                            },
+                        )));
+    
+                        let elements: Vec<String> = elements
+                            .into_iter()
+                            .map(|e| format!("{}", e))
+                            .collect();    
+
+                        for element in elements {
+                            function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Inline(format!("Vector.push_back<{}>(&mut {}, {})", array_type.clone(), identifier, element))));
+                        }
+                    }
+                } else {
+                    function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                        MoveIRAssignment {
+                            identifier,
+                            expression: Box::from(
+                                MoveExpression {
+                                    expression: (**expr).clone(),
+                                    position: Default::default(),
+                                }
+                                .generate(&function_context),
+                            ),
+                        },
+                    )));
+                }
             }
         }
 

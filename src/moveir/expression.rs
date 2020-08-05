@@ -64,18 +64,21 @@ impl MoveExpression {
             Expression::Literal(l) => {
                 MoveIRExpression::Literal(MoveLiteralToken { token: l }.generate())
             }
+            //TODO: fix vector type 
             Expression::ArrayLiteral(a) => {
+                dbg!(function_context.clone());
                 let elements = a
-                    .elements
-                    .into_iter()
-                    .map(|e| {
-                        MoveExpression {
-                            expression: e,
-                            position: Default::default(),
-                        }
-                        .generate(function_context)
-                    })
-                    .collect();
+                        .elements
+                        .into_iter()
+                        .map(|e| {
+                            MoveExpression {
+                                expression: e,
+                                position: Default::default(),
+                            }
+                            .generate(function_context)
+                        })
+                        .collect();
+                
                 MoveIRExpression::Vector(MoveIRVector {
                     elements,
                     vec_type: None,
