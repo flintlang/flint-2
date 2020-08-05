@@ -10,7 +10,7 @@ Bank :: caller <- (any) {
     }
 }
 
-Bank :: (manager, accounts) {
+Bank :: from <- (manager, accounts) {
   func forManagerOrCustomers() {
     // Valid: "manager" is compatible with "manager", and "accounts" is
     // compatible with "accounts"

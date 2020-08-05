@@ -921,6 +921,8 @@ impl Visitor for MovePreProcessor {
                     },
                 );
 
+                dbg!(arguments.clone());
+
                 call.arguments = arguments;
             }
         }

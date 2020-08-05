@@ -232,7 +232,7 @@ pub fn generate_contract_wrapper(
         .push(Statement::Expression(Expression::VariableDeclaration(
             self_declaration,
         )));
-        let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
+    let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration
         .caller_protections
         .clone()
         .into_iter()
@@ -242,10 +242,12 @@ pub fn generate_contract_wrapper(
     let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
     wrapper.body.push(Statement::Expression(sender_declaration));
 
-    let (state_properties, protection_functions) = split_caller_protections(&contract_behaviour_declaration, &context);
+    let (state_properties, protection_functions) =
+        split_caller_protections(&contract_behaviour_declaration, &context);
 
     if !contract_behaviour_declaration.caller_protections.is_empty()
-        && caller_protections.is_empty() && !protection_functions.is_empty()
+        && caller_protections.is_empty()
+        && !protection_functions.is_empty()
     {
         let caller_id: Identifier;
 
@@ -320,7 +322,7 @@ pub fn generate_contract_wrapper(
             self_assignment,
         )));
 
-        if !contract_behaviour_declaration.caller_protections.is_empty()
+    if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
         let caller_id: Identifier;
@@ -936,7 +938,10 @@ fn struct_is_mutable_reference(
     true
 }
 
-fn split_caller_protections(contract_behaviour_declaration: &ContractBehaviourDeclaration, context: &Context) -> (Vec<CallerProtection>, Vec<CallerProtection>) {
+fn split_caller_protections(
+    contract_behaviour_declaration: &ContractBehaviourDeclaration,
+    context: &Context,
+) -> (Vec<CallerProtection>, Vec<CallerProtection>) {
     let mut state_properties = vec![];
     let mut functions = vec![];
 
@@ -975,7 +980,6 @@ fn generate_predicate(
     function_name: &str,
     context: &Context,
 ) -> Option<Expression> {
-    
     caller_protections
         .iter()
         .cloned()
@@ -1104,11 +1108,9 @@ fn generate_predicate(
                                                     identifier: None,
                                                     expression: Expression::Identifier(
                                                         Identifier {
-                                                            token: "address_this"
-                                                                .to_string(),
+                                                            token: "address_this".to_string(),
                                                             enclosing_type: None,
-                                                            line_info: Default::default(
-                                                            ),
+                                                            line_info: Default::default(),
                                                         },
                                                     ),
                                                 },
@@ -1120,16 +1122,6 @@ fn generate_predicate(
                                                             caller_id.token
                                                         ),
                                                         None,
-                                                    ),
-                                                },
-                                                FunctionArgument {
-                                                    identifier: None,
-                                                    expression: Expression::Identifier(
-                                                        Identifier {
-                                                            token: "caller".to_string(),
-                                                            enclosing_type: None,
-                                                            line_info: Default::default(),
-                                                        },
                                                     ),
                                                 },
                                             ],
@@ -1147,31 +1139,17 @@ fn generate_predicate(
                                                 lhs_expression: Box::new(Expression::FunctionCall(
                                                     FunctionCall {
                                                         identifier: ident,
-                                                        arguments: vec![
-                                                            FunctionArgument {
-                                                                identifier: None,
-                                                                expression: Expression::Identifier(
-                                                                    Identifier {
-                                                                        token: "address_this"
-                                                                            .to_string(),
-                                                                        enclosing_type: None,
-                                                                        line_info: Default::default(
-                                                                        ),
-                                                                    },
-                                                                ),
-                                                            },
-                                                            FunctionArgument {
-                                                                identifier: None,
-                                                                expression: Expression::Identifier(
-                                                                    Identifier {
-                                                                        token: "caller".to_string(),
-                                                                        enclosing_type: None,
-                                                                        line_info: Default::default(
-                                                                        ),
-                                                                    },
-                                                                ),
-                                                            },
-                                                        ],
+                                                        arguments: vec![FunctionArgument {
+                                                            identifier: None,
+                                                            expression: Expression::Identifier(
+                                                                Identifier {
+                                                                    token: "address_this"
+                                                                        .to_string(),
+                                                                    enclosing_type: None,
+                                                                    line_info: Default::default(),
+                                                                },
+                                                            ),
+                                                        }],
                                                         mangled_identifier: None,
                                                     },
                                                 )),

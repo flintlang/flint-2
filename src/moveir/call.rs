@@ -2,7 +2,8 @@ use super::expression::MoveExpression;
 use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRExpression, MoveIRFunctionCall};
-use crate::ast::{Expression, ExternalCall, FunctionCall, Identifier};
+use crate::ast::{Expression, ExternalCall, FunctionCall, Identifier, CallerProtection};
+use crate::ast::calls::FunctionArgument;
 use crate::environment::{CallableInformation, FunctionCallMatchResult};
 
 pub(crate) struct MoveExternalCall {
@@ -136,10 +137,35 @@ impl MoveFunctionCall {
                 }
             }
         }
+        let mut arguments = self.function_call.arguments.clone();
 
-        let arguments: Vec<MoveIRExpression> = self
-            .function_call
-            .arguments
+        if let Some(context) = function_context.environment.types.get(
+            &function_context
+                .environment
+                .contract_declarations
+                .get(0)
+                .unwrap()
+                .token,
+        ) {
+            if let Some(function_call) = context.functions.get(&self.function_call.identifier.token)
+            {
+                if !function_call.get(0).unwrap().caller_protections.is_empty()
+                    && !caller_protections_is_any(&function_call.get(0).unwrap().caller_protections)
+                    && !contains_caller_argument(&arguments)
+                {
+                    arguments.push(FunctionArgument {
+                        identifier: None,
+                        expression: Expression::Identifier(Identifier {
+                            token: function_context.scope_context.parameters.clone().pop().unwrap().identifier.token,
+                            enclosing_type: None,
+                            line_info: Default::default(),
+                        }),
+                    });
+                }
+            }
+        }
+
+        let arguments: Vec<MoveIRExpression> = arguments
             .clone()
             .into_iter()
             .map(|a| {
@@ -164,4 +190,26 @@ impl MoveFunctionCall {
             arguments,
         })
     }
+}
+
+fn contains_caller_argument(arguments: &Vec<FunctionArgument>) -> bool {
+    !arguments
+        .into_iter()
+        .filter(|argument| {
+            if let Some(identifier) = argument.identifier.as_ref() {
+                identifier.token == "caller"
+            } else {
+                false
+            }
+        })
+        .collect::<Vec<&FunctionArgument>>()
+        .is_empty()
+}
+
+fn caller_protections_is_any(caller_protections: &Vec<CallerProtection>) -> bool {
+    caller_protections
+        .into_iter()
+        .filter(|caller_protection| caller_protection.identifier.token != "any")
+        .collect::<Vec<&CallerProtection>>()
+        .is_empty()
 }
