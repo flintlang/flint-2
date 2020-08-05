@@ -974,7 +974,7 @@ fn split_caller_protections(
 }
 
 fn generate_predicate(
-    caller_protections: &Vec<CallerProtection>,
+    caller_protections: &[CallerProtection],
     caller_id: &Identifier,
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     function_name: &str,
