@@ -22,6 +22,11 @@ pub(crate) struct MoveFunction {
 
 impl MoveFunction {
     pub(crate) fn generate(&self, _return: bool) -> String {
+        //dbg!(self.function_declaration.head.identifier.token.clone());
+        //dbg!(self.environment.types.get("Lottery").unwrap().functions.get(&self.function_declaration.head.identifier.token).clone());
+        //dbg!(self.function_declaration.clone());
+        // if a function has a dictionary protection, maybe add acquire <caller protection dict> to the tags?
+        //dbg!(self.environment.types.clone());
         let scope = self
             .function_declaration
             .scope_context
@@ -62,6 +67,7 @@ impl MoveFunction {
             .into_iter()
             .map(|p| MoveType::move_type(p.type_assignment, Option::from(self.environment.clone())))
             .collect();
+        //dbg!(parameter_move_types.clone());
         let parameters: Vec<MoveIRExpression> = self
             .function_declaration
             .head
@@ -97,7 +103,51 @@ impl MoveFunction {
             }
             _ => "".to_string(),
         };
-        let tags = self.function_declaration.tags.join("");
+        let mut tags = self.function_declaration.tags.join("");
+
+        let function_name = &self.function_declaration.head.identifier.token;
+
+        // adds dictionaries which are caller protections of the function to the function's tags
+
+        if let Some(contract_name) = &self.function_declaration.head.identifier.enclosing_type {
+            if let Some(type_info) = self.environment.types.get(contract_name) {
+                if let Some(function_info) = type_info.functions.get(function_name) {
+                    let caller_protections = &function_info.get(0).unwrap().caller_protections;
+
+                    for caller_protection in caller_protections {
+                        if let Some(property_info) = self
+                            .environment
+                            .types
+                            .get(contract_name)
+                            .unwrap()
+                            .properties
+                            .get(&caller_protection.identifier.token)
+                        {
+                            if let Property::VariableDeclaration(variable_declaration, _) =
+                                &property_info.property
+                            {
+                                let caller_protection_type = &variable_declaration.variable_type;
+
+                                if let Type::DictionaryType(_) = caller_protection_type {
+                                    if tags.is_empty() {
+                                        tags = format!(
+                                            "acquires {}",
+                                            mangle_dictionary(&caller_protection.identifier.token)
+                                        );
+                                    } else {
+                                        tags = format!(
+                                            "{}, {}",
+                                            tags,
+                                            mangle_dictionary(&caller_protection.identifier.token)
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         let mut scope = self
             .function_declaration
@@ -129,6 +179,8 @@ impl MoveFunction {
                 }
             })
             .collect();
+
+        //dbg!(variables.clone());
 
         let mut all_variables = scope.local_variables.clone();
         all_variables.append(&mut variables);

@@ -174,7 +174,7 @@ impl Environment {
             .contains(&protection.name())
     }
 
-    fn declared_caller_protections(&self, type_id: &str) -> Vec<String> {
+    pub fn declared_caller_protections(&self, type_id: &str) -> Vec<String> {
         let caller_protection_property = |p: &PropertyInformation| match p.property.get_type() {
             Type::Address => true,
             Type::FixedSizedArrayType(f) => {

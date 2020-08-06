@@ -131,11 +131,7 @@ pub struct MoveIRVector {
 impl fmt::Display for MoveIRVector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(ref move_type) = self.vec_type {
-            write!(
-                f,
-                "Vector.empty<{move_type}>()",
-                move_type = *move_type,
-            )
+            write!(f, "Vector.empty<{move_type}>()", move_type = *move_type,)
         } else {
             write!(f, "Vector.empty<>()")
         }

@@ -95,8 +95,10 @@ impl MoveContract {
             .collect::<Vec<String>>()
             .join(",\n");
 
-        let (dict_resources, dict_runtime) =
+        let (dict_names, dict_resources, dict_runtime, dict_initialisation) =
             self.get_dict_code(&function_context, &*variable_declarations);
+
+        let dict_names: String = dict_names.into_iter().collect::<Vec<String>>().join(", ");
 
         let structs_declarations = self
             .struct_declarations
@@ -280,14 +282,12 @@ impl MoveContract {
                 }),
             ));
         }
-        //HERE
-        for property in properties {
 
+        for property in properties {
             if let Some(ref expr) = property.expression {
                 let identifier = format!("__this_{}", property.identifier.token);
 
                 if let crate::ast::expressions::Expression::ArrayLiteral(array) = &**expr {
-
                     let elements: Vec<MoveIRExpression> = array
                         .clone()
                         .elements
@@ -302,32 +302,38 @@ impl MoveContract {
                         .collect();
 
                     if let crate::ast::types::Type::ArrayType(array) = &property.variable_type {
-                        let array_type = MoveType::move_type(*array.key_type.clone(), None).generate(&function_context);
+                        let array_type = MoveType::move_type(*array.key_type.clone(), None)
+                            .generate(&function_context);
 
-                        function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
-                            MoveIRAssignment {
+                        function_context.emit(MoveIRStatement::Expression(
+                            MoveIRExpression::Assignment(MoveIRAssignment {
                                 identifier: identifier.clone(),
-                                expression: Box::from(
-                                    MoveIRExpression::Vector(crate::moveir::ir::MoveIRVector{
+                                expression: Box::from(MoveIRExpression::Vector(
+                                    crate::moveir::ir::MoveIRVector {
                                         elements: elements.clone(),
-                                        vec_type: Some(array_type.clone())
-                                    })
-                                ),
-                            },
-                        )));
-    
-                        let elements: Vec<String> = elements
-                            .into_iter()
-                            .map(|e| format!("{}", e))
-                            .collect();    
+                                        vec_type: Some(array_type.clone()),
+                                    },
+                                )),
+                            }),
+                        ));
+
+                        let elements: Vec<String> =
+                            elements.into_iter().map(|e| format!("{}", e)).collect();
 
                         for element in elements {
-                            function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Inline(format!("Vector.push_back<{}>(&mut {}, {})", array_type.clone(), identifier, element))));
+                            function_context.emit(MoveIRStatement::Expression(
+                                MoveIRExpression::Inline(format!(
+                                    "Vector.push_back<{}>(&mut {}, {})",
+                                    array_type.clone(),
+                                    identifier,
+                                    element
+                                )),
+                            ));
                         }
                     }
                 } else {
-                    function_context.emit(MoveIRStatement::Expression(MoveIRExpression::Assignment(
-                        MoveIRAssignment {
+                    function_context.emit(MoveIRStatement::Expression(
+                        MoveIRExpression::Assignment(MoveIRAssignment {
                             identifier,
                             expression: Box::from(
                                 MoveExpression {
@@ -336,10 +342,14 @@ impl MoveContract {
                                 }
                                 .generate(&function_context),
                             ),
-                        },
-                    )));
+                        }),
+                    ));
                 }
             }
+        }
+
+        for initialiser in dict_initialisation {
+            function_context.emit(initialiser);
         }
 
         let mut unassigned: Vec<_> = self
@@ -508,18 +518,35 @@ impl MoveContract {
         }
 
         let params_without_signer = parameters.join(", ");
-        let initialiser = format!(
-            "new({params}): Self.T {{ \n{body}\n }} \n",
-            params = params_without_signer,
-            body = body,
-        );
 
+        let initialiser: String;
+        let publisher: String;
         parameters.push("account: &signer".to_string());
         let parameters = parameters.join(", ");
 
-        let publisher = format!("public publish({params}) {{ \n let t: Self.T; \nt = Self.new({values});\n move_to<T>(move(account), move(t)); \nreturn; \n }}",
+        if !dict_names.is_empty() {
+            initialiser = format!(
+                "new({params}): Self.T acquires {dict_names} {{ \n{body}\n }} \n",
+                params = params_without_signer,
+                dict_names = dict_names,
+                body = body,
+            );
+
+            publisher = format!("public publish({params}) acquires {dict_names} {{ \n let t: Self.T; \nt = Self.new({values});\n move_to<T>(move(account), move(t)); \nreturn; \n }}",
+                                params = parameters,
+                                dict_names = dict_names,
+                                values = params_values);
+        } else {
+            initialiser = format!(
+                "new({params}): Self.T {{ \n{body}\n }} \n",
+                params = params_without_signer,
+                body = body,
+            );
+
+            publisher = format!("public publish({params}) {{ \n let t: Self.T; \nt = Self.new({values});\n move_to<T>(move(account), move(t)); \nreturn; \n }}",
                                 params = parameters,
                                 values = params_values);
+        }
 
         return format!("module {name} {{ \n  {imports} \n resource T {{ \n {members} \n }} {dict_resources} \n {assets}  \n {structs} \n {init} \n {publish}\n {asset_functions} \n \n {struct_functions} \n {functions} \n {runtime} \n {dict_runtime} }}"
                        , name = self.contract_declaration.identifier.token, functions = functions, members = members,
@@ -556,12 +583,18 @@ impl MoveContract {
         &self,
         function_context: &FunctionContext,
         variable_declarations: &[VariableDeclaration],
-    ) -> (String, String) {
+    ) -> (Vec<String>, String, String, Vec<MoveIRStatement>) {
         let dict_resources: Vec<&VariableDeclaration> = variable_declarations
             .iter()
             .filter(|m| m.variable_type.is_dictionary_type())
             .collect();
+
         let dict_runtime = dict_resources.clone();
+
+        let mut dict_initialisation: Vec<MoveIRStatement> = vec![];
+
+        let mut dict_names: Vec<String> = vec![];
+
         let dict_resources = dict_resources
             .into_iter()
             .map(|d| {
@@ -570,6 +603,7 @@ impl MoveContract {
                     Option::from(self.environment.clone()),
                 );
                 let result_type = result_type.generate(&function_context);
+                dict_names.push(mangle_dictionary(&d.identifier.token));
                 format!(
                     "resource {name} {{ \n value: {dic_type} \n }}",
                     name = mangle_dictionary(&d.identifier.token),
@@ -588,6 +622,36 @@ impl MoveContract {
                     Option::from(self.environment.clone()),
                 );
                 let result_type = result_type.generate(&function_context);
+
+                if let Some(expr) = &d.expression {
+                    if let Expression::DictionaryLiteral(dict_literal) = &**expr {
+                        for elem in &dict_literal.elements {
+                            let index = MoveExpression {
+                                expression: elem.0.clone(),
+                                position: Default::default(),
+                            }
+                            .generate(function_context);
+
+                            let rhs = MoveExpression {
+                                expression: elem.1.clone(),
+                                position: Default::default(),
+                            }
+                            .generate(function_context);
+
+                            let f_name = format!("Self._insert_{}", r_name);
+
+                            dict_initialisation.push(MoveIRStatement::Expression(
+                                MoveIRExpression::FunctionCall(
+                                    crate::moveir::ir::MoveIRFunctionCall {
+                                        identifier: f_name,
+                                        arguments: vec![index, rhs],
+                                    },
+                                ),
+                            ));
+                        }
+                    }
+                }
+
                 format!(
                     "_get_{r_name}(_address_this: address): {r_type} acquires {r_name} {{
     let this: &mut Self.{r_name};
@@ -622,7 +686,12 @@ impl MoveContract {
             .collect::<Vec<String>>()
             .join("\n\n");
 
-        (dict_resources, dict_runtime)
+        (
+            dict_names,
+            dict_resources,
+            dict_runtime,
+            dict_initialisation,
+        )
     }
 }
 

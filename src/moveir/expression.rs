@@ -64,21 +64,20 @@ impl MoveExpression {
             Expression::Literal(l) => {
                 MoveIRExpression::Literal(MoveLiteralToken { token: l }.generate())
             }
-            //TODO: fix vector type 
+            //TODO: fix vector type
             Expression::ArrayLiteral(a) => {
-                dbg!(function_context.clone());
                 let elements = a
-                        .elements
-                        .into_iter()
-                        .map(|e| {
-                            MoveExpression {
-                                expression: e,
-                                position: Default::default(),
-                            }
-                            .generate(function_context)
-                        })
-                        .collect();
-                
+                    .elements
+                    .into_iter()
+                    .map(|e| {
+                        MoveExpression {
+                            expression: e,
+                            position: Default::default(),
+                        }
+                        .generate(function_context)
+                    })
+                    .collect();
+
                 MoveIRExpression::Vector(MoveIRVector {
                     elements,
                     vec_type: None,
@@ -177,7 +176,8 @@ pub(crate) struct MoveSubscriptExpression {
 impl MoveSubscriptExpression {
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let rhs = self.rhs.clone();
-        let rhs = rhs.unwrap_or(MoveIRExpression::Literal(MoveIRLiteral::U64(0)));
+        let rhs =
+            rhs.unwrap_or_else(|| MoveIRExpression::Literal(MoveIRLiteral::Hex("0x0".to_string())));
 
         let index = &self.expression.index_expression;
         let index = MoveExpression {
@@ -252,7 +252,7 @@ impl MoveSubscriptExpression {
                 );
                 MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                     identifier: f_name,
-                    arguments: vec![rhs],
+                    arguments: vec![index],
                 })
             }
             _ => panic!("Invalid Type for Subscript Expression"),
