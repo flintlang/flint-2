@@ -83,7 +83,6 @@ impl MoveExpression {
                     vec_type: None,
                 })
             }
-            //TODO: Implement DictionaryLiteral here
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => MoveSelf {
                 token: Identifier::SELF.to_string(),
@@ -131,7 +130,7 @@ impl MoveCastExpression {
             expression: (*self.expression.expression).clone(),
             position: Default::default(),
         }
-        .generate(function_context);
+        .generate(&function_context);
 
         if original_type_information.0 <= target_type_information.0 {
             return expression_code;
@@ -265,7 +264,6 @@ struct MoveAttemptExpression {
 }
 
 impl MoveAttemptExpression {
-    //TODO: dynamic checking of caller protections
     pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let _function_call = self.expression.function_call.clone();
         let identifier =
@@ -311,7 +309,7 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context);
+            .generate(&function_context);
         }
 
         if let MovePosition::Accessed = self.position {
@@ -322,7 +320,7 @@ impl MoveInoutExpression {
                         expression: *self.expression.expression.clone(),
                         position: MovePosition::Left,
                     }
-                    .generate(function_context),
+                    .generate(&function_context),
                 )));
             }
         }
@@ -332,7 +330,7 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context);
+            .generate(&function_context);
         }
 
         let expression = self.expression.clone();
@@ -341,7 +339,7 @@ impl MoveInoutExpression {
                 expression: *expression.expression,
                 position: MovePosition::Inout,
             }
-            .generate(function_context),
+            .generate(&function_context),
         )))
     }
 }
@@ -425,7 +423,6 @@ impl MoveBinaryExpression {
 
             BinOp::Power => {
                 MoveRuntimeFunction::power(lhs, rhs)
-                //MoveIRExpression::Operation(MoveIROperation::Power(Box::from(lhs), Box::from(rhs)))
             }
             BinOp::Divide => {
                 MoveIRExpression::Operation(MoveIROperation::Divide(Box::from(lhs), Box::from(rhs)))

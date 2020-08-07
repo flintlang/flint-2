@@ -22,11 +22,6 @@ pub(crate) struct MoveFunction {
 
 impl MoveFunction {
     pub(crate) fn generate(&self, _return: bool) -> String {
-        //dbg!(self.function_declaration.head.identifier.token.clone());
-        //dbg!(self.environment.types.get("Lottery").unwrap().functions.get(&self.function_declaration.head.identifier.token).clone());
-        //dbg!(self.function_declaration.clone());
-        // if a function has a dictionary protection, maybe add acquire <caller protection dict> to the tags?
-        //dbg!(self.environment.types.clone());
         let scope = self
             .function_declaration
             .scope_context
@@ -67,7 +62,7 @@ impl MoveFunction {
             .into_iter()
             .map(|p| MoveType::move_type(p.type_assignment, Option::from(self.environment.clone())))
             .collect();
-        //dbg!(parameter_move_types.clone());
+
         let parameters: Vec<MoveIRExpression> = self
             .function_declaration
             .head
@@ -180,7 +175,6 @@ impl MoveFunction {
             })
             .collect();
 
-        //dbg!(variables.clone());
 
         let mut all_variables = scope.local_variables.clone();
         all_variables.append(&mut variables);

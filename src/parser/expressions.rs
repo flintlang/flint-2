@@ -46,7 +46,6 @@ pub fn parse_expression_left(i: Span) -> nom::IResult<Span, Expression> {
         map(tag(Identifier::SELF), |_| Expression::SelfExpression),
         map(parse_subscript_expression, Expression::SubscriptExpression),
         map(parse_function_call, Expression::FunctionCall),
-        //TODO: can I have a attempt expression on the left?
         map(parse_attempt_expression, Expression::AttemptExpression),
         map(parse_variable_declaration, Expression::VariableDeclaration),
         map(parse_literal, Expression::Literal),
@@ -130,6 +129,7 @@ fn parse_attempt_expression(i: Span) -> nom::IResult<Span, AttemptExpression> {
     let attempt_expression = AttemptExpression {
         kind: kind.fragment().to_string(),
         function_call,
+        predicate: None,
     };
     Ok((i, attempt_expression))
 }
