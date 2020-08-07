@@ -247,6 +247,7 @@ mod test {
                     arguments: vec![],
                     mangled_identifier: None,
                 },
+                predicate: None
             }
         );
     }
