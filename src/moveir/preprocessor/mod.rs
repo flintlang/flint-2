@@ -606,7 +606,7 @@ impl Visitor for MovePreProcessor {
                 let caller_protections: Vec<CallerProtection> = caller_protections.into_iter().filter(|protection| !protection.is_any()).collect();
                 
                 if caller_protections.is_empty() {
-                    panic!("Dynamic checking of caller protections from a function with no caller protections is not currently implemented");
+                    panic!("Dynamic checking of caller protections from a function with no caller protections is not currently implemented due to MoveIR constraints");
                 }
             } 
 
@@ -624,7 +624,7 @@ impl Visitor for MovePreProcessor {
 
                 "?" => {
                     let mut function_call = expr.function_call.clone();
-                    self.start_function_call(&mut function_call, _ctx);
+                    self.start_function_call(&mut function_call, _ctx)?;
 
                     let function_call =
                         Statement::Expression(Expression::FunctionCall(function_call));
