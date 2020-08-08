@@ -10,6 +10,8 @@ same safety-oriented language features as before. Flint 2 includes:
  * Abstraction features such as *structs*, *traits*, and *assets* allow structures code on any blockchain
  * Safety-first language features reduce accidental developer mistakes
 
+More information on the features and how to use Flint 2 are available at the *****[language guide](docs/guide.md)*****.
+
 Flint 2 has been developed thanks to the work at the [Department of Computing](https://www.doc.ic.ac.uk/), 
 [Imperial College London](https://imperial.ac.uk) under the supervision of Professor Susan Eisenbach, undertaken by
 Jessica Lally, Matthew Ross Rachar, and George Stacey, with the core of the project the Quartz research compiler by Ali
