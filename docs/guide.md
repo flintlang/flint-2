@@ -340,10 +340,12 @@ Examples:
   
 ```swift  
 func giveOutMoney(to: Address) {  
- // only callable from other contract functions}  
+    // only callable from other contract functions
+}  
   
 public func takeMoney(from: Address) {  
- // can be called by Ethereum users and contracts}  
+    // can be called by Ethereum users and contracts
+}
 ```  
   
 Smart contracts can remain in activity for a large number of years, during which a large number of state mutations can occur. To aid with reasoning, Flint functions cannot mutate smart contracts’ state by default. This helps avoid accidental state mutations when writing the code, and allows readers to easily draw their attention to the mutating functions of the smart contract.  
@@ -354,11 +356,20 @@ Examples:
   
 ```swift  
 contract Counter {  
- var hits: Int = 0}  
+    var hits: Int = 0
+}  
   
 Counter :: (any) {  
- // This would be a compile-time error - the function needs to be declared // with `mutates (...)`! //public func incrementA() { //  hits += 1 //}  
- // This can compile: public func incrementB() mutates (hits) { hits += 1 }}  
+    // This would be a compile-time error - the function needs to be declared
+    // with `mutates (...)`! 
+    //   public func incrementA() { 
+    //       hits += 1 
+    //   }  
+    // This can compile: 
+    public func incrementB() mutates (hits) { 
+        hits += 1
+    }
+}
 ```  
   
 ### Function parameters  
@@ -378,11 +389,11 @@ Below is a function that [mutates](#function-modifiers) the dictionary of people
 ```swift  
 contract AddressBook {
     var people: [Address: String]
-}  
+}
   
 AddressBook :: caller <- (any) {  
     func remember(name: String = "John Doe") mutates (people) { people[caller] = name }
-}  
+}
 ```  
   
 ### Return values  
@@ -394,7 +405,7 @@ Example:
 ```swift  
 func hello() -> String {  
     return "Hello, world!"
-}  
+}
 ```  
   
 If the return type is omitted, the function is considered a `Void` function, and a call to it cannot be used in expressions as a value.  
@@ -542,7 +553,8 @@ Example:
   
 ```swift  
 contract Bank {  
-    var owner: Address let name: String = "Bank" event Shutdown(reason: String)
+    var owner: Address
+    let name: String = "Bank"
 }  
 ```  
   
@@ -661,17 +673,20 @@ It is sometimes useful to know which address initiated the current transaction, 
   
 ```swift  
 <contract-name> :: <variable> <- (<caller-group>) {  
- // functions}  
+    // functions
+}  
 ```  
   
 Example:  
   
 ```swift  
-contract AddressBook {  
- var book: [Address: String] = [:]}  
+contract AddressBook {
+    var book: [Address: String] = [:]
+}  
   
 AddressBook :: address <- (any) {  
- public func remember(name: String) { book[address] = name }}  
+    public func remember(name: String) { book[address] = name }
+}
 ```  
   
 #### Type state protection  
@@ -680,17 +695,22 @@ A protection block may also be used to ensure that certain functions are only ca
   
 ```swift  
 <contract-name> @(<type-state>) :: (<caller-group>) {  
- // functions}  
+    // functions
+}
 ```  
   
 Example:  
   
 ```swift  
 contract Poll(Open, CountingVotes, Result) {  
- // ...}  
+    // ...
+}  
   
 Poll @(Open) :: (any) {  
- public func voteFor(option: String) { // ... }}  
+    public func voteFor(option: String) {
+        // ... 
+    }
+}  
 ```  
   
 In this example the `voteFor` function could only be called when the `Poll` was in the `Open` state.  
@@ -702,11 +722,16 @@ In a Flint function, if a function call to another Flint function is performed, 
 Consider the following example:  
   
 ```swift  
-Bank :: (any) {  
- func foo() { // Error: Protection "any" cannot be used to perform a call to a // function for "manager" bar() }}  
-  
+Bank :: (any) {
+    func foo() {
+        // Error: Protection "any" cannot be used to perform a call to a 
+        // function for "manager" bar() 
+    }
+}  
+
 Bank :: (manager) {  
- func bar() {}}  
+    func bar() {}
+}  
 ```  
   
 Within the context of `foo`, the caller is regarded as `any`. It is not certain that the caller also satisfies the `manager` protection, so the compiler rejects the call.  
@@ -724,7 +749,8 @@ A contract behaviour declaration can be restricted by multiple caller protection
   
 ```swift  
 Bank :: (manager, accounts) {  
- func forManagerOrCustomers() {}}  
+    func forManagerOrCustomers() {}
+}  
 ```  
   
 The function `forManagerOrCustomers` can be called either by the manager, or by any of the accounts registered in the bank.  
@@ -736,29 +762,45 @@ Consider the following examples:
 ```swift  
 // Insufficient protections  
 Bank :: (manager, accounts) {  
- func forManagerOrCustomers() { // Error: "accounts" is not compatible with "manager" forManager() }}  
-  
+    func forManagerOrCustomers() {
+      // Error: `accounts` is not compatible with `manager`
+      forManager() 
+    }
+}  
 Bank :: (manager) {  
- func forManager() {}}  
+    func forManager() {}
+}
 ```  
   
 ```swift  
 // Sufficient protections  
 Bank :: (manager, accounts) {  
- func forManagerOrCustomers() { // Valid: "manager" is compatible with "manager", and "accounts" is // compatible with "accounts" forManagerOrCustomers2() }}  
+    func forManagerOrCustomers() {
+        // Valid: "manager" is compatible with "manager", and "accounts" is
+        // compatible with "accounts"
+        forManagerOrCustomers2()
+    }
+}  
   
 Bank :: (accounts, manager) {  
- func forManagerOrCustomers2() {}}  
+    func forManagerOrCustomers2() {}
+}  
 ```  
   
 ```swift  
 // `any` is compatible with any caller protection  
-Bank :: (manager, accounts) {  
- func forManagerOrCustomers() { // Valid: "manager" is compatible with "manager" (and "any", too), and "accounts" // is compatible with "any" forManagerOrCustomers2() }}  
+Bank :: (manager, accounts) {
+    func forManagerOrCustomers() {
+        // Valid: "manager" is compatible with "manager" (and "any", too), and "accounts" 
+        // is compatible with "any" 
+        forManagerOrCustomers2()
+    }
+}  
   
 // The caller protection "manager" has no effect: "any" is compatible with any caller protection  
 Bank :: (manager, any) {  
- func forManagerOrCustomers2() {}}  
+    func forManagerOrCustomers2() {}
+}  
 ```  
   
 ### Visibility Modifiers  
@@ -794,22 +836,23 @@ public func getName() -> String
 Flint has the concept of 'traits', based in part on [traits in the Rust language](https://doc.rust-lang.org/rust-by-example/trait.html). Traits describe the partial behaviour of the contracts or structs which conform to them. For contracts, traits constitute a collection of functions, function signatures in protection blocks, and events. For structs, traits only constitute a collection of functions and function signatures.  
   
 Contracts or structs can conform to multiple traits. The Flint compiler enforces the implementation of function signatures in the trait and allows usage of the functions declared in them. Traits allow a level of abstraction and code reuse for contracts and structs.  
-  
- > **Planned feature** > > In the future, the Flint standard library will include traits providing common functionality to contracts (`Ownable`, `Burnable`, `MultiSig`, `Pausable`, `ERC20`, `ERC721`, etc.) and structs (`Transferable`, `RawValued`, `Describable` etc.). It will also form the basis for allowing end users to access compiler level guarantees and restrictions as in [assets](#assets) and Numerics.  
+   
 ### Struct traits  
   
 Traits can be declared for structs using the syntax:  
   
 ```swift  
 struct trait <trait-name> {  
- // trait members}  
+    // trait members
+}  
 ```  
   
 Structs can conform to struct traits using the syntax:  
   
 ```swift  
 struct <struct-name>: <trait-1>, <trait-2>, ... {  
- // ...}  
+    // ...
+}  
 ```  
   
 Struct traits can contain functions, function signatures, initialisers, and initialiser signatures. A function or initialiser signature simply declares the name (for a function) and parameter types, without providing the actual code implementation.  
@@ -820,17 +863,38 @@ In this example we define an `Animal` struct trait. The `Person` struct then con
   
 ```swift  
 struct trait Animal {  
- // Must have an empty and named initialiser. public init() public init(name: String)  
- // These are signatures that conforming structures must implement // access properties of the structure. func isNamed() -> Bool public func name() -> String public func noise() -> String  
- // This is a pre-implemented function using the functions already in the trait. public func speak() -> String { if isNamed() { return name() } else { return noise() } }}  
+    // Must have an empty and named initialiser. public init() public init(name: String)  
+    // These are signatures that conforming structures must implement // access properties of the structure. 
+    func isNamed() -> Bool
+    public func name() -> String
+    public func noise() -> String  
+    
+    // This is a pre-implemented function using the functions already in the trait. 
+    public func speak() -> String {
+        if isNamed() { 
+            return name()
+        } else {
+            return noise() 
+        }
+    }
+}  
   
 struct Person: Animal {  
- let name: String  
- public init() { self.name = "John Doe" } public init(name: String) { self.name = name }  
- // People always have a name, it's just not always known. func isNamed() -> Bool { return true }  
- // These access the properties of the struct. public func name() -> String { return self.name }  
- public func noise() -> String { return "Huh?" }  
- // Person can also have functions in addition to Animal. public func greet() -> String { return "Hi" }}  
+    let name: String
+    public init() { self.name = "John Doe" } 
+    public init(name: String) { self.name = name }  
+    
+    // People always have a name, it's just not always known. 
+    func isNamed() -> Bool { return true }  
+    
+    // These access the properties of the struct. 
+    public func name() -> String { return self.name }  
+    public func noise() -> String { return "Huh?" }  
+    
+    // Person can also have functions in addition to Animal. public func greet() -> String {
+        return "Hi"
+    }
+}  
 ```  
   
 ### Contract traits  
@@ -839,36 +903,20 @@ Traits can be declared for contracts using the syntax:
   
 ```swift  
 contract trait <trait-name> {  
- // trait members}  
+    // trait members
+}  
 ```  
   
 Contracts can conform to contract traits using the following syntax for their declaration part:  
   
 ```swift  
 contract <contract-name>: <trait-1>, <trait-2>, ... {  
- // ...}  
+    // ...
+}  
 ```  
   
 Contract traits can contain anonymous contract behaviour declarations containing functions, function signatures, and events.  
-  
-Example:  
-  
-In this example, we define `Ownable`, which declares a contract as something that can be owned and transferred. The `Ownable` trait is then used by the `ToyWallet` contract allowing the use of methods in `Ownable`. This demonstrates how we can expose contract properties:  
-  
-```swift  
-contract trait Ownable {  
- event OwnershipRenounced(previousOwner: Address) event OwnershipTransfered(previousOwner: Address, newOwner: Address)  
- self :: (any) { public func getOwner() -> Address }  
- self :: (getOwner) { func setOwner(newOwner: Address)  
- public func renounceOwnership() { emit OwnershipRenounced(getOwner()) setOwner(0x000...) }  
- public func transferOwnership(newOwner: Address) { assert(newOwner != 0x000...) emit OwnershipTransfered(getOwner(), newOwner) setOwner(newOwner) } }}  
-  
-contract ToyWallet: Ownable {  
- visible var owner: Address // visible automatically creates getOwner // Skipping initialiser not relevant for this example}  
-  
-ToyWallet :: (getOwner) {  
- func setOwner(newOwner: Address){ self.owner = newOwner }}  
-```  
+
   
 ### External traits  
   
@@ -877,7 +925,8 @@ External traits allow interfacing with contracts (and resources) from the target
 ```swift  
 <attributes>  
 external trait <trait-name> {  
- // trait members}  
+    // trait members
+}  
 ```  
   
 See the [specifying the interface of external calls](#specifying-the-interface) section for more information.  
