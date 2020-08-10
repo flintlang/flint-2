@@ -142,7 +142,7 @@ impl Visitable for ContractBehaviourDeclaration {
 
         let local_variables: Vec<VariableDeclaration> = vec![];
         let mut parameters: Vec<Parameter> = vec![];
-        
+
         if let Some(caller) = &self.caller_binding {
             parameters.push(Parameter {
                 identifier: caller.clone(),

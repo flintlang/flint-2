@@ -155,8 +155,12 @@ impl MoveFunctionCall {
                     if !function_call.get(0).unwrap().caller_protections.is_empty()
                         && !contains_caller_argument(&arguments, &caller_id)
                     {
-                        if let Some(enclosing_type) = &self.function_call.identifier.enclosing_type {
-                            if !function_context.environment.is_struct_declared(&enclosing_type) {
+                        if let Some(enclosing_type) = &self.function_call.identifier.enclosing_type
+                        {
+                            if !function_context
+                                .environment
+                                .is_struct_declared(&enclosing_type)
+                            {
                                 arguments.push(FunctionArgument {
                                     identifier: None,
                                     expression: Expression::Identifier(Identifier {

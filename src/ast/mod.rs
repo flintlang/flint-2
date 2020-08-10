@@ -385,10 +385,6 @@ pub fn mangle_function_move(string: &str, type_id: &str, is_contract: bool) -> S
     format!("{func_type}{name}", name = string, func_type = func_type)
 }
 
-pub fn mangle_mem(string: &str) -> String {
-    format!("{}$isMem", string)
-}
-
 pub struct CodeGen {
     pub code: String,
     pub indent_level: i32,

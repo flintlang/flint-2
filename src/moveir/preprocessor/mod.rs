@@ -602,13 +602,17 @@ impl Visitor for MovePreProcessor {
             }
         } else if let Expression::AttemptExpression(expr) = _t {
             if let Some(contract_ctx) = &_ctx.contract_behaviour_declaration_context {
-                let caller_protections: Vec<CallerProtection> = contract_ctx.caller_protections.clone();
-                let caller_protections: Vec<CallerProtection> = caller_protections.into_iter().filter(|protection| !protection.is_any()).collect();
-                
+                let caller_protections: Vec<CallerProtection> =
+                    contract_ctx.caller_protections.clone();
+                let caller_protections: Vec<CallerProtection> = caller_protections
+                    .into_iter()
+                    .filter(|protection| !protection.is_any())
+                    .collect();
+
                 if caller_protections.is_empty() {
                     panic!("Dynamic checking of caller protections from a function with no caller protections is not currently implemented due to MoveIR constraints");
                 }
-            } 
+            }
 
             match expr.kind.as_str() {
                 "!" => {
@@ -628,18 +632,18 @@ impl Visitor for MovePreProcessor {
 
                     let function_call =
                         Statement::Expression(Expression::FunctionCall(function_call));
-                        
+
                     let scope = _ctx.scope_context.as_mut().unwrap();
-                        let temp_identifier = scope.fresh_identifier(Default::default());
-                        let new_declaration = {
-                            VariableDeclaration {
-                                declaration_token: None,
-                                identifier: temp_identifier.clone(),
-                                variable_type: Type::Bool,
-                                expression: None,
-                            }
-                        };
-    
+                    let temp_identifier = scope.fresh_identifier(Default::default());
+                    let new_declaration = {
+                        VariableDeclaration {
+                            declaration_token: None,
+                            identifier: temp_identifier.clone(),
+                            variable_type: Type::Bool,
+                            expression: None,
+                        }
+                    };
+
                     if let Some(context) = &mut _ctx.function_declaration_context {
                         context.local_variables.push(new_declaration.clone());
 
@@ -694,7 +698,6 @@ impl Visitor for MovePreProcessor {
                 }
                 _ => {}
             }
-
         }
         Ok(())
     }

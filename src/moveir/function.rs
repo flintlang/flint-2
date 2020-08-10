@@ -175,7 +175,6 @@ impl MoveFunction {
             })
             .collect();
 
-
         let mut all_variables = scope.local_variables.clone();
         all_variables.append(&mut variables);
 

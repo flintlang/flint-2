@@ -214,17 +214,19 @@ impl Visitable for AttemptExpression {
             let contract_name = contract_context.identifier.token.clone();
 
             if let Some(types) = _ctx.environment.types.get(&contract_name) {
-                if let Some(function_call) = types.functions.get(&self.function_call.identifier.token) {
+                if let Some(function_call) =
+                types.functions.get(&self.function_call.identifier.token)
+                {
                     caller_protections = function_call.get(0).unwrap().caller_protections.clone();
                 }
             }
-            
+
             if let Some(caller) = &contract_context.caller {
                 caller_id = caller.token.clone();
             } else {
                 caller_id = "caller".to_string();
             }
-        }  else {
+        } else {
             caller_id = "caller".to_string();
         }
 

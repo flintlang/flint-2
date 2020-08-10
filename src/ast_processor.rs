@@ -3,16 +3,14 @@ use super::context::*;
 use super::environment::*;
 use super::moveir;
 use super::semantic_analysis::*;
-use super::solidity;
 use super::type_assigner::*;
 use super::type_checker::*;
+use crate::ewasm;
 
 pub fn process_ast(mut module: Module, environment: Environment, target: Target) -> VResult {
     let type_assigner = &mut TypeAssigner {};
     let semantic_analysis = &mut SemanticAnalysis {};
     let type_checker = &mut TypeChecker {};
-    let solidity_preprocessor = &mut solidity::preprocessor::SolidityPreProcessor {};
-    let move_preprocessor = &mut moveir::preprocessor::MovePreProcessor {};
     let context = &mut Context {
         environment,
         ..Default::default()
@@ -23,11 +21,12 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
     module.visit(type_checker, context)?;
 
     if let Target::Move = target {
+        let move_preprocessor = &mut moveir::preprocessor::MovePreProcessor {};
         module.visit(move_preprocessor, context)?;
         moveir::generate(module, context);
     } else {
-        module.visit(solidity_preprocessor, context)?;
-        solidity::generate(module, context);
+        // TODO eWASM preprocessor visit
+        ewasm::generate(&module, context);
     }
 
     Ok(())

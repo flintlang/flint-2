@@ -1,3 +1,6 @@
+#[allow(clippy::unused_import)]
+mod ewasm;
+
 mod ast;
 mod ast_processor;
 mod context;
@@ -9,9 +12,6 @@ mod type_assigner;
 mod type_checker;
 mod utils;
 mod visitor;
-
-#[allow(clippy::all)] // Solidity is deprecated, no need to lint
-mod solidity;
 
 use crate::ast_processor::Target;
 use std::env;
@@ -63,26 +63,8 @@ fn main() {
             program = program
         )
         */
-    } else {
-        let mut file =
-            File::open("src/stdlib/ether/wei.quartz").expect("Unable to open libra stdlib file ");
-        let mut ether = String::new();
-        file.read_to_string(&mut ether)
-            .expect("Unable to read the stdlib Libra file");
-
-        let mut file = File::open("src/stdlib/ether/global.quartz")
-            .expect("Unable to open quartz stdlib file ");
-        let mut global = String::new();
-        file.read_to_string(&mut global)
-            .expect("Unable to read the stdlib global file");
-
-        program = format!(
-            "{ether} \n {global} \n {program}",
-            ether = ether,
-            global = global,
-            program = program
-        )
     }
+
     let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
         println!("Could not parse file: {}", err);
         std::process::exit(1);
