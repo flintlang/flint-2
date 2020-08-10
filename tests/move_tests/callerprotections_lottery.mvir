@@ -1,7 +1,0 @@
-import {{default}}.Lottery;
-
-main(account: &signer) {
-    Lottery.publish(copy(account));
-    assert(Lottery.winner(0x3, copy(account)) == 0x2, 1);
-    return;
-}
