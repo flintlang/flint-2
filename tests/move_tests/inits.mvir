@@ -1,16 +1,17 @@
 import {{default}}.Inits;
+import 0x1.Signer;
 
 main(account: &signer) {
     Inits.publish(10, true, copy(account));
-    assert(Inits.getA(copy(account)) == 10, 1);
-    assert(Inits.getB(copy(account)) == 0x1000, 1);
-    assert(Inits.getS(copy(account)) == true, 1);
-    assert(Inits.getZ(copy(account)) == 0x72981077347248757091884308802679, 1);
+    assert(Inits.getA(Signer.address_of(copy(account)), copy(account)) == 10, 1);
+    assert(Inits.getB(Signer.address_of(copy(account)), copy(account)) == 0x1000, 2);
+    assert(Inits.getS(Signer.address_of(copy(account)), copy(account)) == true, 3);
+    assert(Inits.getZ(Signer.address_of(copy(account)), copy(account)) == 0x72981077347248757091884308802679, 4);
 
-    Inits.setT(copy(account), 5, true);
-    assert(Inits.getTx(copy(account)) == 5, 1);
-    assert(Inits.getTy(copy(account)) == true, 1);
-    assert(Inits.getTs(copy(account)) == false, 1);
+    Inits.setT(Signer.address_of(copy(account)), 5, true, copy(account));
+    assert(Inits.getTx(Signer.address_of(copy(account)), copy(account)) == 5, 5);
+    assert(Inits.getTy(Signer.address_of(copy(account)), copy(account)) == true, 6);
+    assert(Inits.getTs(Signer.address_of(copy(account)), copy(account)) == false, 7);
 
     return;
 }

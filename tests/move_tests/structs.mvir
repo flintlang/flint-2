@@ -1,58 +1,59 @@
 import {{default}}.C;
+import 0x1.Signer;
 
 main(account: &signer) {
   C.publish(copy(account));
 
   // Ax
-  assert(C.getAx(copy(account)) == 0, 10)
-  C.setAx(copy(account), 10);
-  assert(C.getAx(copy(account)) == 10, 11)
+  assert(C.getAx(Signer.address_of(copy(account)), copy(account)) == 0, 10)
+  C.setAx(Signer.address_of(copy(account)), 10, copy(account));
+  assert(C.getAx(Signer.address_of(copy(account)), copy(account)) == 10, 11)
 
   // Ay
-  assert(!C.getAy(copy(account)), 20)
-  C.setAy(copy(account), true);
-  assert(C.getAy(copy(account)), 21)
+  assert(!C.getAy(Signer.address_of(copy(account)), copy(account)), 20)
+  C.setAy(Signer.address_of(copy(account)), true, copy(account));
+  assert(C.getAy(Signer.address_of(copy(account)), copy(account)), 21)
 
   // Bxx
-  assert(C.getBxx(copy(account)) == 0, 30);
-  C.setBxx(copy(account), 0);
-  assert(C.getBxx(copy(account)) == 0, 31);
-  assert(C.getBxx2(copy(account)) == 0, 32);
-  assert(C.getBxx3(copy(account)) == 256, 33);
+  assert(C.getBxx(Signer.address_of(copy(account)), copy(account)) == 0, 30);
+  C.setBxx(Signer.address_of(copy(account)), 0, copy(account));
+  assert(C.getBxx(Signer.address_of(copy(account)), copy(account)) == 0, 31);
+  assert(C.getBxx2(Signer.address_of(copy(account)), copy(account)) == 0, 32);
+  assert(C.getBxx3(Signer.address_of(copy(account)), copy(account)) == 256, 33);
   // TODO This setter does not work
   // C.setBxx3(copy(account), 5);
   // assert(C.getBxx(copy(account)) == 5, 34);
 
   // Cxx
-  assert(C.getCxx(copy(account)) == 0, 40)
-  C.setCxx(copy(account), 10);
-  assert(C.getCxx(copy(account)) == 10, 41)
+  assert(C.getCxx(Signer.address_of(copy(account)), copy(account)) == 0, 40)
+  C.setCxx(Signer.address_of(copy(account)), 10, copy(account));
+  assert(C.getCxx(Signer.address_of(copy(account)), copy(account)) == 10, 41)
   // TODO This setter does not work (the same issue as last one)
-  // C.setCxx2(copy(account), 5);
+  // C.setCxx2(Signer.address_of(copy(account)), 5, copy(account));
   // assert(C.getCxx(copy(account)) == 5, 42)
 
   // Bxy
-  assert(!C.getBxy(copy(account)), 50);
-  C.setBxy(copy(account), true);
-  assert(C.getBxy(copy(account)), 51);
+  assert(!C.getBxy(Signer.address_of(copy(account)), copy(account)), 50);
+  C.setBxy(Signer.address_of(copy(account)), true, copy(account));
+  assert(C.getBxy(Signer.address_of(copy(account)), copy(account)), 51);
 
   // By
-  assert(C.getBy(copy(account)) == 0, 60);
-  C.setBy(copy(account), 5);
-  assert(C.getBy(copy(account)) == 5, 61);
+  assert(C.getBy(Signer.address_of(copy(account)), copy(account)) == 0, 60);
+  C.setBy(Signer.address_of(copy(account)), 5, copy(account));
+  assert(C.getBy(Signer.address_of(copy(account)), copy(account)) == 5, 61);
 
   // arr
-  assert(C.getSize(copy(account)) == 0, 70);
-  assert(C.get(copy(account), 0) == 0, 71);
-  C.append(copy(account), 5);
-  assert(C.getSize(copy(account)) == 1, 72);
-  assert(C.get(copy(account), 0) == 5, 73);
+  assert(C.getSize(Signer.address_of(copy(account)), copy(account)) == 0, 70);
+  assert(C.get(Signer.address_of(copy(account)), 0, copy(account)) == 0, 71);
+  C.append(Signer.address_of(copy(account)), 5, copy(account));
+  assert(C.getSize(Signer.address_of(copy(account)), copy(account)) == 1, 72);
+  assert(C.get(Signer.address_of(copy(account)), 0, copy(account)) == 5, 73);
 
   // D
-  assert(C.getD(copy(account)) == 5, 80);
+  assert(C.getD(Signer.address_of(copy(account)), copy(account)) == 5, 80);
 
   // E
-  assert(C.getE(copy(account)), 90);
+  assert(C.getE(Signer.address_of(copy(account)), copy(account)), 90);
 
   return;
 }

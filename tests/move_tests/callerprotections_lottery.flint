@@ -10,31 +10,31 @@ Lottery :: (any) {
 }
 
 Lottery :: (winner, manager) {
-    func winner() -> Address {
+    public func winner() -> Address {
         return 0x2
     }
 
-    func getWinnings() -> Int {
+    public func getWinnings() -> Int {
         return winnings
     }
 }
 
 Lottery :: (players, people) {
-    func firstAddressIsWinner() -> Bool{
+    public func firstAddressIsWinner() -> Bool{
         return people[0x0] == 0x2
     }
 
-    func addPerson() mutates (people) {
+    public func addPerson() mutates (people) {
         people[0x3] = 0x3
     }
 }
 
 Lottery :: (lucky) {
-  func lucky(caller_address: Address) -> Bool {
+  public func lucky(caller_address: Address) -> Bool {
     return true
   }
 
-  func isWinner() -> Bool {
+  public func isWinner() -> Bool {
       return true
   }
 }

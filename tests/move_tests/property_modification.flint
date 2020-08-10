@@ -1,9 +1,9 @@
-contract C {
+contract PropertyModification {
   var v: V = V(2)
   var u: Int
 }
 
-C :: (any) {
+PropertyModification :: (any) {
   public init() {
     u = 1
     self.v = V(3) // Last thing to do

@@ -204,11 +204,7 @@ pub fn generate_contract_wrapper(
 
     let contract_address_parameter = Parameter {
         identifier: Identifier::generated("address_this"),
-        type_assignment: Type::UserDefinedType(Identifier {
-            token: "&signer".to_string(),
-            enclosing_type: None,
-            line_info: Default::default(),
-        }),
+        type_assignment: Type::Address,
         expression: None,
         line_info: Default::default(),
     };
@@ -218,7 +214,7 @@ pub fn generate_contract_wrapper(
     wrapper
         .head
         .parameters
-        .insert(0, contract_address_parameter.clone());
+        .insert(0, contract_address_parameter);
     let original_parameter = original_parameter;
 
     let self_declaration = VariableDeclaration {
@@ -238,9 +234,6 @@ pub fn generate_contract_wrapper(
         .into_iter()
         .filter(|c| c.is_any())
         .collect();
-
-    let sender_declaration = Expression::RawAssembly("let _sender: address".to_string(), None);
-    wrapper.body.push(Statement::Expression(sender_declaration));
 
     let (state_properties, protection_functions) =
         split_caller_protections(&contract_behaviour_declaration, &context);
@@ -288,29 +281,10 @@ pub fn generate_contract_wrapper(
             )));
     }
 
-    let sender_assignment = BinaryExpression {
-        lhs_expression: Box::new(Expression::Identifier(Identifier::generated("sender"))),
-        rhs_expression: Box::new(Expression::RawAssembly(
-            format!(
-                "Signer.address_of(move({param}))",
-                param = &contract_address_parameter.identifier.token
-            ),
-            None,
-        )),
-        op: BinOp::Equal,
-        line_info: Default::default(),
-    };
-
-    wrapper
-        .body
-        .push(Statement::Expression(Expression::BinaryExpression(
-            sender_assignment,
-        )));
-
     let self_assignment = BinaryExpression {
         lhs_expression: Box::new(Expression::SelfExpression),
         rhs_expression: Box::new(Expression::RawAssembly(
-            "borrow_global_mut<T>(move(_sender))".to_string(),
+            "borrow_global_mut<T>(copy(address_this))".to_string(),
             Some(original_parameter.type_assignment),
         )),
         op: BinOp::Equal,

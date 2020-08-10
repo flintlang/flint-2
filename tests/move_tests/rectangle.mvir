@@ -1,11 +1,12 @@
 import {{default}}.Rectangle;
+import 0x1.Signer;
 
 main(account: &signer) {
     Rectangle.publish(10, 20, copy(account));
-    assert(Rectangle.area(copy(account)) == 200, 1);
-    Rectangle.changeWidth(copy(account), 5);
-    assert(Rectangle.area(copy(account)) == 100, 2);
-    assert(Rectangle.changeArea(copy(account), 5, 10) == 50, 3);
-    assert(Rectangle.area(copy(account)) == 50, 4);
+    assert(Rectangle.area(Signer.address_of(copy(account)), copy(account)) == 200, 1);
+    Rectangle.changeWidth(Signer.address_of(copy(account)), 5, copy(account));
+    assert(Rectangle.area(Signer.address_of(copy(account)), copy(account)) == 100, 2);
+    assert(Rectangle.changeArea(Signer.address_of(copy(account)), 5, 10, copy(account)) == 50, 3);
+    assert(Rectangle.area(Signer.address_of(copy(account)), copy(account)) == 50, 4);
     return;
 }

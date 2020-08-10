@@ -142,42 +142,33 @@ impl Visitable for ContractBehaviourDeclaration {
 
         let local_variables: Vec<VariableDeclaration> = vec![];
         let mut parameters: Vec<Parameter> = vec![];
-
-        let caller_protections: Vec<CallerProtection> = self
-            .caller_protections
-            .clone()
-            .into_iter()
-            .filter(|c| !c.is_any())
-            .collect();
-
-        if !self.caller_protections.is_empty() && !caller_protections.is_empty() {
-            if let Some(caller) = &self.caller_binding {
-                parameters.push(Parameter {
-                    identifier: caller.clone(),
-                    type_assignment: Type::UserDefinedType(Identifier {
-                        token: "&signer".to_string(),
-                        enclosing_type: None,
-                        line_info: Default::default(),
-                    }),
-                    expression: None,
+        
+        if let Some(caller) = &self.caller_binding {
+            parameters.push(Parameter {
+                identifier: caller.clone(),
+                type_assignment: Type::UserDefinedType(Identifier {
+                    token: "&signer".to_string(),
+                    enclosing_type: None,
                     line_info: Default::default(),
-                })
-            } else {
-                parameters.push(Parameter {
-                    identifier: Identifier {
-                        token: "caller".to_string(),
-                        enclosing_type: None,
-                        line_info: Default::default(),
-                    },
-                    type_assignment: Type::UserDefinedType(Identifier {
-                        token: "&signer".to_string(),
-                        enclosing_type: None,
-                        line_info: Default::default(),
-                    }),
-                    expression: None,
+                }),
+                expression: None,
+                line_info: Default::default(),
+            })
+        } else {
+            parameters.push(Parameter {
+                identifier: Identifier {
+                    token: "caller".to_string(),
+                    enclosing_type: None,
                     line_info: Default::default(),
-                })
-            }
+                },
+                type_assignment: Type::UserDefinedType(Identifier {
+                    token: "&signer".to_string(),
+                    enclosing_type: None,
+                    line_info: Default::default(),
+                }),
+                expression: None,
+                line_info: Default::default(),
+            })
         }
 
         let scope = ScopeContext {

@@ -3,7 +3,7 @@ use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRExpression, MoveIRFunctionCall};
 use crate::ast::calls::FunctionArgument;
-use crate::ast::{CallerProtection, Expression, ExternalCall, FunctionCall, Identifier};
+use crate::ast::{Expression, ExternalCall, FunctionCall, Identifier};
 use crate::environment::{CallableInformation, FunctionCallMatchResult};
 
 pub(crate) struct MoveExternalCall {
@@ -153,9 +153,6 @@ impl MoveFunctionCall {
                     let caller_id = caller.identifier;
 
                     if !function_call.get(0).unwrap().caller_protections.is_empty()
-                        && !caller_protections_is_any(
-                            &function_call.get(0).unwrap().caller_protections,
-                        )
                         && !contains_caller_argument(&arguments, &caller_id)
                     {
                         arguments.push(FunctionArgument {
@@ -205,11 +202,4 @@ fn contains_caller_argument(arguments: &[FunctionArgument], caller: &Identifier)
             false
         }
     })
-}
-
-fn caller_protections_is_any(caller_protections: &[CallerProtection]) -> bool {
-    caller_protections
-        .iter()
-        .find(|caller_protection| caller_protection.identifier.token != "any")
-        .is_none()
 }

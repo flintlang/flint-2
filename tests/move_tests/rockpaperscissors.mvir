@@ -1,25 +1,26 @@
 import {{default}}.RockPaperScissors;
+import 0x1.Signer;
 
 main(account: &signer) {
   RockPaperScissors.publish(copy(account));
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 1);
-  RockPaperScissors.leftWins(copy(account), 0, 0);
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 2);
-  RockPaperScissors.leftWins(copy(account), 1, 1);
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 3);
-  RockPaperScissors.leftWins(copy(account), 2, 2);
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 4);
-  RockPaperScissors.leftWins(copy(account), 0, 1);
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 2);
-  RockPaperScissors.leftWins(copy(account), 0, 2);
-  assert(RockPaperScissors.getWinner(copy(account)) == true, 2);
-  RockPaperScissors.leftWins(copy(account), 1, 0);
-  assert(RockPaperScissors.getWinner(copy(account)) == true, 3);
-  RockPaperScissors.leftWins(copy(account), 1, 2);
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 3);
-  RockPaperScissors.leftWins(copy(account), 2, 0);
-  assert(RockPaperScissors.getWinner(copy(account)) == false, 4);
-  RockPaperScissors.leftWins(copy(account), 2, 1);
-  assert(RockPaperScissors.getWinner(copy(account)) == true, 4);
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 1);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 0, 0, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 2);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 1, 1, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 3);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 2, 2, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 4);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 0, 1, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 2);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 0, 2, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == true, 2);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 1, 0, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == true, 3);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 1, 2, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 3);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 2, 0, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == false, 4);
+  RockPaperScissors.leftWins(Signer.address_of(copy(account)), 2, 1, copy(account));
+  assert(RockPaperScissors.getWinner(Signer.address_of(copy(account)), copy(account)) == true, 4);
   return;
 }

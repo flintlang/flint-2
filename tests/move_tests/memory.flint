@@ -1,9 +1,9 @@
-contract C {
+contract Memory {
   var s: S = S(0, 0x00000000000000000000000000000000)
   var v: V = V(2)
 }
 
-C :: (any) {
+Memory :: (any) {
   public init() {}
 
   public func setS(a: Int, b: Address)
