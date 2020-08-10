@@ -155,14 +155,27 @@ impl MoveFunctionCall {
                     if !function_call.get(0).unwrap().caller_protections.is_empty()
                         && !contains_caller_argument(&arguments, &caller_id)
                     {
-                        arguments.push(FunctionArgument {
-                            identifier: None,
-                            expression: Expression::Identifier(Identifier {
-                                token: caller_id.token,
-                                enclosing_type: None,
-                                line_info: Default::default(),
-                            }),
-                        });
+                        if let Some(enclosing_type) = &self.function_call.identifier.enclosing_type {
+                            if !function_context.environment.is_struct_declared(&enclosing_type) {
+                                arguments.push(FunctionArgument {
+                                    identifier: None,
+                                    expression: Expression::Identifier(Identifier {
+                                        token: caller_id.token,
+                                        enclosing_type: None,
+                                        line_info: Default::default(),
+                                    }),
+                                });
+                            }
+                        } else {
+                            arguments.push(FunctionArgument {
+                                identifier: None,
+                                expression: Expression::Identifier(Identifier {
+                                    token: caller_id.token,
+                                    enclosing_type: None,
+                                    line_info: Default::default(),
+                                }),
+                            });
+                        }
                     }
                 }
             }
