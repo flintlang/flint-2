@@ -1,0 +1,14 @@
+import {{default}}.Counter;
+import 0x1.Signer;
+
+main (account: &signer) {
+  Counter.publish(copy(account));
+  assert(Counter.getCount(Signer.address_of(copy(account)), copy(account)) == 0, 1);
+  Counter.increment(Signer.address_of(copy(account)), 1, copy(account));
+  assert(Counter.getCount(Signer.address_of(copy(account)), copy(account)) == 1, 2);
+  Counter.reset(Signer.address_of(copy(account)), copy(account));
+  assert(Counter.getCount(Signer.address_of(copy(account)), copy(account)) == 0, 3);
+  //! expect fail 16
+  Counter.reset(Signer.address_of(copy(account)), copy(account));
+  return;
+}

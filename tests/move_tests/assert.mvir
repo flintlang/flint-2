@@ -1,0 +1,10 @@
+import {{default}}.Assert;
+import 0x1.Signer;
+
+main(account: &signer) {
+    Assert.publish(copy(account));
+    Assert.shouldNotCrash(Signer.address_of(copy(account)), copy(account));
+    //! expect fail 7
+    Assert.shouldCrash(Signer.address_of(copy(account)), copy(account));
+    return;
+}

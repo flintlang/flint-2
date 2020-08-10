@@ -1,0 +1,13 @@
+contract Assert {}
+
+Assert :: (any) {
+    public init() {}
+
+    public func shouldCrash() {
+        assert 5 == 4
+    }
+
+    public func shouldNotCrash() {
+        assert (5 == (3 + 2))
+    }
+}

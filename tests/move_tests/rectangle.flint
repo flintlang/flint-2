@@ -1,0 +1,25 @@
+contract Rectangle {
+    var width: Int
+    var height: Int
+}
+
+Rectangle :: (any) {
+    public init(width: Int, height: Int) {
+        self.width = width
+        self.height = height
+    }
+
+    public func changeWidth(width: Int) mutates (width) {
+        self.width = width
+    }
+
+    public func area() -> Int {
+        return self.width * self.height
+    }
+
+    public func changeArea(width: Int, height: Int) -> Int mutates(width, height) {
+        self.width = width
+        self.height = height
+        return self.width * self.height
+    }
+}

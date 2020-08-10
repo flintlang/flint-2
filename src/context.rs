@@ -1,5 +1,5 @@
-use super::AST::*;
-use super::environment::*;
+use crate::ast::*;
+use crate::environment::*;
 
 #[derive(Debug, Default)]
 pub struct Context {
@@ -32,60 +32,21 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn enclosing_type_identifier(&self) -> Option<Identifier> {
-        if self.is_contract_behaviour_declaration_context() {
-            let i = self
-                .contract_behaviour_declaration_context
-                .as_ref()
-                .unwrap()
-                .identifier
-                .clone();
-            Some(i)
-        } else if self.is_struct_declaration_context() {
-            let i = self
-                .struct_declaration_context
-                .as_ref()
-                .unwrap()
-                .identifier
-                .clone();
-            Some(i)
-        } else if self.is_contract_declaration_context() {
-            let i = self
-                .contract_declaration_context
-                .as_ref()
-                .unwrap()
-                .identifier
-                .clone();
-            Some(i)
-        } else if self.is_asset_declaration_context() {
-            let i = self.asset_context.as_ref().unwrap().identifier.clone();
-            Some(i)
-        } else {
-            None
-        }
-    }
-    pub fn is_contract_declaration_context(&self) -> bool {
-        self.contract_declaration_context.is_some()
-    }
-
-    pub fn is_contract_behaviour_declaration_context(&self) -> bool {
-        self.contract_behaviour_declaration_context.is_some()
-    }
-
-    fn is_struct_declaration_context(&self) -> bool {
-        self.struct_declaration_context.is_some()
-    }
-
-    fn is_asset_declaration_context(&self) -> bool {
-        self.asset_context.is_some()
-    }
-
-    pub fn is_function_declaration_context(&self) -> bool {
-        self.function_declaration_context.is_some()
-    }
-
-    pub fn is_special_declaration_context(&self) -> bool {
-        self.special_declaration_context.is_some()
+    pub fn enclosing_type_identifier(&self) -> Option<&Identifier> {
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &c.identifier)
+            .or_else(|| {
+                self.struct_declaration_context
+                    .as_ref()
+                    .map(|c| &c.identifier)
+                    .or_else(|| {
+                        self.contract_declaration_context
+                            .as_ref()
+                            .map(|c| &c.identifier)
+                            .or_else(|| self.asset_context.as_ref().map(|c| &c.identifier))
+                    })
+            })
     }
 
     pub fn is_trait_declaration_context(&self) -> bool {
@@ -93,11 +54,7 @@ impl Context {
     }
 
     pub(crate) fn in_function_or_special(&self) -> bool {
-        self.is_function_declaration_context() || self.is_special_declaration_context()
-    }
-
-    pub(crate) fn has_scope_context(&self) -> bool {
-        self.scope_context.is_some()
+        self.function_declaration_context.is_some() || self.special_declaration_context.is_some()
     }
 
     pub fn scope_context(&self) -> Option<&ScopeContext> {
@@ -114,6 +71,7 @@ pub struct ContractDeclarationContext {
 pub struct ContractBehaviourDeclarationContext {
     pub identifier: Identifier,
     pub caller: Option<Identifier>,
+    pub type_states: Vec<TypeState>,
     pub caller_protections: Vec<CallerProtection>,
 }
 
@@ -158,79 +116,53 @@ pub struct ScopeContext {
 }
 
 impl ScopeContext {
-    pub fn declaration(&self, name: String) -> Option<VariableDeclaration> {
-        let mut identifiers: Vec<VariableDeclaration> = self
-            .local_variables
-            .clone()
-            .into_iter()
-            .chain(
+    fn first_local_or_parameter<P: Fn(&VariableDeclaration) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Option<VariableDeclaration> {
+        self.local_variables
+            .iter()
+            .find(|&p| predicate(p))
+            .cloned()
+            .or_else(|| {
                 self.parameters
-                    .clone()
-                    .into_iter()
-                    .map(|p| p.as_variable_declaration()),
-            )
-            .collect();
-        identifiers = identifiers
-            .into_iter()
-            .filter(|v| v.identifier.token == name)
-            .collect();
-        let result = identifiers.first();
-        if result.is_some() {
-            let declaration = identifiers.first().unwrap().clone();
-            return Some(declaration);
-        }
-        None
-    }
-
-    pub fn type_for(&self, variable: String) -> Option<Type> {
-        let mut identifiers: Vec<VariableDeclaration> = self
-            .local_variables
-            .clone()
-            .into_iter()
-            .chain(
-                self.parameters
-                    .clone()
-                    .into_iter()
-                    .map(|p| p.as_variable_declaration()),
-            )
-            .collect();
-        identifiers = identifiers
-            .into_iter()
-            .filter(|v| {
-                v.identifier.token == variable || mangle(variable.clone()) == v.identifier.token
+                    .iter()
+                    .map(Parameter::as_variable_declaration)
+                    .find(predicate)
             })
-            .collect();
-        let result = identifiers.first();
-        if result.is_some() {
-            let result_type = identifiers.first().unwrap().clone().variable_type;
-
-            return Some(result_type);
-        }
-        None
     }
 
-    pub fn contains_variable_declaration(&self, name: String) -> bool {
-        let variables: Vec<String> = self
-            .local_variables
-            .clone()
-            .into_iter()
-            .map(|v| v.identifier.token)
-            .collect();
-        variables.contains(&name)
+    pub fn is_declared(&self, name: &str) -> bool {
+        self.declaration(name).is_some()
     }
 
-    pub fn contains_parameter_declaration(&self, name: String) -> bool {
-        let parameters: Vec<String> = self
-            .parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.identifier.token)
-            .collect();
-        parameters.contains(&name)
+    pub fn declaration(&self, name: &str) -> Option<VariableDeclaration> {
+        self.first_local_or_parameter(|v: &VariableDeclaration| v.identifier.token.as_str() == name)
+    }
+
+    pub fn type_for(&self, variable: &str) -> Option<Type> {
+        self.first_local_or_parameter(|v| {
+            v.identifier.token == variable || mangle(variable) == v.identifier.token
+        })
+        .map(|i| i.variable_type)
+    }
+
+    pub fn contains_variable_declaration(&self, name: &str) -> bool {
+        self.local_variables
+            .iter()
+            .map(|v| &*v.identifier.token)
+            .any(|id| id == name)
+    }
+
+    pub fn contains_parameter_declaration(&self, name: &str) -> bool {
+        self.parameters
+            .iter()
+            .map(|p| &*p.identifier.token)
+            .any(|id| id == name)
     }
 
     pub fn fresh_identifier(&mut self, line_info: LineInfo) -> Identifier {
-        self.counter = self.counter + 1;
+        self.counter += 1;
         let count = self.local_variables.len() + self.parameters.len() + self.counter as usize;
         let name = format!("temp__{}", count);
         Identifier {
@@ -240,22 +172,28 @@ impl ScopeContext {
         }
     }
 
-    pub fn enclosing_parameter(
-        &self,
-        expression: Expression,
-        t: &TypeIdentifier,
-    ) -> Option<String> {
-        let expression_enclosing = expression.enclosing_type();
-        let expression_enclosing = expression_enclosing.unwrap_or_default();
-        if expression_enclosing == t.to_string() && expression.enclosing_identifier().is_some() {
-            let enclosing_identifier = expression.enclosing_identifier().clone();
-            let enclosing_identifier = enclosing_identifier.unwrap();
-            if self.contains_parameter_declaration(enclosing_identifier.token.clone()) {
-                return Option::from(enclosing_identifier.token);
+    pub fn enclosing_parameter(&self, expression: &Expression, type_id: &str) -> Option<String> {
+        let expression_enclosing = expression.enclosing_type().unwrap_or_default();
+        if expression_enclosing == type_id {
+            if let Some(enclosing_identifier) = expression.enclosing_identifier() {
+                if self.contains_parameter_declaration(&enclosing_identifier.token) {
+                    return Some(enclosing_identifier.token.clone());
+                }
             }
         }
-
         None
+    }
+}
+
+const DEFAULT_SCOPE_CONTEXT_REF: &ScopeContext = &ScopeContext {
+    parameters: vec![],
+    local_variables: vec![],
+    counter: 0,
+};
+
+impl Default for &ScopeContext {
+    fn default() -> Self {
+        DEFAULT_SCOPE_CONTEXT_REF
     }
 }
 

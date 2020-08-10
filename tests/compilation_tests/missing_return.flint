@@ -1,0 +1,16 @@
+contract MyContract {}
+
+MyContract :: (any) {
+  public init() {}
+
+  //! compile fail Function shouldNotCompile does not necessarily return
+  public func shouldNotCompile() -> Int {
+    if true {
+      return 6
+    } else if false {
+      return 7
+    } else {
+      let x = 10
+    }
+  }
+}

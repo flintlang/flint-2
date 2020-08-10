@@ -1,0 +1,12 @@
+import {{default}}.Shapes;
+import 0x1.Signer;
+
+main(account: &signer) {
+    Shapes.publish(10, copy(account));
+    assert(Shapes.area(Signer.address_of(copy(account)), copy(account)) == 200, 1);
+    assert(Shapes.semiPerimeter(Signer.address_of(copy(account)), copy(account)) == 30, 2);
+    assert(Shapes.perimeter(Signer.address_of(copy(account)), copy(account)) == 60, 3);
+    assert(Shapes.smallerWidth(Signer.address_of(copy(account)), 21, copy(account)), 4);
+    assert(!Shapes.smallerWidth(Signer.address_of(copy(account)), 19, copy(account)), 5);
+    return;
+}

@@ -1,0 +1,12 @@
+import {{default}}.MyContract;
+import 0x1.Signer;
+
+main(account: &signer) {
+  MyContract.publish(copy(account));
+  assert(MyContract.getValue(Signer.address_of(copy(account)), copy(account)) == 0, 1);
+  assert(MyContract.getOtherValue(Signer.address_of(copy(account)), copy(account)) == 0, 2);
+  MyContract.setOtherValue(Signer.address_of(copy(account)), 9, copy(account));
+  assert(MyContract.getOtherValue(Signer.address_of(copy(account)), copy(account)) == 9, 3);
+
+  return;
+}

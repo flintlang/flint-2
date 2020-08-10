@@ -1,0 +1,15 @@
+struct A {
+  public var a: Int = 0
+}
+
+contract MyContract {
+  var value: A = A()
+}
+
+MyContract :: (any) {
+  public init() {}
+
+  public func shouldCompile() mutates (value) {
+    value.a += 5
+  }
+}

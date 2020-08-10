@@ -1,0 +1,27 @@
+contract MyContract {
+  var aStruct: MyStruct
+}
+
+MyContract :: (any) {
+  public init(value: Int) {
+    self.aStruct = MyStruct(value)
+  }
+
+  public func shouldCompile() -> Int {
+    // Should be allowed to access public value
+    return self.aStruct.value
+  }
+
+  public func shouldAlsoCompile() mutates (aStruct) {
+    // Should be able to assign to public values
+    self.aStruct.value = 5
+  }
+}
+
+struct MyStruct {
+    public var value: Int
+
+    public init(value: Int) {
+      self.value = value
+    }
+}

@@ -1,0 +1,8 @@
+contract MyContract {}
+
+MyContract :: (any) {
+    public init() {
+        //! compile fail line 6
+        assert 5 + 4
+    }
+}

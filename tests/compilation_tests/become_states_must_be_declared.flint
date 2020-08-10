@@ -1,0 +1,10 @@
+contract StatesCorrect (One, Two, Three) {}
+
+StatesCorrect :: (any) {
+    public init() {}
+
+    public func badStateChange() {
+        //! compile fail line 8
+        become Four
+    }
+}

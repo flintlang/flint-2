@@ -1,0 +1,32 @@
+contract TrafficLights (Red, Amber, Green) {
+    var signal: Int = 0
+}
+
+TrafficLights :: (any) {
+    public init() {
+        become Red
+    }
+
+    public func getSignal() -> Int {
+        return signal
+    }
+}
+
+TrafficLights @(Red, Green) :: (any) {
+    public func moveToAmber() mutates (signal) {
+        signal = 1
+        become Amber
+    }
+}
+
+TrafficLights @(Amber) :: (any) {
+    public func moveToGreen() mutates (signal) {
+        signal = 2
+        become Green
+    }
+
+    public func moveToRed() mutates (signal) {
+        signal = 0
+        become Red
+    }
+}

@@ -1,0 +1,8 @@
+contract MyContract (One, Two) {}
+
+//! compile fail cannot have type state restrictions
+MyContract @(One) :: (any) {
+    public init() {
+        become Two
+    }
+}

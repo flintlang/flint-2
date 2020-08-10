@@ -1,0 +1,45 @@
+import {{default}}.Factorial;
+import 0x1.Signer;
+
+main(account: &signer) {
+    Factorial.publish(copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 0, 1);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 0, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 1, 2);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 1, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 1, 3);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 2, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 2, 4);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 3, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 6, 5);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 4, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 24, 6);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 5, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 120, 7);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 6, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 720, 8);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 7, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 5040, 7);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 8, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 40320, 8);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 9, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 362880, 9);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 10, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 3628800, 10);
+
+    Factorial.calculate(Signer.address_of(copy(account)), 11, copy(account));
+    assert(Factorial.getValue(Signer.address_of(copy(account)), copy(account)) == 39916800, 11);
+
+    return;
+}

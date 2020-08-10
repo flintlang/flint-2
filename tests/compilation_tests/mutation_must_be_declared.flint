@@ -1,0 +1,12 @@
+contract MyContract {
+  var value: Int = 0
+}
+
+MyContract :: (any) {
+  public init() {}
+
+  //! compile fail not declared mutating at line 9
+  public func shouldNotCompile() {
+    value += 5
+  }
+}

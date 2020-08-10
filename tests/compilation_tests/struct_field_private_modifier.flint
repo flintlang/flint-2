@@ -1,0 +1,24 @@
+contract MyContract {
+  var aStruct: MyStruct
+}
+
+MyContract :: (any) {
+  public init(value: Int) {
+    self.aStruct = MyStruct(value)
+  }
+
+  public func shouldNotCompile() -> Int {
+    //! compile fail line 12
+    return self.aStruct.value
+  }
+}
+
+struct MyStruct {
+    // We can assign only in this struct
+    var value: Int
+
+    public init(value: Int) {
+      self.value = value
+    }
+}
+

@@ -1,0 +1,15 @@
+import {{default}}.TrafficLights;
+import 0x1.Signer;
+
+main(account: &signer) {
+    TrafficLights.publish(copy(account));
+    assert(TrafficLights.getSignal(Signer.address_of(copy(account)), copy(account)) == 0, 1);
+    TrafficLights.moveToAmber(Signer.address_of(copy(account)), copy(account));
+    assert(TrafficLights.getSignal(Signer.address_of(copy(account)), copy(account)) == 1, 2);
+    TrafficLights.moveToGreen(Signer.address_of(copy(account)), copy(account));
+    assert(TrafficLights.getSignal(Signer.address_of(copy(account)), copy(account)) == 2, 3);
+    // We cannot jump straight from green light to a red!
+    //! expect fail 22
+    TrafficLights.moveToRed(Signer.address_of(copy(account)), copy(account));
+    return;
+}

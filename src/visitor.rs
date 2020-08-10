@@ -1,5 +1,5 @@
+use super::ast::*;
 use super::context::*;
-use super::AST::*;
 
 pub trait Visitor {
     fn start_module(&mut self, _t: &mut Module, _ctx: &mut Context) -> VResult {
@@ -471,6 +471,14 @@ pub trait Visitor {
         _t: &mut DictionaryLiteral,
         _ctx: &mut Context,
     ) -> VResult {
+        Ok(())
+    }
+
+    fn start_assertion(&mut self, _t: &mut Assertion, _ctx: &mut Context) -> VResult {
+        Ok(())
+    }
+
+    fn finish_assertion(&mut self, _t: &mut Assertion, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }

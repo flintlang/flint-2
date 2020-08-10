@@ -1,6 +1,6 @@
 [package]
-name = "Quartz"
-version = "0.1.0"
+name = "flint"
+version = "0.0.1"
 authors = ["kac216 <kac216@ic.ac.uk>"]
 edition = "2018"
 
@@ -11,3 +11,4 @@ nom = "5.0"
 nom_locate = "2.0.0"
 sha3 = "0.8.2"
 hex = "0.4.2"
+itertools = "0.9.0"

@@ -1,15 +1,19 @@
-mod AST;
-mod AstProcessor;
-mod MoveCodeGen;
-mod Parser;
-mod SemanticAnalysis;
-mod SolidityCodeGen;
-mod TypeAssigner;
-mod TypeChecker;
+mod ast;
+mod ast_processor;
 mod context;
 mod environment;
+mod moveir;
+mod parser;
+mod semantic_analysis;
+mod type_assigner;
+mod type_checker;
+mod utils;
 mod visitor;
-use crate::AstProcessor::Target;
+
+#[allow(clippy::all)] // Solidity is deprecated, no need to lint
+mod solidity;
+
+use crate::ast_processor::Target;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -36,12 +40,11 @@ fn main() {
     let mut file =
         File::open(filename).expect(&*format!("Unable to open file at path {} ", filename));
 
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
+    let mut program = String::new();
+    file.read_to_string(&mut program)
         .expect("Unable to read the file");
-    let mut program = contents.clone();
-
     if let Target::Move = target {
+        /* TURN OFF LIBRA
         let mut file =
             File::open("src/stdlib/libra/libra.quartz").expect("Unable to open libra stdlib file ");
         let mut libra = String::new();
@@ -53,13 +56,13 @@ fn main() {
         let mut global = String::new();
         file.read_to_string(&mut global)
             .expect("Unable to read the stdlib global file");
-
         program = format!(
             "{libra} \n {global} \n {program}",
             libra = libra,
             global = global,
             program = program
         )
+        */
     } else {
         let mut file =
             File::open("src/stdlib/ether/wei.quartz").expect("Unable to open libra stdlib file ");
@@ -80,14 +83,13 @@ fn main() {
             program = program
         )
     }
-    let (module, environment) = Parser::parse_program(&program);
+    let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
+        println!("Could not parse file: {}", err);
+        std::process::exit(1);
+    });
 
-    if module.is_none() {
-        println!("Parse Error");
-    }
-
-    if module.is_some() {
-        let module = module.unwrap();
-        let _process_result = AstProcessor::process_ast(module, environment, target);
-    }
+    ast_processor::process_ast(module, environment, target).unwrap_or_else(|err| {
+        println!("Could not parse invalid flint file: {}", err);
+        std::process::exit(1);
+    });
 }

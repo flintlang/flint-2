@@ -1,12 +1,25 @@
 language: rust
 os: linux
-dist: xenial
+dist: bionic
 before_script:
   - rustup component add clippy
+  - sudo apt-get update
+  - sudo apt-get install python3
+
 script:
-  - cargo clippy -- -D clippy::unnecessary_operation -D clippy::complexity -D clippy::correctness -A clippy::unnecessary-unwrap --verbose
-  - cargo run libra test_files/counter.flint
-  - cargo run libra test_files/map.flint
-  - cargo run libra test_files/shapes.flint
+  - cargo clippy -- -D warnings
+  - mkdir output
+  - cargo run libra tests/move_tests/counter.flint
+  - cargo run libra tests/move_tests/rectangle.flint
+  - cargo run libra tests/move_tests/shapes.flint
+  - cargo run libra tests/move_tests/traffic_lights.flint
+  - cargo run libra tests/move_tests/assert.flint
+  - cargo run libra tests/move_tests/callerprotections_counter.flint
+  - cargo run libra tests/move_tests/factorial.flint
+  - cargo run libra tests/move_tests/inits.flint
+  - cargo run libra tests/move_tests/operators.flint
+  - cargo run libra tests/move_tests/public_and_visible.flint
+  - cargo run libra tests/move_tests/typestates_counter.flint
+  - python3 run_move_tests.py compilation
   - cargo test --verbose
-cache: cargo    
+cache: cargo

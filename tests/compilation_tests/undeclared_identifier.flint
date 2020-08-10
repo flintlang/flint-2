@@ -1,0 +1,10 @@
+contract MyContract {}
+
+MyContract :: (any) {
+  public init() {}
+
+  //! compile fail undeclared identifier `bar` at line 8
+  public func foo() -> Int {
+    return self.bar
+  }
+}

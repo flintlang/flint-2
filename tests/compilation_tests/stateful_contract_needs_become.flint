@@ -1,0 +1,6 @@
+contract MyContract (One, Two) {}
+
+MyContract :: (any) {
+    //! compile fail must have a `become` statement
+    public init() {}
+}
