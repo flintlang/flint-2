@@ -4,9 +4,7 @@ use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRExpression, MoveIROperation};
 use super::MovePosition;
 use crate::ast::expressions::Expression::SelfExpression;
-use crate::ast::{mangle, Expression, Type};
-use crate::moveir::ir::MoveIRExpression::{Identifier, Transfer};
-use crate::moveir::ir::MoveIRTransfer;
+use crate::ast::Expression;
 
 #[derive(Debug)]
 pub(crate) struct MovePropertyAccess {
