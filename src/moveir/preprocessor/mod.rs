@@ -280,7 +280,8 @@ impl Visitor for MovePreProcessor {
                 Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
             payable_param.identifier.token = mangle(&payable_param_name);
-            let parameters = declaration
+            
+            let parameters: Vec<Parameter> = declaration
                 .head
                 .parameters
                 .clone()
@@ -383,9 +384,38 @@ impl Visitor for MovePreProcessor {
                 type_assignment: parameter_type,
                 expression: None,
                 line_info: Default::default(),
-            };
+            };    
 
             declaration.head.parameters.insert(0, parameter.clone());
+
+            if let Some(caller) = &contract.caller {
+                declaration.head.parameters.push(Parameter {
+                    identifier: caller.clone(),
+                    type_assignment: Type::UserDefinedType(Identifier {
+                        token: "&signer".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    }),
+                    expression: None,
+                    line_info: Default::default(),
+                })
+            } else {
+                declaration.head.parameters.push(Parameter {
+                    identifier: Identifier {
+                        token: "caller".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    },
+                    type_assignment: Type::UserDefinedType(Identifier {
+                        token: "&signer".to_string(),
+                        enclosing_type: None,
+                        line_info: Default::default(),
+                    }),
+                    expression: None,
+                    line_info: Default::default(),
+                })
+            }
+
             declaration
                 .head
                 .parameters

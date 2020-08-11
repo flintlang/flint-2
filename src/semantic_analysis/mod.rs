@@ -198,7 +198,7 @@ impl Visitor for SemanticAnalysis {
                     declaration.head.identifier.token
                 )));
             }
-
+            //TODO: remove target specific dependencies here
             if &identifier.token == "Libra" || &identifier.token == "Wei" {
                 return Ok(());
             }
@@ -420,6 +420,7 @@ impl Visitor for SemanticAnalysis {
                 // but I cannot see why so I have removed it for simplicity
 
                 // Check
+                //TODO: remove target specific dependencies
                 if enclosing_type == "Libra" || enclosing_type == "Wei" {
                     return Ok(());
                 }
@@ -496,6 +497,18 @@ impl Visitor for SemanticAnalysis {
                         } else if let Some(scope) = &ctx.scope_context {
                             return if scope.is_declared(token) {
                                 Ok(())
+                            } else if let Some(contract) = &ctx.contract_behaviour_declaration_context {
+                                if let Some(caller) = &contract.caller {
+                                    if *token == caller.token {
+                                        return Ok(());
+                                    }
+                                }
+
+                                Err(Box::from(format!(
+                                    "Use of undeclared identifier `{}` at line {}",
+                                    token, line_number
+                                )))
+                            
                             } else {
                                 Err(Box::from(format!(
                                     "Use of undeclared identifier `{}` at line {}",

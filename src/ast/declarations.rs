@@ -141,35 +141,7 @@ impl Visitable for ContractBehaviourDeclaration {
         });
 
         let local_variables: Vec<VariableDeclaration> = vec![];
-        let mut parameters: Vec<Parameter> = vec![];
-        
-        if let Some(caller) = &self.caller_binding {
-            parameters.push(Parameter {
-                identifier: caller.clone(),
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
-        } else {
-            parameters.push(Parameter {
-                identifier: Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
-        }
+        let parameters: Vec<Parameter> = vec![];
 
         let scope = ScopeContext {
             parameters,
@@ -780,7 +752,7 @@ impl Visitable for SpecialDeclaration {
             scope_context
                 .parameters
                 .extend(self.head.parameters.iter().cloned());
-
+            //TODO: remove libra specific code here
             scope_context.parameters.push(Parameter {
                 identifier: Identifier {
                     token: "caller".to_string(),
