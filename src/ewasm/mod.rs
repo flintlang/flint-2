@@ -1,4 +1,8 @@
+mod statements;
+mod types;
 mod codegen;
+mod contract;
+mod declaration;
 
 extern crate inkwell;
 
@@ -7,54 +11,112 @@ use self::inkwell::context::Context as LLVMContext;
 use self::inkwell::module::Module as LLVMModule;
 use self::inkwell::passes::PassManager;
 use self::inkwell::values::FunctionValue;
-use crate::ast::Module;
+use crate::ast::{
+    AssetDeclaration, ContractBehaviourDeclaration, Module, StructDeclaration, TopLevelDeclaration,
+    TraitDeclaration,
+};
 use crate::context::Context;
 
+use crate::ewasm::contract::EWASMContract;
 use std::io::Write;
 use std::{fs, path, process};
 
-struct Codegen<'a, 'ctx> {
-    pub llvm_context: &'ctx LLVMContext,
-    pub llvm_module: &'a LLVMModule<'ctx>,
+pub struct Codegen<'a, 'ctx> {
+    pub context: &'ctx LLVMContext,
+    pub module: &'a LLVMModule<'ctx>,
     pub builder: &'a Builder<'ctx>,
     pub fpm: &'a PassManager<FunctionValue<'ctx>>,
-    pub flint_context: &'a Context,
-    pub ast: &'a Module,
 }
 
-// TODO create ABI JSON struct?
+// TODO create ABI JSON struct? (remember we also need to generate the ABI)
 
-fn generate_llvm(module: &Module, context: &mut Context) -> String {
-    // The following is a little confusing from a Rust perspective, because all of these things have
-    // references to each other, so changing one changes all the others. Not only this, but they need
-    // not be declared mutable either. The reason is that all these things are wrappers around C++
-    // objects, and so rust does not understand that they interact, nor that we are mutating them
-    let llvm_context = LLVMContext::create();
-    let llvm_module = llvm_context.create_module("contract");
-    let builder = llvm_context.create_builder();
+pub fn generate(module: &Module, context: &Context) {
+    let external_traits = module
+        .declarations
+        .iter()
+        .filter_map(|d| {
+            if let TopLevelDeclaration::TraitDeclaration(t) = d {
+                Some(t)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<&TraitDeclaration>>();
 
-    // The fpm will optimise our functions using the LLVM optimisations that we choose to add
-    let fpm = PassManager::create(&llvm_module);
-    // TODO add more of the available optimisations
-    fpm.add_verifier_pass();
-    fpm.initialize();
+    let ewasm_contracts = module
+        .declarations
+        .iter()
+        .filter_map(|dec| {
+            if let TopLevelDeclaration::ContractDeclaration(contract_declaration) = dec {
+                let contract_behaviour_declarations = module
+                    .declarations
+                    .iter()
+                    .filter_map(|dec| {
+                        if let TopLevelDeclaration::ContractBehaviourDeclaration(cbd) = dec {
+                            if cbd.identifier.token == contract_declaration.identifier.token {
+                                return Some(cbd);
+                            }
+                        }
+                        None
+                    })
+                    .collect::<Vec<&ContractBehaviourDeclaration>>();
 
-    let mut codegen = Codegen {
-        llvm_context: &llvm_context,
-        llvm_module: &llvm_module,
-        builder: &builder,
-        fpm: &fpm,
-        flint_context: context,
-        ast: &module,
-    };
+                let struct_declarations = module
+                    .declarations
+                    .iter()
+                    .filter_map(|d| {
+                        if let TopLevelDeclaration::StructDeclaration(s) = d {
+                            Some(s)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<&StructDeclaration>>();
 
-    codegen.generate();
-    llvm_module
-        .print_to_string()
-        .to_string()
+                // Are assets applicable to eWASM?
+                let asset_declarations = module
+                    .declarations
+                    .iter()
+                    .filter_map(|d| {
+                        if let TopLevelDeclaration::AssetDeclaration(a) = d {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<&AssetDeclaration>>();
+
+                let ewasm_contract = EWASMContract {
+                    contract_declaration,
+                    contract_behaviour_declarations,
+                    struct_declarations,
+                    asset_declarations,
+                    external_traits: external_traits.clone(), // Only cloning the references but is there a better way?
+                    environment: &context.environment,
+                };
+
+                Some(ewasm_contract)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<EWASMContract>>();
+
+    assert!(!ewasm_contracts.is_empty());
+
+    // It seems from the move target that we are allowed to create multiple contracts, and each of these
+    // gets put into a separate file, so we will do the same here
+    for contract in ewasm_contracts.iter() {
+        let _contract_file = create_llvm_file(contract);
+
+        // TODO use llvm tools to compile _contract_file to WASM, then remove exports etc and
+        // TODO probably use WABT tools to verify it etc.
+        // TODO Also create the ABI file
+        // TODO remove the temporary ewasm file
+    }
 }
 
-fn create_llvm_file(module: &Module, context: &mut Context) -> fs::File {
+fn create_llvm_file(contract: &EWASMContract) -> fs::File {
     let path = path::Path::new("tmp/llvm_ir_contract.ll");
     let mut file = fs::File::create(path).unwrap_or_else(|err| {
         println!(
@@ -65,7 +127,7 @@ fn create_llvm_file(module: &Module, context: &mut Context) -> fs::File {
         process::exit(1);
     });
 
-    let llvm_module = generate_llvm(module, context);
+    let llvm_module = generate_llvm(contract);
 
     file.write_all(llvm_module.as_bytes())
         .unwrap_or_else(|err| {
@@ -82,15 +144,34 @@ fn create_llvm_file(module: &Module, context: &mut Context) -> fs::File {
     file
 }
 
+fn generate_llvm(contract: &EWASMContract) -> String {
+    // The following is a little confusing from a Rust perspective, because all of these things have
+    // references to each other, so changing one changes all the others. Not only this, but they need
+    // not be declared mutable either. The reason is that all these things are wrappers around C++
+    // objects, and so rust does not understand that they interact, nor that we are mutating them
+    let llvm_context = LLVMContext::create();
+    let llvm_module = llvm_context.create_module("contract");
+    let builder = llvm_context.create_builder();
+
+    // The fpm will optimise our functions using the LLVM optimisations that we choose to add
+    let fpm = PassManager::create(&llvm_module);
+    // TODO add more of the available optimisations
+    fpm.add_verifier_pass();
+    fpm.initialize();
+
+    let codegen = Codegen {
+        context: &llvm_context,
+        module: &llvm_module,
+        builder: &builder,
+        fpm: &fpm,
+    };
+
+    // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
+    contract.generate(&codegen);
+    llvm_module.print_to_string().to_string()
+}
+
 fn exit_on_failure(msg: &str) -> ! {
     println!("{}", msg);
     process::exit(1)
-}
-
-pub fn generate(module: &Module, context: &mut Context) {
-    let _file = create_llvm_file(module, context);
-    // TODO use llvm tools to compile _file to WASM, then remove exports etc and
-    // TODO probably use WABT tools to verify it etc.
-    // TODO Also create the ABI file
-    // TODO remove the temporary llvm file
 }

@@ -1,4 +1,3 @@
-#[allow(clippy::unused_import)]
 mod ewasm;
 
 mod ast;
