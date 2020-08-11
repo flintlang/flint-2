@@ -10,6 +10,8 @@ mod type_checker;
 mod utils;
 mod visitor;
 
+use crate::ast_processor::{Blockchain::*, Currency};
+
 #[allow(clippy::all)] // Solidity is deprecated, no need to lint
 mod solidity;
 
@@ -28,9 +30,17 @@ fn main() {
 
     let target = &args[1];
     let target = if target == "libra" {
-        Target::Move
+        Target {
+            identifier: Libra,
+            currency: Currency::libra()
+        }
+        //Target::Move
     } else if target == "ether" {
-        Target::Ether
+        Target {
+            identifier: Ethereum,
+            currency: Currency::ether()
+        }
+        //Target::Ether
     } else {
         panic!("Incorrect Target Argument specified, expecting \"ether\" or \"libra\"");
     };
@@ -43,7 +53,7 @@ fn main() {
     let mut program = String::new();
     file.read_to_string(&mut program)
         .expect("Unable to read the file");
-    if let Target::Move = target {
+    if target.identifier == Libra {
         /* TURN OFF LIBRA
         let mut file =
             File::open("src/stdlib/libra/libra.quartz").expect("Unable to open libra stdlib file ");
@@ -63,7 +73,7 @@ fn main() {
             program = program
         )
         */
-    } else {
+    } else if target.identifier == Ethereum {
         let mut file =
             File::open("src/stdlib/ether/wei.quartz").expect("Unable to open libra stdlib file ");
         let mut ether = String::new();
@@ -82,7 +92,10 @@ fn main() {
             global = global,
             program = program
         )
+    } else {
+        panic!("Invalid target identifier")
     }
+
     let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
         println!("Could not parse file: {}", err);
         std::process::exit(1);

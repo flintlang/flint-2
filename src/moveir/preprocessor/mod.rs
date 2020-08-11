@@ -269,7 +269,7 @@ impl Visitor for MovePreProcessor {
         declaration.mangled_identifier = Some(mangled_name);
 
         if declaration.is_payable() {
-            let payable_param = declaration.first_payable_param();
+            let payable_param = declaration.first_payable_param(&ctx);
 
             if payable_param.is_none() {
                 panic!("lol")
@@ -1121,7 +1121,7 @@ impl Visitor for MovePreProcessor {
                         &scope,
                     );
 
-                    if !expression_type.is_currency_type()
+                    if !expression_type.is_currency_type(&_ctx.target.currency)
                         && !expression_type.is_external_resource(_ctx.environment.clone())
                     {
                         borrow_local = true;

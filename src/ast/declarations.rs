@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::ast_processor::Target;
 use crate::context::*;
 use crate::visitor::Visitor;
 use hex::encode;
@@ -484,7 +485,7 @@ impl FunctionDeclaration {
         self.head.is_payable()
     }
 
-    pub fn first_payable_param(&self) -> Option<Parameter> {
+    pub fn first_payable_param(&self, ctx: &Context) -> Option<Parameter> {
         if !self.is_payable() {
             return None;
         }
@@ -492,7 +493,7 @@ impl FunctionDeclaration {
         let parameters = self.head.parameters.clone();
         let mut parameters: Vec<Parameter> = parameters
             .into_iter()
-            .filter(|p| p.type_assignment.is_currency_type())
+            .filter(|p| p.type_assignment.is_currency_type(&ctx.target.currency))
             .collect();
 
         if !parameters.is_empty() {
@@ -858,8 +859,8 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    pub fn is_payable(&self) -> bool {
-        self.type_assignment.is_currency_type()
+    pub fn is_payable(&self, target: &Target) -> bool {
+        self.type_assignment.is_currency_type(&target.currency)
     }
 
     pub fn is_dynamic(&self) -> bool {

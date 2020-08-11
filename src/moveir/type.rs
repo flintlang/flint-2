@@ -1,3 +1,4 @@
+use crate::ast_processor::Currency;
 use super::function::FunctionContext;
 use super::ir::MoveIRType;
 use crate::ast::{FunctionCall, Identifier, Type};
@@ -29,8 +30,6 @@ impl MoveType {
             MoveType::ByteArray => MoveIRType::ByteArray,
             MoveType::Signer => MoveIRType::Signer,
             MoveType::Resource(s) => {
-                let wei = "Wei".to_string();
-                let libra = "Libra".to_string();
                 let comp = s.clone();
 
                 let resource_type = Type::UserDefinedType(Identifier {
@@ -38,7 +37,8 @@ impl MoveType {
                     enclosing_type: None,
                     line_info: Default::default(),
                 });
-                if comp == wei || comp == libra {
+
+                if comp == "Libra" {
                     let string = format!("Self.{}", s);
                     return MoveIRType::Resource(string);
                 }
@@ -46,7 +46,7 @@ impl MoveType {
                     let string = "Self.T".to_string();
                     return MoveIRType::Resource(string);
                 }
-                if resource_type.is_currency_type() {
+                if resource_type.is_currency_type(&Currency::libra()) {
                     return MoveIRType::Resource(s.to_string());
                 }
                 let string = format!("{}.T", s);
@@ -145,7 +145,7 @@ impl MoveType {
     }
 
     pub fn is_resource_type(original: Type, type_id: &str, environment: &Environment) -> bool {
-        environment.is_contract_declared(type_id) || original.is_currency_type()
+        environment.is_contract_declared(type_id) || original.is_currency_type(&Currency::libra())
     }
 
     pub fn is_resource(&self) -> bool {

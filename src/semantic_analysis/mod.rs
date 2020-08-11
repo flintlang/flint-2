@@ -198,9 +198,9 @@ impl Visitor for SemanticAnalysis {
                     declaration.head.identifier.token
                 )));
             }
-            //TODO: remove target specific dependencies here
-            if &identifier.token == "Libra" || &identifier.token == "Wei" {
-                return Ok(());
+
+            if identifier.token == ctx.target.currency.identifier {
+                return Ok(())
             }
         }
 
@@ -212,7 +212,7 @@ impl Visitor for SemanticAnalysis {
             .unique()
         {
             return Err(Box::from(format!(
-                "Fuction {} has duplicate parameters",
+                "Function {} has duplicate parameters",
                 declaration.head.identifier.token
             )));
         }
@@ -221,7 +221,7 @@ impl Visitor for SemanticAnalysis {
             .head
             .parameters
             .iter()
-            .filter(|p| p.is_payable())
+            .filter(|p| p.is_payable(&ctx.target))
             .count();
         if declaration.is_payable() {
             if remaining_parameters == 0 {
@@ -247,7 +247,7 @@ impl Visitor for SemanticAnalysis {
                 .head
                 .parameters
                 .iter()
-                .filter(|p| p.is_dynamic() && !p.is_payable())
+                .filter(|p| p.is_dynamic() && !p.is_payable(&ctx.target))
                 .count();
             if parameters > 0 {
                 return Err(Box::from(format!(
@@ -420,11 +420,10 @@ impl Visitor for SemanticAnalysis {
                 // but I cannot see why so I have removed it for simplicity
 
                 // Check
-                //TODO: remove target specific dependencies
-                if enclosing_type == "Libra" || enclosing_type == "Wei" {
+                if *enclosing_type == ctx.target.currency.identifier {
                     return Ok(());
                 }
-
+                
                 if let Some(property) = ctx.environment.property(token, enclosing_type) {
                     // Check: Do not allow reassignment to constants: This does not work since we never know
                     // if something is assigned to yet TODO add RHS expression when something is not yet defined
