@@ -1,13 +1,14 @@
+use super::inkwell::types::BasicTypeEnum;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
     ContractMember, SpecialDeclaration, StructDeclaration, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::declaration::EWASMFieldDeclaration;
-use crate::ewasm::Codegen;
-use crate::ewasm::types::to_llvm_type;
-use super::inkwell::types::BasicTypeEnum;
+use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::EWASMStatement;
+use crate::ewasm::types::to_llvm_type;
+use crate::ewasm::Codegen;
 
 pub struct EWASMContract<'a> {
     pub contract_declaration: &'a ContractDeclaration,
@@ -83,11 +84,15 @@ impl<'a> EWASMContract<'a> {
         let body = codegen.context.append_basic_block(init_func, "entry");
         codegen.builder.position_at_end(body);
 
+        // TODO we need some sort of function (or scope) context so that we can access previous statements,
+        // parameters, local vars etc. The One defined for move is almost right but does not translate
+        // since we need to be able to get to the actual values, not just the name
+        let function_context = FunctionContext::from(self.environment);
         for statement in initialiser.body.iter() {
-            EWASMStatement { statement }.generate(codegen);
+            let instr = EWASMStatement { statement }.generate(codegen);
+            // Add to context now
         }
 
-        codegen.builder.build_return(None);
         codegen.verify_and_optimise(&init_func);
     }
 }

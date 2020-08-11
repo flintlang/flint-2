@@ -4,7 +4,7 @@ dist: bionic
 before_script:
   - rustup component add clippy
   - sudo apt-get update
-  - sudo apt-get install python3 clang-10 llvm-10
+  - sudo apt-get install python3
 
 script:
   - cargo clippy -- -D warnings

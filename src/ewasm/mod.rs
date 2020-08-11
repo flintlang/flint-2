@@ -1,8 +1,10 @@
-mod statements;
-mod types;
 mod codegen;
 mod contract;
 mod declaration;
+mod expressions;
+mod function_context;
+mod statements;
+mod types;
 
 extern crate inkwell;
 
