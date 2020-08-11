@@ -638,92 +638,104 @@ impl Visitor for MovePreProcessor {
                 if caller_protections.is_empty() {
                     panic!("Dynamic checking of caller protections from a function with no caller protections is not currently implemented due to MoveIR constraints");
                 }
-            } 
 
-            match expr.kind.as_str() {
-                "!" => {
-                    let function_call = Expression::FunctionCall(expr.function_call.clone());
-                    let assertion = Statement::Assertion(Assertion {
-                        expression: *expr.predicate.as_ref().unwrap().clone(),
-                        line_info: expr.function_call.identifier.line_info.clone(),
-                    });
+                let caller_id: &str;
 
-                    _ctx.pre_statements.push(assertion);
-                    *_t = function_call;
+                if let Some(caller) = &contract_ctx.caller {
+                    caller_id = &caller.token;
+                } else {
+                    caller_id = "caller";
                 }
 
-                "?" => {
-                    let mut function_call = expr.function_call.clone();
-                    self.start_function_call(&mut function_call, _ctx)?;
-
-                    let function_call =
-                        Statement::Expression(Expression::FunctionCall(function_call));
-                        
-                    let scope = _ctx.scope_context.as_mut().unwrap();
-                        let temp_identifier = scope.fresh_identifier(Default::default());
-                        let new_declaration = {
-                            VariableDeclaration {
-                                declaration_token: None,
-                                identifier: temp_identifier.clone(),
-                                variable_type: Type::Bool,
-                                expression: None,
+                if let Some(predicate) = crate::moveir::preprocessor::utils::generate_predicate(&caller_protections, caller_id, &contract_ctx.identifier, &expr.function_call.identifier.token, &_ctx) {
+                    match expr.kind.as_str() {
+                        "!" => {
+                            let function_call = Expression::FunctionCall(expr.function_call.clone());
+                            let assertion = Statement::Assertion(Assertion {
+                                expression: predicate,
+                                line_info: expr.function_call.identifier.line_info.clone(),
+                            });
+        
+                            _ctx.pre_statements.push(assertion);
+                            *_t = function_call;
+                        }
+        
+                        "?" => {
+                            let mut function_call = expr.function_call.clone();
+                            self.start_function_call(&mut function_call, _ctx)?;
+        
+                            let function_call =
+                                Statement::Expression(Expression::FunctionCall(function_call));
+                                
+                            let scope = _ctx.scope_context.as_mut().unwrap();
+                                let temp_identifier = scope.fresh_identifier(Default::default());
+                                let new_declaration = {
+                                    VariableDeclaration {
+                                        declaration_token: None,
+                                        identifier: temp_identifier.clone(),
+                                        variable_type: Type::Bool,
+                                        expression: None,
+                                    }
+                                };
+            
+                            if let Some(context) = &mut _ctx.function_declaration_context {
+                                context.local_variables.push(new_declaration.clone());
+        
+                                if let Some(ref mut scope_context) = context.declaration.scope_context {
+                                    scope_context.local_variables.push(new_declaration.clone());
+                                }
+        
+                                if let Some(block_context) = &mut _ctx.block_context {
+                                    block_context
+                                        .scope_context
+                                        .local_variables
+                                        .push(new_declaration);
+                                }
                             }
-                        };
-    
-                    if let Some(context) = &mut _ctx.function_declaration_context {
-                        context.local_variables.push(new_declaration.clone());
-
-                        if let Some(ref mut scope_context) = context.declaration.scope_context {
-                            scope_context.local_variables.push(new_declaration.clone());
+        
+                            let true_assignment =
+                                Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+                                    lhs_expression: Box::new(Expression::Identifier(
+                                        temp_identifier.clone(),
+                                    )),
+                                    rhs_expression: Box::new(Expression::Literal(Literal::BooleanLiteral(
+                                        true,
+                                    ))),
+                                    op: BinOp::Equal,
+                                    line_info: temp_identifier.line_info.clone(),
+                                }));
+        
+                            let false_assignment =
+                                Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+                                    lhs_expression: Box::new(Expression::Identifier(
+                                        temp_identifier.clone(),
+                                    )),
+                                    rhs_expression: Box::new(Expression::Literal(Literal::BooleanLiteral(
+                                        false,
+                                    ))),
+                                    op: BinOp::Equal,
+                                    line_info: temp_identifier.line_info.clone(),
+                                }));
+        
+                            let if_statement = IfStatement {
+                                condition: predicate,
+                                body: vec![function_call, true_assignment],
+                                else_body: vec![false_assignment],
+                                if_body_scope_context: None,
+                                else_body_scope_context: None,
+                            };
+        
+                            _ctx.pre_statements
+                                .push(Statement::IfStatement(if_statement));
+        
+                            *_t = Expression::Identifier(temp_identifier);
                         }
-
-                        if let Some(block_context) = &mut _ctx.block_context {
-                            block_context
-                                .scope_context
-                                .local_variables
-                                .push(new_declaration);
-                        }
+                        _ => {}
                     }
-
-                    let true_assignment =
-                        Statement::Expression(Expression::BinaryExpression(BinaryExpression {
-                            lhs_expression: Box::new(Expression::Identifier(
-                                temp_identifier.clone(),
-                            )),
-                            rhs_expression: Box::new(Expression::Literal(Literal::BooleanLiteral(
-                                true,
-                            ))),
-                            op: BinOp::Equal,
-                            line_info: temp_identifier.line_info.clone(),
-                        }));
-
-                    let false_assignment =
-                        Statement::Expression(Expression::BinaryExpression(BinaryExpression {
-                            lhs_expression: Box::new(Expression::Identifier(
-                                temp_identifier.clone(),
-                            )),
-                            rhs_expression: Box::new(Expression::Literal(Literal::BooleanLiteral(
-                                false,
-                            ))),
-                            op: BinOp::Equal,
-                            line_info: temp_identifier.line_info.clone(),
-                        }));
-
-                    let if_statement = IfStatement {
-                        condition: *expr.predicate.as_ref().unwrap().clone(),
-                        body: vec![function_call, true_assignment],
-                        else_body: vec![false_assignment],
-                        if_body_scope_context: None,
-                        else_body_scope_context: None,
-                    };
-
-                    _ctx.pre_statements
-                        .push(Statement::IfStatement(if_statement));
-
-                    *_t = Expression::Identifier(temp_identifier);
+                } else {
+                    panic!("Invalid predicate generated for attempt expression")
                 }
-                _ => {}
-            }
+            } 
 
         }
         Ok(())
