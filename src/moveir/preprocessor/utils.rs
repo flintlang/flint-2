@@ -959,8 +959,7 @@ pub fn generate_predicate(
         .cloned()
         .filter_map(|c| {
             let mut ident = c.clone().identifier;
-            ident.enclosing_type =
-                Option::from(en_ident.token.clone());
+            ident.enclosing_type = Option::from(en_ident.token.clone());
             let en_ident = en_ident.token.clone();
             let c_type = context.environment.get_expression_type(
                 &Expression::Identifier(ident.clone()),

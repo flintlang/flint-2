@@ -753,21 +753,6 @@ impl Visitable for SpecialDeclaration {
             scope_context
                 .parameters
                 .extend(self.head.parameters.iter().cloned());
-            //TODO: remove libra specific code here
-            scope_context.parameters.push(Parameter {
-                identifier: Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            });
         }
 
         let mut statements: Vec<Vec<Statement>> = vec![];
@@ -775,16 +760,6 @@ impl Visitable for SpecialDeclaration {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
             statement.visit(v, ctx)?;
-            if let Statement::Expression(Expression::BinaryExpression(be)) = statement {
-                if let Expression::Identifier(id) = &*be.rhs_expression {
-                    if id.token == "caller" {
-                        be.rhs_expression = Box::new(Expression::RawAssembly(
-                            "Signer.address_of(copy(caller))".to_string(),
-                            None,
-                        ));
-                    }
-                }
-            }
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }

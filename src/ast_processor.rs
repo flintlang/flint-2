@@ -28,14 +28,12 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
         Libra => {
             module.visit(move_preprocessor, context)?;
             moveir::generate(module, context);
-        },
+        }
         Ethereum => {
             module.visit(solidity_preprocessor, context)?;
             solidity::generate(module, context);
-        },
-        _ => {
-            panic!("Target not currently supported")
         }
+        _ => panic!("Target not currently supported"),
     }
 
     Ok(())
@@ -44,14 +42,14 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
 #[derive(Debug, Clone)]
 pub struct Target {
     pub identifier: Blockchain,
-    pub currency: Currency
+    pub currency: Currency,
 }
 
 impl Default for Target {
     fn default() -> Self {
         Target {
             identifier: Blockchain::None,
-            currency: Currency::default()
+            currency: Currency::default(),
         }
     }
 }
@@ -60,26 +58,26 @@ impl Default for Target {
 pub enum Blockchain {
     Libra,
     Ethereum,
-    None
+    None,
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Currency {
     pub identifier: String,
-    pub currency_types: Vec<String> 
+    pub currency_types: Vec<String>,
 }
 
 impl Currency {
     pub fn libra() -> Self {
         Currency {
             identifier: "Libra".to_string(),
-            currency_types: vec!["Libra".to_string(), "LibraCoin.T".to_string()]    
+            currency_types: vec!["Libra".to_string(), "LibraCoin.T".to_string()],
         }
     }
     pub fn ether() -> Self {
         Currency {
             identifier: "Wei".to_string(),
-            currency_types: vec!["Wei".to_string()]    
+            currency_types: vec!["Wei".to_string()],
         }
     }
 }

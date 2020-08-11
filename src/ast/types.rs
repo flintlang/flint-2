@@ -1,8 +1,8 @@
 use crate::ast::*;
+use crate::ast_processor::Currency;
 use crate::context::Context;
 use crate::environment::Environment;
 use crate::visitor::Visitor;
-use crate::ast_processor::Currency;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {

@@ -32,15 +32,15 @@ fn main() {
     let target = if target == "libra" {
         Target {
             identifier: Libra,
-            currency: Currency::libra()
+            currency: Currency::libra(),
         }
-        //Target::Move
+    //Target::Move
     } else if target == "ether" {
         Target {
             identifier: Ethereum,
-            currency: Currency::ether()
+            currency: Currency::ether(),
         }
-        //Target::Ether
+    //Target::Ether
     } else {
         panic!("Incorrect Target Argument specified, expecting \"ether\" or \"libra\"");
     };

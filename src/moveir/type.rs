@@ -1,7 +1,7 @@
-use crate::ast_processor::Currency;
 use super::function::FunctionContext;
 use super::ir::MoveIRType;
 use crate::ast::{FunctionCall, Identifier, Type};
+use crate::ast_processor::Currency;
 use crate::environment::Environment;
 
 #[derive(Debug, Clone)]

@@ -205,7 +205,7 @@ impl AttemptExpression {
 }
 
 impl Visitable for AttemptExpression {
-    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {   
+    fn visit(&mut self, _v: &mut dyn Visitor, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 }

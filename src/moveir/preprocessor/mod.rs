@@ -280,7 +280,7 @@ impl Visitor for MovePreProcessor {
                 Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
             payable_param.identifier.token = mangle(&payable_param_name);
-            
+
             let parameters: Vec<Parameter> = declaration
                 .head
                 .parameters
@@ -384,7 +384,7 @@ impl Visitor for MovePreProcessor {
                 type_assignment: parameter_type,
                 expression: None,
                 line_info: Default::default(),
-            };    
+            };
 
             declaration.head.parameters.insert(0, parameter.clone());
 
@@ -496,15 +496,34 @@ impl Visitor for MovePreProcessor {
     ) -> VResult {
         let members = declaration.body.clone();
 
-        let members = members
+        let members: Vec<Statement> = members
             .into_iter()
+            .map(|m| {
+                if let Statement::Expression(Expression::BinaryExpression(be)) = &m {
+                    if let Expression::Identifier(id) = &*be.rhs_expression {
+                        if id.token == "caller" {
+                            return Statement::Expression(Expression::BinaryExpression(
+                                BinaryExpression {
+                                    lhs_expression: be.lhs_expression.clone(),
+                                    rhs_expression: Box::new(Expression::RawAssembly(
+                                        "Signer.address_of(copy(caller))".to_string(),
+                                        None,
+                                    )),
+                                    op: be.op.clone(),
+                                    line_info: be.line_info.clone(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                m
+            })
             .filter(|m| {
-                if let Statement::Expression(e) = m.clone() {
-                    if let Expression::BinaryExpression(b) = e {
-                        if let BinOp::Equal = b.op {
-                            if let Expression::DictionaryLiteral(_) = *b.rhs_expression {
-                                return false;
-                            }
+                dbg!(m.clone());
+                if let Statement::Expression(Expression::BinaryExpression(be)) = m {
+                    if let BinOp::Equal = be.op {
+                        if let Expression::DictionaryLiteral(_) = *be.rhs_expression {
+                            return false;
                         }
                     }
                 }
@@ -632,9 +651,13 @@ impl Visitor for MovePreProcessor {
             }
         } else if let Expression::AttemptExpression(expr) = _t {
             if let Some(contract_ctx) = &_ctx.contract_behaviour_declaration_context {
-                let caller_protections: Vec<CallerProtection> = contract_ctx.caller_protections.clone();
-                let caller_protections: Vec<CallerProtection> = caller_protections.into_iter().filter(|protection| !protection.is_any()).collect();
-                
+                let caller_protections: Vec<CallerProtection> =
+                    contract_ctx.caller_protections.clone();
+                let caller_protections: Vec<CallerProtection> = caller_protections
+                    .into_iter()
+                    .filter(|protection| !protection.is_any())
+                    .collect();
+
                 if caller_protections.is_empty() {
                     panic!("Dynamic checking of caller protections from a function with no caller protections is not currently implemented due to MoveIR constraints");
                 }
@@ -647,44 +670,53 @@ impl Visitor for MovePreProcessor {
                     caller_id = "caller";
                 }
 
-                if let Some(predicate) = crate::moveir::preprocessor::utils::generate_predicate(&caller_protections, caller_id, &contract_ctx.identifier, &expr.function_call.identifier.token, &_ctx) {
+                if let Some(predicate) = crate::moveir::preprocessor::utils::generate_predicate(
+                    &caller_protections,
+                    caller_id,
+                    &contract_ctx.identifier,
+                    &expr.function_call.identifier.token,
+                    &_ctx,
+                ) {
                     match expr.kind.as_str() {
                         "!" => {
-                            let function_call = Expression::FunctionCall(expr.function_call.clone());
+                            let function_call =
+                                Expression::FunctionCall(expr.function_call.clone());
                             let assertion = Statement::Assertion(Assertion {
                                 expression: predicate,
                                 line_info: expr.function_call.identifier.line_info.clone(),
                             });
-        
+
                             _ctx.pre_statements.push(assertion);
                             *_t = function_call;
                         }
-        
+
                         "?" => {
                             let mut function_call = expr.function_call.clone();
                             self.start_function_call(&mut function_call, _ctx)?;
-        
+
                             let function_call =
                                 Statement::Expression(Expression::FunctionCall(function_call));
-                                
+
                             let scope = _ctx.scope_context.as_mut().unwrap();
-                                let temp_identifier = scope.fresh_identifier(Default::default());
-                                let new_declaration = {
-                                    VariableDeclaration {
-                                        declaration_token: None,
-                                        identifier: temp_identifier.clone(),
-                                        variable_type: Type::Bool,
-                                        expression: None,
-                                    }
-                                };
-            
+                            let temp_identifier = scope.fresh_identifier(Default::default());
+                            let new_declaration = {
+                                VariableDeclaration {
+                                    declaration_token: None,
+                                    identifier: temp_identifier.clone(),
+                                    variable_type: Type::Bool,
+                                    expression: None,
+                                }
+                            };
+
                             if let Some(context) = &mut _ctx.function_declaration_context {
                                 context.local_variables.push(new_declaration.clone());
-        
-                                if let Some(ref mut scope_context) = context.declaration.scope_context {
+
+                                if let Some(ref mut scope_context) =
+                                    context.declaration.scope_context
+                                {
                                     scope_context.local_variables.push(new_declaration.clone());
                                 }
-        
+
                                 if let Some(block_context) = &mut _ctx.block_context {
                                     block_context
                                         .scope_context
@@ -692,31 +724,33 @@ impl Visitor for MovePreProcessor {
                                         .push(new_declaration);
                                 }
                             }
-        
-                            let true_assignment =
-                                Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+
+                            let true_assignment = Statement::Expression(
+                                Expression::BinaryExpression(BinaryExpression {
                                     lhs_expression: Box::new(Expression::Identifier(
                                         temp_identifier.clone(),
                                     )),
-                                    rhs_expression: Box::new(Expression::Literal(Literal::BooleanLiteral(
-                                        true,
-                                    ))),
+                                    rhs_expression: Box::new(Expression::Literal(
+                                        Literal::BooleanLiteral(true),
+                                    )),
                                     op: BinOp::Equal,
                                     line_info: temp_identifier.line_info.clone(),
-                                }));
-        
-                            let false_assignment =
-                                Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+                                }),
+                            );
+
+                            let false_assignment = Statement::Expression(
+                                Expression::BinaryExpression(BinaryExpression {
                                     lhs_expression: Box::new(Expression::Identifier(
                                         temp_identifier.clone(),
                                     )),
-                                    rhs_expression: Box::new(Expression::Literal(Literal::BooleanLiteral(
-                                        false,
-                                    ))),
+                                    rhs_expression: Box::new(Expression::Literal(
+                                        Literal::BooleanLiteral(false),
+                                    )),
                                     op: BinOp::Equal,
                                     line_info: temp_identifier.line_info.clone(),
-                                }));
-        
+                                }),
+                            );
+
                             let if_statement = IfStatement {
                                 condition: predicate,
                                 body: vec![function_call, true_assignment],
@@ -724,10 +758,10 @@ impl Visitor for MovePreProcessor {
                                 if_body_scope_context: None,
                                 else_body_scope_context: None,
                             };
-        
+
                             _ctx.pre_statements
                                 .push(Statement::IfStatement(if_statement));
-        
+
                             *_t = Expression::Identifier(temp_identifier);
                         }
                         _ => {}
@@ -735,8 +769,7 @@ impl Visitor for MovePreProcessor {
                 } else {
                     panic!("Invalid predicate generated for attempt expression")
                 }
-            } 
-
+            }
         }
         Ok(())
     }

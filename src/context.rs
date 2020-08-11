@@ -29,7 +29,7 @@ pub struct Context {
     pub in_emit: bool,
     pub pre_statements: Vec<Statement>,
     pub post_statements: Vec<Statement>,
-    pub target: crate::ast_processor::Target
+    pub target: crate::ast_processor::Target,
 }
 
 impl Context {

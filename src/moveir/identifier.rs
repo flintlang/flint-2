@@ -1,9 +1,9 @@
-use crate::ast_processor::Currency;
 use super::function::FunctionContext;
 use super::ir::{MoveIRExpression, MoveIROperation, MoveIRTransfer};
 use super::property_access::MovePropertyAccess;
 use super::MovePosition;
 use crate::ast::{mangle, Expression, Identifier};
+use crate::ast_processor::Currency;
 
 pub(crate) struct MoveIdentifier {
     pub identifier: Identifier,

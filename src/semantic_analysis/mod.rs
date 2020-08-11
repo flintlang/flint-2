@@ -200,7 +200,7 @@ impl Visitor for SemanticAnalysis {
             }
 
             if identifier.token == ctx.target.currency.identifier {
-                return Ok(())
+                return Ok(());
             }
         }
 
@@ -423,7 +423,7 @@ impl Visitor for SemanticAnalysis {
                 if *enclosing_type == ctx.target.currency.identifier {
                     return Ok(());
                 }
-                
+
                 if let Some(property) = ctx.environment.property(token, enclosing_type) {
                     // Check: Do not allow reassignment to constants: This does not work since we never know
                     // if something is assigned to yet TODO add RHS expression when something is not yet defined
@@ -496,7 +496,9 @@ impl Visitor for SemanticAnalysis {
                         } else if let Some(scope) = &ctx.scope_context {
                             return if scope.is_declared(token) {
                                 Ok(())
-                            } else if let Some(contract) = &ctx.contract_behaviour_declaration_context {
+                            } else if let Some(contract) =
+                                &ctx.contract_behaviour_declaration_context
+                            {
                                 if let Some(caller) = &contract.caller {
                                     if *token == caller.token {
                                         return Ok(());
@@ -507,7 +509,6 @@ impl Visitor for SemanticAnalysis {
                                     "Use of undeclared identifier `{}` at line {}",
                                     token, line_number
                                 )))
-                            
                             } else {
                                 Err(Box::from(format!(
                                     "Use of undeclared identifier `{}` at line {}",
