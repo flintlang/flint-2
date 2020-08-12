@@ -215,7 +215,7 @@ impl Visitable for AttemptExpression {
 
             if let Some(types) = _ctx.environment.types.get(&contract_name) {
                 if let Some(function_call) =
-                types.functions.get(&self.function_call.identifier.token)
+                    types.functions.get(&self.function_call.identifier.token)
                 {
                     caller_protections = function_call.get(0).unwrap().caller_protections.clone();
                 }

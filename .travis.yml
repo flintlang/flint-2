@@ -5,8 +5,10 @@ before_script:
   - rustup component add clippy
   - sudo apt-get update
   - sudo apt-get install python3
+  - sudo apt-get install llvm-10
 
 script:
+  - LLVM_SYS_100_PREFIX=/usr/lib/llvm-10 cargo build
   - cargo clippy -- -D warnings
   - mkdir output
   - cargo run libra tests/move_tests/counter.flint
