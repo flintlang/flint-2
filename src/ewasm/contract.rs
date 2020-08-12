@@ -87,7 +87,7 @@ impl<'a> EWASMContract<'a> {
         // TODO we need some sort of function (or scope) context so that we can access previous statements,
         // parameters, local vars etc. The One defined for move is almost right but does not translate
         // since we need to be able to get to the actual values, not just the name
-        let function_context = FunctionContext::from(self.environment);
+        let mut _function_context = FunctionContext::from(self.environment);
         for statement in initialiser.body.iter() {
             let instr = LLVMStatement { statement }.generate(codegen);
             // Add to context now

@@ -22,10 +22,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let get_caller_extern =
             self.module
                 .add_function("getCaller", return_type, Some(Linkage::External));
+
         get_caller_extern
             .get_first_param()
             .as_mut()
-            .map(|param| param.set_name("resultOffset"));
+            .map(|param| {
+                param.set_name("resultOffset");
+                param
+            });
 
         // The following attributes tell LLVM how to link to ethereum
         get_caller_extern.add_attribute(AttributeLoc::Function, import_linkage_attribute);

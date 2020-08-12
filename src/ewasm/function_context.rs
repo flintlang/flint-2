@@ -19,7 +19,8 @@ impl<'a> FunctionContext<'a> {
         }
     }
 
-    pub fn add_local(&mut self, name: &str, val: BasicValueEnum) {
+    #[allow(dead_code)]
+    pub fn add_local(&mut self, _name: &str, _val: BasicValueEnum) {
         unimplemented!()
     }
 }
