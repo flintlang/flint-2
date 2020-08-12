@@ -5,6 +5,8 @@ mod expressions;
 mod function_context;
 mod statements;
 mod types;
+mod function;
+mod identifier;
 
 extern crate inkwell;
 

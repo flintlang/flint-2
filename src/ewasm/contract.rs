@@ -6,7 +6,7 @@ use crate::ast::{
 use crate::environment::Environment;
 use crate::ewasm::declaration::EWASMFieldDeclaration;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::statements::EWASMStatement;
+use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::to_llvm_type;
 use crate::ewasm::Codegen;
 
@@ -61,7 +61,7 @@ impl<'a> EWASMContract<'a> {
         // There should only be one contract initialiser
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
-        self.generate_initialiser(codegen, initialiser)
+        self.generate_initialiser(codegen, initialiser);
 
         // TODO All other functions and declarations etc.
     }
@@ -89,7 +89,7 @@ impl<'a> EWASMContract<'a> {
         // since we need to be able to get to the actual values, not just the name
         let function_context = FunctionContext::from(self.environment);
         for statement in initialiser.body.iter() {
-            let instr = EWASMStatement { statement }.generate(codegen);
+            let instr = LLVMStatement { statement }.generate(codegen);
             // Add to context now
         }
 
