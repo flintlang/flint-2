@@ -1,5 +1,5 @@
 use crate::ast::VariableDeclaration;
-use crate::ewasm::Codegen;
+use crate::ewasm::codegen::Codegen;
 
 pub struct EWASMFieldDeclaration<'a> {
     pub declaration: &'a VariableDeclaration,

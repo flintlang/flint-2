@@ -1,6 +1,6 @@
 use super::inkwell::values::InstructionValue;
 use crate::ast::Statement;
-use crate::ewasm::Codegen;
+use crate::ewasm::codegen::Codegen;
 
 pub struct LLVMStatement<'a> {
     pub statement: &'a Statement,
