@@ -1,7 +1,7 @@
-use crate::ast::{Type, InoutType, FixedSizedArrayType};
-use super::inkwell::types::{BasicTypeEnum, BasicType};
-use super::inkwell::AddressSpace;
 use super::inkwell::context::Context;
+use super::inkwell::types::{BasicType, BasicTypeEnum};
+use super::inkwell::AddressSpace;
+use crate::ast::{FixedSizedArrayType, InoutType, Type};
 
 // I wonder whether we should return our own wrapper type, so we may add more information if we want?
 
