@@ -252,8 +252,8 @@ pub fn generate_contract_wrapper(
 
         if let Some(predicate) = generate_predicate(
             &protection_functions,
-            &caller_id,
-            &contract_behaviour_declaration,
+            &caller_id.token,
+            &contract_behaviour_declaration.identifier,
             &wrapper.head.identifier.token,
             &context,
         ) {
@@ -309,8 +309,8 @@ pub fn generate_contract_wrapper(
 
         if let Some(predicate) = generate_predicate(
             &state_properties,
-            &caller_id,
-            &contract_behaviour_declaration,
+            &caller_id.token,
+            &contract_behaviour_declaration.identifier,
             &wrapper.head.identifier.token,
             &context,
         ) {
@@ -947,10 +947,10 @@ fn split_caller_protections(
     (state_properties, functions)
 }
 
-fn generate_predicate(
+pub fn generate_predicate(
     caller_protections: &[CallerProtection],
-    caller_id: &Identifier,
-    contract_behaviour_declaration: &ContractBehaviourDeclaration,
+    caller_id: &str,
+    en_ident: &Identifier,
     function_name: &str,
     context: &Context,
 ) -> Option<Expression> {
@@ -959,12 +959,11 @@ fn generate_predicate(
         .cloned()
         .filter_map(|c| {
             let mut ident = c.clone().identifier;
-            ident.enclosing_type =
-                Option::from(contract_behaviour_declaration.identifier.token.clone());
-            let en_ident = contract_behaviour_declaration.identifier.clone();
+            ident.enclosing_type = Option::from(en_ident.token.clone());
+            let en_ident = en_ident.token.clone();
             let c_type = context.environment.get_expression_type(
                 &Expression::Identifier(ident.clone()),
-                &en_ident.token,
+                &en_ident,
                 &[],
                 &[],
                 &ScopeContext {
@@ -978,7 +977,7 @@ fn generate_predicate(
                 Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::Identifier(ident)),
                     rhs_expression: Box::new(Expression::RawAssembly(
-                        format!("Signer.address_of(copy({}))", caller_id.token),
+                        format!("Signer.address_of(copy({}))", caller_id),
                         None,
                     )),
                     op: BinOp::DoubleEqual,
@@ -1000,7 +999,7 @@ fn generate_predicate(
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(c),
                                         rhs_expression: Box::new(Expression::RawAssembly(
-                                            format!("Signer.address_of(copy({}))", caller_id.token),
+                                            format!("Signer.address_of(copy({}))", caller_id),
                                             None,
                                         )),
                                         op: BinOp::DoubleEqual,
@@ -1041,7 +1040,7 @@ fn generate_predicate(
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(v),
                                         rhs_expression: Box::new(Expression::RawAssembly(
-                                            format!("Signer.address_of(copy({}))", caller_id.token),
+                                            format!("Signer.address_of(copy({}))", caller_id),
                                             None,
                                         )),
                                         op: BinOp::DoubleEqual,
@@ -1066,7 +1065,7 @@ fn generate_predicate(
                     }
                 }
                 _ => {
-                    let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&en_ident.token);
+                    let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&en_ident);
                     if let Some(types) = context.environment.types.get(enclosing_type) {
                         if let Some(function_info) = types.functions.get(&ident.token) {
                             if let Some(function) = function_info.get(0) {
@@ -1093,7 +1092,7 @@ fn generate_predicate(
                                                     expression: Expression::RawAssembly(
                                                         format!(
                                                             "Signer.address_of(copy({}))",
-                                                            caller_id.token
+                                                            caller_id
                                                         ),
                                                         None,
                                                     ),
@@ -1130,7 +1129,7 @@ fn generate_predicate(
                                                 rhs_expression: Box::new(Expression::RawAssembly(
                                                     format!(
                                                         "Signer.address_of(copy({}))",
-                                                        caller_id.token
+                                                        caller_id
                                                     ),
                                                     None,
                                                 )),

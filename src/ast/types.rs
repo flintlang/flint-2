@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::ast_processor::Currency;
 use crate::context::Context;
 use crate::environment::Environment;
 use crate::visitor::Visitor;
@@ -44,11 +45,11 @@ impl Type {
         }
     }
 
-    pub fn is_currency_type(&self) -> bool {
+    pub fn is_currency_type(&self, currency: &Currency) -> bool {
         return matches!(
             self,
             Type::UserDefinedType(ref i)
-                if i.token == "Wei" || i.token == "Libra" || i.token == "LibraCoin.T"
+                if currency.currency_types.contains(&i.token)
         );
     }
 

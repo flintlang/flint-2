@@ -3,6 +3,7 @@ use super::ir::{MoveIRExpression, MoveIROperation, MoveIRTransfer};
 use super::property_access::MovePropertyAccess;
 use super::MovePosition;
 use crate::ast::{mangle, Expression, Identifier};
+use crate::ast_processor::Currency;
 
 pub(crate) struct MoveIdentifier {
     pub identifier: Identifier,
@@ -68,10 +69,10 @@ impl MoveIdentifier {
             .scope_context
             .type_for(&self.identifier.token)
         {
-            if identifier_type.is_currency_type() && f_call {
+            if identifier_type.is_currency_type(&Currency::libra()) && f_call {
                 return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
             }
-            if identifier_type.is_currency_type() {
+            if identifier_type.is_currency_type(&Currency::libra()) {
                 return ir_identifier;
             }
             if identifier_type.is_inout_type() && identifier_type.is_user_defined_type() {

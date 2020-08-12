@@ -12,6 +12,8 @@ mod type_checker;
 mod utils;
 mod visitor;
 
+use crate::ast_processor::{Blockchain::*, Currency};
+
 use crate::ast_processor::Target;
 use std::env;
 use std::fs::File;
@@ -27,9 +29,15 @@ fn main() {
 
     let target = &args[1];
     let target = if target == "libra" {
-        Target::Move
+        Target {
+            identifier: Libra,
+            currency: Currency::libra(),
+        }
     } else if target == "ether" {
-        Target::Ether
+        Target {
+            identifier: Ethereum,
+            currency: Currency::ether(),
+        }
     } else {
         panic!("Incorrect Target Argument specified, expecting \"ether\" or \"libra\"");
     };
@@ -42,7 +50,7 @@ fn main() {
     let mut program = String::new();
     file.read_to_string(&mut program)
         .expect("Unable to read the file");
-    if let Target::Move = target {
+    if target.identifier == Libra {
         /* TURN OFF LIBRA
         let mut file =
             File::open("src/stdlib/libra/libra.quartz").expect("Unable to open libra stdlib file ");
@@ -62,6 +70,8 @@ fn main() {
             program = program
         )
         */
+    } else {
+        panic!("Target not currently supported");
     }
 
     let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {

@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::ast_processor::Target;
 use crate::context::*;
 use crate::visitor::Visitor;
 use hex::encode;
@@ -141,35 +142,7 @@ impl Visitable for ContractBehaviourDeclaration {
         });
 
         let local_variables: Vec<VariableDeclaration> = vec![];
-        let mut parameters: Vec<Parameter> = vec![];
-
-        if let Some(caller) = &self.caller_binding {
-            parameters.push(Parameter {
-                identifier: caller.clone(),
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
-        } else {
-            parameters.push(Parameter {
-                identifier: Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
-        }
+        let parameters: Vec<Parameter> = vec![];
 
         let scope = ScopeContext {
             parameters,
@@ -512,7 +485,7 @@ impl FunctionDeclaration {
         self.head.is_payable()
     }
 
-    pub fn first_payable_param(&self) -> Option<Parameter> {
+    pub fn first_payable_param(&self, ctx: &Context) -> Option<Parameter> {
         if !self.is_payable() {
             return None;
         }
@@ -520,7 +493,7 @@ impl FunctionDeclaration {
         let parameters = self.head.parameters.clone();
         let mut parameters: Vec<Parameter> = parameters
             .into_iter()
-            .filter(|p| p.type_assignment.is_currency_type())
+            .filter(|p| p.type_assignment.is_currency_type(&ctx.target.currency))
             .collect();
 
         if !parameters.is_empty() {
@@ -780,21 +753,6 @@ impl Visitable for SpecialDeclaration {
             scope_context
                 .parameters
                 .extend(self.head.parameters.iter().cloned());
-
-            scope_context.parameters.push(Parameter {
-                identifier: Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            });
         }
 
         let mut statements: Vec<Vec<Statement>> = vec![];
@@ -802,16 +760,6 @@ impl Visitable for SpecialDeclaration {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
             statement.visit(v, ctx)?;
-            if let Statement::Expression(Expression::BinaryExpression(be)) = statement {
-                if let Expression::Identifier(id) = &*be.rhs_expression {
-                    if id.token == "caller" {
-                        be.rhs_expression = Box::new(Expression::RawAssembly(
-                            "Signer.address_of(copy(caller))".to_string(),
-                            None,
-                        ));
-                    }
-                }
-            }
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -886,8 +834,8 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    pub fn is_payable(&self) -> bool {
-        self.type_assignment.is_currency_type()
+    pub fn is_payable(&self, target: &Target) -> bool {
+        self.type_assignment.is_currency_type(&target.currency)
     }
 
     pub fn is_dynamic(&self) -> bool {

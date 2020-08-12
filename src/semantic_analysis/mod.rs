@@ -199,7 +199,7 @@ impl Visitor for SemanticAnalysis {
                 )));
             }
 
-            if &identifier.token == "Libra" || &identifier.token == "Wei" {
+            if identifier.token == ctx.target.currency.identifier {
                 return Ok(());
             }
         }
@@ -212,7 +212,7 @@ impl Visitor for SemanticAnalysis {
             .unique()
         {
             return Err(Box::from(format!(
-                "Fuction {} has duplicate parameters",
+                "Function {} has duplicate parameters",
                 declaration.head.identifier.token
             )));
         }
@@ -221,7 +221,7 @@ impl Visitor for SemanticAnalysis {
             .head
             .parameters
             .iter()
-            .filter(|p| p.is_payable())
+            .filter(|p| p.is_payable(&ctx.target))
             .count();
         if declaration.is_payable() {
             if remaining_parameters == 0 {
@@ -247,7 +247,7 @@ impl Visitor for SemanticAnalysis {
                 .head
                 .parameters
                 .iter()
-                .filter(|p| p.is_dynamic() && !p.is_payable())
+                .filter(|p| p.is_dynamic() && !p.is_payable(&ctx.target))
                 .count();
             if parameters > 0 {
                 return Err(Box::from(format!(
@@ -420,7 +420,7 @@ impl Visitor for SemanticAnalysis {
                 // but I cannot see why so I have removed it for simplicity
 
                 // Check
-                if enclosing_type == "Libra" || enclosing_type == "Wei" {
+                if *enclosing_type == ctx.target.currency.identifier {
                     return Ok(());
                 }
 
@@ -496,6 +496,19 @@ impl Visitor for SemanticAnalysis {
                         } else if let Some(scope) = &ctx.scope_context {
                             return if scope.is_declared(token) {
                                 Ok(())
+                            } else if let Some(contract) =
+                                &ctx.contract_behaviour_declaration_context
+                            {
+                                if let Some(caller) = &contract.caller {
+                                    if *token == caller.token {
+                                        return Ok(());
+                                    }
+                                }
+
+                                Err(Box::from(format!(
+                                    "Use of undeclared identifier `{}` at line {}",
+                                    token, line_number
+                                )))
                             } else {
                                 Err(Box::from(format!(
                                     "Use of undeclared identifier `{}` at line {}",
