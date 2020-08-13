@@ -1,22 +1,21 @@
-use crate::ast::{Expression, FunctionDeclaration, Modifier, Statement, VariableDeclaration};
-use crate::environment::Environment;
+use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
+use crate::ast::{FunctionDeclaration, Modifier};
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
-use crate::ewasm::inkwell::values::BasicValue;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::Codegen;
+use std::collections::HashMap;
 
 pub struct LLVMFunction<'a> {
     pub function_declaration: &'a FunctionDeclaration,
-    pub environment: &'a Environment,
 }
 
 impl<'a> LLVMFunction<'a> {
     pub fn generate(&self, codegen: &Codegen) {
         // TODO: declare function context and scope context?
         // TODO: how do we treat modifiers?
-        let modifiers = self
+        let modifiers: Vec<Modifier> = self
             .function_declaration
             .head
             .modifiers
@@ -25,7 +24,7 @@ impl<'a> LLVMFunction<'a> {
             .filter(|s| s == &Modifier::Public)
             .collect();
 
-        let function_name = self.function_declaration.head.identifier.token;
+        let function_name = &self.function_declaration.head.identifier.token;
         let function_name = self
             .function_declaration
             .mangled_identifier
@@ -36,6 +35,7 @@ impl<'a> LLVMFunction<'a> {
             .function_declaration
             .head
             .parameters
+            .clone()
             .into_iter()
             .map(|param| {
                 LLVMType {
@@ -49,6 +49,7 @@ impl<'a> LLVMFunction<'a> {
             .function_declaration
             .head
             .parameters
+            .clone()
             .into_iter()
             .map(|param| param.identifier.token)
             .collect();
@@ -76,61 +77,27 @@ impl<'a> LLVMFunction<'a> {
         let body = codegen.context.append_basic_block(func_val, "entry");
         codegen.builder.position_at_end(body);
 
-        let function_context = FunctionContext::from(self.environment);
-
-        let parameter_names = parameter_names.iter();
-
-        for parameter in self.function_declaration.head.parameters {
-            if let Some(parameter_name) = parameter_names.next() {
-                function_context.add_local(&parameter_name, parameter);
-            } else {
-                panic!("Mismatched parameter names and parameter types")
-            }
-        }
-
-        let variables: Vec<Expression> = self
-            .function_declaration
-            .body
-            .clone()
-            .into_iter()
-            .filter_map(|v| {
-                if let Statement::Expression(e) = v {
-                    Some(e)
-                } else {
-                    None
-                }
-            })
+        let parameter_names: Vec<&str> = parameter_names
+            .iter()
+            .map(|p_name| p_name.as_str())
             .collect();
 
-        let mut variables: Vec<VariableDeclaration> = variables
+        let local_parameters = parameter_names
             .into_iter()
-            .filter_map(|v| {
-                if let Expression::VariableDeclaration(e) = v {
-                    Some(e)
-                } else {
-                    None
-                }
-            })
-            .collect();
+            .zip(func_val.get_params().into_iter().map(|param| param))
+            .collect::<HashMap<&str, BasicValueEnum>>();
 
-        variables.into_iter().map(|var| {
-            function_context.add_local(&var.identifier.token, var);
-        });
+        let mut function_context = FunctionContext::new(local_parameters);
 
         // TODO: add tags
-        let tags = self.function_declaration.tags;
+        let tags = &self.function_declaration.tags;
         // add dictionary to tags?
 
-        let statements = self.function_declaration.body.iter();
-
-        statements
-            .into_iter()
-            .map(|statement| LLVMStatement { statement }.generate(codegen));
-
-        for statement in self.function_declaration.body.iter() {
-            let instr = LLVMStatement { statement }.generate(codegen);
-            // Add to context now
+        for statement in &self.function_declaration.body {
+            LLVMStatement { statement: &statement }.generate(codegen, &mut function_context);
         }
+
+        // TODO: add statement to context?
 
         codegen.verify_and_optimise(&func_val);
     }

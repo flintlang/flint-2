@@ -22,7 +22,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
     ) -> VResult {
         if ctx.in_function_or_special() {
             if let Some(ref mut scope_context) = ctx.scope_context {
-                scope_context.local_variables.push(*declaration);
+                scope_context.local_variables.push(declaration.clone());
             }
 
             // If is function declaration context
@@ -151,32 +151,32 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
             expr.op = BinOp::Equal;
 
             let rhs = BinaryExpression {
-                lhs_expression: expr.lhs_expression,
-                rhs_expression: expr.rhs_expression,
+                lhs_expression: expr.lhs_expression.clone(),
+                rhs_expression: expr.rhs_expression.clone(),
                 op,
-                line_info: expr.line_info
+                line_info: expr.line_info.clone()
             };
 
             expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));   
         } else if let BinOp::Dot = expr.op {
-            let mut trail = &ctx.function_call_receiver_trail;
-            trail.push(*expr.lhs_expression);
+            let trail = &mut ctx.function_call_receiver_trail;
+            trail.push(*expr.lhs_expression.clone());
             ctx.function_call_receiver_trail = trail.to_vec();
         }
 
         match expr.op {
             BinOp::LessThanOrEqual => {
                 let lhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression,
-                    rhs_expression: expr.rhs_expression,
+                    lhs_expression: expr.lhs_expression.clone(),
+                    rhs_expression: expr.rhs_expression.clone(),
                     op: BinOp::LessThan,
-                    line_info: expr.line_info,
+                    line_info: expr.line_info.clone(),
                 });
                 let rhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression,
-                    rhs_expression: expr.rhs_expression,
+                    lhs_expression: expr.lhs_expression.clone(),
+                    rhs_expression: expr.rhs_expression.clone(),
                     op: BinOp::DoubleEqual,
-                    line_info: expr.line_info,
+                    line_info: expr.line_info.clone(),
                 });
                 expr.lhs_expression = Box::from(lhs);
     
@@ -186,16 +186,16 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
     
             BinOp::GreaterThanOrEqual => {
                 let lhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression,
-                    rhs_expression: expr.rhs_expression,
+                    lhs_expression: expr.lhs_expression.clone(),
+                    rhs_expression: expr.rhs_expression.clone(),
                     op: BinOp::GreaterThan,
                     line_info: expr.line_info.clone(),
                 });
                 let rhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression,
-                    rhs_expression: expr.rhs_expression,
+                    lhs_expression: expr.lhs_expression.clone(),
+                    rhs_expression: expr.rhs_expression.clone(),
                     op: BinOp::DoubleEqual,
-                    line_info: expr.line_info,
+                    line_info: expr.line_info.clone(),
                 });
                 expr.lhs_expression = Box::from(lhs);
     

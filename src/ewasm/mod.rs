@@ -23,7 +23,7 @@ use crate::ast::{
 use crate::context::Context;
 
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::contract::EWASMContract;
+use crate::ewasm::contract::LLVMContract;
 use nom::lib::std::collections::HashMap;
 use std::io::Write;
 use std::{fs, path, process};
@@ -86,7 +86,7 @@ pub fn generate(module: &Module, context: &Context) {
                     })
                     .collect::<Vec<&AssetDeclaration>>();
 
-                let ewasm_contract = EWASMContract {
+                let ewasm_contract = LLVMContract {
                     contract_declaration,
                     contract_behaviour_declarations,
                     struct_declarations,
@@ -100,7 +100,7 @@ pub fn generate(module: &Module, context: &Context) {
                 None
             }
         })
-        .collect::<Vec<EWASMContract>>();
+        .collect::<Vec<LLVMContract>>();
 
     assert!(!ewasm_contracts.is_empty());
 
@@ -116,7 +116,7 @@ pub fn generate(module: &Module, context: &Context) {
     }
 }
 
-fn create_llvm_file(contract: &EWASMContract) -> fs::File {
+fn create_llvm_file(contract: &LLVMContract) -> fs::File {
     let path = path::Path::new("tmp/llvm_ir_contract.ll");
     let mut file = fs::File::create(path).unwrap_or_else(|err| {
         println!(
@@ -144,7 +144,7 @@ fn create_llvm_file(contract: &EWASMContract) -> fs::File {
     file
 }
 
-fn generate_llvm(contract: &EWASMContract) -> String {
+fn generate_llvm(contract: &LLVMContract) -> String {
     // The following is a little confusing from a Rust perspective, because all of these things have
     // references to each other, so changing one changes all the others. Not only this, but they need
     // not be declared mutable either. The reason is that all these things are wrappers around C++

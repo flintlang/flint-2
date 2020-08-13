@@ -1,24 +1,27 @@
 use super::inkwell::values::BasicValueEnum;
-use crate::environment::Environment;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct FunctionContext<'a> {
-    pub environment: &'a Environment,
-    pub scope_context: HashMap<String, BasicValueEnum<'a>>,
+    parameters: HashMap<&'a str, BasicValueEnum<'a>>,
+    locals: HashMap<&'a str, BasicValueEnum<'a>>,
 }
 
-// TODO add separate local and parameter variables
+#[allow(dead_code)]
 impl<'a> FunctionContext<'a> {
-    pub fn from(environment: &'a Environment) -> Self {
+    pub fn new(params: HashMap<&'a str, BasicValueEnum<'a>>) -> Self {
         FunctionContext {
-            environment,
-            scope_context: HashMap::new(),
+            parameters: params,
+            locals: HashMap::new(),
         }
     }
 
-    #[allow(dead_code)]
-    pub fn add_local(&mut self, _name: &str, _val: BasicValueEnum) {
-        unimplemented!()
+    pub fn add_local(&mut self, name: &'a str, val: BasicValueEnum<'a>) {
+        // PRE added local should not already be a parameter
+        self.locals.insert(name, val);
+    }
+
+    pub fn get_declaration(&self, name: &str) -> Option<&BasicValueEnum<'a>> {
+        self.parameters.get(name).or(self.locals.get(name).or(None))
     }
 }
