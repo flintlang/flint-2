@@ -10,6 +10,7 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMFieldDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
+use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
 
@@ -23,7 +24,7 @@ pub struct LLVMContract<'a> {
 }
 
 impl<'a> LLVMContract<'a> {
-    pub(crate) fn generate(&self, codegen: &Codegen) {
+    pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
 
         // Set up the contract data here
@@ -42,7 +43,13 @@ impl<'a> LLVMContract<'a> {
             })
             .for_each(|declaration| LLVMFieldDeclaration { declaration }.generate(codegen));
 
-        // TODO Set up struct stuff here
+        // Set up struct definitions here
+        self.struct_declarations.iter().for_each(|dec| {
+            LLVMStruct {
+                struct_declaration: dec,
+            }
+                .generate(codegen)
+        });
 
         // Set up initialiser here
         let initialiser = self
@@ -107,8 +114,7 @@ impl<'a> LLVMContract<'a> {
 
         let mut function_context = FunctionContext::new(params);
         for statement in initialiser.body.iter() {
-            let _instr = LLVMStatement { statement }.generate(codegen, &mut function_context);
-            // Add to context now
+            LLVMStatement { statement }.generate(codegen, &mut function_context);
         }
 
         codegen.verify_and_optimise(&init_func);

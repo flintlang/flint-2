@@ -109,9 +109,9 @@ pub fn generate(module: &Module, context: &Context) {
         let _contract_file = create_llvm_file(contract);
 
         // TODO use llvm tools to compile _contract_file to WASM, then remove exports etc and
-        // TODO probably use WABT tools to verify it etc.
-        // TODO Also create the ABI file
-        // TODO remove the temporary ewasm file
+        // probably use WABT tools to verify it etc.
+        // Also create the ABI file
+        // remove the temporary ewasm file
     }
 }
 
@@ -158,7 +158,7 @@ fn generate_llvm(contract: &LLVMContract) -> String {
     fpm.add_verifier_pass();
     fpm.initialize();
 
-    let codegen = Codegen {
+    let mut codegen = Codegen {
         context: &llvm_context,
         module: &llvm_module,
         builder: &builder,
@@ -167,7 +167,7 @@ fn generate_llvm(contract: &LLVMContract) -> String {
     };
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
-    contract.generate(&codegen);
+    contract.generate(&mut codegen);
     llvm_module.print_to_string().to_string()
 }
 
