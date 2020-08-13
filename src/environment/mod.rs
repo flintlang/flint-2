@@ -251,9 +251,17 @@ impl Environment {
         }
     }
 
-    pub fn has_public_initialiser(&mut self, type_id: &str) -> bool {
+    pub fn get_public_initialiser(&mut self, type_id: &str) -> Option<&mut SpecialDeclaration> {
         self.types
             .get_mut(type_id)
+            .unwrap()
+            .public_initializer
+            .as_mut()
+    }
+
+    pub fn has_public_initialiser(&self, type_id: &str) -> bool {
+        self.types
+            .get(type_id)
             .unwrap()
             .public_initializer
             .is_some()
