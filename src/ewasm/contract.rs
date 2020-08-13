@@ -7,7 +7,7 @@ use crate::environment::Environment;
 use crate::ewasm::declaration::EWASMFieldDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
-use crate::ewasm::types::to_llvm_type;
+use crate::ewasm::types::LLVMType;
 use crate::ewasm::Codegen;
 
 pub struct EWASMContract<'a> {
