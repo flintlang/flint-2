@@ -5,8 +5,8 @@ use super::moveir;
 use super::semantic_analysis::*;
 use super::type_assigner::*;
 use super::type_checker::*;
-use crate::ewasm;
 use crate::ast_processor::Blockchain::*;
+use crate::ewasm;
 
 pub fn process_ast(mut module: Module, environment: Environment, target: Target) -> VResult {
     let type_assigner = &mut TypeAssigner {};

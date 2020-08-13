@@ -2,35 +2,31 @@ mod codegen;
 mod contract;
 mod declaration;
 mod expressions;
-mod function_context;
-mod statements;
-mod types;
 mod function;
+mod function_context;
 mod identifier;
+pub mod preprocessor;
+mod statements;
+mod structs;
+mod types;
 
 extern crate inkwell;
 
-use self::inkwell::builder::Builder;
 use self::inkwell::context::Context as LLVMContext;
-use self::inkwell::module::Module as LLVMModule;
+
 use self::inkwell::passes::PassManager;
-use self::inkwell::values::FunctionValue;
+
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, Module, StructDeclaration, TopLevelDeclaration,
     TraitDeclaration,
 };
 use crate::context::Context;
 
+use crate::ewasm::codegen::Codegen;
 use crate::ewasm::contract::EWASMContract;
+use nom::lib::std::collections::HashMap;
 use std::io::Write;
 use std::{fs, path, process};
-
-pub struct Codegen<'a, 'ctx> {
-    pub context: &'ctx LLVMContext,
-    pub module: &'a LLVMModule<'ctx>,
-    pub builder: &'a Builder<'ctx>,
-    pub fpm: &'a PassManager<FunctionValue<'ctx>>,
-}
 
 // TODO create ABI JSON struct? (remember we also need to generate the ABI)
 
@@ -141,7 +137,7 @@ fn create_llvm_file(contract: &EWASMContract) -> fs::File {
                     path.display(),
                     err.to_string()
                 )
-                    .as_str(),
+                .as_str(),
             )
         });
 
@@ -168,6 +164,7 @@ fn generate_llvm(contract: &EWASMContract) -> String {
         module: &llvm_module,
         builder: &builder,
         fpm: &fpm,
+        types: HashMap::new(),
     };
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable

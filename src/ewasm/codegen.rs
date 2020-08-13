@@ -1,10 +1,21 @@
 use super::inkwell::attributes::AttributeLoc;
+use super::inkwell::builder::Builder;
+use super::inkwell::context::Context as LLVMContext;
 use super::inkwell::module::Linkage;
-use super::inkwell::types::BasicType;
+use super::inkwell::module::Module as LLVMModule;
+use super::inkwell::passes::PassManager;
+use super::inkwell::types::{BasicType, StructType};
 use super::inkwell::values::{BasicValue, FunctionValue};
-use crate::ewasm::Codegen;
+use std::collections::HashMap;
 
-// This file will likely serve as a 'utils' file, where things generic to code generation can go
+pub struct Codegen<'a, 'ctx> {
+    pub context: &'ctx LLVMContext,
+    pub module: &'a LLVMModule<'ctx>,
+    pub builder: &'a Builder<'ctx>,
+    pub fpm: &'a PassManager<FunctionValue<'ctx>>,
+    // I THINK we need this to keep track of user defined types
+    pub types: HashMap<String, StructType<'ctx>>,
+}
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     // For now this will just set up what will often likely need, i.e. getCaller
@@ -23,13 +34,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             self.module
                 .add_function("getCaller", return_type, Some(Linkage::External));
 
-        get_caller_extern
-            .get_first_param()
-            .as_mut()
-            .map(|param| {
-                param.set_name("resultOffset");
-                param
-            });
+        get_caller_extern.get_first_param().as_mut().map(|param| {
+            param.set_name("resultOffset");
+            param
+        });
 
         // The following attributes tell LLVM how to link to ethereum
         get_caller_extern.add_attribute(AttributeLoc::Function, import_linkage_attribute);

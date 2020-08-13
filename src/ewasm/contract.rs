@@ -1,14 +1,16 @@
 use super::inkwell::types::BasicTypeEnum;
+
+use super::inkwell::values::BasicValue;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
     ContractMember, SpecialDeclaration, StructDeclaration, TraitDeclaration,
 };
 use crate::environment::Environment;
+use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::EWASMFieldDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
-use crate::ewasm::Codegen;
 
 pub struct EWASMContract<'a> {
     pub contract_declaration: &'a ContractDeclaration,
@@ -24,9 +26,8 @@ impl<'a> EWASMContract<'a> {
         codegen.ether_imports();
 
         // Set up the contract data here
-        // TODO do we want all contract data wrapped in a struct? More complicated since we need to
-        // worry about pointers into the struct and also create instance of the struct, but also
-        // it seems to make sense to group the data together
+        // This will require making a struct for the contract
+        // TODO perhaps this could happen here, or maybe in the preprocessor
         self.contract_declaration
             .contract_members
             .iter()
@@ -71,8 +72,15 @@ impl<'a> EWASMContract<'a> {
             .head
             .parameters
             .iter()
-            .map(|param| to_llvm_type(&param.type_assignment, codegen.context))
+            .map(|param| {
+                LLVMType {
+                    ast_type: &param.type_assignment,
+                }
+                .generate(codegen)
+            })
             .collect::<Vec<BasicTypeEnum>>();
+
+        // TODO name the parameter types
 
         let fn_type = codegen.context.void_type().fn_type(&parameter_types, false);
 
@@ -81,15 +89,17 @@ impl<'a> EWASMContract<'a> {
 
         let init_name = &format!("{}Init", contract_name);
         let init_func = codegen.module.add_function(init_name, fn_type, None);
+
+        for (_, param) in init_func.get_param_iter().enumerate() {
+            param.set_name("this is a name");
+        }
+
         let body = codegen.context.append_basic_block(init_func, "entry");
         codegen.builder.position_at_end(body);
 
-        // TODO we need some sort of function (or scope) context so that we can access previous statements,
-        // parameters, local vars etc. The One defined for move is almost right but does not translate
-        // since we need to be able to get to the actual values, not just the name
         let mut _function_context = FunctionContext::from(self.environment);
         for statement in initialiser.body.iter() {
-            let instr = LLVMStatement { statement }.generate(codegen);
+            let _instr = LLVMStatement { statement }.generate(codegen);
             // Add to context now
         }
 

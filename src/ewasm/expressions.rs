@@ -1,7 +1,7 @@
 use super::inkwell::values::BasicValueEnum;
 use crate::ast::Expression;
+use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::Codegen;
 
 // TODO remove this allowance when it gets used
 #[allow(dead_code)]
@@ -15,7 +15,6 @@ impl<'a> EWASMExpression<'a> {
     // and then return the tmp variable that stores the evaluated result
     pub fn generate(
         &self,
-        _expr: &Expression,
         _codegen: &Codegen,
         _function_context: &mut FunctionContext,
     ) -> BasicValueEnum {
