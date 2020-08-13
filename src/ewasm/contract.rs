@@ -1,18 +1,19 @@
 use super::inkwell::types::BasicTypeEnum;
 
-use super::inkwell::values::BasicValue;
+use super::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
     ContractMember, SpecialDeclaration, StructDeclaration, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::declaration::EWASMFieldDeclaration;
+use crate::ewasm::declaration::LLVMFieldDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
+use std::collections::HashMap;
 
-pub struct EWASMContract<'a> {
+pub struct LLVMContract<'a> {
     pub contract_declaration: &'a ContractDeclaration,
     pub contract_behaviour_declarations: Vec<&'a ContractBehaviourDeclaration>,
     pub struct_declarations: Vec<&'a StructDeclaration>,
@@ -21,7 +22,7 @@ pub struct EWASMContract<'a> {
     pub environment: &'a Environment,
 }
 
-impl<'a> EWASMContract<'a> {
+impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &Codegen) {
         codegen.ether_imports();
 
@@ -39,7 +40,7 @@ impl<'a> EWASMContract<'a> {
                 }
                 None
             })
-            .for_each(|declaration| EWASMFieldDeclaration { declaration }.generate(codegen));
+            .for_each(|declaration| LLVMFieldDeclaration { declaration }.generate(codegen));
 
         // TODO Set up struct stuff here
 
@@ -68,9 +69,8 @@ impl<'a> EWASMContract<'a> {
     }
 
     fn generate_initialiser(&self, codegen: &Codegen, initialiser: &SpecialDeclaration) {
-        let parameter_types = initialiser
-            .head
-            .parameters
+        let params = &initialiser.head.parameters;
+        let param_types = params
             .iter()
             .map(|param| {
                 LLVMType {
@@ -80,9 +80,7 @@ impl<'a> EWASMContract<'a> {
             })
             .collect::<Vec<BasicTypeEnum>>();
 
-        // TODO name the parameter types
-
-        let fn_type = codegen.context.void_type().fn_type(&parameter_types, false);
+        let fn_type = codegen.context.void_type().fn_type(&param_types, false);
 
         let contract_name = initialiser.head.enclosing_type.as_ref();
         let contract_name = contract_name.unwrap();
@@ -90,16 +88,26 @@ impl<'a> EWASMContract<'a> {
         let init_name = &format!("{}Init", contract_name);
         let init_func = codegen.module.add_function(init_name, fn_type, None);
 
-        for (_, param) in init_func.get_param_iter().enumerate() {
-            param.set_name("this is a name");
+        let param_names = params
+            .iter()
+            .map(|p| p.identifier.token.as_str())
+            .collect::<Vec<&str>>();
+
+        for (i, param) in init_func.get_param_iter().enumerate() {
+            param.set_name(param_names[i]);
         }
 
         let body = codegen.context.append_basic_block(init_func, "entry");
         codegen.builder.position_at_end(body);
 
-        let mut _function_context = FunctionContext::from(self.environment);
+        let params = param_names
+            .into_iter()
+            .zip(init_func.get_params().into_iter().map(|param| param))
+            .collect::<HashMap<&str, BasicValueEnum>>();
+
+        let mut function_context = FunctionContext::new(params);
         for statement in initialiser.body.iter() {
-            let _instr = LLVMStatement { statement }.generate(codegen);
+            let _instr = LLVMStatement { statement }.generate(codegen, &mut function_context);
             // Add to context now
         }
 

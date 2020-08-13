@@ -1,9 +1,12 @@
+use super::inkwell::values::BasicValueEnum;
 use crate::ast::FunctionDeclaration;
+use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::BasicValue;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::Codegen;
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 pub struct LLVMFunction<'a> {
@@ -13,14 +16,10 @@ pub struct LLVMFunction<'a> {
 #[allow(dead_code)]
 impl<'a> LLVMFunction<'a> {
     pub fn generate(&self, codegen: &Codegen) {
-        // TODO: declare function context?
-
         let function_name = self.function_declaration.head.identifier.token.as_str();
 
-        let parameter_types = &self
-            .function_declaration
-            .head
-            .parameters
+        let params = &self.function_declaration.head.parameters;
+        let parameter_types = &params
             .iter()
             .map(|param| {
                 LLVMType {
@@ -29,16 +28,6 @@ impl<'a> LLVMFunction<'a> {
                     .generate(codegen)
             })
             .collect::<Vec<BasicTypeEnum>>();
-
-        let parameters = self
-            .function_declaration
-            .head
-            .parameters
-            .iter()
-            .map(|param| param.identifier.token.as_str())
-            .collect::<Vec<&str>>();
-
-        // TODO: do I need to check if it returns?
 
         let func_type = if let Some(result_type) = self.function_declaration.get_result_type() {
             // should is_var_args be false?
@@ -54,18 +43,27 @@ impl<'a> LLVMFunction<'a> {
         // add function type to module
         let func_val = codegen.module.add_function(&function_name, func_type, None);
 
+        let param_names = params
+            .iter()
+            .map(|param| param.identifier.token.as_str())
+            .collect::<Vec<&str>>();
+
         // set argument names
         for (i, param) in func_val.get_param_iter().enumerate() {
-            param.set_name(parameters[i]);
+            param.set_name(param_names[i]);
         }
 
         let body = codegen.context.append_basic_block(func_val, "entry");
         codegen.builder.position_at_end(body);
 
-        //let function_context = FunctionContext::from(self.environment);
+        let params = param_names
+            .into_iter()
+            .zip(func_val.get_params().into_iter().map(|param| param))
+            .collect::<HashMap<&str, BasicValueEnum>>();
+
+        let mut function_context = FunctionContext::new(params);
         for statement in self.function_declaration.body.iter() {
-            let _instr = LLVMStatement { statement }.generate(codegen);
-            // Add to context now
+            LLVMStatement { statement }.generate(codegen, &mut function_context);
         }
 
         codegen.verify_and_optimise(&func_val);

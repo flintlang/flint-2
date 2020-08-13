@@ -1,17 +1,20 @@
 use super::inkwell::types::BasicTypeEnum;
-use super::inkwell::values::BasicValue;
+use super::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ast::{SpecialDeclaration, StructDeclaration, StructMember};
 use crate::ewasm::codegen::Codegen;
+use crate::ewasm::function::LLVMFunction;
+use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
+use nom::lib::std::collections::HashMap;
 
 #[allow(dead_code)]
-pub struct EWASMStruct<'a> {
+pub struct LLVMStruct<'a> {
     pub struct_declaration: &'a StructDeclaration,
 }
 
 #[allow(dead_code)]
-impl<'a> EWASMStruct<'a> {
+impl<'a> LLVMStruct<'a> {
     fn create_type(&self, codegen: &mut Codegen) {
         let field_types = self
             .struct_declaration
@@ -38,25 +41,27 @@ impl<'a> EWASMStruct<'a> {
         );
     }
 
-    fn generate_functions(&self, _codegen: &Codegen) {
-        // let _functions = self
-        //     .struct_declaration
-        //     .members
-        //     .iter()
-        //     .filter_map(|m| {
-        //         if let StructMember::FunctionDeclaration(fd) = m {
-        //             Some(m)
-        //         } else {
-        //             None
-        //         }
-        //     })
-        //     .collect::<Vec<&FunctionDeclaration>>();
-
-        // TODO call Jess' function generation
+    fn generate_functions(&self, codegen: &Codegen) {
+        let _functions = self
+            .struct_declaration
+            .members
+            .iter()
+            .filter_map(|m| {
+                if let StructMember::FunctionDeclaration(fd) = m {
+                    Some(fd)
+                } else {
+                    None
+                }
+            })
+            .for_each(|func| {
+                LLVMFunction {
+                    function_declaration: func,
+                }
+                    .generate(codegen)
+            });
     }
 
     fn generate_initialiser(&self, codegen: &Codegen) {
-        // TODO add function context
         let initialiser = self
             .struct_declaration
             .members
@@ -90,13 +95,25 @@ impl<'a> EWASMStruct<'a> {
         let func_name = &format!("{}Init", initialiser.head.enclosing_type.as_ref().unwrap());
         let init_func = codegen.module.add_function(func_name, void_type, None);
 
+        let param_names = params
+            .iter()
+            .map(|param| param.identifier.token.as_str())
+            .collect::<Vec<&str>>();
+
         for (i, param) in init_func.get_param_iter().enumerate() {
-            param.set_name(params[i].identifier.token.as_str());
+            param.set_name(param_names[i]);
         }
 
-        let _block = codegen.context.append_basic_block(init_func, "entry");
+        let params = param_names
+            .into_iter()
+            .zip(init_func.get_params().into_iter())
+            .collect::<HashMap<&str, BasicValueEnum>>();
+
+        let mut function_context = FunctionContext::new(params);
+        let block = codegen.context.append_basic_block(init_func, "entry");
+        codegen.builder.position_at_end(block);
         for statement in initialiser.body.iter() {
-            LLVMStatement { statement }.generate(codegen);
+            LLVMStatement { statement }.generate(codegen, &mut function_context);
         }
 
         codegen.verify_and_optimise(&init_func);
