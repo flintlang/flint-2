@@ -97,7 +97,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
         Ok(())
     }
 
-    fn finish_function_declaration(&mut self, declaration: &mut FunctionDeclaration, ctx: &mut Context) -> VResult {
+    fn finish_function_declaration(&mut self, declaration: &mut FunctionDeclaration, _ctx: &mut Context) -> VResult {
         if declaration.is_void() {
             let statement = declaration.body.last();
             if !declaration.body.is_empty() {
@@ -140,7 +140,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
         Ok(())
     }
 
-    fn start_expression(&mut self, expr: &mut Expression, ctx: &mut Context) -> VResult {
+    fn start_expression(&mut self, _expr: &mut Expression, _ctx: &mut Context) -> VResult {
         Ok(())
     }
 

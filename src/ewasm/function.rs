@@ -15,7 +15,7 @@ impl<'a> LLVMFunction<'a> {
     pub fn generate(&self, codegen: &Codegen) {
         // TODO: declare function context and scope context?
         // TODO: how do we treat modifiers?
-        let modifiers: Vec<Modifier> = self
+        let _modifiers: Vec<Modifier> = self
             .function_declaration
             .head
             .modifiers
@@ -69,10 +69,10 @@ impl<'a> LLVMFunction<'a> {
         let func_val = codegen.module.add_function(&function_name, func_type, None);
 
         // set argument names
-        func_val
-            .get_param_iter()
-            .enumerate()
-            .map(|(i, arg)| arg.set_name(parameter_names[i].as_str()));
+
+        for (i, arg) in func_val.get_param_iter().enumerate() {
+            arg.set_name(parameter_names[i].as_str())
+        }
 
         let body = codegen.context.append_basic_block(func_val, "entry");
         codegen.builder.position_at_end(body);
@@ -90,7 +90,7 @@ impl<'a> LLVMFunction<'a> {
         let mut function_context = FunctionContext::new(local_parameters);
 
         // TODO: add tags
-        let tags = &self.function_declaration.tags;
+        let _tags = &self.function_declaration.tags;
         // add dictionary to tags?
 
         for statement in &self.function_declaration.body {

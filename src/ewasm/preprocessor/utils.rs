@@ -2,7 +2,7 @@ use crate::ast::types::Type;
 use crate::ast::declarations::Parameter;
 use crate::ast::expressions::Identifier;
 
-pub fn mangle_ewasm_function(function_name: &str) -> String {
+pub fn mangle_ewasm_function(_function_name: &str) -> String {
     unimplemented!();
 }
 

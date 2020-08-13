@@ -22,6 +22,6 @@ impl<'a> FunctionContext<'a> {
     }
 
     pub fn get_declaration(&self, name: &str) -> Option<&BasicValueEnum<'a>> {
-        self.parameters.get(name).or(self.locals.get(name).or(None))
+       self.parameters.get(name).or_else(|| self.locals.get(name).or(None))
     }
 }

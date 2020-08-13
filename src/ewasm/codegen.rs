@@ -14,13 +14,14 @@ pub struct Codegen<'a, 'ctx> {
     pub builder: &'a Builder<'ctx>,
     pub fpm: &'a PassManager<FunctionValue<'ctx>>,
     // I THINK we need this to keep track of user defined types
-    pub types: HashMap<String, StructType<'ctx>>,
+    // TODO make methods for accessing / setting fields of structs
+    pub types: HashMap<String, (Vec<String>, StructType<'ctx>)>,
 }
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     // For now this will just set up what will often likely need, i.e. getCaller
     // TODO have other std library methods linked as they are used
-    // TODO alternatively, we could link everything, and unused things will be optimised out?
+    // alternatively, we could link everything, and unused things will be optimised out?
     pub fn ether_imports(&self) {
         let import_linkage_attribute = self
             .context
