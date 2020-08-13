@@ -87,7 +87,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
                 line_info: Default::default(),
             };
 
-            declaration.head.parameters.insert(0, parameter.clone());
+            declaration.head.parameters.insert(0, parameter);
 
             // TODO: add to scope?
         }
