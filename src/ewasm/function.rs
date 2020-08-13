@@ -1,7 +1,7 @@
-use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ast::{FunctionDeclaration, Modifier};
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
+use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::Codegen;
@@ -94,7 +94,10 @@ impl<'a> LLVMFunction<'a> {
         // add dictionary to tags?
 
         for statement in &self.function_declaration.body {
-            LLVMStatement { statement: &statement }.generate(codegen, &mut function_context);
+            LLVMStatement {
+                statement: &statement,
+            }
+                .generate(codegen, &mut function_context);
         }
 
         // TODO: add statement to context?

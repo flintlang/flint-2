@@ -1,8 +1,6 @@
-use super::inkwell::types::{BasicTypeEnum};
+use super::inkwell::types::BasicTypeEnum;
 use super::inkwell::values::{BasicValue, BasicValueEnum};
-use crate::ast::{
-    SpecialDeclaration, StructDeclaration, StructMember, VariableDeclaration,
-};
+use crate::ast::{SpecialDeclaration, StructDeclaration, StructMember, VariableDeclaration};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::LLVMFunction;
 use crate::ewasm::function_context::FunctionContext;

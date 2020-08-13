@@ -1,6 +1,6 @@
-use crate::ast::types::Type;
 use crate::ast::declarations::Parameter;
 use crate::ast::expressions::Identifier;
+use crate::ast::types::Type;
 
 pub fn mangle_ewasm_function(_function_name: &str) -> String {
     unimplemented!();

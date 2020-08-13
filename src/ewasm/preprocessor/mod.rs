@@ -1,20 +1,20 @@
 mod utils;
 
+use crate::ast::declarations::Parameter;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::Identifier;
-use crate::ast::types::{Type, InoutType};
-use crate::ast::VResult;
+use crate::ast::expressions::{BinaryExpression, Expression};
 use crate::ast::operators::BinOp;
-use crate::ast::statements::{Statement, ReturnStatement};
-use crate::ast::expressions::{Expression, BinaryExpression};
-use crate::ast::declarations::Parameter;
+use crate::ast::statements::{ReturnStatement, Statement};
+use crate::ast::types::{InoutType, Type};
+use crate::ast::VResult;
 use crate::context::Context;
-use crate::visitor::Visitor;
 use crate::ewasm::preprocessor::utils::*;
+use crate::visitor::Visitor;
 
-pub struct LLVMPreprocessor<> {}
+pub struct LLVMPreprocessor {}
 
-impl<'ctx> Visitor for LLVMPreprocessor<> {
+impl<'ctx> Visitor for LLVMPreprocessor {
     fn start_variable_declaration(
         &mut self,
         declaration: &mut VariableDeclaration,
@@ -30,9 +30,11 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
                 function_declaration_context
                     .local_variables
                     .push(declaration.clone());
-            
-            // If it is special declaration context
-            } else if let Some(ref mut special_declaration_context) = ctx.special_declaration_context {
+
+                // If it is special declaration context
+            } else if let Some(ref mut special_declaration_context) =
+            ctx.special_declaration_context
+            {
                 special_declaration_context
                     .local_variables
                     .push(declaration.clone());
@@ -52,9 +54,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
             .map(|id| id.token.to_string())
             .unwrap_or_default();
 
-        let mangled_name = mangle_ewasm_function (
-            &declaration.head.identifier.token,
-        );
+        let mangled_name = mangle_ewasm_function(&declaration.head.identifier.token);
 
         declaration.mangled_identifier = Some(mangled_name);
 
@@ -67,7 +67,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
                         key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                             &struct_ctx.identifier.token,
                         ))),
-                    })
+                    }),
                 );
 
                 declaration.head.parameters.insert(0, self_param);
@@ -97,12 +97,15 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
         Ok(())
     }
 
-    fn finish_function_declaration(&mut self, declaration: &mut FunctionDeclaration, _ctx: &mut Context) -> VResult {
+    fn finish_function_declaration(
+        &mut self,
+        declaration: &mut FunctionDeclaration,
+        _ctx: &mut Context,
+    ) -> VResult {
         if declaration.is_void() {
             let statement = declaration.body.last();
             if !declaration.body.is_empty() {
-                if let Statement::ReturnStatement(_) = statement.unwrap() {
-                } else {
+                if let Statement::ReturnStatement(_) = statement.unwrap() {} else {
                     declaration
                         .body
                         .push(Statement::ReturnStatement(ReturnStatement {
@@ -122,12 +125,7 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
             let variable_declaration = VariableDeclaration {
                 declaration_token: None,
                 identifier: Identifier::generated("ret"),
-                variable_type: declaration
-                    .head
-                    .result_type
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                variable_type: declaration.head.result_type.as_ref().unwrap().clone(),
                 expression: None,
             };
 
@@ -144,7 +142,11 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
         Ok(())
     }
 
-    fn start_binary_expression(&mut self, expr: &mut BinaryExpression, ctx: &mut Context) -> VResult {
+    fn start_binary_expression(
+        &mut self,
+        expr: &mut BinaryExpression,
+        ctx: &mut Context,
+    ) -> VResult {
         // removes assignment shorthand expressions, e.g. += and *=
         if expr.op.is_assignment_shorthand() {
             let op = expr.op.get_assignment_shorthand();
@@ -154,10 +156,10 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
                 lhs_expression: expr.lhs_expression.clone(),
                 rhs_expression: expr.rhs_expression.clone(),
                 op,
-                line_info: expr.line_info.clone()
+                line_info: expr.line_info.clone(),
             };
 
-            expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));   
+            expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         } else if let BinOp::Dot = expr.op {
             let trail = &mut ctx.function_call_receiver_trail;
             trail.push(*expr.lhs_expression.clone());
@@ -179,11 +181,11 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
                     line_info: expr.line_info.clone(),
                 });
                 expr.lhs_expression = Box::from(lhs);
-    
+
                 expr.rhs_expression = Box::from(rhs);
                 expr.op = BinOp::Or;
-            },
-    
+            }
+
             BinOp::GreaterThanOrEqual => {
                 let lhs = Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: expr.lhs_expression.clone(),
@@ -198,15 +200,14 @@ impl<'ctx> Visitor for LLVMPreprocessor<> {
                     line_info: expr.line_info.clone(),
                 });
                 expr.lhs_expression = Box::from(lhs);
-    
+
                 expr.rhs_expression = Box::from(rhs);
                 expr.op = BinOp::Or;
-            },
-    
-            _ => ()
+            }
+
+            _ => (),
         }
-    
+
         Ok(())
-    
     }
 }

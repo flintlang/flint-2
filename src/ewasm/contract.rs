@@ -8,12 +8,12 @@ use crate::ast::{
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMFieldDeclaration;
+use crate::ewasm::function::LLVMFunction;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
-use crate::ewasm::function::LLVMFunction;
 
 pub struct LLVMContract<'a> {
     pub contract_declaration: &'a ContractDeclaration,
@@ -74,21 +74,23 @@ impl<'a> LLVMContract<'a> {
         self.generate_initialiser(codegen, initialiser);
 
         // Generate all contract functions
-        self
-            .contract_behaviour_declarations
+        self.contract_behaviour_declarations
             .iter()
-            .flat_map(|declaration| declaration
-                .members
-                .iter()
-                .filter_map(|m| {
+            .flat_map(|declaration| {
+                declaration.members.iter().filter_map(|m| {
                     if let ContractBehaviourMember::FunctionDeclaration(fd) = m {
                         Some(fd)
                     } else {
                         None
                     }
-                }))
-            .for_each(|func| LLVMFunction { function_declaration: func }.generate(codegen));
-
+                })
+            })
+            .for_each(|func| {
+                LLVMFunction {
+                    function_declaration: func,
+                }
+                    .generate(codegen)
+            });
 
         // TODO Asset declarations?
     }
