@@ -54,12 +54,11 @@ impl<'a> LLVMContract<'a> {
             .collect::<Vec<BasicTypeEnum>>();
 
         let struct_type = codegen.context.struct_type(member_types, false);
-        let struct_info = (member_names, struct_type);
 
         // add contract initialiser declaration
         codegen.types.insert(
             self.contract_declaration.identifier.token.clone(),
-            struct_info,
+            (member_names, struct_type),
         );
 
         let initialiser = self

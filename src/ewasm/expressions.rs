@@ -214,6 +214,7 @@ impl<'a> LLVMBinaryExpression<'a> {
                 panic!("Invalid operation supplied")
             }
             BinOp::Percent => panic!("operator not supported"),
+            // TODO do struct accesses
             BinOp::Dot => panic!("operator not supported"),
             // TODO assignments
             BinOp::Equal => unimplemented!("Need to implement assignmets"),
