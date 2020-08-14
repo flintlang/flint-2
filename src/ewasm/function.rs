@@ -87,7 +87,7 @@ impl<'a> LLVMFunction<'a> {
             .zip(func_val.get_params().into_iter().map(|param| param))
             .collect::<HashMap<&str, BasicValueEnum>>();
 
-        let mut function_context = FunctionContext::new(local_parameters);
+        let mut function_context = FunctionContext::new(func_val, local_parameters);
 
         // TODO: add tags
         let _tags = &self.function_declaration.tags;

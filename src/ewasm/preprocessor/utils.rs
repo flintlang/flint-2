@@ -1,11 +1,13 @@
+use crate::ast::calls::FunctionArgument;
 use crate::ast::calls::FunctionCall;
 use crate::ast::declarations::Parameter;
-use crate::ast::expressions::Identifier;
-use crate::ast::types::Type;
+use crate::ast::declarations::{
+    ContractBehaviourDeclaration, FunctionDeclaration, VariableDeclaration,
+};
 use crate::ast::expressions::Expression;
-use crate::ast::calls::FunctionArgument;
-use crate::ast::statements::{Statement, ReturnStatement};
-use crate::ast::declarations::{ContractBehaviourDeclaration, FunctionDeclaration, VariableDeclaration};
+use crate::ast::expressions::Identifier;
+use crate::ast::statements::{ReturnStatement, Statement};
+use crate::ast::types::Type;
 use crate::context::Context;
 
 pub fn generate_contract_wrapper(
@@ -14,23 +16,19 @@ pub fn generate_contract_wrapper(
     _ctx: &mut Context,
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
-    wrapper.mangled_identifier = Option::from(mangle_ewasm_function(
-        &function.head.identifier.token));
+    wrapper.mangled_identifier =
+        Option::from(mangle_ewasm_function(&function.head.identifier.token));
 
     wrapper.body = vec![];
-    
-    // TODO: does this add the return statement?
-    if !function.is_void() && !function.body.is_empty() {
-        let mut func = function.clone();
-        wrapper.body.push(func.body.remove(0));
-    }
 
     let self_declaration = VariableDeclaration {
         declaration_token: None,
-        identifier: Identifier::generated(Identifier::SELF),
+        identifier: Identifier::generated("this"),
         variable_type: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
         expression: None,
     };
+
+    // TODO assign to it
 
     wrapper
         .body
@@ -45,12 +43,12 @@ pub fn generate_contract_wrapper(
         identifier: Identifier::generated("this"),
         type_assignment: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
         expression: None,
-        line_info: Default::default()
+        line_info: Default::default(),
     };
 
     function.head.parameters.push(contract_parameter);
- 
-    let arguments: Vec<FunctionArgument> = function
+
+    let arguments = function
         .head
         .parameters
         .clone()
@@ -59,7 +57,7 @@ pub fn generate_contract_wrapper(
             identifier: None,
             expression: Expression::Identifier(p.identifier),
         })
-        .collect();
+        .collect::<Vec<FunctionArgument>>();
 
     let name = function.mangled_identifier.clone();
     let function_call = Expression::FunctionCall(FunctionCall {
@@ -73,23 +71,21 @@ pub fn generate_contract_wrapper(
     });
 
     if function.is_void() {
+        wrapper.body.push(Statement::Expression(function_call));
         wrapper
             .body
-            .push(Statement::Expression(function_call.clone()))
+            .push(Statement::ReturnStatement(ReturnStatement {
+                expression: None,
+                ..Default::default()
+            }));
+    } else {
+        wrapper
+            .body
+            .push(Statement::ReturnStatement(ReturnStatement {
+                expression: Some(function_call),
+                ..Default::default()
+            }));
     }
-
-    wrapper
-        .body
-        .push(Statement::ReturnStatement(ReturnStatement {
-            expression: {
-                if function.is_void() {
-                    None
-                } else {
-                    Some(function_call)
-                }
-            },
-            ..Default::default()
-        }));
 
     wrapper
 }
@@ -110,9 +106,4 @@ pub fn construct_parameter(name: String, t: Type) -> Parameter {
         expression: None,
         line_info: Default::default(),
     }
-}
-
-pub fn is_ether_runtime_function_call(function_call: &FunctionCall) -> bool {
-    let ident = function_call.identifier.token.clone();
-    ident.starts_with("Quartz$")
 }

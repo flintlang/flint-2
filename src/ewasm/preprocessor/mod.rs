@@ -1,11 +1,12 @@
 mod utils;
 
-use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember};
+use crate::ast::declarations::{
+    ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, VariableDeclaration,
+};
 use crate::ast::expressions::Identifier;
 use crate::ast::expressions::{BinaryExpression, Expression};
 use crate::ast::operators::BinOp;
 use crate::ast::statements::{ReturnStatement, Statement};
-use crate::ast::calls::FunctionCall;
 use crate::ast::types::{InoutType, Type};
 use crate::ast::{
     ContractDeclaration, ContractMember, Modifier, SpecialDeclaration, SpecialSignatureDeclaration,
@@ -17,8 +18,7 @@ use crate::visitor::Visitor;
 
 pub struct LLVMPreprocessor {}
 
-impl<'ctx> Visitor for LLVMPreprocessor {
-
+impl Visitor for LLVMPreprocessor {
     fn start_contract_declaration(
         &mut self,
         dec: &mut ContractDeclaration,
@@ -61,30 +61,29 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         Ok(())
     }
 
-    fn start_contract_behaviour_declaration(&mut self, _declaration: &mut ContractBehaviourDeclaration, _ctx: &mut Context) -> VResult {
-        Ok(())
-    }
-
-    fn finish_contract_behaviour_declaration(&mut self, declaration: &mut ContractBehaviourDeclaration, ctx: &mut Context) -> VResult {
+    fn finish_contract_behaviour_declaration(
+        &mut self,
+        declaration: &mut ContractBehaviourDeclaration,
+        ctx: &mut Context,
+    ) -> VResult {
         declaration.members = declaration
-        .members
-        .clone()
-        .into_iter()
-        .flat_map(|member| {
-            if let ContractBehaviourMember::FunctionDeclaration(mut function) = member {
-                let wrapper = generate_contract_wrapper(&mut function, declaration, ctx);
-                let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
-                let mut function = function;
-                function.head.modifiers.retain(|x| x != &Modifier::Public);
-                return vec![
-                    ContractBehaviourMember::FunctionDeclaration(function),
-                    wrapper,
-                ];
-            } else {
-                return vec![member];
-            }
-        })
-        .collect();
+            .members
+            .clone()
+            .into_iter()
+            .flat_map(|member| {
+                if let ContractBehaviourMember::FunctionDeclaration(mut function) = member {
+                    let wrapper = generate_contract_wrapper(&mut function, declaration, ctx);
+                    let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
+                    function.head.modifiers.retain(|x| x != &Modifier::Public);
+                    vec![
+                        ContractBehaviourMember::FunctionDeclaration(function),
+                        wrapper,
+                    ]
+                } else {
+                    vec![member]
+                }
+            })
+            .collect();
 
         Ok(())
     }
@@ -157,36 +156,6 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         Ok(())
     }
 
-    fn start_variable_declaration(
-        &mut self,
-        declaration: &mut VariableDeclaration,
-        ctx: &mut Context,
-    ) -> VResult {
-        // TODO REMOVE THIS IF WE DO NOT NEED IT - I suspect we do not
-        if ctx.in_function_or_special() {
-            if let Some(ref mut scope_context) = ctx.scope_context {
-                scope_context.local_variables.push(declaration.clone());
-            }
-
-            // If is function declaration context
-            if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
-                function_declaration_context
-                    .local_variables
-                    .push(declaration.clone());
-
-            // If it is special declaration context
-            } else if let Some(ref mut special_declaration_context) =
-                ctx.special_declaration_context
-            {
-                special_declaration_context
-                    .local_variables
-                    .push(declaration.clone());
-            }
-        }
-
-        Ok(())
-    }
-
     fn start_function_declaration(
         &mut self,
         declaration: &mut FunctionDeclaration,
@@ -221,17 +190,8 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         _: &mut Context,
     ) -> VResult {
         if declaration.is_void() {
-            let statement = declaration.body.last();
-            if !declaration.body.is_empty() {
-                if let Statement::ReturnStatement(_) = statement.unwrap() {
-                } else {
-                    declaration
-                        .body
-                        .push(Statement::ReturnStatement(ReturnStatement {
-                            expression: None,
-                            ..Default::default()
-                        }));
-                }
+            if let Some(Statement::ReturnStatement(_)) = declaration.body.last() {
+                return Ok(());
             } else {
                 declaration
                     .body
@@ -263,7 +223,12 @@ impl<'ctx> Visitor for LLVMPreprocessor {
 
         Ok(())
     }
-    fn start_binary_expression(&mut self, expr: &mut BinaryExpression, ctx: &mut Context) -> VResult {
+
+    fn finish_statement(&mut self, _statement: &mut Statement, _ctx: &mut Context) -> VResult {
+        unimplemented!(); // TODO need to do become statements
+    }
+
+    fn start_binary_expression(&mut self, expr: &mut BinaryExpression, _: &mut Context) -> VResult {
         // Removes assignment shorthand expressions, e.g. += and *=
         if expr.op.is_assignment_shorthand() {
             let op = expr.op.get_assignment_shorthand();
@@ -277,25 +242,7 @@ impl<'ctx> Visitor for LLVMPreprocessor {
             };
 
             expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
-        } else if let BinOp::Dot = expr.op {
-            let trail = &mut ctx.function_call_receiver_trail;
-            trail.push(*expr.lhs_expression.clone());
-            ctx.function_call_receiver_trail = trail.to_vec();
         }
-
-        Ok(())
-    }
-
-    fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
-        if is_ether_runtime_function_call(call) {
-            return Ok(());
-        }
-
-        if ctx.function_call_receiver_trail.is_empty() {
-            ctx.function_call_receiver_trail = vec![Expression::SelfExpression];
-        }
-
-        // TODO: not sure what other preprocessing needs to happen here
 
         Ok(())
     }
