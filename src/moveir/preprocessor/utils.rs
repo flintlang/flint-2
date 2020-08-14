@@ -1,14 +1,14 @@
 use crate::ast::{
     mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
     ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
-    Identifier, InoutExpression, InoutType, Literal::U8Literal, Parameter, ReturnStatement,
-    Statement, Type, TypeState, VariableDeclaration,
+    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement,
+    Statement, Type, VariableDeclaration,
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::get_mutable_reference;
-use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionChecker;
+use crate::utils::type_states::*;
 use itertools::Itertools;
 
 pub fn convert_default_parameter_functions(
@@ -186,7 +186,6 @@ pub fn generate_contract_wrapper(
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     context: &mut Context,
 ) -> FunctionDeclaration {
-    let is_stateful = !contract_behaviour_declaration.type_states.is_empty();
     let mut wrapper = function.clone();
     wrapper.mangled_identifier = Option::from(mangle_function_move(
         &function.head.identifier.token,
@@ -250,7 +249,7 @@ pub fn generate_contract_wrapper(
             caller_id = Identifier::generated("caller");
         }
 
-        if let Some(predicate) = generate_predicate(
+        if let Some(predicate) = generate_caller_protections_predicate(
             &protection_functions,
             &caller_id.token,
             &contract_behaviour_declaration.identifier,
@@ -265,11 +264,11 @@ pub fn generate_contract_wrapper(
             wrapper.body.push(Statement::Assertion(assertion));
         }
     }
-
+    let is_stateful = !contract_behaviour_declaration.type_states.is_empty();
     if is_stateful {
         let type_state_declaration = VariableDeclaration {
             declaration_token: None,
-            identifier: Identifier::generated(MovePreProcessor::STATE_VAR_NAME),
+            identifier: Identifier::generated(Identifier::TYPESTATE_VAR_NAME),
             variable_type: Type::TypeState,
             expression: None,
         };
@@ -307,7 +306,7 @@ pub fn generate_contract_wrapper(
             caller_id = Identifier::generated("caller");
         }
 
-        if let Some(predicate) = generate_predicate(
+        if let Some(predicate) = generate_caller_protections_predicate(
             &state_properties,
             &caller_id.token,
             &contract_behaviour_declaration.identifier,
@@ -326,13 +325,13 @@ pub fn generate_contract_wrapper(
     if is_stateful {
         // TODO we need the slice [1..] because an extra _ is added to the front for some reason
         // This should be fixed
-        let state_identifier = Identifier::generated(&MovePreProcessor::STATE_VAR_NAME[1..]);
+        let state_identifier = Identifier::generated(&Identifier::TYPESTATE_VAR_NAME[1..]);
         let type_state_assignment = BinaryExpression {
             lhs_expression: Box::new(Expression::Identifier(state_identifier.clone())),
             rhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(Expression::SelfExpression),
                 rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                    MovePreProcessor::STATE_VAR_NAME,
+                    Identifier::TYPESTATE_VAR_NAME,
                 ))),
                 op: BinOp::Dot,
                 line_info: Default::default(),
@@ -348,11 +347,11 @@ pub fn generate_contract_wrapper(
             )));
 
         let contract_name = &contract_behaviour_declaration.identifier.token;
-        let allowed_type_states_as_u8s: Vec<_> = extract_allowed_states(
+        let allowed_type_states_as_u8s = extract_allowed_states(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
         )
-        .collect();
+            .collect::<Vec<u8>>();
         let condition =
             generate_type_state_condition(state_identifier, &allowed_type_states_as_u8s);
         let assertion = Assertion {
@@ -843,39 +842,6 @@ pub fn construct_expression(expressions: &[Expression]) -> Expression {
     }
 }
 
-fn extract_allowed_states<'a>(
-    permitted_states: &'a [TypeState],
-    declared_states: &'a [TypeState],
-) -> impl Iterator<Item = u8> + 'a {
-    assert!(declared_states.len() < 256);
-    permitted_states.iter().map(move |permitted_state| {
-        declared_states
-            .iter()
-            .position(|declared_state| declared_state == permitted_state)
-            .unwrap() as u8
-    })
-}
-
-fn generate_type_state_condition(id: Identifier, allowed: &[u8]) -> BinaryExpression {
-    assert!(!allowed.is_empty());
-
-    allowed
-        .iter()
-        .map(|state| BinaryExpression {
-            lhs_expression: Box::from(Expression::Identifier(id.clone())),
-            rhs_expression: Box::from(Expression::Literal(U8Literal(*state))),
-            op: BinOp::DoubleEqual,
-            line_info: Default::default(),
-        })
-        .fold1(|left, right| BinaryExpression {
-            lhs_expression: Box::from(Expression::BinaryExpression(left)),
-            rhs_expression: Box::from(Expression::BinaryExpression(right)),
-            op: BinOp::Or,
-            line_info: Default::default(),
-        })
-        .unwrap()
-}
-
 fn struct_is_mutable_reference(
     mut expression: &mut Expression,
     temp_identifier: &Identifier,
@@ -947,7 +913,7 @@ fn split_caller_protections(
     (state_properties, functions)
 }
 
-pub fn generate_predicate(
+pub fn generate_caller_protections_predicate(
     caller_protections: &[CallerProtection],
     caller_id: &str,
     en_ident: &Identifier,

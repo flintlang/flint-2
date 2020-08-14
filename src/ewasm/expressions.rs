@@ -25,13 +25,13 @@ impl<'a> LLVMExpression<'a> {
     ) -> BasicValueEnum<'ctx> {
         match self.expression {
             Expression::Identifier(i) => {
-                LLVMIdentifier { _identifier: i }.generate(codegen, function_context)
+                LLVMIdentifier { identifier: i }.generate(codegen, function_context)
             }
             Expression::BinaryExpression(b) => {
                 LLVMBinaryExpression { expression: b }.generate(codegen, function_context)
             }
             Expression::InoutExpression(i) => {
-                LLVMInoutExpression { _expression: i }.generate(codegen, function_context)
+                LLVMInoutExpression { expression: i }.generate(codegen, function_context)
             }
             Expression::ExternalCall(f) => {
                 LLVMExternalCall { external_call: f }.generate(codegen, function_context)
@@ -51,7 +51,7 @@ impl<'a> LLVMExpression<'a> {
             }
             .generate(codegen, function_context),
             Expression::AttemptExpression(a) => {
-                LLVMAttemptExpression { _expression: a }.generate(codegen, function_context)
+                LLVMAttemptExpression { expression: a }.generate(codegen, function_context)
             }
             Expression::Literal(l) => {
                 LLVMLiteral { literal: l}.generate(codegen, function_context)
@@ -68,18 +68,18 @@ impl<'a> LLVMExpression<'a> {
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => LLVMSelfExpression {
-                _token: &Identifier::SELF.to_string(),
+                token: &Identifier::SELF.to_string(),
             }
             .generate(codegen, function_context),
             Expression::SubscriptExpression(s) => LLVMSubscriptExpression {
-                _expression: s,
-                _rhs: None,
+                expression: s,
+                rhs: None,
             }
             .generate(codegen, function_context),
             Expression::RangeExpression(_) => unimplemented!(),
             Expression::RawAssembly(_, _) => unimplemented!(),
             Expression::CastExpression(c) => {
-                LLVMCastExpression { _expression: c }.generate(codegen, function_context)
+                LLVMCastExpression { expression: c }.generate(codegen, function_context)
             }
             Expression::Sequence(_) => unimplemented!(),
         }
@@ -87,7 +87,8 @@ impl<'a> LLVMExpression<'a> {
 }
 
 struct LLVMIdentifier<'a> {
-    _identifier: &'a Identifier,
+    #[allow(dead_code)]
+    identifier: &'a Identifier,
 }
 
 impl<'a> LLVMIdentifier<'a> {
@@ -101,6 +102,7 @@ impl<'a> LLVMIdentifier<'a> {
 }
 
 struct LLVMBinaryExpression<'a> {
+    #[allow(dead_code)]
     expression: &'a BinaryExpression,
 }
 
@@ -409,7 +411,8 @@ impl<'a> LLVMBinaryExpression<'a> {
 }
 
 struct LLVMInoutExpression<'a> {
-    _expression: &'a InoutExpression,
+    #[allow(dead_code)]
+    expression: &'a InoutExpression,
 }
 
 impl<'a> LLVMInoutExpression<'a> {
@@ -423,7 +426,8 @@ impl<'a> LLVMInoutExpression<'a> {
 }
 
 struct LLVMAttemptExpression<'a> {
-    _expression: &'a AttemptExpression,
+    #[allow(dead_code)]
+    expression: &'a AttemptExpression,
 }
 
 impl<'a> LLVMAttemptExpression<'a> {
@@ -437,7 +441,8 @@ impl<'a> LLVMAttemptExpression<'a> {
 }
 
 struct LLVMSelfExpression<'a> {
-    _token: &'a String,
+    #[allow(dead_code)]
+    token: &'a String,
 }
 
 impl<'a> LLVMSelfExpression<'a> {
@@ -451,8 +456,10 @@ impl<'a> LLVMSelfExpression<'a> {
 }
 
 pub struct LLVMSubscriptExpression<'a> {
-    _expression: &'a SubscriptExpression,
-    _rhs: Option<LLVMExpression<'a>>,
+    #[allow(dead_code)]
+    expression: &'a SubscriptExpression,
+    #[allow(dead_code)]
+    rhs: Option<LLVMExpression<'a>>,
 }
 
 impl<'a> LLVMSubscriptExpression<'a> {
@@ -466,14 +473,15 @@ impl<'a> LLVMSubscriptExpression<'a> {
 }
 
 struct LLVMCastExpression<'a> {
-    _expression: &'a CastExpression,
+    #[allow(dead_code)]
+    expression: &'a CastExpression,
 }
 
 impl<'a> LLVMCastExpression<'a> {
     fn generate<'ctx>(
         &self,
         _codegen: &Codegen<'_, 'ctx>,
-        __function_context: &FunctionContext,
+        _function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }

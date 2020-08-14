@@ -9,8 +9,8 @@ use crate::ast::operators::BinOp;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::{InoutType, Type};
 use crate::ast::{
-    ContractDeclaration, ContractMember, Modifier, SpecialDeclaration, SpecialSignatureDeclaration,
-    StructDeclaration, StructMember, VResult,
+    ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
+    SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
 };
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
@@ -24,6 +24,21 @@ impl Visitor for LLVMPreprocessor {
         dec: &mut ContractDeclaration,
         ctx: &mut Context,
     ) -> VResult {
+        // Add type states field to the contract
+        if !dec.type_states.is_empty() {
+            dec.contract_members
+                .push(ContractMember::VariableDeclaration(
+                    VariableDeclaration {
+                        declaration_token: None,
+                        identifier: Identifier::generated(Identifier::TYPESTATE_VAR_NAME),
+                        variable_type: Type::TypeState,
+                        expression: None,
+                    },
+                    None,
+                ));
+        }
+
+        // Push default variable assignments to the initialiser
         let vars_with_assignments = dec
             .contract_members
             .iter()
@@ -224,8 +239,46 @@ impl Visitor for LLVMPreprocessor {
         Ok(())
     }
 
-    fn finish_statement(&mut self, _statement: &mut Statement, _ctx: &mut Context) -> VResult {
-        unimplemented!(); // TODO need to do become statements
+    fn finish_statement(&mut self, statement: &mut Statement, ctx: &mut Context) -> VResult {
+        if let Statement::BecomeStatement(bs) = statement {
+            // MID we should be in a contract behaviour context since we are using type states
+            let contract_name = &ctx
+                .contract_behaviour_declaration_context
+                .as_ref()
+                .unwrap()
+                .identifier
+                .token;
+
+            let declared_states = ctx.environment.get_contract_type_states(contract_name);
+            // We immediately unwrap as all become statements should have been checked for having a declared typestate
+            let type_state_as_u8 = declared_states
+                .iter()
+                .position(|state| state == &bs.state)
+                .unwrap() as u8;
+
+            let state_variable = if ctx.special_declaration_context.is_some() {
+                // Special declarations have no 'this' yet as it is being constructed
+                Expression::Identifier(Identifier::generated(Identifier::TYPESTATE_VAR_NAME))
+            } else {
+                Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::SelfExpression),
+                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                        Identifier::TYPESTATE_VAR_NAME,
+                    ))),
+                    op: BinOp::Dot,
+                    line_info: Default::default(),
+                })
+            };
+
+            *statement = Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(state_variable),
+                rhs_expression: Box::new(Expression::Literal(Literal::U8Literal(type_state_as_u8))),
+                op: BinOp::Equal,
+                line_info: Default::default(),
+            }));
+        }
+
+        Ok(())
     }
 
     fn start_binary_expression(&mut self, expr: &mut BinaryExpression, _: &mut Context) -> VResult {
