@@ -10,6 +10,7 @@ pub mod preprocessor;
 mod statements;
 mod structs;
 mod types;
+mod literal;
 
 extern crate inkwell;
 

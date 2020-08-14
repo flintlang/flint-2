@@ -15,8 +15,8 @@ impl<'a> LLVMStatement<'a> {
             Statement::ReturnStatement(r) => {
                 LLVMReturnStatement { statement: r }.generate(codegen, function_context);
             }
-            Statement::Expression(expr) => {
-                LLVMExpression { expr }.generate(codegen, function_context);
+            Statement::Expression(expression) => {
+                LLVMExpression { expression }.generate(codegen, function_context);
             }
             // TODO do become statements in the preprocessor!
             Statement::BecomeStatement(_) => {
@@ -44,7 +44,7 @@ impl<'a> LLVMReturnStatement<'a> {
     fn generate(&self, codegen: &Codegen, function_context: &mut FunctionContext) {
         if let Some(return_expression) = &self.statement.expression {
             let expr = LLVMExpression {
-                expr: return_expression,
+                expression: return_expression,
             };
             let expr = expr.generate(codegen, function_context);
             codegen.builder.build_return(Some(&expr));
@@ -129,7 +129,7 @@ fn condition_to_int_value<'ctx>(
     codegen: &Codegen<'_, 'ctx>,
     function_context: &mut FunctionContext,
 ) -> IntValue<'ctx> {
-    let condition = LLVMExpression { expr: condition }.generate(codegen, function_context);
+    let condition = LLVMExpression { expression: condition }.generate(codegen, function_context);
 
     // Evaluated conditions should be boolean, which in llvm is represented by a one bit int
     assert!(condition.is_int_value());
