@@ -63,6 +63,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn build_struct_member_getter(
         &self,
         struct_name: &str,
