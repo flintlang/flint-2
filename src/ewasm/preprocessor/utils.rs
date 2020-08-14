@@ -18,19 +18,15 @@ pub fn generate_contract_wrapper(
         &function.head.identifier.token));
 
     wrapper.body = vec![];
-    
-    // TODO: does this add the return statement?
-    if !function.is_void() && !function.body.is_empty() {
-        let mut func = function.clone();
-        wrapper.body.push(func.body.remove(0));
-    }
 
     let self_declaration = VariableDeclaration {
         declaration_token: None,
-        identifier: Identifier::generated(Identifier::SELF),
+        identifier: Identifier::generated("this"),
         variable_type: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
-        expression: None,
+        expression: Some(Box::new(Expression::SelfExpression)),
     };
+
+    // give variable declaration an expression
 
     wrapper
         .body
