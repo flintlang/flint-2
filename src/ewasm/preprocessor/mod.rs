@@ -1,7 +1,8 @@
 mod utils;
 
+use crate::ast::calls::FunctionCall;
 use crate::ast::declarations::Parameter;
-use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
+use crate::ast::declarations::{ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, VariableDeclaration, Modifier};
 use crate::ast::expressions::Identifier;
 use crate::ast::expressions::{BinaryExpression, Expression};
 use crate::ast::operators::BinOp;
@@ -15,6 +16,35 @@ use crate::visitor::Visitor;
 pub struct LLVMPreprocessor {}
 
 impl<'ctx> Visitor for LLVMPreprocessor {
+
+    fn start_contract_behaviour_declaration(&mut self, _declaration: &mut ContractBehaviourDeclaration, _ctx: &mut Context) -> VResult {
+        Ok(())
+    }
+
+    fn finish_contract_behaviour_declaration(&mut self, declaration: &mut ContractBehaviourDeclaration, ctx: &mut Context) -> VResult {
+        declaration.members = declaration
+        .members
+        .clone()
+        .into_iter()
+        .flat_map(|member| {
+            if let ContractBehaviourMember::FunctionDeclaration(mut function) = member {
+                let wrapper = generate_contract_wrapper(&mut function, declaration, ctx);
+                let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
+                let mut function = function;
+                function.head.modifiers.retain(|x| x != &Modifier::Public);
+                return vec![
+                    ContractBehaviourMember::FunctionDeclaration(function),
+                    wrapper,
+                ];
+            } else {
+                return vec![member];
+            }
+        })
+        .collect();
+
+        Ok(())
+    }
+
     fn start_variable_declaration(
         &mut self,
         declaration: &mut VariableDeclaration,
@@ -31,9 +61,9 @@ impl<'ctx> Visitor for LLVMPreprocessor {
                     .local_variables
                     .push(declaration.clone());
 
-                // If it is special declaration context
+            // If it is special declaration context
             } else if let Some(ref mut special_declaration_context) =
-            ctx.special_declaration_context
+                ctx.special_declaration_context
             {
                 special_declaration_context
                     .local_variables
@@ -105,7 +135,8 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         if declaration.is_void() {
             let statement = declaration.body.last();
             if !declaration.body.is_empty() {
-                if let Statement::ReturnStatement(_) = statement.unwrap() {} else {
+                if let Statement::ReturnStatement(_) = statement.unwrap() {
+                } else {
                     declaration
                         .body
                         .push(Statement::ReturnStatement(ReturnStatement {
@@ -121,18 +152,6 @@ impl<'ctx> Visitor for LLVMPreprocessor {
                         ..Default::default()
                     }));
             }
-        } else {
-            let variable_declaration = VariableDeclaration {
-                declaration_token: None,
-                identifier: Identifier::generated("ret"),
-                variable_type: declaration.head.result_type.as_ref().unwrap().clone(),
-                expression: None,
-            };
-
-            declaration.body.insert(
-                0,
-                Statement::Expression(Expression::VariableDeclaration(variable_declaration)),
-            )
         }
 
         Ok(())
@@ -166,47 +185,19 @@ impl<'ctx> Visitor for LLVMPreprocessor {
             ctx.function_call_receiver_trail = trail.to_vec();
         }
 
-        match expr.op {
-            BinOp::LessThanOrEqual => {
-                let lhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression.clone(),
-                    rhs_expression: expr.rhs_expression.clone(),
-                    op: BinOp::LessThan,
-                    line_info: expr.line_info.clone(),
-                });
-                let rhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression.clone(),
-                    rhs_expression: expr.rhs_expression.clone(),
-                    op: BinOp::DoubleEqual,
-                    line_info: expr.line_info.clone(),
-                });
-                expr.lhs_expression = Box::from(lhs);
+        Ok(())
+    }
 
-                expr.rhs_expression = Box::from(rhs);
-                expr.op = BinOp::Or;
-            }
-
-            BinOp::GreaterThanOrEqual => {
-                let lhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression.clone(),
-                    rhs_expression: expr.rhs_expression.clone(),
-                    op: BinOp::GreaterThan,
-                    line_info: expr.line_info.clone(),
-                });
-                let rhs = Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: expr.lhs_expression.clone(),
-                    rhs_expression: expr.rhs_expression.clone(),
-                    op: BinOp::DoubleEqual,
-                    line_info: expr.line_info.clone(),
-                });
-                expr.lhs_expression = Box::from(lhs);
-
-                expr.rhs_expression = Box::from(rhs);
-                expr.op = BinOp::Or;
-            }
-
-            _ => (),
+    fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
+        if is_ether_runtime_function_call(call) {
+            return Ok(());
         }
+
+        if ctx.function_call_receiver_trail.is_empty() {
+            ctx.function_call_receiver_trail = vec![Expression::SelfExpression];
+        }
+
+        // TODO: not sure what other preprocessing needs to happen here
 
         Ok(())
     }

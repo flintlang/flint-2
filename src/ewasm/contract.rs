@@ -1,6 +1,6 @@
 use super::inkwell::types::BasicTypeEnum;
-
 use super::inkwell::values::{BasicValue, BasicValueEnum};
+use crate::ast::declarations::{StructMember, VariableDeclaration};
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
     ContractMember, SpecialDeclaration, StructDeclaration, TraitDeclaration,
@@ -13,6 +13,7 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
+use crate::ewasm::structs::utils::generate_initialiser;
 use std::collections::HashMap;
 
 pub struct LLVMContract<'a> {
@@ -27,6 +28,100 @@ pub struct LLVMContract<'a> {
 impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
+
+        // TODO: runtime functions?
+
+        // setting up a struct to contain the contract data
+        let variable_declarations = &self
+            .contract_declaration
+            .contract_members
+            .clone()
+            .into_iter()
+            .filter_map(|m| {
+                if let ContractMember::VariableDeclaration(v, _) = m {
+                    Some(v)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<VariableDeclaration>>();
+
+        let members: Vec<VariableDeclaration> = variable_declarations
+            .clone()
+            .into_iter()
+            .filter(|m| !m.variable_type.is_dictionary_type())
+            .collect::<Vec<VariableDeclaration>>();
+
+        let member_names = &members
+            .iter()
+            .map(|member| member.identifier.token.clone())
+            .collect::<Vec<String>>();
+
+        let member_types = &members
+            .iter()
+            .map(|member| {
+                LLVMType {
+                    ast_type: &member.variable_type,
+                }
+                .generate(codegen)
+            })
+            .collect::<Vec<BasicTypeEnum>>();
+
+        let struct_type = codegen.context.struct_type(member_types, false);
+        let struct_info = (member_names.clone(), struct_type);
+
+        // add struct declaration
+        codegen.types.insert(
+            self.contract_declaration.identifier.token.clone(),
+            struct_info,
+        );
+
+        // adds struct initialisation function
+        let members: Vec<StructMember> = members
+            .into_iter()
+            .map(|dec| StructMember::VariableDeclaration(dec, None))
+            .collect();
+
+        let _struct_declaration = StructDeclaration {
+            identifier: self.contract_declaration.identifier.clone(),
+            conformances: self.contract_declaration.conformances.clone(),
+            members: members,
+        };
+ 
+        let mut initialiser_declaration = None;
+        for declarations in self.contract_behaviour_declarations.clone() {
+            for member in declarations.members.clone() {
+                if let ContractBehaviourMember::SpecialDeclaration(s) = member {
+                    if s.is_init() && s.is_public() {
+                        initialiser_declaration = Some(s.clone());
+                    }
+                }
+            }
+        }
+
+        if initialiser_declaration.is_none() {
+            panic!("Public Initiliaser not found")
+        }
+
+        let initialiser_declaration = initialiser_declaration.unwrap();
+
+        generate_initialiser(&initialiser_declaration, codegen);
+
+        
+        // add global var declaration of struct
+        codegen
+            .module
+            .add_global(struct_type, None, &self.contract_declaration.identifier.token);
+
+        let _properties: Vec<_> = self
+            .contract_declaration
+            .get_variable_declarations_without_dict()
+            .collect();
+        
+        // set global variable to struct value
+        // do we need to set an initialiser function?
+        //global.set_initializer();
+        // add struct 'wrapping' to all function declarations
 
         // Set up the contract data here
         // This will require making a struct for the contract
@@ -49,7 +144,7 @@ impl<'a> LLVMContract<'a> {
             LLVMStruct {
                 struct_declaration: dec,
             }
-                .generate(codegen)
+            .generate(codegen)
         });
 
         // Set up contract initialiser here
@@ -89,7 +184,7 @@ impl<'a> LLVMContract<'a> {
                 LLVMFunction {
                     function_declaration: func,
                 }
-                    .generate(codegen)
+                .generate(codegen)
             });
 
         // TODO Asset declarations?

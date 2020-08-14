@@ -97,7 +97,7 @@ impl<'a> LLVMFunction<'a> {
             LLVMStatement {
                 statement: &statement,
             }
-                .generate(codegen, &mut function_context);
+            .generate(codegen, &mut function_context);
         }
 
         // TODO: add statement to context?

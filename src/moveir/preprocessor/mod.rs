@@ -444,6 +444,7 @@ impl Visitor for MovePreProcessor {
         let mut statements = get_declaration(_ctx);
 
         let mut deletions = delete_declarations(function_declaration.body.clone());
+        dbg!(deletions.clone());
 
         statements.append(&mut deletions);
         function_declaration.body = statements;
@@ -519,7 +520,6 @@ impl Visitor for MovePreProcessor {
                 m
             })
             .filter(|m| {
-                dbg!(m.clone());
                 if let Statement::Expression(Expression::BinaryExpression(be)) = m {
                     if let BinOp::Equal = be.op {
                         if let Expression::DictionaryLiteral(_) = *be.rhs_expression {
