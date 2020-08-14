@@ -10,9 +10,7 @@ pub mod utils;
 
 pub(crate) struct MovePreProcessor {}
 
-impl MovePreProcessor {
-    const STATE_VAR_NAME: &'static str = "_contract_state";
-}
+impl MovePreProcessor {}
 
 impl Visitor for MovePreProcessor {
     fn start_contract_declaration(
@@ -26,11 +24,7 @@ impl Visitor for MovePreProcessor {
                 .push(ContractMember::VariableDeclaration(
                     VariableDeclaration {
                         declaration_token: None,
-                        identifier: Identifier {
-                            token: MovePreProcessor::STATE_VAR_NAME.to_string(),
-                            enclosing_type: None,
-                            line_info: Default::default(),
-                        },
+                        identifier: Identifier::generated(Identifier::TYPESTATE_VAR_NAME),
                         variable_type: Type::TypeState,
                         expression: None,
                     },
@@ -444,7 +438,6 @@ impl Visitor for MovePreProcessor {
         let mut statements = get_declaration(_ctx);
 
         let mut deletions = delete_declarations(function_declaration.body.clone());
-        dbg!(deletions.clone());
 
         statements.append(&mut deletions);
         function_declaration.body = statements;
@@ -670,13 +663,15 @@ impl Visitor for MovePreProcessor {
                     caller_id = "caller";
                 }
 
-                if let Some(predicate) = crate::moveir::preprocessor::utils::generate_predicate(
+                if let Some(predicate) =
+                crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
                     &caller_protections,
                     caller_id,
                     &contract_ctx.identifier,
                     &expr.function_call.identifier.token,
                     &_ctx,
-                ) {
+                )
+                {
                     match expr.kind.as_str() {
                         "!" => {
                             let function_call =
@@ -1218,13 +1213,13 @@ impl Visitor for MovePreProcessor {
                 // TODO the mangling is a problem
                 Expression::Identifier(Identifier::generated(&format!(
                     "_this_{}",
-                    MovePreProcessor::STATE_VAR_NAME
+                    Identifier::TYPESTATE_VAR_NAME,
                 )))
             } else {
                 Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::SelfExpression),
                     rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                        MovePreProcessor::STATE_VAR_NAME,
+                        Identifier::TYPESTATE_VAR_NAME,
                     ))),
                     op: BinOp::Dot,
                     line_info: Default::default(),

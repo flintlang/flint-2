@@ -219,6 +219,7 @@ pub struct Identifier {
 
 impl Identifier {
     pub const SELF: &'static str = "self";
+    pub const TYPESTATE_VAR_NAME: &'static str = "_contract_state";
 
     pub fn is_self(&self) -> bool {
         self.token == Identifier::SELF

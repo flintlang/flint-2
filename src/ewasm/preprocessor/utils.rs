@@ -8,12 +8,14 @@ use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::Type;
+use crate::ast::Assertion;
 use crate::context::Context;
+use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 
 pub fn generate_contract_wrapper(
     function: &mut FunctionDeclaration,
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
-    _ctx: &mut Context,
+    ctx: &mut Context,
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
     wrapper.mangled_identifier =
@@ -36,8 +38,27 @@ pub fn generate_contract_wrapper(
             self_declaration,
         )));
 
+    // Add type state assertions
+    if !contract_behaviour_declaration.type_states.is_empty() {
+        let contract_name = contract_behaviour_declaration.identifier.token.as_str();
+        let allowed_type_states_as_u8s = extract_allowed_states(
+            &contract_behaviour_declaration.type_states,
+            &ctx.environment.get_contract_type_states(contract_name),
+        )
+            .collect::<Vec<u8>>();
+
+        let condition = generate_type_state_condition(
+            Identifier::generated(Identifier::TYPESTATE_VAR_NAME),
+            &allowed_type_states_as_u8s,
+        );
+
+        wrapper.body.push(Statement::Assertion(Assertion {
+            expression: Expression::BinaryExpression(condition),
+            line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+        }))
+    }
+
     // TODO: caller protections
-    // TODO: type states
 
     let contract_parameter = Parameter {
         identifier: Identifier::generated("this"),
