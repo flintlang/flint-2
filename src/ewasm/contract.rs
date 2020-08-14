@@ -85,7 +85,7 @@ impl<'a> LLVMContract<'a> {
         let _struct_declaration = StructDeclaration {
             identifier: self.contract_declaration.identifier.clone(),
             conformances: self.contract_declaration.conformances.clone(),
-            members: members,
+            members,
         };
  
         let mut initialiser_declaration = None;
