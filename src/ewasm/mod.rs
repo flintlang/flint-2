@@ -1,3 +1,4 @@
+mod call;
 mod codegen;
 mod contract;
 mod declaration;
@@ -9,7 +10,6 @@ pub mod preprocessor;
 mod statements;
 mod structs;
 mod types;
-mod call;
 
 extern crate inkwell;
 

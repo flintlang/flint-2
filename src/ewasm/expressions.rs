@@ -1,36 +1,35 @@
 use super::inkwell::values::BasicValueEnum;
+use crate::ast::expressions::{
+    AttemptExpression, BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
+};
 use crate::ast::{Expression, Identifier};
-use crate::ast::expressions::{BinaryExpression, InoutExpression, AttemptExpression, SubscriptExpression, CastExpression};
-use crate::ewasm::codegen::Codegen;
-use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::call::{LLVMExternalCall, LLVMFunctionCall};
+use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMVariableDeclaration;
+use crate::ewasm::function_context::FunctionContext;
 
 pub struct LLVMExpression<'a> {
-    pub expression: &'a Expression,
+    pub expr: &'a Expression,
 }
 
 impl<'a> LLVMExpression<'a> {
     // We want to take an expression, create any of the intermediary steps to evaluate it,
     // and then return the tmp variable that stores the evaluated result
-    pub fn generate<'ctx> (
+    pub fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext,
     ) -> BasicValueEnum<'ctx> {
-        match self.expression {
-            Expression::Identifier(i) => LLVMIdentifier {
-                identifier: i
+        match self.expr {
+            Expression::Identifier(i) => {
+                LLVMIdentifier { identifier: i }.generate(codegen, function_context)
             }
-            .generate(codegen, function_context),
-            Expression::BinaryExpression(b) => LLVMBinaryExpression {
-                expression: b
+            Expression::BinaryExpression(b) => {
+                LLVMBinaryExpression { expression: b }.generate(codegen, function_context)
             }
-            .generate(codegen, function_context),
-            Expression::InoutExpression(i) => LLVMInoutExpression {
-                expression: i,
+            Expression::InoutExpression(i) => {
+                LLVMInoutExpression { expression: i }.generate(codegen, function_context)
             }
-            .generate(codegen, function_context),
             Expression::ExternalCall(f) => {
                 LLVMExternalCall { external_call: f }.generate(codegen, function_context)
             }
@@ -45,7 +44,7 @@ impl<'a> LLVMExpression<'a> {
                 LLVMVariableDeclaration { declaration: v }.generate(codegen, function_context)
             }
             Expression::BracketedExpression(b) => LLVMExpression {
-                expression: &*b.expression,
+                expr: &*b.expression,
             }
             .generate(codegen, function_context),
             Expression::AttemptExpression(a) => {
@@ -54,17 +53,12 @@ impl<'a> LLVMExpression<'a> {
             Expression::Literal(_l) => {
                 unimplemented!();
             }
-            
+
             Expression::ArrayLiteral(a) => {
                 let _elements = a
                     .elements
                     .iter()
-                    .map(|e| {
-                        LLVMExpression {
-                            expression: e,
-                        }
-                        .generate(codegen, function_context)
-                    })
+                    .map(|e| LLVMExpression { expr: e }.generate(codegen, function_context))
                     .collect::<Vec<BasicValueEnum>>();
 
                 unimplemented!();
@@ -84,80 +78,106 @@ impl<'a> LLVMExpression<'a> {
             Expression::CastExpression(c) => {
                 LLVMCastExpression { expression: c }.generate(codegen, function_context)
             }
-            Expression::Sequence(_) => unimplemented!()
-
+            Expression::Sequence(_) => unimplemented!(),
         }
     }
 }
 
-pub struct LLVMIdentifier<'a> {
-    pub identifier: &'a Identifier
+struct LLVMIdentifier<'a> {
+    identifier: &'a Identifier,
 }
 
 impl<'a> LLVMIdentifier<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, _function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
 
-pub struct LLVMBinaryExpression<'a> {
-    pub expression: &'a BinaryExpression
+struct LLVMBinaryExpression<'a> {
+    expression: &'a BinaryExpression,
 }
 
 impl<'a> LLVMBinaryExpression<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, _function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
 
-pub struct LLVMInoutExpression<'a> {
-    pub expression: &'a InoutExpression
+struct LLVMInoutExpression<'a> {
+    expression: &'a InoutExpression,
 }
 
 impl<'a> LLVMInoutExpression<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, _function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
 
-pub struct LLVMAttemptExpression<'a> {
-    pub expression: &'a AttemptExpression
+struct LLVMAttemptExpression<'a> {
+    expression: &'a AttemptExpression,
 }
 
 impl<'a> LLVMAttemptExpression<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, _function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
 
-pub struct LLVMSelfExpression<'a> {
-    pub token: &'a String
+struct LLVMSelfExpression<'a> {
+    token: &'a String,
 }
 
 impl<'a> LLVMSelfExpression<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, _function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    pub fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
 
 pub struct LLVMSubscriptExpression<'a> {
-    pub expression: &'a SubscriptExpression,
-    pub rhs: Option<LLVMExpression<'a>>
+    expression: &'a SubscriptExpression,
+    rhs: Option<LLVMExpression<'a>>,
 }
 
 impl<'a> LLVMSubscriptExpression<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, _function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
 
-pub struct LLVMCastExpression<'a> {
-    pub expression: &'a CastExpression
+struct LLVMCastExpression<'a> {
+    expression: &'a CastExpression,
 }
 
 impl<'a> LLVMCastExpression<'a> {
-    pub fn generate<'ctx>(&self, _codegen: &Codegen<'_, 'ctx>, __function_context: &FunctionContext) -> BasicValueEnum<'ctx> {
+    fn generate<'ctx>(
+        &self,
+        _codegen: &Codegen<'_, 'ctx>,
+        __function_context: &FunctionContext,
+    ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
 }
-
