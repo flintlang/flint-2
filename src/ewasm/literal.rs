@@ -4,7 +4,7 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::values::BasicValueEnum;
 
 pub struct LLVMLiteral<'a> {
-    pub literal: &'a Literal
+    pub literal: &'a Literal,
 }
 
 impl<'a> LLVMLiteral<'a> {
@@ -33,9 +33,15 @@ impl<'a> LLVMLiteral<'a> {
                 }
             }
             Literal::StringLiteral(_) => panic!("Strings not currently supported"),
-            Literal::U8Literal(u) => BasicValueEnum::IntValue(codegen.context.i8_type().const_int((*u).into(), false)),
-            Literal::IntLiteral(i) => BasicValueEnum::IntValue(codegen.context.i64_type().const_int(*i, false)),
-            Literal::FloatLiteral(f) => BasicValueEnum::FloatValue(codegen.context.f64_type().const_float(*f))
+            Literal::U8Literal(u) => {
+                BasicValueEnum::IntValue(codegen.context.i8_type().const_int((*u).into(), false))
+            }
+            Literal::IntLiteral(i) => {
+                BasicValueEnum::IntValue(codegen.context.i64_type().const_int(*i, false))
+            }
+            Literal::FloatLiteral(f) => {
+                BasicValueEnum::FloatValue(codegen.context.f64_type().const_float(*f))
+            }
         }
     }
 }

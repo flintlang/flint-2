@@ -1,8 +1,8 @@
 use crate::ast::{
     mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
     ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
-    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement,
-    Statement, Type, VariableDeclaration,
+    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
+    VariableDeclaration,
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};

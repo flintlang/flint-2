@@ -6,11 +6,11 @@ mod expressions;
 mod function;
 mod function_context;
 mod identifier;
+mod literal;
 pub mod preprocessor;
 mod statements;
 mod structs;
 mod types;
-mod literal;
 
 extern crate inkwell;
 

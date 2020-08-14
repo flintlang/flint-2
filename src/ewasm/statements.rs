@@ -129,7 +129,10 @@ fn condition_to_int_value<'ctx>(
     codegen: &Codegen<'_, 'ctx>,
     function_context: &mut FunctionContext,
 ) -> IntValue<'ctx> {
-    let condition = LLVMExpression { expression: condition }.generate(codegen, function_context);
+    let condition = LLVMExpression {
+        expression: condition,
+    }
+        .generate(codegen, function_context);
 
     // Evaluated conditions should be boolean, which in llvm is represented by a one bit int
     assert!(condition.is_int_value());
