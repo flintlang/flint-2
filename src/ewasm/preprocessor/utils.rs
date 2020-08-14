@@ -25,10 +25,8 @@ pub fn generate_contract_wrapper(
         declaration_token: None,
         identifier: Identifier::generated("this"),
         variable_type: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
-        expression: None,
+        expression: Some(Box::from(Expression::SelfExpression)),
     };
-
-    // TODO assign to it
 
     wrapper
         .body
