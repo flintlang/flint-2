@@ -146,7 +146,7 @@ impl Visitor for MovePreProcessor {
     ) -> VResult {
         let is_initialiser = |member: &StructMember| {
             if let StructMember::SpecialDeclaration(dec) = member {
-                dec.head.special_token == "init"
+                dec.is_public() && dec.is_init()
             } else {
                 false
             }

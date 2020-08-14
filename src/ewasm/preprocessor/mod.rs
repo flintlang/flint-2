@@ -1,14 +1,16 @@
 mod utils;
 
-use crate::ast::calls::FunctionCall;
-use crate::ast::declarations::Parameter;
-use crate::ast::declarations::{ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, VariableDeclaration, Modifier};
+use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember};
 use crate::ast::expressions::Identifier;
 use crate::ast::expressions::{BinaryExpression, Expression};
 use crate::ast::operators::BinOp;
 use crate::ast::statements::{ReturnStatement, Statement};
+use crate::ast::calls::FunctionCall;
 use crate::ast::types::{InoutType, Type};
-use crate::ast::VResult;
+use crate::ast::{
+    ContractDeclaration, ContractMember, Modifier, SpecialDeclaration, SpecialSignatureDeclaration,
+    StructDeclaration, StructMember, VResult,
+};
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
 use crate::visitor::Visitor;
@@ -16,6 +18,48 @@ use crate::visitor::Visitor;
 pub struct LLVMPreprocessor {}
 
 impl<'ctx> Visitor for LLVMPreprocessor {
+
+    fn start_contract_declaration(
+        &mut self,
+        dec: &mut ContractDeclaration,
+        ctx: &mut Context,
+    ) -> VResult {
+        let vars_with_assignments = dec
+            .contract_members
+            .iter()
+            .filter_map(|m| {
+                if let ContractMember::VariableDeclaration(vd, _) = m {
+                    if vd.expression.is_some() {
+                        return Some(vd);
+                    }
+                }
+                None
+            })
+            .collect::<Vec<&VariableDeclaration>>();
+
+        // Every contract must have an initialiser
+        let init = ctx
+            .environment
+            .get_public_initialiser(dec.identifier.token.as_str())
+            .unwrap();
+        for default_assignment in vars_with_assignments {
+            let assignment = BinaryExpression {
+                lhs_expression: Box::new(Expression::Identifier(
+                    default_assignment.identifier.clone(),
+                )),
+                rhs_expression: Box::new(*default_assignment.expression.clone().unwrap()),
+                op: BinOp::Equal,
+                line_info: Default::default(),
+            };
+
+            init.body
+                .push(Statement::Expression(Expression::BinaryExpression(
+                    assignment,
+                )));
+        }
+
+        Ok(())
+    }
 
     fn start_contract_behaviour_declaration(&mut self, _declaration: &mut ContractBehaviourDeclaration, _ctx: &mut Context) -> VResult {
         Ok(())
@@ -45,11 +89,80 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         Ok(())
     }
 
+    fn start_struct_declaration(
+        &mut self,
+        dec: &mut StructDeclaration,
+        ctx: &mut Context,
+    ) -> VResult {
+        let vars_with_assignments = dec
+            .members
+            .iter()
+            .filter_map(|m| {
+                if let StructMember::VariableDeclaration(vd, _) = m {
+                    if vd.expression.is_some() {
+                        return Some(vd);
+                    }
+                }
+                None
+            })
+            .collect::<Vec<&VariableDeclaration>>();
+
+        let mut assignments = vec![];
+        for default_assignment in vars_with_assignments {
+            let assignment = BinaryExpression {
+                lhs_expression: Box::new(Expression::Identifier(
+                    default_assignment.identifier.clone(),
+                )),
+                rhs_expression: Box::new(*default_assignment.expression.clone().unwrap()),
+                op: BinOp::Equal,
+                line_info: Default::default(),
+            };
+
+            assignments.push(Statement::Expression(Expression::BinaryExpression(
+                assignment,
+            )));
+        }
+
+        if let Some(init) = ctx
+            .environment
+            .get_public_initialiser(dec.identifier.token.as_str())
+        {
+            init.body.extend(assignments);
+        } else {
+            // Create and add a public initialiser, and then push assignments to it
+            let default_init = SpecialDeclaration {
+                head: SpecialSignatureDeclaration {
+                    special_token: "init".to_string(),
+                    enclosing_type: dec.identifier.enclosing_type.clone(),
+                    attributes: vec![],
+                    modifiers: vec![Modifier::Public],
+                    mutates: vec![],
+                    parameters: vec![],
+                },
+                body: assignments,
+                scope_context: Default::default(),
+                generated: false,
+            };
+
+            dec.members
+                .push(StructMember::SpecialDeclaration(default_init.clone()));
+            ctx.environment.add_special(
+                default_init,
+                dec.identifier.token.as_str(),
+                vec![],
+                vec![],
+            );
+        }
+
+        Ok(())
+    }
+
     fn start_variable_declaration(
         &mut self,
         declaration: &mut VariableDeclaration,
         ctx: &mut Context,
     ) -> VResult {
+        // TODO REMOVE THIS IF WE DO NOT NEED IT - I suspect we do not
         if ctx.in_function_or_special() {
             if let Some(ref mut scope_context) = ctx.scope_context {
                 scope_context.local_variables.push(declaration.clone());
@@ -79,49 +192,24 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         declaration: &mut FunctionDeclaration,
         ctx: &mut Context,
     ) -> VResult {
-        let enclosing_identifier = ctx
-            .enclosing_type_identifier()
-            .map(|id| id.token.to_string())
-            .unwrap_or_default();
-
         let mangled_name = mangle_ewasm_function(&declaration.head.identifier.token);
 
         declaration.mangled_identifier = Some(mangled_name);
 
         // construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
-            if enclosing_identifier != "Quartz_Global" {
-                let self_param = construct_parameter(
-                    "QuartzSelf".to_string(),
-                    Type::InoutType(InoutType {
-                        key_type: Box::new(Type::UserDefinedType(Identifier::generated(
-                            &struct_ctx.identifier.token,
-                        ))),
-                    }),
-                );
+            let self_param = construct_parameter(
+                Identifier::SELF.to_string(),
+                Type::InoutType(InoutType {
+                    key_type: Box::new(Type::UserDefinedType(Identifier::generated(
+                        &struct_ctx.identifier.token,
+                    ))),
+                }),
+            );
 
-                declaration.head.parameters.insert(0, self_param);
-                // TODO: add to scope?
-            }
-        }
-
-        if let Some(ref contract_ctx) = ctx.contract_behaviour_declaration_context {
-            let identifier = &contract_ctx.identifier;
-            let parameter_type = Type::InoutType(InoutType {
-                key_type: Box::new(Type::UserDefinedType(identifier.clone())),
-            });
-            let parameter = Parameter {
-                identifier: Identifier::generated(Identifier::SELF),
-                type_assignment: parameter_type,
-                expression: None,
-                line_info: Default::default(),
-            };
-
-            declaration.head.parameters.insert(0, parameter);
-
+            declaration.head.parameters.insert(0, self_param);
             // TODO: add to scope?
         }
-
         // TODO: dynamic parameters?
 
         Ok(())
@@ -130,7 +218,7 @@ impl<'ctx> Visitor for LLVMPreprocessor {
     fn finish_function_declaration(
         &mut self,
         declaration: &mut FunctionDeclaration,
-        _ctx: &mut Context,
+        _: &mut Context,
     ) -> VResult {
         if declaration.is_void() {
             let statement = declaration.body.last();
@@ -157,16 +245,26 @@ impl<'ctx> Visitor for LLVMPreprocessor {
         Ok(())
     }
 
-    fn start_expression(&mut self, _expr: &mut Expression, _ctx: &mut Context) -> VResult {
+    fn finish_special_declaration(
+        &mut self,
+        declaration: &mut SpecialDeclaration,
+        _: &mut Context,
+    ) -> VResult {
+        if let Some(Statement::ReturnStatement(_)) = declaration.body.last() {
+            return Ok(());
+        } else {
+            declaration
+                .body
+                .push(Statement::ReturnStatement(ReturnStatement {
+                    expression: None,
+                    ..Default::default()
+                }));
+        }
+
         Ok(())
     }
-
-    fn start_binary_expression(
-        &mut self,
-        expr: &mut BinaryExpression,
-        ctx: &mut Context,
-    ) -> VResult {
-        // removes assignment shorthand expressions, e.g. += and *=
+    fn start_binary_expression(&mut self, expr: &mut BinaryExpression, ctx: &mut Context) -> VResult {
+        // Removes assignment shorthand expressions, e.g. += and *=
         if expr.op.is_assignment_shorthand() {
             let op = expr.op.get_assignment_shorthand();
             expr.op = BinOp::Equal;
