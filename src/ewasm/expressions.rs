@@ -6,13 +6,10 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::call::{LLVMExternalCall, LLVMFunctionCall};
 use crate::ewasm::declaration::LLVMVariableDeclaration;
 
-// TODO remove this allowance when it gets used
-#[allow(dead_code)]
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
 }
 
-#[allow(dead_code)]
 impl<'a> LLVMExpression<'a> {
     // We want to take an expression, create any of the intermediary steps to evaluate it,
     // and then return the tmp variable that stores the evaluated result

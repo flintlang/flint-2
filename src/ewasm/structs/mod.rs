@@ -1,11 +1,11 @@
 pub mod utils;
 
-use crate::ewasm::inkwell::types::BasicTypeEnum;
 use crate::ast::{SpecialDeclaration, StructDeclaration, StructMember, VariableDeclaration};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::LLVMFunction;
-use crate::ewasm::types::LLVMType;
+use crate::ewasm::inkwell::types::BasicTypeEnum;
 use crate::ewasm::structs::utils::generate_initialiser;
+use crate::ewasm::types::LLVMType;
 
 pub struct LLVMStruct<'a> {
     pub struct_declaration: &'a StructDeclaration,
@@ -14,20 +14,20 @@ pub struct LLVMStruct<'a> {
 impl<'a> LLVMStruct<'a> {
     pub fn generate(&self, codegen: &mut Codegen) {
         self.create_type(codegen);
-        
+
         let initialiser = self
-        .struct_declaration
-        .members
-        .iter()
-        .filter_map(|m| {
-            if let StructMember::SpecialDeclaration(sp) = m {
-                if sp.is_public() && sp.is_init() {
-                    return Some(sp);
+            .struct_declaration
+            .members
+            .iter()
+            .filter_map(|m| {
+                if let StructMember::SpecialDeclaration(sp) = m {
+                    if sp.is_public() && sp.is_init() {
+                        return Some(sp);
+                    }
                 }
-            }
-            None
-        })
-        .collect::<Vec<&SpecialDeclaration>>();
+                None
+            })
+            .collect::<Vec<&SpecialDeclaration>>();
 
         assert_eq!(initialiser.len(), 1);
 

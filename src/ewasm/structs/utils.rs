@@ -1,13 +1,13 @@
-use crate::ewasm::inkwell::types::BasicTypeEnum;
-use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ast::SpecialDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
+use crate::ewasm::inkwell::types::BasicTypeEnum;
+use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
 
-pub fn generate_initialiser<'a> (initialiser: &'a SpecialDeclaration, codegen: &Codegen) {
+pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen) {
     let params = &initialiser.head.parameters;
     let param_types = params
         .iter()
@@ -15,7 +15,7 @@ pub fn generate_initialiser<'a> (initialiser: &'a SpecialDeclaration, codegen: &
             LLVMType {
                 ast_type: &param.type_assignment,
             }
-            .generate(codegen)
+                .generate(codegen)
         })
         .collect::<Vec<BasicTypeEnum>>();
 
@@ -38,7 +38,7 @@ pub fn generate_initialiser<'a> (initialiser: &'a SpecialDeclaration, codegen: &
         .zip(init_func.get_params().into_iter())
         .collect::<HashMap<&str, BasicValueEnum>>();
 
-    let mut function_context = FunctionContext::new(params);
+    let mut function_context = FunctionContext::new(init_func, params);
     let block = codegen.context.append_basic_block(init_func, "entry");
     codegen.builder.position_at_end(block);
     for statement in initialiser.body.iter() {

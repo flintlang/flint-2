@@ -11,9 +11,9 @@ use crate::ewasm::declaration::LLVMFieldDeclaration;
 use crate::ewasm::function::LLVMFunction;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMStatement;
+use crate::ewasm::structs::utils::generate_initialiser;
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
-use crate::ewasm::structs::utils::generate_initialiser;
 use std::collections::HashMap;
 
 pub struct LLVMContract<'a> {
@@ -87,7 +87,7 @@ impl<'a> LLVMContract<'a> {
             conformances: self.contract_declaration.conformances.clone(),
             members,
         };
- 
+
         let mut initialiser_declaration = None;
         for declarations in self.contract_behaviour_declarations.clone() {
             for member in declarations.members.clone() {
@@ -107,17 +107,18 @@ impl<'a> LLVMContract<'a> {
 
         generate_initialiser(&initialiser_declaration, codegen);
 
-        
         // add global var declaration of struct
-        codegen
-            .module
-            .add_global(struct_type, None, &self.contract_declaration.identifier.token);
+        codegen.module.add_global(
+            struct_type,
+            None,
+            &self.contract_declaration.identifier.token,
+        );
 
         let _properties: Vec<_> = self
             .contract_declaration
             .get_variable_declarations_without_dict()
             .collect();
-        
+
         // set global variable to struct value
         // do we need to set an initialiser function?
         //global.set_initializer();
@@ -227,7 +228,7 @@ impl<'a> LLVMContract<'a> {
             .zip(init_func.get_params().into_iter().map(|param| param))
             .collect::<HashMap<&str, BasicValueEnum>>();
 
-        let mut function_context = FunctionContext::new(params);
+        let mut function_context = FunctionContext::new(init_func, params);
         for statement in initialiser.body.iter() {
             LLVMStatement { statement }.generate(codegen, &mut function_context);
         }
