@@ -84,6 +84,7 @@ impl<'a> LLVMExpression<'a> {
 }
 
 struct LLVMIdentifier<'a> {
+    #[allow(dead_code)]
     identifier: &'a Identifier,
 }
 
@@ -98,6 +99,7 @@ impl<'a> LLVMIdentifier<'a> {
 }
 
 struct LLVMBinaryExpression<'a> {
+    #[allow(dead_code)]
     expression: &'a BinaryExpression,
 }
 
@@ -112,6 +114,7 @@ impl<'a> LLVMBinaryExpression<'a> {
 }
 
 struct LLVMInoutExpression<'a> {
+    #[allow(dead_code)]
     expression: &'a InoutExpression,
 }
 
@@ -126,6 +129,7 @@ impl<'a> LLVMInoutExpression<'a> {
 }
 
 struct LLVMAttemptExpression<'a> {
+    #[allow(dead_code)]
     expression: &'a AttemptExpression,
 }
 
@@ -140,6 +144,7 @@ impl<'a> LLVMAttemptExpression<'a> {
 }
 
 struct LLVMSelfExpression<'a> {
+    #[allow(dead_code)]
     token: &'a String,
 }
 
@@ -154,7 +159,9 @@ impl<'a> LLVMSelfExpression<'a> {
 }
 
 pub struct LLVMSubscriptExpression<'a> {
+    #[allow(dead_code)]
     expression: &'a SubscriptExpression,
+    #[allow(dead_code)]
     rhs: Option<LLVMExpression<'a>>,
 }
 
@@ -169,6 +176,7 @@ impl<'a> LLVMSubscriptExpression<'a> {
 }
 
 struct LLVMCastExpression<'a> {
+    #[allow(dead_code)]
     expression: &'a CastExpression,
 }
 
@@ -176,7 +184,7 @@ impl<'a> LLVMCastExpression<'a> {
     fn generate<'ctx>(
         &self,
         _codegen: &Codegen<'_, 'ctx>,
-        __function_context: &FunctionContext,
+        _function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
