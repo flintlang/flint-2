@@ -24,6 +24,7 @@ impl<'a> LLVMExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
+        dbg!(self.expression.clone());
         match self.expression {
             Expression::Identifier(i) => {
                 LLVMIdentifier { identifier: i }.generate(codegen, function_context)
@@ -92,12 +93,19 @@ struct LLVMIdentifier<'a> {
 impl<'a> LLVMIdentifier<'a> {
     fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        function_context: &FunctionContext<'ctx>,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        function_context
+        if let Some(enclosing_type) = &self.identifier.enclosing_type {
+            return LLVMStructAccess {
+                struct_name: "this",
+                field_name: &self.identifier.token
+            }.generate(codegen, function_context);
+        } else {
+            function_context
             .get_declaration(self.identifier.token.as_str())
             .1
+        }
     }
 }
 
@@ -558,7 +566,7 @@ impl<'a> LLVMSelfExpression {
     pub fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
-        function_context: &FunctionContext<'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         LLVMIdentifier {
             identifier: &Identifier::generated(self.name()),

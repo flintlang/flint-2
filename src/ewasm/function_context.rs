@@ -43,6 +43,7 @@ impl<'a> FunctionContext<'a> {
     }
 
     pub fn get_declaration(&self, name: &str) -> (&Option<String>, BasicValueEnum<'a>) {
+        dbg!(name.clone());
         let VariableInfo { type_name, value } = self
             .parameters
             .get(name)
