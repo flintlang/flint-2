@@ -77,7 +77,6 @@ impl<'a> LLVMContract<'a> {
             .collect::<Vec<&SpecialDeclaration>>();
 
         // There should only be one contract initialiser
-        dbg!(initialiser.clone());
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
         generate_initialiser(initialiser, codegen);

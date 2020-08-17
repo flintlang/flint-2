@@ -1,4 +1,4 @@
-use crate::ast::{FunctionDeclaration, Modifier};
+use crate::ast::{FunctionDeclaration, Identifier, Modifier, Type};
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
@@ -79,17 +79,26 @@ impl<'a> LLVMFunction<'a> {
             .map(|p_name| p_name.as_str())
             .collect();
 
-        let enclosing_types = self
+        let type_names = self
             .function_declaration
             .head
             .parameters
             .iter()
-            .map(|param| param.identifier.enclosing_type.clone());
+            .map(|param| {
+                if let Type::UserDefinedType(Identifier {
+                                                 token: type_name, ..
+                                             }) = &param.type_assignment
+                {
+                    Some(type_name.to_string())
+                } else {
+                    None
+                }
+            });
 
         let local_parameters = parameter_names
             .iter()
             .map(|name| name.to_string())
-            .zip(enclosing_types.zip(func_val.get_params().into_iter().map(|param| param)))
+            .zip(type_names.zip(func_val.get_params().into_iter().map(|param| param)))
             .collect::<HashMap<String, (Option<String>, BasicValueEnum)>>();
 
         let mut function_context = FunctionContext::new(func_val, local_parameters);

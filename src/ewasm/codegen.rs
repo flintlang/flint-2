@@ -51,7 +51,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub fn verify_and_optimise(&self, func: &FunctionValue) {
         // False means it does not print to stdoutput why the function is invalid
-        if func.verify(false) {
+        if func.verify(true) {
             self.fpm.run_on(func);
         } else {
             self.module.print_to_stderr();

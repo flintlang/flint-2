@@ -2,6 +2,8 @@ use super::inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::HashMap;
 
 #[derive(Debug)]
+// TODO consider creating and naming opaque structs and then you would only need the structvalue,
+// from which you could get the struct name you assigned, instead of storing it here
 struct VariableInfo<'a> {
     type_name: Option<String>,
     value: BasicValueEnum<'a>,
@@ -43,7 +45,6 @@ impl<'a> FunctionContext<'a> {
     }
 
     pub fn get_declaration(&self, name: &str) -> (&Option<String>, BasicValueEnum<'a>) {
-        dbg!(name.clone());
         let VariableInfo { type_name, value } = self
             .parameters
             .get(name)
