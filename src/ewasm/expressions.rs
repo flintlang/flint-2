@@ -1,4 +1,4 @@
-use super::inkwell::values::{BasicValue, BasicValueEnum};
+use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
     AttemptExpression, BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
@@ -24,7 +24,6 @@ impl<'a> LLVMExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        dbg!(self.expression.clone());
         match self.expression {
             Expression::Identifier(i) => {
                 LLVMIdentifier { identifier: i }.generate(codegen, function_context)
@@ -86,7 +85,6 @@ impl<'a> LLVMExpression<'a> {
 }
 
 struct LLVMIdentifier<'a> {
-    #[allow(dead_code)]
     identifier: &'a Identifier,
 }
 
@@ -96,21 +94,24 @@ impl<'a> LLVMIdentifier<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        if let Some(enclosing_type) = &self.identifier.enclosing_type {
-            return LLVMStructAccess {
+        // Move add this check to the preprocessor
+        if self.identifier.enclosing_type.is_some() {
+            let pointer_to_value = LLVMStructAccess {
                 struct_name: "this",
-                field_name: &self.identifier.token
-            }.generate(codegen, function_context);
+                field_name: &self.identifier.token,
+            }
+                .generate(codegen, function_context);
+
+            codegen.builder.build_load(pointer_to_value, "val")
         } else {
             function_context
-            .get_declaration(self.identifier.token.as_str())
-            .1
+                .get_declaration(self.identifier.token.as_str())
+                .1
         }
     }
 }
 
 struct LLVMBinaryExpression<'a> {
-    #[allow(dead_code)]
     expression: &'a BinaryExpression,
 }
 
@@ -149,7 +150,8 @@ impl<'a> LLVMBinaryExpression<'a> {
                             struct_name,
                             field_name,
                         }
-                        .generate(codegen, function_context);
+                            .generate(codegen, function_context)
+                            .as_basic_value_enum();
                     }
                 }
 
@@ -621,17 +623,21 @@ impl<'a> LLVMStructAccess<'a> {
         &self,
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> BasicValueEnum<'ctx> {
+    ) -> PointerValue<'ctx> {
         let (struct_type_name, the_struct) = function_context.get_declaration(self.struct_name);
+        let the_struct = the_struct.into_struct_value();
 
-        let the_struct = the_struct.into_pointer_value();
-        codegen
-            .build_struct_member_getter(
-                struct_type_name.as_ref().unwrap(),
-                self.field_name,
-                the_struct,
-                "tmp",
-            )
-            .as_basic_value_enum()
+        // Is there a better way to get a pointer to a struct value?
+        let struct_ptr = codegen
+            .builder
+            .build_alloca(the_struct.get_type(), "struct_ptr");
+        codegen.builder.build_store(struct_ptr, the_struct);
+
+        codegen.build_struct_member_getter(
+            struct_type_name.as_ref().unwrap(),
+            self.field_name,
+            struct_ptr,
+            "tmp",
+        )
     }
 }
