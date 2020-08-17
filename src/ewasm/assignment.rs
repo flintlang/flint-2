@@ -14,7 +14,7 @@ impl<'a> LLVMAssignment<'a> {
     pub fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         if let Expression::Identifier(id) = self.lhs {
             let identifier = &id.token;

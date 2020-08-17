@@ -22,7 +22,7 @@ impl<'a> LLVMExpression<'a> {
     pub fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         match self.expression {
             Expression::Identifier(i) => {
@@ -92,8 +92,8 @@ struct LLVMIdentifier<'a> {
 impl<'a> LLVMIdentifier<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
-        function_context: &FunctionContext,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
@@ -108,7 +108,7 @@ impl<'a> LLVMBinaryExpression<'a> {
     fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         if let BinOp::Dot = self.expression.op {
             if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {

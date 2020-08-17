@@ -224,9 +224,10 @@ impl<'a> LLVMContract<'a> {
         codegen.builder.position_at_end(body);
 
         let params = param_names
-            .into_iter()
+            .iter()
+            .map(|name| name.to_string())
             .zip(init_func.get_params().into_iter().map(|param| param))
-            .collect::<HashMap<&str, BasicValueEnum>>();
+            .collect::<HashMap<String, BasicValueEnum>>();
 
         let mut function_context = FunctionContext::new(init_func, params);
         for statement in initialiser.body.iter() {

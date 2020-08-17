@@ -10,7 +10,7 @@ pub struct LLVMStatement<'a> {
 }
 
 impl<'a> LLVMStatement<'a> {
-    pub fn generate(&self, codegen: &Codegen, function_context: &mut FunctionContext) {
+    pub fn generate<'ctx>(&self, codegen: &Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>) {
         match self.statement {
             Statement::ReturnStatement(r) => {
                 LLVMReturnStatement { statement: r }.generate(codegen, function_context);
@@ -41,7 +41,7 @@ struct LLVMReturnStatement<'a> {
 }
 
 impl<'a> LLVMReturnStatement<'a> {
-    fn generate(&self, codegen: &Codegen, function_context: &mut FunctionContext) {
+    fn generate<'ctx>(&self, codegen: &Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>) {
         if let Some(return_expression) = &self.statement.expression {
             let expr = LLVMExpression {
                 expression: return_expression,
@@ -59,7 +59,7 @@ struct LLVMIfStatement<'a> {
 }
 
 impl<'a> LLVMIfStatement<'a> {
-    fn generate(&self, codegen: &Codegen, function_context: &mut FunctionContext) {
+    fn generate<'ctx>(&self, codegen: &Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>) {
         // TODO I suspect this will not work, but it is likely along the right lines. It will
         // be difficult to fix until we can run the code and see, however, so I will leave it for now
         let IfStatement {
@@ -102,7 +102,7 @@ struct LLVMAssertion<'a> {
 }
 
 impl<'a> LLVMAssertion<'a> {
-    fn generate(&self, codegen: &Codegen, function_context: &mut FunctionContext) {
+    fn generate<'ctx>(&self, codegen: &Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>) {
         let condition =
             condition_to_int_value(&self.assertion.expression, codegen, function_context);
         let this_func = function_context.get_current_func();
@@ -127,7 +127,7 @@ impl<'a> LLVMAssertion<'a> {
 fn condition_to_int_value<'ctx>(
     condition: &Expression,
     codegen: &Codegen<'_, 'ctx>,
-    function_context: &mut FunctionContext,
+    function_context: &mut FunctionContext<'ctx>,
 ) -> IntValue<'ctx> {
     let condition = LLVMExpression { expression: condition }.generate(codegen, function_context);
 
