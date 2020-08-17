@@ -9,6 +9,7 @@ use super::inkwell::values::{BasicValue, FunctionValue, PointerValue};
 use std::collections::HashMap;
 
 pub struct Codegen<'a, 'ctx> {
+    pub contract_name: &'a str,
     pub context: &'ctx LLVMContext,
     pub module: &'a LLVMModule<'ctx>,
     pub builder: &'a Builder<'ctx>,

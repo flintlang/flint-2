@@ -27,7 +27,9 @@ pub fn generate_contract_wrapper(
         declaration_token: None,
         identifier: Identifier::generated("this"),
         variable_type: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
-        expression: Some(Box::new(Expression::SelfExpression)),
+        expression: Some(Box::new(Expression::Identifier(Identifier::generated(
+            contract_behaviour_declaration.identifier.token.as_str(),
+        )))),
     };
 
     // give variable declaration an expression

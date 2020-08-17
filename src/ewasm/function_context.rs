@@ -11,6 +11,7 @@ struct VariableInfo<'a> {
 
 #[derive(Debug)]
 pub struct FunctionContext<'a> {
+    pub assigning: bool,
     this_func: FunctionValue<'a>,
     parameters: HashMap<String, VariableInfo<'a>>,
     locals: HashMap<String, VariableInfo<'a>>,
@@ -28,6 +29,7 @@ impl<'a> FunctionContext<'a> {
             .collect::<HashMap<String, VariableInfo>>();
 
         FunctionContext {
+            assigning: false,
             this_func: func,
             parameters: params,
             locals: HashMap::new(),
@@ -44,14 +46,16 @@ impl<'a> FunctionContext<'a> {
             .insert(name.to_string(), VariableInfo { type_name, value });
     }
 
-    pub fn get_declaration(&self, name: &str) -> (&Option<String>, BasicValueEnum<'a>) {
-        let VariableInfo { type_name, value } = self
+    pub fn get_declaration(&self, name: &str) -> Option<(&Option<String>, BasicValueEnum<'a>)> {
+        if let Some(VariableInfo { type_name, value }) = self
             .parameters
             .get(name)
             .or_else(|| self.locals.get(name).or(None))
-            .unwrap();
-
-        (type_name, *value)
+        {
+            Some((type_name, *value))
+        } else {
+            None
+        }
     }
 
     pub fn update_declaration(&mut self, name: &str, val: BasicValueEnum<'a>) {

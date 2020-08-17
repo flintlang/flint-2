@@ -6,7 +6,6 @@ mod declaration;
 mod expressions;
 mod function;
 mod function_context;
-mod identifier;
 mod literal;
 pub mod preprocessor;
 mod statements;
@@ -163,6 +162,7 @@ fn generate_llvm(contract: &LLVMContract) -> String {
     fpm.initialize();
 
     let mut codegen = Codegen {
+        contract_name: contract.contract_declaration.identifier.token.as_str(),
         context: &llvm_context,
         module: &llvm_module,
         builder: &builder,

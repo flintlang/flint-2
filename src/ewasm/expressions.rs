@@ -82,12 +82,12 @@ impl<'a> LLVMExpression<'a> {
     }
 }
 
-struct LLVMIdentifier<'a> {
-    identifier: &'a Identifier,
+pub struct LLVMIdentifier<'a> {
+    pub identifier: &'a Identifier,
 }
 
 impl<'a> LLVMIdentifier<'a> {
-    fn generate<'ctx>(
+    pub fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
@@ -99,12 +99,35 @@ impl<'a> LLVMIdentifier<'a> {
                 field_name: &self.identifier.token,
             }
                 .generate(codegen, function_context);
-
-            codegen.builder.build_load(pointer_to_value, "val")
+            if function_context.assigning {
+                pointer_to_value.as_basic_value_enum()
+            } else {
+                codegen.builder.build_load(pointer_to_value, "val")
+            }
+        } else if self.identifier.token.as_str().eq(codegen.contract_name) {
+            let contract_var = codegen
+                .module
+                .get_global(codegen.contract_name)
+                .unwrap()
+                .as_pointer_value();
+            if function_context.assigning {
+                contract_var.as_basic_value_enum()
+            } else {
+                codegen.builder.build_load(contract_var, "contract")
+            }
         } else {
-            function_context
+            let variable = function_context
                 .get_declaration(self.identifier.token.as_str())
-                .1
+                .unwrap()
+                .1;
+
+            if function_context.assigning {
+                let var_ptr = codegen.builder.build_alloca(variable.get_type(), "tmp");
+                codegen.builder.build_store(var_ptr, variable);
+                var_ptr.as_basic_value_enum()
+            } else {
+                variable
+            }
         }
     }
 }
@@ -607,7 +630,8 @@ impl<'a> LLVMStructAccess<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> PointerValue<'ctx> {
-        let (struct_type_name, the_struct) = function_context.get_declaration(self.struct_name);
+        let (struct_type_name, the_struct) =
+            function_context.get_declaration(self.struct_name).unwrap();
         let the_struct = the_struct.into_struct_value();
 
         // Is there a better way to get a pointer to a struct value?
