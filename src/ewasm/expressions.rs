@@ -1,5 +1,6 @@
 use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
+use super::inkwell::types::VectorType;
 use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
@@ -58,13 +59,13 @@ impl<'a> LLVMExpression<'a> {
             }
 
             Expression::ArrayLiteral(a) => {
-                let _elements = a
+                let elements = a
                     .elements
                     .iter()
                     .map(|e| LLVMExpression { expression: e }.generate(codegen, function_context))
                     .collect::<Vec<BasicValueEnum>>();
 
-                unimplemented!();
+                BasicValueEnum::VectorValue(VectorType::const_vector(&elements))
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => LLVMSelfExpression {}.generate(codegen, function_context),
@@ -542,8 +543,11 @@ impl<'a> LLVMInoutExpression<'a> {
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         let expr = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
+        // FIX: into_pointer_value() is wrong
+        let ptr = codegen.builder.build_alloca(expr.get_type(), "tmpptr");
+        codegen.builder.build_store(ptr, expr);
 
-        BasicValueEnum::PointerValue(expr.into_pointer_value())
+        BasicValueEnum::PointerValue(ptr)
     }
 }
 
