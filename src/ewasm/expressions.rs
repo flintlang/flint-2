@@ -1,4 +1,4 @@
-use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
+use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
@@ -11,6 +11,7 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMVariableDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::literal::LLVMLiteral;
+use crate::ewasm::types::LLVMType;
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
@@ -531,17 +532,18 @@ impl<'a> LLVMBinaryExpression<'a> {
 }
 
 struct LLVMInoutExpression<'a> {
-    #[allow(dead_code)]
     expression: &'a InoutExpression,
 }
 
 impl<'a> LLVMInoutExpression<'a> {
     fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        unimplemented!();
+        let expr = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
+
+        BasicValueEnum::PointerValue(expr.into_pointer_value())
     }
 }
 
@@ -577,22 +579,26 @@ impl<'a> LLVMSubscriptExpression<'a> {
         _codegen: &Codegen<'_, 'ctx>,
         _function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
+        // TODO: implement once arrays are implemented
         unimplemented!();
     }
 }
 
 struct LLVMCastExpression<'a> {
-    #[allow(dead_code)]
     expression: &'a CastExpression,
 }
 
 impl<'a> LLVMCastExpression<'a> {
     fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        unimplemented!();
+        let cast_from_val = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
+        let cast_to_type = LLVMType { ast_type: &self.expression.cast_type }.generate(codegen);
+        
+        // TODO: which opcode should we pick here?
+        codegen.builder.build_cast(InstructionOpcode::Load, cast_from_val, cast_to_type, "tmpcast")
     }
 }
 
