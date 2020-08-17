@@ -4,7 +4,7 @@ use itertools::Itertools;
 pub fn extract_allowed_states<'a>(
     permitted_states: &'a [TypeState],
     declared_states: &'a [TypeState],
-) -> impl Iterator<Item=u8> + 'a {
+) -> impl Iterator<Item = u8> + 'a {
     assert!(declared_states.len() < 256);
     permitted_states.iter().map(move |permitted_state| {
         declared_states

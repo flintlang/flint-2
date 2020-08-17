@@ -1,3 +1,4 @@
+mod assignment;
 mod call;
 mod codegen;
 mod contract;

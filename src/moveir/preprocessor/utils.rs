@@ -351,7 +351,7 @@ pub fn generate_contract_wrapper(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
         )
-            .collect::<Vec<u8>>();
+        .collect::<Vec<u8>>();
         let condition =
             generate_type_state_condition(state_identifier, &allowed_type_states_as_u8s);
         let assertion = Assertion {

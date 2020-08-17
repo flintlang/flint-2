@@ -45,7 +45,7 @@ pub fn generate_contract_wrapper(
             &contract_behaviour_declaration.type_states,
             &ctx.environment.get_contract_type_states(contract_name),
         )
-            .collect::<Vec<u8>>();
+        .collect::<Vec<u8>>();
 
         let condition = generate_type_state_condition(
             Identifier::generated(Identifier::TYPESTATE_VAR_NAME),

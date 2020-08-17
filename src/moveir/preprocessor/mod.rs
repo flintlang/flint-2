@@ -664,13 +664,13 @@ impl Visitor for MovePreProcessor {
                 }
 
                 if let Some(predicate) =
-                crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
-                    &caller_protections,
-                    caller_id,
-                    &contract_ctx.identifier,
-                    &expr.function_call.identifier.token,
-                    &_ctx,
-                )
+                    crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
+                        &caller_protections,
+                        caller_id,
+                        &contract_ctx.identifier,
+                        &expr.function_call.identifier.token,
+                        &_ctx,
+                    )
                 {
                     match expr.kind.as_str() {
                         "!" => {

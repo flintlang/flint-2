@@ -10,6 +10,7 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMVariableDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::literal::LLVMLiteral;
+use crate::ewasm::assignment::LLVMAssignment;
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
@@ -21,7 +22,7 @@ impl<'a> LLVMExpression<'a> {
     pub fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         match self.expression {
             Expression::Identifier(i) => {
@@ -67,10 +68,7 @@ impl<'a> LLVMExpression<'a> {
                 unimplemented!();
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
-            Expression::SelfExpression => LLVMSelfExpression {
-                token: &Identifier::SELF.to_string(),
-            }
-            .generate(codegen, function_context),
+            Expression::SelfExpression => LLVMSelfExpression {}.generate(codegen, function_context),
             Expression::SubscriptExpression(s) => LLVMSubscriptExpression {
                 expression: s,
                 rhs: None,
@@ -110,333 +108,338 @@ impl<'a> LLVMBinaryExpression<'a> {
     fn generate<'ctx>(
         &self,
         codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let lhs = LLVMExpression {
-            expression: &*self.expression.lhs_expression,
-        }
-            .generate(codegen, function_context);
-        let rhs = LLVMExpression {
-            expression: &*self.expression.rhs_expression,
-        }
-            .generate(codegen, function_context);
-
-        match self.expression.op {
-            BinOp::OverflowingPlus | BinOp::Plus => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen.builder.build_int_add(lhs, rhs, "tmpadd");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_add(
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpadd",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_add(
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpadd",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen.builder.build_float_add(lhs, rhs, "tmpadd");
-                    }
+        if let BinOp::Dot = self.expression.op {
+            if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
+                LLVMFunctionCall {
+                    function_call: f,
+                    module_name: "Self",
                 }
-
-                panic!("Invalid operation supplied")
+                .generate(codegen, function_context)
+            } else {
+                // design LLVM function to point into structs
+                unimplemented!()
             }
-            BinOp::OverflowingMinus | BinOp::Minus => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen.builder.build_int_sub(lhs, rhs, "tmpsub");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_sub(
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpsub",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_sub(
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpsub",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen.builder.build_float_sub(lhs, rhs, "tmpsub");
-                    }
-                }
-
-                panic!("Invalid operation supplied")
+        } else if let BinOp::Equal = self.expression.op {
+            LLVMAssignment {
+                lhs: &*self.expression.lhs_expression,
+                rhs: &*self.expression.rhs_expression
             }
-            BinOp::OverflowingTimes | BinOp::Times => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen.builder.build_int_mul(lhs, rhs, "tmpmul");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_mul(
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpmul",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_mul(
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpmul",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen.builder.build_float_mul(lhs, rhs, "tmpmul");
-                    }
-                }
+            .generate(codegen, function_context)                               
+        } else {
+            let lhs = LLVMExpression { expression: &*self.expression.lhs_expression }.generate(codegen, function_context);
+            let rhs = LLVMExpression { expression: &*self.expression.rhs_expression }.generate(codegen, function_context);
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::Power => panic!("operator not supported"),
-            BinOp::Divide => {
-                if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen.builder.build_float_div(lhs, rhs, "tmpdiv");
+            match self.expression.op {
+                BinOp::Plus | BinOp::OverflowingPlus => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen.builder.build_int_add(lhs, rhs, "tmpadd"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_add(lhs.const_signed_to_float(float_type), rhs, "tmpadd"));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_add(lhs, rhs.const_signed_to_float(float_type), "tmpadd"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_add(lhs, rhs, "tmpadd"));
+                        }
                     }
-                }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::Percent => panic!("operator not supported"),
-            // TODO do struct accesses
-            BinOp::Dot => panic!("operator not supported"),
-            // TODO assignments
-            BinOp::Equal => unimplemented!("Need to implement assignmets"),
-            BinOp::PlusEqual => panic!("should have been preprocessed"),
-            BinOp::MinusEqual => panic!("should have been preprocessed"),
-            BinOp::TimesEqual => panic!("should have been preprocessed"),
-            BinOp::DivideEqual => panic!("should have been preprocessed"),
-            BinOp::DoubleEqual => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpeq");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OEQ,
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpeq",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OEQ,
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpeq",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OEQ, lhs, rhs, "tmpeq");
-                    }
+                    panic!("Invalid operation supplied")
                 }
+                BinOp::OverflowingMinus | BinOp::Minus => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen.builder.build_int_sub(lhs, rhs, "tmpsub"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmpsub",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmpsub",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(lhs, rhs, "tmpsub"));
+                        }
+                    }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::NotEqual => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_int_compare(IntPredicate::NE, lhs, rhs, "tmpne");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::ONE,
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpne",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::ONE,
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpne",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::ONE, lhs, rhs, "tmpne");
-                    }
+                    panic!("Invalid operation supplied")
                 }
+                BinOp::OverflowingTimes | BinOp::Times => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen.builder.build_int_mul(lhs, rhs, "tmpmul"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmpmul",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmpmul",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(lhs, rhs, "tmpmul"));
+                        }
+                    }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::LessThan => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SLT, lhs, rhs, "tmplt");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OLT,
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmplt",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OLT,
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmplt",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OLT, lhs, rhs, "tmplt");
-                    }
+                    panic!("Invalid operation supplied")
                 }
+                BinOp::Power => panic!("operator not supported"),
+                BinOp::Divide => {
+                    if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::FloatValue(codegen.builder.build_float_div(lhs, rhs, "tmpdiv"));
+                        }
+                    }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::LessThanOrEqual => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SLE, lhs, rhs, "tmple");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OLE,
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmple",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OLE,
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmple",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OLE, lhs, rhs, "tmple");
-                    }
+                    panic!("Invalid operation supplied")
                 }
+                BinOp::Percent => panic!("operator not supported"),
+                // TODO do struct accesses
+                BinOp::Dot => panic!("operator not supported"),
+                // TODO assignments
+                BinOp::Equal => unimplemented!("Need to implement assignments"),
+                BinOp::PlusEqual => panic!("should have been preprocessed"),
+                BinOp::MinusEqual => panic!("should have been preprocessed"),
+                BinOp::TimesEqual => panic!("should have been preprocessed"),
+                BinOp::DivideEqual => panic!("should have been preprocessed"),
+                BinOp::DoubleEqual => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpeq"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OEQ,
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmpeq",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OEQ,
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmpeq",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_float_compare(FloatPredicate::OEQ, lhs, rhs, "tmpeq"));
+                        }
+                    }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::GreaterThan => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SGT, lhs, rhs, "tmpgt");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OGT,
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpgt",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OGT,
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpgt",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OGT, lhs, rhs, "tmpgt");
-                    }
+                    panic!("Invalid operation supplied")
                 }
+                BinOp::NotEqual => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_int_compare(IntPredicate::NE, lhs, rhs, "tmpne"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::ONE,
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmpne",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::ONE,
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmpne",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_float_compare(FloatPredicate::ONE, lhs, rhs, "tmpne"));
+                        }
+                    }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::GreaterThanOrEqual => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SGE, lhs, rhs, "tmpge");
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OGE,
-                            lhs.const_signed_to_float(float_type),
-                            rhs,
-                            "tmpge",
-                        );
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
-                        codegen.builder.build_float_compare(
-                            FloatPredicate::OGE,
-                            lhs,
-                            rhs.const_signed_to_float(float_type),
-                            "tmpge",
-                        );
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OGE, lhs, rhs, "tmpge");
-                    }
+                    panic!("Invalid operation supplied")
                 }
-
-                panic!("Invalid operation supplied")
-            }
-            BinOp::Or => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen.builder.build_or(lhs, rhs, "tmpor");
+                BinOp::LessThan => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_int_compare(IntPredicate::SLT, lhs, rhs, "tmplt"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OLT,
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmplt",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OLT,
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmplt",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_float_compare(FloatPredicate::OLT, lhs, rhs, "tmplt"));
+                        }
                     }
-                }
 
-                panic!("Invalid operation supplied")
-            }
-            BinOp::And => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        codegen.builder.build_and(lhs, rhs, "tmpand");
+                    panic!("Invalid operation supplied")
+                }
+                BinOp::LessThanOrEqual => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_int_compare(IntPredicate::SLE, lhs, rhs, "tmple"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OLE,
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmple",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OLE,
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmple",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_float_compare(FloatPredicate::OLE, lhs, rhs, "tmple"));
+                        }
                     }
-                }
 
-                panic!("Invalid operation supplied")
+                    panic!("Invalid operation supplied")
+                }
+                BinOp::GreaterThan => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_int_compare(IntPredicate::SGT, lhs, rhs, "tmpgt"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OGT,
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmpgt",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OGT,
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmpgt",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_float_compare(FloatPredicate::OGT, lhs, rhs, "tmpgt"));
+                        }
+                    }
+
+                    panic!("Invalid operation supplied")
+                }
+                BinOp::GreaterThanOrEqual => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_int_compare(IntPredicate::SGE, lhs, rhs, "tmpge"));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OGE,
+                                lhs.const_signed_to_float(float_type),
+                                rhs,
+                                "tmpge",
+                            ));
+                        }
+                    } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            let float_type = codegen.context.f64_type();
+                            return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                                FloatPredicate::OGE,
+                                lhs,
+                                rhs.const_signed_to_float(float_type),
+                                "tmpge",
+                            ));
+                        } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen
+                                .builder
+                                .build_float_compare(FloatPredicate::OGE, lhs, rhs, "tmpge"));
+                        }
+                    }
+
+                    panic!("Invalid operation supplied")
+                }
+                BinOp::Or => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen.builder.build_or(lhs, rhs, "tmpor"));
+                        }
+                    }
+
+                    panic!("Invalid operation supplied")
+                }
+                BinOp::And => {
+                    if let BasicValueEnum::IntValue(lhs) = lhs {
+                        if let BasicValueEnum::IntValue(rhs) = rhs {
+                            return BasicValueEnum::IntValue(codegen.builder.build_and(lhs, rhs, "tmpand"));
+                        }
+                    }
+
+                    panic!("Invalid operation supplied")
+                }
             }
         }
     }
@@ -472,18 +475,19 @@ impl<'a> LLVMAttemptExpression<'a> {
     }
 }
 
-struct LLVMSelfExpression<'a> {
-    #[allow(dead_code)]
-    token: &'a String,
-}
+struct LLVMSelfExpression {}
 
-impl<'a> LLVMSelfExpression<'a> {
+impl<'a> LLVMSelfExpression {
     pub fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
-        unimplemented!();
+        LLVMIdentifier{ identifier: &Identifier::generated(self.name())}.generate(codegen, function_context)
+    }
+
+    fn name(&self) -> &'static str {
+        "this"
     }
 }
 
