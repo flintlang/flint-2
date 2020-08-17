@@ -162,6 +162,7 @@ fn generate_llvm(contract: &LLVMContract) -> String {
     fpm.initialize();
 
     let mut codegen = Codegen {
+        contract_name: contract.contract_declaration.identifier.token.as_str(),
         context: &llvm_context,
         module: &llvm_module,
         builder: &builder,

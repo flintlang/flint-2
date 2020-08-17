@@ -10,7 +10,7 @@ Counter :: (any) {
     }
 
     public func increment() mutates (value) {
-        value += 1 
+        value += 1
     }
 
     public func decrement() mutates (value) {

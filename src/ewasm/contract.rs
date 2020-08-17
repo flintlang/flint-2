@@ -82,18 +82,16 @@ impl<'a> LLVMContract<'a> {
         generate_initialiser(initialiser, codegen);
 
         // add global var declaration of struct
-        codegen.module.add_global(
-            struct_type,
-            None,
-            self.contract_declaration.identifier.token.as_str(),
-        );
+        codegen
+            .module
+            .add_global(struct_type, None, codegen.contract_name);
 
         // Set up struct definitions here
         self.struct_declarations.iter().for_each(|dec| {
             LLVMStruct {
                 struct_declaration: dec,
             }
-            .generate(codegen)
+                .generate(codegen)
         });
 
         // Generate all contract functions
