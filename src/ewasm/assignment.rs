@@ -23,7 +23,7 @@ impl<'a> LLVMAssignment<'a> {
             }
             .generate(codegen, function_context);
 
-            function_context.add_local(&identifier, rhs);
+            function_context.add_local(&identifier, id.enclosing_type.clone(), rhs);
             unimplemented!()
         }
 

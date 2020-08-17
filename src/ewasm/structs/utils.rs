@@ -33,11 +33,17 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen)
         param.set_name(param_names[i]);
     }
 
+    let enclosing_types = initialiser
+        .head
+        .parameters
+        .iter()
+        .map(|param| param.identifier.enclosing_type.clone());
+
     let params = param_names
         .iter()
         .map(|name| name.to_string())
-        .zip(init_func.get_params().into_iter())
-        .collect::<HashMap<String, BasicValueEnum>>();
+        .zip(enclosing_types.zip(init_func.get_params().into_iter()))
+        .collect::<HashMap<String, (Option<String>, BasicValueEnum)>>();
 
     let mut function_context = FunctionContext::new(init_func, params);
     let block = codegen.context.append_basic_block(init_func, "entry");

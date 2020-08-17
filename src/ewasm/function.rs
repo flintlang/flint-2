@@ -49,9 +49,8 @@ impl<'a> LLVMFunction<'a> {
             .function_declaration
             .head
             .parameters
-            .clone()
-            .into_iter()
-            .map(|param| param.identifier.token)
+            .iter()
+            .map(|param| param.identifier.token.clone())
             .collect();
 
         let func_type = if let Some(result_type) = self.function_declaration.get_result_type() {
@@ -82,11 +81,18 @@ impl<'a> LLVMFunction<'a> {
             .map(|p_name| p_name.as_str())
             .collect();
 
+        let enclosing_types = self
+            .function_declaration
+            .head
+            .parameters
+            .iter()
+            .map(|param| param.identifier.enclosing_type.clone());
+
         let local_parameters = parameter_names
             .iter()
             .map(|name| name.to_string())
-            .zip(func_val.get_params().into_iter().map(|param| param))
-            .collect::<HashMap<String, BasicValueEnum>>();
+            .zip(enclosing_types.zip(func_val.get_params().into_iter().map(|param| param)))
+            .collect::<HashMap<String, (Option<String>, BasicValueEnum)>>();
 
         let mut function_context = FunctionContext::new(func_val, local_parameters);
 
