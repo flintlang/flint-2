@@ -19,7 +19,7 @@ impl<'a> LLVMExternalCall<'a> {
 
 pub struct LLVMFunctionCall<'a> {
     pub function_call: &'a FunctionCall,
-    pub module_name: &'a String,
+    pub module_name: &'a str,
 }
 
 impl<'a> LLVMFunctionCall<'a> {

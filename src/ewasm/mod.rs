@@ -11,6 +11,7 @@ mod statements;
 mod structs;
 mod types;
 mod literal;
+mod assignment;
 
 extern crate inkwell;
 

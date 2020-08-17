@@ -10,6 +10,7 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMVariableDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::literal::LLVMLiteral;
+use crate::ewasm::assignment::LLVMAssignment;
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
@@ -67,10 +68,7 @@ impl<'a> LLVMExpression<'a> {
                 unimplemented!();
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
-            Expression::SelfExpression => LLVMSelfExpression {
-                token: &Identifier::SELF.to_string(),
-            }
-            .generate(codegen, function_context),
+            Expression::SelfExpression => LLVMSelfExpression {}.generate(codegen, function_context),
             Expression::SubscriptExpression(s) => LLVMSubscriptExpression {
                 expression: s,
                 rhs: None,
@@ -94,8 +92,8 @@ struct LLVMIdentifier<'a> {
 impl<'a> LLVMIdentifier<'a> {
     fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
         unimplemented!();
     }
@@ -112,9 +110,23 @@ impl<'a> LLVMBinaryExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext,
     ) -> BasicValueEnum<'ctx> {
-        if self.expression.op == BinOp::Equal {
-            // assignment
-            unimplemented!()            
+        if let BinOp::Dot = self.expression.op {
+            if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
+                LLVMFunctionCall {
+                    function_call: f,
+                    module_name: "Self",
+                }
+                .generate(codegen, function_context)
+            } else {
+                // design LLVM function to point into structs
+                unimplemented!()
+            }
+        } else if let BinOp::Equal = self.expression.op {
+            LLVMAssignment {
+                lhs: &*self.expression.lhs_expression,
+                rhs: &*self.expression.rhs_expression
+            }
+            .generate(codegen, function_context)                               
         } else {
             let lhs = LLVMExpression { expression: &*self.expression.lhs_expression }.generate(codegen, function_context);
             let rhs = LLVMExpression { expression: &*self.expression.rhs_expression }.generate(codegen, function_context);
@@ -440,18 +452,19 @@ impl<'a> LLVMAttemptExpression<'a> {
     }
 }
 
-struct LLVMSelfExpression<'a> {
-    #[allow(dead_code)]
-    token: &'a String,
-}
+struct LLVMSelfExpression {}
 
-impl<'a> LLVMSelfExpression<'a> {
+impl<'a> LLVMSelfExpression {
     pub fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
-        unimplemented!();
+        LLVMIdentifier{ identifier: &Identifier::generated(self.name())}.generate(codegen, function_context)
+    }
+
+    fn name(&self) -> &'static str {
+        "this"
     }
 }
 
