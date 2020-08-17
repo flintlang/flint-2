@@ -24,7 +24,7 @@ impl<'a> LLVMAssignment<'a> {
             .generate(codegen, function_context);
 
             function_context.add_local(&identifier, rhs);
-            unimplemented!()
+            return rhs;
         }
 
         panic!("Invalid assignment")

@@ -1,7 +1,10 @@
 use crate::ast::VariableDeclaration;
 use crate::ewasm::codegen::Codegen;
+use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
+use crate::ewasm::inkwell::types::BasicTypeEnum::*;
 use crate::ewasm::inkwell::values::BasicValueEnum;
+use crate::ewasm::types::LLVMType;
 
 pub struct LLVMVariableDeclaration<'a> {
     pub declaration: &'a VariableDeclaration,
@@ -10,9 +13,32 @@ pub struct LLVMVariableDeclaration<'a> {
 impl<'a> LLVMVariableDeclaration<'a> {
     pub fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        unimplemented!("Need to decide if we want these generated in a struct or not")
+        let identifier = &self.declaration.identifier;
+        let expression: BasicValueEnum;
+
+        if let Some(expr) = &self.declaration.expression {
+            expression = LLVMExpression { expression: expr }.generate(codegen, function_context);
+        } else {
+            // creates dummy value for variable assignment to be overwritten
+            let variable_type = LLVMType {
+                ast_type: &self.declaration.variable_type,
+            }
+            .generate(codegen);
+
+            expression = match variable_type {
+                ArrayType(a) => BasicValueEnum::ArrayValue(a.const_zero()),
+                FloatType(f) => BasicValueEnum::FloatValue(f.const_zero()),
+                IntType(i) => BasicValueEnum::IntValue(i.const_zero()),
+                PointerType(p) => BasicValueEnum::PointerValue(p.const_null()),
+                StructType(s) => BasicValueEnum::StructValue(s.const_zero()),
+                VectorType(v) => BasicValueEnum::VectorValue(v.const_zero()),
+            }
+        }
+
+        function_context.add_local(&identifier.token, expression);
+        return expression;
     }
 }
