@@ -15,13 +15,12 @@ impl<'a> LLVMFunction<'a> {
     pub fn generate(&self, codegen: &Codegen) {
         // TODO: declare function context and scope context?
         // TODO: how do we treat modifiers?
-        let _modifiers: Vec<Modifier> = self
+        let _modifiers: Vec<&Modifier> = self
             .function_declaration
             .head
             .modifiers
-            .clone()
-            .into_iter()
-            .filter(|s| s == &Modifier::Public)
+            .iter()
+            .filter(|s| s == &&Modifier::Public)
             .collect();
 
         let function_name = &self.function_declaration.head.identifier.token;
@@ -35,8 +34,7 @@ impl<'a> LLVMFunction<'a> {
             .function_declaration
             .head
             .parameters
-            .clone()
-            .into_iter()
+            .iter()
             .map(|param| {
                 LLVMType {
                     ast_type: &param.type_assignment,

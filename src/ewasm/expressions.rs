@@ -95,14 +95,9 @@ impl<'a> LLVMIdentifier<'a> {
         _codegen: &Codegen<'_, 'ctx>,
         function_context: &FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        if let Some((_, var)) = function_context.get_declaration(&self.identifier.token) {
-            return *var;
-        }
-
-        panic!(format!(
-            "Variable {} has not been assigned to",
-            self.identifier.token
-        ))
+        function_context
+            .get_declaration(self.identifier.token.as_str())
+            .1
     }
 }
 
@@ -619,9 +614,8 @@ impl<'a> LLVMStructAccess<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let (struct_type_name, the_struct) = function_context
-            .get_declaration(self.struct_name)
-            .expect("Accessing undeclared struct");
+        let (struct_type_name, the_struct) = function_context.get_declaration(self.struct_name);
+
         let the_struct = the_struct.into_pointer_value();
         codegen
             .build_struct_member_getter(

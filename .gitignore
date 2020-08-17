@@ -8,3 +8,4 @@ flint_config.json
 # Created by Cargo #
 target/
 output/
+tmp/

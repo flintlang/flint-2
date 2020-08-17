@@ -28,6 +28,6 @@ impl<'a> LLVMFunctionCall<'a> {
         _codegen: &Codegen<'_, 'ctx>,
         _function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
-        unimplemented!();
+        unimplemented!()
     }
 }

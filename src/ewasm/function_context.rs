@@ -2,10 +2,16 @@ use super::inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::HashMap;
 
 #[derive(Debug)]
+struct VariableInfo<'a> {
+    type_name: Option<String>,
+    value: BasicValueEnum<'a>,
+}
+
+#[derive(Debug)]
 pub struct FunctionContext<'a> {
     this_func: FunctionValue<'a>,
-    parameters: HashMap<String, (Option<String>, BasicValueEnum<'a>)>,
-    locals: HashMap<String, (Option<String>, BasicValueEnum<'a>)>,
+    parameters: HashMap<String, VariableInfo<'a>>,
+    locals: HashMap<String, VariableInfo<'a>>,
 }
 
 #[allow(dead_code)]
@@ -14,6 +20,11 @@ impl<'a> FunctionContext<'a> {
         func: FunctionValue<'a>,
         params: HashMap<String, (Option<String>, BasicValueEnum<'a>)>,
     ) -> Self {
+        let params = params
+            .into_iter()
+            .map(|(key, (type_name, value))| (key, VariableInfo { type_name, value }))
+            .collect::<HashMap<String, VariableInfo>>();
+
         FunctionContext {
             this_func: func,
             parameters: params,
@@ -25,14 +36,29 @@ impl<'a> FunctionContext<'a> {
         self.this_func
     }
 
-    pub fn add_local(&mut self, name: &str, type_name: Option<String>, val: BasicValueEnum<'a>) {
+    pub fn add_local(&mut self, name: &str, type_name: Option<String>, value: BasicValueEnum<'a>) {
         // PRE added local should not already be a parameter
-        self.locals.insert(name.to_string(), (type_name, val));
+        self.locals
+            .insert(name.to_string(), VariableInfo { type_name, value });
     }
 
-    pub fn get_declaration(&self, name: &str) -> Option<&(Option<String>, BasicValueEnum<'a>)> {
-        self.parameters
+    pub fn get_declaration(&self, name: &str) -> (&Option<String>, BasicValueEnum<'a>) {
+        let VariableInfo { type_name, value } = self
+            .parameters
             .get(name)
             .or_else(|| self.locals.get(name).or(None))
+            .unwrap();
+
+        (type_name, *value)
+    }
+
+    pub fn update_declaration(&mut self, name: &str, val: BasicValueEnum<'a>) {
+        // PRE local should already exist
+        if self.parameters.contains_key(name) {
+            self.parameters.get_mut(name).unwrap().value = val;
+        } else {
+            assert!(self.locals.contains_key(name));
+            self.locals.get_mut(name).unwrap().value = val;
+        }
     }
 }

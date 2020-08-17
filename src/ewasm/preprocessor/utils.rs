@@ -111,8 +111,9 @@ pub fn generate_contract_wrapper(
     wrapper
 }
 
-pub fn mangle_ewasm_function(_function_name: &str) -> String {
-    unimplemented!();
+pub fn mangle_ewasm_function(function_name: &str) -> String {
+    // TODO implement properly
+    function_name.to_string()
 }
 
 pub fn construct_parameter(name: String, t: Type) -> Parameter {

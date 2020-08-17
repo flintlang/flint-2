@@ -54,6 +54,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         if func.verify(false) {
             self.fpm.run_on(func);
         } else {
+            self.module.print_to_stderr();
             panic!(
                 "Invalid function `{}`",
                 func.get_name()
@@ -63,16 +64,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
     }
 
-    #[allow(dead_code)]
     pub fn build_struct_member_getter(
         &self,
-        struct_name: &str,
+        struct_type_name: &str,
         field_name: &str,
         the_struct: PointerValue<'ctx>,
         name_to_assign: &str,
     ) -> PointerValue<'ctx> {
         // PRE: the struct has been defined, and the_struct is a pointer to an instance of it
-        let (field_names, _) = self.types.get(struct_name).unwrap();
+        let (field_names, _) = self.types.get(struct_type_name).unwrap();
         self.builder
             .build_struct_gep(
                 the_struct,

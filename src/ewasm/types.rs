@@ -19,7 +19,9 @@ impl<'a> LLVMType<'a> {
             Type::RangeType(_) => unimplemented!(),
             Type::FixedSizedArrayType(fixed_arr_type) => self.llvm_array(fixed_arr_type, codegen),
             Type::DictionaryType(_) => unimplemented!(),
-            Type::UserDefinedType(_) => unimplemented!(), // TODO need to create an llvm type, but for this we need more detail than just the identifier
+            Type::UserDefinedType(definition) => {
+                self.extract_defined_type(definition.token.as_str(), codegen)
+            } // TODO need to create an llvm type, but for this we need more detail than just the identifier
             Type::Solidity(_) => unimplemented!(),
             Type::SelfType => unimplemented!(), // TODO this depends on how we represent contract data
             Type::Bool => context.bool_type().as_basic_type_enum(),
@@ -52,8 +54,17 @@ impl<'a> LLVMType<'a> {
         let elem_type = LLVMType {
             ast_type: fixed_arr_type.key_type.as_ref(),
         }
-        .generate(codegen);
+            .generate(codegen);
         //let elem_type = to_llvm_type(fixed_arr_type.key_type.as_ref(), context);
         BasicTypeEnum::ArrayType(elem_type.array_type(fixed_arr_type.size as u32))
+    }
+
+    fn extract_defined_type<'ctx>(
+        &self,
+        type_name: &str,
+        codegen: &Codegen<'_, 'ctx>,
+    ) -> BasicTypeEnum<'ctx> {
+        let (_, struct_type) = codegen.types.get(type_name).expect("Type not declared");
+        struct_type.as_basic_type_enum()
     }
 }

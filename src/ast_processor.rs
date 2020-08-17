@@ -29,6 +29,8 @@ pub fn process_ast(mut module: Module, environment: Environment, target: Target)
             moveir::generate(module, context);
         }
         Ethereum => {
+            let ewasm_preprocessor = &mut ewasm::preprocessor::LLVMPreprocessor {};
+            module.visit(ewasm_preprocessor, context)?;
             ewasm::generate(&module, context);
         }
         _ => panic!("Target not currently supported"),

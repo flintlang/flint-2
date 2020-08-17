@@ -70,8 +70,6 @@ fn main() {
             program = program
         )
         */
-    } else {
-        panic!("Target not currently supported");
     }
 
     let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
