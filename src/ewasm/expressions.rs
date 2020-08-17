@@ -1,7 +1,7 @@
 use super::inkwell::values::{BasicValue, BasicValueEnum};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
-    AttemptExpression, BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
+    BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
 use crate::ast::operators::BinOp;
 use crate::ast::{Expression, Identifier};
@@ -52,9 +52,7 @@ impl<'a> LLVMExpression<'a> {
                 expression: &*b.expression,
             }
             .generate(codegen, function_context),
-            Expression::AttemptExpression(a) => {
-                LLVMAttemptExpression { expression: a }.generate(codegen, function_context)
-            }
+            Expression::AttemptExpression(_) => panic!("Should be removed in the preprocessor"),
             Expression::Literal(l) => {
                 LLVMLiteral { literal: l }.generate(codegen, function_context)
             }
@@ -96,15 +94,16 @@ impl<'a> LLVMIdentifier<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        if let Some(enclosing_type) = &self.identifier.enclosing_type {
+        if let Some(_) = &self.identifier.enclosing_type {
             return LLVMStructAccess {
                 struct_name: "this",
-                field_name: &self.identifier.token
-            }.generate(codegen, function_context);
+                field_name: &self.identifier.token,
+            }
+            .generate(codegen, function_context);
         } else {
             function_context
-            .get_declaration(self.identifier.token.as_str())
-            .1
+                .get_declaration(self.identifier.token.as_str())
+                .1
         }
     }
 }
@@ -536,21 +535,6 @@ struct LLVMInoutExpression<'a> {
 }
 
 impl<'a> LLVMInoutExpression<'a> {
-    fn generate<'ctx>(
-        &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
-    ) -> BasicValueEnum<'ctx> {
-        unimplemented!();
-    }
-}
-
-struct LLVMAttemptExpression<'a> {
-    #[allow(dead_code)]
-    expression: &'a AttemptExpression,
-}
-
-impl<'a> LLVMAttemptExpression<'a> {
     fn generate<'ctx>(
         &self,
         _codegen: &Codegen<'_, 'ctx>,

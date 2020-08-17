@@ -20,7 +20,7 @@ impl<'a> LLVMAssignment<'a> {
             let rhs = LLVMExpression {
                 expression: self.rhs,
             }
-                .generate(codegen, function_context);
+            .generate(codegen, function_context);
 
             function_context.update_declaration(&identifier, rhs);
             // TODO index into the struct with the LLVMStructAccess generate, and then assign the correct

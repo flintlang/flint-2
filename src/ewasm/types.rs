@@ -54,7 +54,7 @@ impl<'a> LLVMType<'a> {
         let elem_type = LLVMType {
             ast_type: fixed_arr_type.key_type.as_ref(),
         }
-            .generate(codegen);
+        .generate(codegen);
         //let elem_type = to_llvm_type(fixed_arr_type.key_type.as_ref(), context);
         BasicTypeEnum::ArrayType(elem_type.array_type(fixed_arr_type.size as u32))
     }
