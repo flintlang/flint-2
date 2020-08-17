@@ -1,16 +1,19 @@
 use super::inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FunctionContext<'a> {
     this_func: FunctionValue<'a>,
-    parameters: HashMap<String, BasicValueEnum<'a>>,
-    locals: HashMap<String, BasicValueEnum<'a>>,
+    parameters: HashMap<String, (Option<String>, BasicValueEnum<'a>)>,
+    locals: HashMap<String, (Option<String>, BasicValueEnum<'a>)>,
 }
 
 #[allow(dead_code)]
 impl<'a> FunctionContext<'a> {
-    pub fn new(func: FunctionValue<'a>, params: HashMap<String, BasicValueEnum<'a>>) -> Self {
+    pub fn new(
+        func: FunctionValue<'a>,
+        params: HashMap<String, (Option<String>, BasicValueEnum<'a>)>,
+    ) -> Self {
         FunctionContext {
             this_func: func,
             parameters: params,
@@ -22,12 +25,12 @@ impl<'a> FunctionContext<'a> {
         self.this_func
     }
 
-    pub fn add_local(&mut self, name: &str, val: BasicValueEnum<'a>) {
+    pub fn add_local(&mut self, name: &str, type_name: Option<String>, val: BasicValueEnum<'a>) {
         // PRE added local should not already be a parameter
-        self.locals.insert(name.to_string(), val);
+        self.locals.insert(name.to_string(), (type_name, val));
     }
 
-    pub fn get_declaration(&self, name: &str) -> Option<&BasicValueEnum<'a>> {
+    pub fn get_declaration(&self, name: &str) -> Option<&(Option<String>, BasicValueEnum<'a>)> {
         self.parameters
             .get(name)
             .or_else(|| self.locals.get(name).or(None))

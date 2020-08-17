@@ -1,4 +1,4 @@
-use super::inkwell::values::BasicValueEnum;
+use super::inkwell::values::{BasicValue, BasicValueEnum};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
     AttemptExpression, BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
@@ -95,7 +95,7 @@ impl<'a> LLVMIdentifier<'a> {
         _codegen: &Codegen<'_, 'ctx>,
         function_context: &FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        if let Some(var) = function_context.get_declaration(&self.identifier.token) {
+        if let Some((_, var)) = function_context.get_declaration(&self.identifier.token) {
             return *var;
         }
 
@@ -129,37 +129,60 @@ impl<'a> LLVMBinaryExpression<'a> {
         match self.expression.op {
             BinOp::Dot => {
                 if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
-                    LLVMFunctionCall {
+                    return LLVMFunctionCall {
                         function_call: f,
                         module_name: "Self",
                     }
-                    .generate(codegen, function_context)
-                } else {
-                    // TODO do struct accesses
-                    unimplemented!()
+                    .generate(codegen, function_context);
+                } else if let Expression::Identifier(Identifier {
+                    token: struct_name, ..
+                }) = &*self.expression.lhs_expression
+                {
+                    if let Expression::Identifier(Identifier {
+                        token: field_name, ..
+                    }) = &*self.expression.rhs_expression
+                    {
+                        return LLVMStructAccess {
+                            struct_name,
+                            field_name,
+                        }
+                        .generate(codegen, function_context);
+                    }
                 }
+
+                panic!("Malformed property access");
             }
-            BinOp::Equal => {
-                LLVMAssignment {
-                    lhs: &*self.expression.lhs_expression,
-                    rhs: &*self.expression.rhs_expression
-                }
-                .generate(codegen, function_context)
+            BinOp::Equal => LLVMAssignment {
+                lhs: &*self.expression.lhs_expression,
+                rhs: &*self.expression.rhs_expression,
             }
+            .generate(codegen, function_context),
             BinOp::Plus | BinOp::OverflowingPlus => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen.builder.build_int_add(lhs, rhs, "tmpadd"));
+                        return BasicValueEnum::IntValue(
+                            codegen.builder.build_int_add(lhs, rhs, "tmpadd"),
+                        );
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
-                        return BasicValueEnum::FloatValue(codegen.builder.build_float_add(lhs.const_signed_to_float(float_type), rhs, "tmpadd"));
+                        return BasicValueEnum::FloatValue(codegen.builder.build_float_add(
+                            lhs.const_signed_to_float(float_type),
+                            rhs,
+                            "tmpadd",
+                        ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
-                        return BasicValueEnum::FloatValue(codegen.builder.build_float_add(lhs, rhs.const_signed_to_float(float_type), "tmpadd"));
+                        return BasicValueEnum::FloatValue(codegen.builder.build_float_add(
+                            lhs,
+                            rhs.const_signed_to_float(float_type),
+                            "tmpadd",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::FloatValue(codegen.builder.build_float_add(lhs, rhs, "tmpadd"));
+                        return BasicValueEnum::FloatValue(
+                            codegen.builder.build_float_add(lhs, rhs, "tmpadd"),
+                        );
                     }
                 }
 
@@ -168,7 +191,9 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::OverflowingMinus | BinOp::Minus => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen.builder.build_int_sub(lhs, rhs, "tmpsub"));
+                        return BasicValueEnum::IntValue(
+                            codegen.builder.build_int_sub(lhs, rhs, "tmpsub"),
+                        );
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(
@@ -186,7 +211,9 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpsub",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(lhs, rhs, "tmpsub"));
+                        return BasicValueEnum::FloatValue(
+                            codegen.builder.build_float_sub(lhs, rhs, "tmpsub"),
+                        );
                     }
                 }
 
@@ -195,7 +222,9 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::OverflowingTimes | BinOp::Times => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen.builder.build_int_mul(lhs, rhs, "tmpmul"));
+                        return BasicValueEnum::IntValue(
+                            codegen.builder.build_int_mul(lhs, rhs, "tmpmul"),
+                        );
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(
@@ -213,7 +242,9 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpmul",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(lhs, rhs, "tmpmul"));
+                        return BasicValueEnum::FloatValue(
+                            codegen.builder.build_float_mul(lhs, rhs, "tmpmul"),
+                        );
                     }
                 }
 
@@ -223,7 +254,9 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::Divide => {
                 if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::FloatValue(codegen.builder.build_float_div(lhs, rhs, "tmpdiv"));
+                        return BasicValueEnum::FloatValue(
+                            codegen.builder.build_float_div(lhs, rhs, "tmpdiv"),
+                        );
                     }
                 }
 
@@ -237,9 +270,12 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::DoubleEqual => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpeq"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_int_compare(
+                            IntPredicate::EQ,
+                            lhs,
+                            rhs,
+                            "tmpeq",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
@@ -259,9 +295,12 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpeq",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OEQ, lhs, rhs, "tmpeq"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                            FloatPredicate::OEQ,
+                            lhs,
+                            rhs,
+                            "tmpeq",
+                        ));
                     }
                 }
 
@@ -270,9 +309,12 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::NotEqual => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_int_compare(IntPredicate::NE, lhs, rhs, "tmpne"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_int_compare(
+                            IntPredicate::NE,
+                            lhs,
+                            rhs,
+                            "tmpne",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
@@ -292,9 +334,12 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpne",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::ONE, lhs, rhs, "tmpne"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                            FloatPredicate::ONE,
+                            lhs,
+                            rhs,
+                            "tmpne",
+                        ));
                     }
                 }
 
@@ -303,9 +348,12 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::LessThan => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SLT, lhs, rhs, "tmplt"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_int_compare(
+                            IntPredicate::SLT,
+                            lhs,
+                            rhs,
+                            "tmplt",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
@@ -325,9 +373,12 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmplt",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OLT, lhs, rhs, "tmplt"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                            FloatPredicate::OLT,
+                            lhs,
+                            rhs,
+                            "tmplt",
+                        ));
                     }
                 }
 
@@ -336,9 +387,12 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::LessThanOrEqual => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SLE, lhs, rhs, "tmple"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_int_compare(
+                            IntPredicate::SLE,
+                            lhs,
+                            rhs,
+                            "tmple",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
@@ -358,9 +412,12 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmple",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OLE, lhs, rhs, "tmple"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                            FloatPredicate::OLE,
+                            lhs,
+                            rhs,
+                            "tmple",
+                        ));
                     }
                 }
 
@@ -369,9 +426,12 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::GreaterThan => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SGT, lhs, rhs, "tmpgt"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_int_compare(
+                            IntPredicate::SGT,
+                            lhs,
+                            rhs,
+                            "tmpgt",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
@@ -391,9 +451,12 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpgt",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OGT, lhs, rhs, "tmpgt"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                            FloatPredicate::OGT,
+                            lhs,
+                            rhs,
+                            "tmpgt",
+                        ));
                     }
                 }
 
@@ -402,9 +465,12 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::GreaterThanOrEqual => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_int_compare(IntPredicate::SGE, lhs, rhs, "tmpge"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_int_compare(
+                            IntPredicate::SGE,
+                            lhs,
+                            rhs,
+                            "tmpge",
+                        ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         let float_type = codegen.context.f64_type();
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
@@ -424,9 +490,12 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpge",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen
-                            .builder
-                            .build_float_compare(FloatPredicate::OGE, lhs, rhs, "tmpge"));
+                        return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
+                            FloatPredicate::OGE,
+                            lhs,
+                            rhs,
+                            "tmpge",
+                        ));
                     }
                 }
 
@@ -435,7 +504,9 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::Or => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen.builder.build_or(lhs, rhs, "tmpor"));
+                        return BasicValueEnum::IntValue(
+                            codegen.builder.build_or(lhs, rhs, "tmpor"),
+                        );
                     }
                 }
 
@@ -444,7 +515,9 @@ impl<'a> LLVMBinaryExpression<'a> {
             BinOp::And => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        return BasicValueEnum::IntValue(codegen.builder.build_and(lhs, rhs, "tmpand"));
+                        return BasicValueEnum::IntValue(
+                            codegen.builder.build_and(lhs, rhs, "tmpand"),
+                        );
                     }
                 }
 
@@ -532,5 +605,31 @@ impl<'a> LLVMCastExpression<'a> {
         _function_context: &FunctionContext,
     ) -> BasicValueEnum<'ctx> {
         unimplemented!();
+    }
+}
+
+struct LLVMStructAccess<'a> {
+    struct_name: &'a str,
+    field_name: &'a str,
+}
+
+impl<'a> LLVMStructAccess<'a> {
+    fn generate<'ctx>(
+        &self,
+        codegen: &Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
+    ) -> BasicValueEnum<'ctx> {
+        let (struct_type_name, the_struct) = function_context
+            .get_declaration(self.struct_name)
+            .expect("Accessing undeclared struct");
+        let the_struct = the_struct.into_pointer_value();
+        codegen
+            .build_struct_member_getter(
+                struct_type_name.as_ref().unwrap(),
+                self.field_name,
+                the_struct,
+                "tmp",
+            )
+            .as_basic_value_enum()
     }
 }

@@ -5,7 +5,6 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::values::BasicValueEnum;
 
 pub struct LLVMAssignment<'a> {
-    #[allow(dead_code)]
     pub lhs: &'a Expression,
     pub rhs: &'a Expression,
 }
@@ -23,7 +22,7 @@ impl<'a> LLVMAssignment<'a> {
             }
             .generate(codegen, function_context);
 
-            function_context.add_local(&identifier, rhs);
+            function_context.add_local(&identifier, id.enclosing_type.clone(), rhs);
             return rhs;
         }
 

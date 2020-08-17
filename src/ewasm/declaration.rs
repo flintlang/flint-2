@@ -38,7 +38,7 @@ impl<'a> LLVMVariableDeclaration<'a> {
             }
         }
 
-        function_context.add_local(&identifier.token, expression);
+        function_context.add_local(&identifier.token, None, expression);
         return expression;
     }
 }
