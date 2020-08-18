@@ -94,7 +94,7 @@ impl<'a> LLVMIdentifier<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        // Move add this check to the preprocessor
+        // TODO: Move add this check to the preprocessor
         if self.identifier.enclosing_type.is_some() {
             let pointer_to_value = LLVMStructAccess {
                 expr: &Expression::BinaryExpression(BinaryExpression {
@@ -105,34 +105,25 @@ impl<'a> LLVMIdentifier<'a> {
                 }),
             }
                 .generate(codegen, function_context);
+
             if function_context.assigning {
                 pointer_to_value.as_basic_value_enum()
             } else {
                 codegen.builder.build_load(pointer_to_value, "val")
             }
         } else if self.identifier.token.as_str().eq(codegen.contract_name) {
-            let contract_var = codegen
+            codegen
                 .module
                 .get_global(codegen.contract_name)
                 .unwrap()
-                .as_pointer_value();
-            if function_context.assigning {
-                contract_var.as_basic_value_enum()
-            } else {
-                codegen.builder.build_load(contract_var, "contract")
-            }
+                .as_pointer_value()
+                .as_basic_value_enum()
         } else {
             let variable = function_context
                 .get_declaration(self.identifier.token.as_str())
                 .unwrap();
 
-            if function_context.assigning {
-                let var_ptr = codegen.builder.build_alloca(variable.get_type(), "tmp");
-                codegen.builder.build_store(var_ptr, *variable);
-                var_ptr.as_basic_value_enum()
-            } else {
-                *variable
-            }
+            *variable
         }
     }
 }
@@ -147,6 +138,16 @@ impl<'a> LLVMBinaryExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
+        if matches!(self.expression.op, BinOp::Dot) {
+            if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
+                return LLVMFunctionCall {
+                    function_call: f,
+                    module_name: "Self",
+                }
+                    .generate(codegen, function_context);
+            }
+        }
+
         let lhs = LLVMExpression {
             expression: &*self.expression.lhs_expression,
         }
@@ -157,36 +158,7 @@ impl<'a> LLVMBinaryExpression<'a> {
         .generate(codegen, function_context);
 
         match self.expression.op {
-            BinOp::Dot => {
-                if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
-                    return LLVMFunctionCall {
-                        function_call: f,
-                        module_name: "Self",
-                    }
-                        .generate(codegen, function_context);
-                }
-
-                // TODO lhs should always be a pointer if it is not a function call
-                // Do a fold of pointer accesses?
-
-                // else if let Expression::Identifier(Identifier {
-                //     token: struct_name, ..
-                // }) = &*self.expression.lhs_expression
-                // {
-                //     if let Expression::Identifier(Identifier {
-                //         token: field_name, ..
-                //     }) = &*self.expression.rhs_expression
-                //     {
-                //         return LLVMStructAccess {
-                //             struct_name,
-                //             field_name,
-                //         }
-                //             .generate(codegen, function_context)
-                //             .as_basic_value_enum();
-                //     }
-                // }
-                panic!("Malformed property access")
-            }
+            BinOp::Dot => panic!("Expression should already be evaluated"),
             BinOp::Equal => LLVMAssignment {
                 lhs: &*self.expression.lhs_expression,
                 rhs: &*self.expression.rhs_expression,
@@ -576,7 +548,11 @@ impl<'a> LLVMInoutExpression<'a> {
             expression: &self.expression.expression,
         }
             .generate(codegen, function_context);
-        // FIX: into_pointer_value() is wrong
+
+        if expr.is_pointer_value() && expr.into_pointer_value().get_name().to_str().expect("cannot convert cstr to str").eq(codegen.contract_name) {
+            return expr;
+        }
+        
         let ptr = codegen.builder.build_alloca(expr.get_type(), "tmpptr");
         codegen.builder.build_store(ptr, expr);
 

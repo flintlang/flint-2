@@ -8,7 +8,7 @@ use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::Type;
-use crate::ast::{Assertion, InoutExpression, InoutType};
+use crate::ast::{Assertion, InoutType};
 use crate::context::Context;
 use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 
@@ -56,14 +56,13 @@ pub fn generate_contract_wrapper(
         line_info: Default::default(),
     };
 
-    function.head.parameters.push(contract_parameter);
-
     let mut arguments = vec![FunctionArgument {
         identifier: None,
-        expression: Expression::InoutExpression(InoutExpression {
+        expression: Expression::Identifier(Identifier::generated(contract_name))
+        /*expression: Expression::InoutExpression(InoutExpression {
             ampersand_token: "&".to_string(),
             expression: Box::new(Expression::Identifier(Identifier::generated(contract_name))),
-        }),
+        }),*/
     }];
 
     arguments.extend(
@@ -78,6 +77,8 @@ pub fn generate_contract_wrapper(
             })
             .collect::<Vec<FunctionArgument>>(),
     );
+
+    function.head.parameters.push(contract_parameter);
 
     let name = function.mangled_identifier.clone();
     let function_call = Expression::FunctionCall(FunctionCall {
