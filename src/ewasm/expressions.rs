@@ -138,32 +138,39 @@ impl<'a> LLVMBinaryExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        if matches!(self.expression.op, BinOp::Dot) {
-            if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
-                return LLVMFunctionCall {
-                    function_call: f,
-                    module_name: "Self",
+        match &self.expression.op {
+            BinOp::Dot => {
+                if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
+                    return LLVMFunctionCall {
+                        function_call: f,
+                        module_name: "Self",
+                    }
+                        .generate(codegen, function_context);
+                }
+                // TODO other cases
+            }
+            BinOp::Equal => {
+                return LLVMAssignment {
+                    lhs: &*self.expression.lhs_expression,
+                    rhs: &*self.expression.rhs_expression,
                 }
                     .generate(codegen, function_context);
             }
+            _ => (),
         }
 
         let lhs = LLVMExpression {
             expression: &*self.expression.lhs_expression,
         }
-        .generate(codegen, function_context);
+            .generate(codegen, function_context);
         let rhs = LLVMExpression {
             expression: &*self.expression.rhs_expression,
         }
-        .generate(codegen, function_context);
+            .generate(codegen, function_context);
 
         match self.expression.op {
             BinOp::Dot => panic!("Expression should already be evaluated"),
-            BinOp::Equal => LLVMAssignment {
-                lhs: &*self.expression.lhs_expression,
-                rhs: &*self.expression.rhs_expression,
-            }
-            .generate(codegen, function_context),
+            BinOp::Equal => panic!("Expression should already be evaluated"),
             BinOp::Plus | BinOp::OverflowingPlus => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
@@ -549,10 +556,17 @@ impl<'a> LLVMInoutExpression<'a> {
         }
             .generate(codegen, function_context);
 
-        if expr.is_pointer_value() && expr.into_pointer_value().get_name().to_str().expect("cannot convert cstr to str").eq(codegen.contract_name) {
+        if expr.is_pointer_value()
+            && expr
+            .into_pointer_value()
+            .get_name()
+            .to_str()
+            .expect("cannot convert cstr to str")
+            .eq(codegen.contract_name)
+        {
             return expr;
         }
-        
+
         let ptr = codegen.builder.build_alloca(expr.get_type(), "tmpptr");
         codegen.builder.build_store(ptr, expr);
 
@@ -654,7 +668,6 @@ impl<'a> LLVMStructAccess<'a> {
         ptr: PointerValue<'ctx>,
         rhs_name: &str,
     ) -> PointerValue<'ctx> {
-        codegen.module.print_to_stderr();
         let struct_type_name =
             self.get_name_from_struct_type(ptr.get_type().get_element_type().into_struct_type());
         let (field_names, _) = codegen.types.get(struct_type_name.as_str()).unwrap();

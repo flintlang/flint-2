@@ -1,9 +1,7 @@
 use crate::ast::calls::FunctionArgument;
 use crate::ast::calls::FunctionCall;
 use crate::ast::declarations::Parameter;
-use crate::ast::declarations::{
-    ContractBehaviourDeclaration, FunctionDeclaration,
-};
+use crate::ast::declarations::{ContractBehaviourDeclaration, FunctionDeclaration};
 use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
@@ -58,11 +56,7 @@ pub fn generate_contract_wrapper(
 
     let mut arguments = vec![FunctionArgument {
         identifier: None,
-        expression: Expression::Identifier(Identifier::generated(contract_name))
-        /*expression: Expression::InoutExpression(InoutExpression {
-            ampersand_token: "&".to_string(),
-            expression: Box::new(Expression::Identifier(Identifier::generated(contract_name))),
-        }),*/
+        expression: Expression::Identifier(Identifier::generated(contract_name)),
     }];
 
     arguments.extend(
