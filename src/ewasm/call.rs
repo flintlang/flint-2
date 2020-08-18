@@ -45,6 +45,7 @@ impl<'a> LLVMFunctionCall<'a> {
             .collect();
 
         if let Some(fn_value) = codegen.module.get_function(fn_name) {
+            // TODO: if the function returns void then we shouldn't return a BasicValueEnum
             match codegen
                 .builder
                 .build_call(fn_value, &arguments, fn_name)
@@ -52,7 +53,7 @@ impl<'a> LLVMFunctionCall<'a> {
                 .left()
             {
                 Some(val) => return val,
-                None => panic!("Invalid function call"),
+                None => return BasicValueEnum::IntValue(codegen.context.i8_type().const_zero()),
             }
         }
 
