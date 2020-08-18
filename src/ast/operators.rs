@@ -1,6 +1,6 @@
 use crate::ast::Type;
-use std::fmt::{Display, Result};
 use nom::lib::std::fmt::Formatter;
+use std::fmt::{Display, Result};
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
@@ -34,31 +34,35 @@ use self::BinOp::*;
 
 impl Display for BinOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", match self {
-            Plus => "+",
-            OverflowingPlus => "&+",
-            Minus => "-",
-            OverflowingMinus => "&-",
-            Times => "*",
-            OverflowingTimes => "&*",
-            Power => "^",
-            Divide => "/",
-            Percent =>"%",
-            Dot => ".",
-            Equal => "=",
-            PlusEqual => "+=",
-            MinusEqual => "-=",
-            TimesEqual => "*=",
-            DivideEqual => "/=",
-            DoubleEqual => "==",
-            NotEqual => "!=",
-            LessThan => "<",
-            LessThanOrEqual => "<=",
-            GreaterThan => ">",
-            GreaterThanOrEqual => ">=",
-            Or => "||",
-            And => "&&",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Plus => "+",
+                OverflowingPlus => "&+",
+                Minus => "-",
+                OverflowingMinus => "&-",
+                Times => "*",
+                OverflowingTimes => "&*",
+                Power => "^",
+                Divide => "/",
+                Percent => "%",
+                Dot => ".",
+                Equal => "=",
+                PlusEqual => "+=",
+                MinusEqual => "-=",
+                TimesEqual => "*=",
+                DivideEqual => "/=",
+                DoubleEqual => "==",
+                NotEqual => "!=",
+                LessThan => "<",
+                LessThanOrEqual => "<=",
+                GreaterThan => ">",
+                GreaterThanOrEqual => ">=",
+                Or => "||",
+                And => "&&",
+            }
+        )
     }
 }
 
@@ -115,16 +119,25 @@ impl BinOp {
     pub fn accepts(&self, left: &Type, right: &Type) -> bool {
         match self {
             BinOp::Dot => !matches!(*left, Type::Int | Type::Bool | Type::Address),
-            BinOp::PlusEqual | BinOp::Plus | BinOp::OverflowingPlus |
-                BinOp::Minus | BinOp::MinusEqual | BinOp::OverflowingMinus |
-                BinOp::Times | BinOp::TimesEqual | BinOp::OverflowingTimes |
-                BinOp::Divide | BinOp::DivideEqual |
-                BinOp::Power | BinOp::Percent |
-                BinOp::GreaterThan | BinOp::LessThan |
-                BinOp::GreaterThanOrEqual | BinOp::LessThanOrEqual =>
-                    *left == Type::Int && *right == Type::Int,
+            BinOp::PlusEqual
+            | BinOp::Plus
+            | BinOp::OverflowingPlus
+            | BinOp::Minus
+            | BinOp::MinusEqual
+            | BinOp::OverflowingMinus
+            | BinOp::Times
+            | BinOp::TimesEqual
+            | BinOp::OverflowingTimes
+            | BinOp::Divide
+            | BinOp::DivideEqual
+            | BinOp::Power
+            | BinOp::Percent
+            | BinOp::GreaterThan
+            | BinOp::LessThan
+            | BinOp::GreaterThanOrEqual
+            | BinOp::LessThanOrEqual => *left == Type::Int && *right == Type::Int,
             BinOp::And | BinOp::Or => *left == Type::Bool && *right == Type::Bool,
-            _ => *left == *right
+            _ => *left == *right,
         }
     }
 }

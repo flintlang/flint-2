@@ -86,8 +86,8 @@ impl<'a> LLVMFunction<'a> {
             .iter()
             .map(|param| {
                 if let Type::UserDefinedType(Identifier {
-                                                 token: type_name, ..
-                                             }) = &param.type_assignment
+                    token: type_name, ..
+                }) = &param.type_assignment
                 {
                     Some(type_name.to_string())
                 } else {

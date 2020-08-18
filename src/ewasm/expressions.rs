@@ -1,6 +1,6 @@
-use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue, InstructionOpcode};
-use super::inkwell::{FloatPredicate, IntPredicate};
 use super::inkwell::types::VectorType;
+use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode, PointerValue};
+use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
@@ -100,7 +100,7 @@ impl<'a> LLVMIdentifier<'a> {
                 struct_name: "this",
                 field_name: &self.identifier.token,
             }
-                .generate(codegen, function_context);
+            .generate(codegen, function_context);
             if function_context.assigning {
                 pointer_to_value.as_basic_value_enum()
             } else {
@@ -173,8 +173,8 @@ impl<'a> LLVMBinaryExpression<'a> {
                             struct_name,
                             field_name,
                         }
-                            .generate(codegen, function_context)
-                            .as_basic_value_enum();
+                        .generate(codegen, function_context)
+                        .as_basic_value_enum();
                     }
                 }
 
@@ -565,7 +565,10 @@ impl<'a> LLVMInoutExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let expr = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
+        let expr = LLVMExpression {
+            expression: &self.expression.expression,
+        }
+        .generate(codegen, function_context);
         // FIX: into_pointer_value() is wrong
         let ptr = codegen.builder.build_alloca(expr.get_type(), "tmpptr");
         codegen.builder.build_store(ptr, expr);
@@ -621,11 +624,22 @@ impl<'a> LLVMCastExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let cast_from_val = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
-        let cast_to_type = LLVMType { ast_type: &self.expression.cast_type }.generate(codegen);
-        
+        let cast_from_val = LLVMExpression {
+            expression: &self.expression.expression,
+        }
+        .generate(codegen, function_context);
+        let cast_to_type = LLVMType {
+            ast_type: &self.expression.cast_type,
+        }
+        .generate(codegen);
+
         // TODO: which opcode should we pick here?
-        codegen.builder.build_cast(InstructionOpcode::Load, cast_from_val, cast_to_type, "tmpcast")
+        codegen.builder.build_cast(
+            InstructionOpcode::Load,
+            cast_from_val,
+            cast_to_type,
+            "tmpcast",
+        )
     }
 }
 

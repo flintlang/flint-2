@@ -62,11 +62,17 @@ impl Context {
     }
 
     pub fn type_states(&self) -> &[TypeState] {
-        self.contract_behaviour_declaration_context.as_ref().map(|c| &*c.type_states).unwrap_or(&[])
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &*c.type_states)
+            .unwrap_or(&[])
     }
 
     pub fn caller_protections(&self) -> &[CallerProtection] {
-        self.contract_behaviour_declaration_context.as_ref().map(|c| &*c.caller_protections).unwrap_or(&[])
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &*c.caller_protections)
+            .unwrap_or(&[])
     }
 }
 

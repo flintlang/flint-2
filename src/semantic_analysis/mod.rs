@@ -48,14 +48,19 @@ impl Visitor for SemanticAnalysis {
         declaration: &mut ContractBehaviourDeclaration,
         context: &mut Context,
     ) -> VResult {
-        if !context.environment.is_contract_declared(&declaration.identifier.token) {
+        if !context
+            .environment
+            .is_contract_declared(&declaration.identifier.token)
+        {
             return Err(Box::from(format!(
                 "Undeclared contract {}",
                 declaration.identifier.token
             )));
         }
 
-        let stateful = context.environment.is_contract_stateful(&declaration.identifier.token);
+        let stateful = context
+            .environment
+            .is_contract_stateful(&declaration.identifier.token);
         let states = declaration.type_states.clone();
         if !stateful && !states.is_empty() {
             return Err(Box::from(
@@ -100,7 +105,10 @@ impl Visitor for SemanticAnalysis {
             return Err(Box::from(format!("Conflicting Declarations for {}", i)));
         }
 
-        if context.environment.is_recursive_struct(&declaration.identifier.token) {
+        if context
+            .environment
+            .is_recursive_struct(&declaration.identifier.token)
+        {
             return Err(Box::from(format!(
                 "Recusive Struct Definition for {}",
                 declaration.identifier.token
@@ -123,7 +131,7 @@ impl Visitor for SemanticAnalysis {
     fn finish_struct_member(
         &mut self,
         member: &mut StructMember,
-        context: &mut Context
+        context: &mut Context,
     ) -> VResult {
         let enclosing = context.enclosing_type_identifier().unwrap();
         if let StructMember::VariableDeclaration(ref declaration, _) = member {
@@ -133,15 +141,13 @@ impl Visitor for SemanticAnalysis {
                     &enclosing.token,
                     context.type_states(),
                     context.caller_protections(),
-                    Default::default()
+                    Default::default(),
                 );
                 if declaration.variable_type != source_type {
                     return Err(Box::from(format!(
                         "Cannot initialise struct field of type `{}` with type `{}` on {}",
-                        declaration.variable_type,
-                        source_type,
-                        declaration.identifier.line_info
-                    )))
+                        declaration.variable_type, source_type, declaration.identifier.line_info
+                    )));
                 }
             }
         }
@@ -156,8 +162,7 @@ impl Visitor for SemanticAnalysis {
         if context.environment.is_conflicting(&declaration.identifier) {
             return Err(Box::from(format!(
                 "Conflicting declarations for {} on line {}",
-                &declaration.identifier.token,
-                &declaration.identifier.line_info
+                &declaration.identifier.token, &declaration.identifier.line_info
             )));
         }
 
@@ -167,7 +172,7 @@ impl Visitor for SemanticAnalysis {
     fn finish_contract_member(
         &mut self,
         member: &mut ContractMember,
-        context: &mut Context
+        context: &mut Context,
     ) -> VResult {
         let enclosing = context.enclosing_type_identifier().unwrap();
         if let ContractMember::VariableDeclaration(declaration, _) = member {
@@ -177,15 +182,13 @@ impl Visitor for SemanticAnalysis {
                     &enclosing.token,
                     context.type_states(),
                     context.caller_protections(),
-                    Default::default()
+                    Default::default(),
                 );
                 if declaration.variable_type != source_type {
                     return Err(Box::from(format!(
                         "Cannot initialise contract property of type `{}` with type `{}` on {}",
-                        declaration.variable_type,
-                        source_type,
-                        &declaration.identifier.line_info
-                    )))
+                        declaration.variable_type, source_type, &declaration.identifier.line_info
+                    )));
                 }
             }
         }
@@ -497,7 +500,12 @@ impl Visitor for SemanticAnalysis {
 
                     let current_enclosing_type =
                         if let Some(declaration_context) = &ctx.function_declaration_context {
-                            declaration_context.declaration.head.identifier.enclosing_type.clone()
+                            declaration_context
+                                .declaration
+                                .head
+                                .identifier
+                                .enclosing_type
+                                .clone()
                         } else if let Some(declaration_context) = &ctx.special_declaration_context {
                             declaration_context.declaration.head.enclosing_type.clone()
                         } else {
@@ -587,13 +595,20 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
-    fn start_range_expression(&mut self, range_expression: &mut RangeExpression, _context: &mut Context) -> VResult {
+    fn start_range_expression(
+        &mut self,
+        range_expression: &mut RangeExpression,
+        _context: &mut Context,
+    ) -> VResult {
         let start = range_expression.start_expression.clone();
         let end = range_expression.end_expression.clone();
 
         if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
         } else {
-            return Err(Box::from(format!("Invalid Range Declaration: {:?}", range_expression)));
+            return Err(Box::from(format!(
+                "Invalid Range Declaration: {:?}",
+                range_expression
+            )));
         }
 
         Ok(())
@@ -606,9 +621,10 @@ impl Visitor for SemanticAnalysis {
     ) -> VResult {
         if context.enclosing_type_identifier().is_some()
             && !protection.is_any()
-            && !context
-                .environment
-                .contains_caller_protection(protection, &context.enclosing_type_identifier().unwrap().token)
+            && !context.environment.contains_caller_protection(
+                protection,
+                &context.enclosing_type_identifier().unwrap().token,
+            )
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -619,7 +635,11 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
-    fn start_conformance(&mut self, conformance: &mut Conformance, context: &mut Context) -> VResult {
+    fn start_conformance(
+        &mut self,
+        conformance: &mut Conformance,
+        context: &mut Context,
+    ) -> VResult {
         if !context.environment.is_trait_declared(&conformance.name()) {
             return Err(Box::from(format!(
                 "Undeclared trait `{}` used",
@@ -642,21 +662,19 @@ impl Visitor for SemanticAnalysis {
     fn finish_binary_expression(
         &mut self,
         expression: &mut BinaryExpression,
-        context: &mut crate::context::Context
+        context: &mut crate::context::Context,
     ) -> VResult {
         let scope = context.scope_context.as_ref().unwrap();
         let enclosing = context.enclosing_type_identifier().unwrap();
         let left_type = if expression.op.is_assignment() {
             match *expression.lhs_expression {
-                Expression::Identifier(_) => {
-                    context.environment.get_expression_type(
-                        &*expression.lhs_expression,
-                        &enclosing.token,
-                        context.type_states(),
-                        context.caller_protections(),
-                        scope
-                    )
-                }
+                Expression::Identifier(_) => context.environment.get_expression_type(
+                    &*expression.lhs_expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    scope,
+                ),
                 Expression::VariableDeclaration(ref declaration) => {
                     declaration.variable_type.clone()
                 }
@@ -666,10 +684,15 @@ impl Visitor for SemanticAnalysis {
                         &enclosing.token,
                         context.type_states(),
                         context.caller_protections(),
-                        scope
+                        scope,
                     )
                 }
-                _ => return Err(Box::from(format!("Assignment to non-expression {:?}", expression.lhs_expression)))
+                _ => {
+                    return Err(Box::from(format!(
+                        "Assignment to non-expression {:?}",
+                        expression.lhs_expression
+                    )))
+                }
             }
         } else {
             context.environment.get_expression_type(
@@ -677,7 +700,7 @@ impl Visitor for SemanticAnalysis {
                 &enclosing.token,
                 context.type_states(),
                 context.caller_protections(),
-                scope
+                scope,
             )
         };
         let right_type = context.environment.get_expression_type(
@@ -685,31 +708,28 @@ impl Visitor for SemanticAnalysis {
             &enclosing.token,
             context.type_states(),
             context.caller_protections(),
-            scope
+            scope,
         );
         if expression.op.accepts(&left_type, &right_type) {
             Ok(())
+        } else if let BinOp::Equal = expression.op {
+            Err(Box::from(format!(
+                "Attempt to assign type `{}` to type `{}` on {}",
+                right_type, left_type, &expression.line_info
+            )))
         } else {
-            if let BinOp::Equal = expression.op {
-                Err(Box::from(format!(
-                    "Attempt to assign type `{}` to type `{}` on {}",
-                    right_type,
-                    left_type,
-                    &expression.line_info
-                )))
-            } else {
-                Err(Box::from(format!(
-                    "Invalid types `{}`, `{}` for operator `{}` on {}",
-                    left_type,
-                    right_type,
-                    expression.op,
-                    &expression.line_info
-                )))
-            }
+            Err(Box::from(format!(
+                "Invalid types `{}`, `{}` for operator `{}` on {}",
+                left_type, right_type, expression.op, &expression.line_info
+            )))
         }
     }
 
-    fn start_function_call(&mut self, call: &mut FunctionCall, context: &mut crate::context::Context) -> VResult {
+    fn start_function_call(
+        &mut self,
+        call: &mut FunctionCall,
+        context: &mut crate::context::Context,
+    ) -> VResult {
         if let Some(ref behaviour_context) = context.contract_behaviour_declaration_context {
             let contract_name = &behaviour_context.identifier.token;
 
@@ -741,14 +761,19 @@ impl Visitor for SemanticAnalysis {
     }
 
     #[allow(clippy::single_match)]
-    fn finish_if_statement(&mut self, if_statement: &mut IfStatement, _context: &mut Context) -> VResult {
+    fn finish_if_statement(
+        &mut self,
+        if_statement: &mut IfStatement,
+        _context: &mut Context,
+    ) -> VResult {
         match &if_statement.condition {
             Expression::BinaryExpression(ref b) => {
                 if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
                     if !v.is_constant() {
-                        return Err(Box::from(
-                            format!("Invalid condition type in `if` statement on {}", if_statement.condition.get_line_info()),
-                        ));
+                        return Err(Box::from(format!(
+                            "Invalid condition type in `if` statement on {}",
+                            if_statement.condition.get_line_info()
+                        )));
                     }
                 }
             }
@@ -759,15 +784,20 @@ impl Visitor for SemanticAnalysis {
         //TODO expression type
 
         if expression_type.is_bool_type() {
-            return Err(Box::from(
-                format!("Invalid condition type in `if` statement on {}", if_statement.condition.get_line_info()),
-            ));
+            return Err(Box::from(format!(
+                "Invalid condition type in `if` statement on {}",
+                if_statement.condition.get_line_info()
+            )));
         }
 
         Ok(())
     }
 
-    fn finish_return_statement(&mut self, statement: &mut ReturnStatement, context: &mut crate::context::Context) -> VResult {
+    fn finish_return_statement(
+        &mut self,
+        statement: &mut ReturnStatement,
+        context: &mut crate::context::Context,
+    ) -> VResult {
         let function_context = context.function_declaration_context.as_ref().unwrap();
         let enclosing = context.enclosing_type_identifier().unwrap();
         let scope = context.scope_context.as_ref().unwrap();
@@ -779,14 +809,12 @@ impl Visitor for SemanticAnalysis {
                     &enclosing.token,
                     context.type_states(),
                     context.caller_protections(),
-                    scope
+                    scope,
                 );
                 if expression_type != *result {
                     Err(Box::from(format!(
                         "Cannot return value of type `{}` when `{}` expected on {}",
-                        expression_type,
-                        result,
-                        statement.line_info
+                        expression_type, result, statement.line_info
                     )))
                 } else {
                     Ok(())
@@ -794,8 +822,7 @@ impl Visitor for SemanticAnalysis {
             } else {
                 Err(Box::from(format!(
                     "Must return value when `{}` expected on {}",
-                    result,
-                    statement.line_info
+                    result, statement.line_info
                 )))
             }
         } else if let Some(ref expression) = statement.expression {
@@ -804,14 +831,15 @@ impl Visitor for SemanticAnalysis {
                 &enclosing.token,
                 context.type_states(),
                 context.caller_protections(),
-                scope
+                scope,
             );
             Err(Box::from(format!(
                 "No return value expected but `{}` found on {}",
-                expression_type,
-                statement.line_info
+                expression_type, statement.line_info
             )))
-        } else { Ok(()) }
+        } else {
+            Ok(())
+        }
     }
 
     fn start_assertion(&mut self, assertion: &mut Assertion, context: &mut Context) -> VResult {

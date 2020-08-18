@@ -91,7 +91,7 @@ impl<'a> LLVMContract<'a> {
             LLVMStruct {
                 struct_declaration: dec,
             }
-                .generate(codegen)
+            .generate(codegen)
         });
 
         // Generate all contract functions

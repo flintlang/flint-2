@@ -22,7 +22,10 @@ impl<'a> LLVMAssignment<'a> {
 
         function_context.assigning = true;
         // TODO this will not return a correct pointer at the moment
-        let _lhs_ptr = LLVMExpression { expression: self.lhs }.generate(codegen, function_context);
+        let _lhs_ptr = LLVMExpression {
+            expression: self.lhs,
+        }
+        .generate(codegen, function_context);
         function_context.assigning = false;
 
         unimplemented!()

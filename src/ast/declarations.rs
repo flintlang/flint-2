@@ -141,7 +141,17 @@ impl Visitable for ContractBehaviourDeclaration {
             caller_protections: self.caller_protections.clone(),
         });
 
-        let local_variables: Vec<VariableDeclaration> = vec![];
+        let local_variables: Vec<VariableDeclaration> =
+            if let Some(ref caller_binding) = self.caller_binding {
+                vec![VariableDeclaration {
+                    declaration_token: None,
+                    identifier: caller_binding.clone(),
+                    variable_type: Type::Address,
+                    expression: None,
+                }]
+            } else {
+                vec![]
+            };
         let parameters: Vec<Parameter> = vec![];
 
         let scope = ScopeContext {
