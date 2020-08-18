@@ -16,8 +16,7 @@ pub fn generate_contract_wrapper(
     ctx: &mut Context,
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
-    wrapper.mangled_identifier =
-        Option::from(mangle_ewasm_function(&function.head.identifier.token));
+    wrapper.mangled_identifier = None;
 
     wrapper.body = vec![];
 
@@ -107,7 +106,7 @@ pub fn generate_contract_wrapper(
 
 pub fn mangle_ewasm_function(function_name: &str) -> String {
     // TODO implement properly
-    function_name.to_string()
+    format!("inner_{}", function_name)
 }
 
 pub fn construct_parameter(name: String, t: Type) -> Parameter {
