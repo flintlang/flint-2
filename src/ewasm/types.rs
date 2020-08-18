@@ -42,8 +42,7 @@ impl<'a> LLVMType<'a> {
             ast_type: inout.key_type.as_ref(),
         }
         .generate(codegen);
-        //let inner_type = to_llvm_type(inout.key_type.as_ref(), context);
-        BasicTypeEnum::PointerType(inner_type.ptr_type(AddressSpace::Global))
+        BasicTypeEnum::PointerType(inner_type.ptr_type(AddressSpace::Generic))
     }
 
     fn llvm_array<'ctx>(
@@ -55,7 +54,6 @@ impl<'a> LLVMType<'a> {
             ast_type: fixed_arr_type.key_type.as_ref(),
         }
         .generate(codegen);
-        //let elem_type = to_llvm_type(fixed_arr_type.key_type.as_ref(), context);
         BasicTypeEnum::ArrayType(elem_type.array_type(fixed_arr_type.size as u32))
     }
 

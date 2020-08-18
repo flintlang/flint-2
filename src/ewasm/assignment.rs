@@ -1,6 +1,5 @@
 use crate::ast::expressions::Expression;
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::values::BasicValueEnum;
 
@@ -13,20 +12,26 @@ pub struct LLVMAssignment<'a> {
 impl<'a> LLVMAssignment<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext<'ctx>,
+        _codegen: &Codegen<'_, 'ctx>,
+        _function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        // TODO decide how to assign to things, taking into account that they might be a contract variable,
-        // or a local, or have a non identifier expression on the lhs
-        // Need to end up with a pointer to the lhs
+        /*
+        a.b.c = contract.val
 
-        function_context.assigning = true;
-        // TODO this will not return a correct pointer at the moment
-        let _lhs_ptr = LLVMExpression {
-            expression: self.lhs,
+        lhs = bin_exp | identifier.
+
+        let thing = 5;
+
+        thing_ptr = alloca int*;
+        store thing_ptr thing;
+        store thing_ptr 10;
+
+        assert(thing == 10);
+
+        func float hyp(thing: Contract) {
+
         }
-            .generate(codegen, function_context);
-        function_context.assigning = false;
+         */
 
         unimplemented!()
     }

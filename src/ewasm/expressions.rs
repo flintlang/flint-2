@@ -662,17 +662,11 @@ impl<'a> LLVMStructAccess<'a> {
     ) -> PointerValue<'ctx> {
         if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
             let the_struct = function_context.get_declaration(first).unwrap();
-            let the_struct = the_struct.into_struct_value();
-
-            // Is there a better way to get a pointer to a struct value?
-            let struct_ptr = codegen
-                .builder
-                .build_alloca(the_struct.get_type(), "struct_ptr");
-            codegen.builder.build_store(struct_ptr, the_struct);
+            let the_struct = the_struct.into_pointer_value();
 
             accesses
                 .iter()
-                .fold(struct_ptr, |ptr, name| self.access(codegen, ptr, name))
+                .fold(the_struct, |ptr, name| self.access(codegen, ptr, name))
         } else {
             panic!("Malformed access")
         }

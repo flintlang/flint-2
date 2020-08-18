@@ -2,13 +2,13 @@ use crate::ast::calls::FunctionArgument;
 use crate::ast::calls::FunctionCall;
 use crate::ast::declarations::Parameter;
 use crate::ast::declarations::{
-    ContractBehaviourDeclaration, FunctionDeclaration, VariableDeclaration,
+    ContractBehaviourDeclaration, FunctionDeclaration,
 };
 use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::Type;
-use crate::ast::Assertion;
+use crate::ast::{Assertion, InoutExpression, InoutType};
 use crate::context::Context;
 use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 
@@ -23,22 +23,7 @@ pub fn generate_contract_wrapper(
 
     wrapper.body = vec![];
 
-    let self_declaration = VariableDeclaration {
-        declaration_token: None,
-        identifier: Identifier::generated("this"),
-        variable_type: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
-        expression: Some(Box::new(Expression::Identifier(Identifier::generated(
-            contract_behaviour_declaration.identifier.token.as_str(),
-        )))),
-    };
-
-    // give variable declaration an expression
-
-    wrapper
-        .body
-        .push(Statement::Expression(Expression::VariableDeclaration(
-            self_declaration,
-        )));
+    let contract_name = contract_behaviour_declaration.identifier.token.as_str();
 
     // Add type state assertions
     if !contract_behaviour_declaration.type_states.is_empty() {
@@ -64,23 +49,35 @@ pub fn generate_contract_wrapper(
 
     let contract_parameter = Parameter {
         identifier: Identifier::generated("this"),
-        type_assignment: Type::UserDefinedType(contract_behaviour_declaration.identifier.clone()),
+        type_assignment: Type::InoutType(InoutType {
+            key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
+        }),
         expression: None,
         line_info: Default::default(),
     };
 
     function.head.parameters.push(contract_parameter);
 
-    let arguments = function
-        .head
-        .parameters
-        .clone()
-        .into_iter()
-        .map(|p| FunctionArgument {
-            identifier: None,
-            expression: Expression::Identifier(p.identifier),
-        })
-        .collect::<Vec<FunctionArgument>>();
+    let mut arguments = vec![FunctionArgument {
+        identifier: None,
+        expression: Expression::InoutExpression(InoutExpression {
+            ampersand_token: "&".to_string(),
+            expression: Box::new(Expression::Identifier(Identifier::generated(contract_name))),
+        }),
+    }];
+
+    arguments.extend(
+        function
+            .head
+            .parameters
+            .clone()
+            .into_iter()
+            .map(|p| FunctionArgument {
+                identifier: None,
+                expression: Expression::Identifier(p.identifier),
+            })
+            .collect::<Vec<FunctionArgument>>(),
+    );
 
     let name = function.mangled_identifier.clone();
     let function_call = Expression::FunctionCall(FunctionCall {
