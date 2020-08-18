@@ -122,6 +122,12 @@ impl TypeInfo {
     }
 }
 
+impl std::fmt::Display for LineInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "line {}", self.line)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PropertyInformation {
     pub property: Property,
@@ -220,7 +226,7 @@ pub struct FunctionInformation {
 }
 
 impl FunctionInformation {
-    pub fn get_result_type(&self) -> Option<Type> {
+    pub fn get_result_type(&self) -> Option<&Type> {
         self.declaration.get_result_type()
     }
 

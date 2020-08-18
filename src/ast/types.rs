@@ -247,6 +247,46 @@ impl Visitable for Type {
     }
 }
 
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Bool => write!(f, "Bool"),
+            Type::Int => write!(f, "Int"),
+            Type::Address => write!(f, "Address"),
+            Type::InoutType(inout) => {
+                write!(f, "&")?;
+                inout.key_type.fmt(f)
+            },
+            Type::ArrayType(array) => {
+                write!(f, "[")?;
+                array.key_type.fmt(f)?;
+                write!(f, "]")
+            },
+            Type::RangeType(range) => {
+                write!(f, "Range ")?;
+                range.key_type.fmt(f)
+            },
+            Type::FixedSizedArrayType(array) => {
+                array.key_type.fmt(f)?;
+                write!(f, "[{}]", array.size)
+            },
+            Type::DictionaryType(dictionary) => {
+                write!(f, "[")?;
+                dictionary.key_type.fmt(f)?;
+                write!(f, ": ")?;
+                dictionary.value_type.fmt(f)?;
+                write!(f, "]")
+            },
+            Type::UserDefinedType(user) => write!(f, "{}", user.token),
+            Type::Solidity(_) => write!(f, "{:#?}", self),
+            Type::SelfType => write!(f, "Self"),
+            Type::String => write!(f, "String"),
+            Type::Error => write!(f, "Error!"),
+            Type::TypeState => write!(f, "TypeState")
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SolidityType {
     ADDRESS,

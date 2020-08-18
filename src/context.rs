@@ -1,9 +1,8 @@
 use crate::ast::*;
-use crate::environment::*;
 
 #[derive(Debug, Default)]
 pub struct Context {
-    pub environment: Environment,
+    pub environment: crate::environment::Environment,
     pub contract_declaration_context: Option<ContractDeclarationContext>,
     pub contract_behaviour_declaration_context: Option<ContractBehaviourDeclarationContext>,
     pub struct_declaration_context: Option<StructDeclarationContext>,
@@ -60,6 +59,14 @@ impl Context {
 
     pub fn scope_context(&self) -> Option<&ScopeContext> {
         self.scope_context.as_ref()
+    }
+
+    pub fn type_states(&self) -> &[TypeState] {
+        self.contract_behaviour_declaration_context.as_ref().map(|c| &*c.type_states).unwrap_or(&[])
+    }
+
+    pub fn caller_protections(&self) -> &[CallerProtection] {
+        self.contract_behaviour_declaration_context.as_ref().map(|c| &*c.caller_protections).unwrap_or(&[])
     }
 }
 

@@ -55,7 +55,6 @@ pub fn convert_default_parameter_functions(
                 .collect();
 
             if assigned_function.scope_context.is_some() {
-                //REMOVEBEFOREFLIGHT
                 let scope = ScopeContext {
                     parameters: assigned_function.head.parameters.clone(),
                     local_variables: vec![],
@@ -107,7 +106,6 @@ pub fn convert_default_parameter_functions(
                 .collect();
 
             if assigned_function.head.result_type.is_some() {
-                //REMOVEBEFOREFLIGHT
                 let function_call = FunctionCall {
                     identifier: f.head.identifier.clone(),
                     arguments,

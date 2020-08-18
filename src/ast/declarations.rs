@@ -505,8 +505,8 @@ impl FunctionDeclaration {
         self.head.is_public()
     }
 
-    pub fn get_result_type(&self) -> Option<Type> {
-        self.head.result_type.clone()
+    pub fn get_result_type(&self) -> Option<&Type> {
+        self.head.result_type.as_ref()
     }
 
     pub fn is_void(&self) -> bool {
