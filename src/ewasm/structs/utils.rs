@@ -1,4 +1,4 @@
-use crate::ast::{Identifier, SpecialDeclaration, Type};
+use crate::ast::SpecialDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::BasicTypeEnum;
@@ -33,22 +33,11 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen)
         param.set_name(param_names[i]);
     }
 
-    let type_names = initialiser.head.parameters.iter().map(|param| {
-        if let Type::UserDefinedType(Identifier {
-                                         token: type_name, ..
-                                     }) = &param.type_assignment
-        {
-            Some(type_name.to_string())
-        } else {
-            None
-        }
-    });
-
     let params = param_names
         .iter()
         .map(|name| name.to_string())
-        .zip(type_names.zip(init_func.get_params().into_iter()))
-        .collect::<HashMap<String, (Option<String>, BasicValueEnum)>>();
+        .zip(init_func.get_params().into_iter())
+        .collect::<HashMap<String, BasicValueEnum>>();
 
     let mut function_context = FunctionContext::new(init_func, params);
     let block = codegen.context.append_basic_block(init_func, "entry");

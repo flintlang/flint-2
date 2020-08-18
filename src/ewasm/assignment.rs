@@ -22,27 +22,12 @@ impl<'a> LLVMAssignment<'a> {
 
         function_context.assigning = true;
         // TODO this will not return a correct pointer at the moment
-        let _lhs_ptr = LLVMExpression { expression: self.lhs }.generate(codegen, function_context);
+        let _lhs_ptr = LLVMExpression {
+            expression: self.lhs,
+        }
+            .generate(codegen, function_context);
         function_context.assigning = false;
 
         unimplemented!()
-
-        // if let Expression::Identifier(id) = &self.lhs {
-        //     let rhs_val = LLVMExpression {
-        //         expression: self.rhs,
-        //     }
-        //     .generate(codegen, function_context);
-        //
-        //     function_context.assigning = true;
-        //     let lhs_ptr = LLVMIdentifier {
-        //         identifier: id
-        //     }.generate(codegen, function_context);
-        //     function_context.assigning = false;
-        //
-        //     codegen.builder.build_store(lhs_ptr.into_pointer_value(), rhs_val);
-        //     function_context.update_declaration(id.token.as_str(), rhs_val);
-        // }
-        //
-        // panic!("Invalid assignment")
     }
 }

@@ -61,17 +61,21 @@ impl<'a> LLVMStruct<'a> {
                 LLVMType {
                     ast_type: &dec.variable_type,
                 }
-                .generate(codegen)
+                    .generate(codegen)
             })
             .collect::<Vec<BasicTypeEnum>>();
 
-        let struct_type = codegen.context.struct_type(field_types, false);
+        let struct_name = self.struct_declaration.identifier.token.as_str();
+
+        let struct_type = codegen.context.opaque_struct_type(struct_name);
+        struct_type.set_body(field_types, false);
+        println!(
+            "The struct type is {}",
+            struct_type.get_name().unwrap().to_str().expect("thing")
+        );
         let struct_info = (field_names, struct_type);
 
-        codegen.types.insert(
-            self.struct_declaration.identifier.token.clone(),
-            struct_info,
-        );
+        codegen.types.insert(struct_name.to_string(), struct_info);
     }
 
     fn generate_functions(&self, codegen: &Codegen) {

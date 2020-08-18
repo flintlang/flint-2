@@ -1,6 +1,6 @@
-use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue, InstructionOpcode};
+use super::inkwell::types::{StructType, VectorType};
+use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode, PointerValue};
 use super::inkwell::{FloatPredicate, IntPredicate};
-use super::inkwell::types::VectorType;
 use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
@@ -97,8 +97,12 @@ impl<'a> LLVMIdentifier<'a> {
         // Move add this check to the preprocessor
         if self.identifier.enclosing_type.is_some() {
             let pointer_to_value = LLVMStructAccess {
-                struct_name: "this",
-                field_name: &self.identifier.token,
+                expr: &Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+                    rhs_expression: Box::new(Expression::Identifier(self.identifier.clone())),
+                    op: BinOp::Dot,
+                    line_info: Default::default(),
+                }),
             }
                 .generate(codegen, function_context);
             if function_context.assigning {
@@ -120,15 +124,14 @@ impl<'a> LLVMIdentifier<'a> {
         } else {
             let variable = function_context
                 .get_declaration(self.identifier.token.as_str())
-                .unwrap()
-                .1;
+                .unwrap();
 
             if function_context.assigning {
                 let var_ptr = codegen.builder.build_alloca(variable.get_type(), "tmp");
-                codegen.builder.build_store(var_ptr, variable);
+                codegen.builder.build_store(var_ptr, *variable);
                 var_ptr.as_basic_value_enum()
             } else {
-                variable
+                *variable
             }
         }
     }
@@ -160,25 +163,29 @@ impl<'a> LLVMBinaryExpression<'a> {
                         function_call: f,
                         module_name: "Self",
                     }
-                    .generate(codegen, function_context);
-                } else if let Expression::Identifier(Identifier {
-                    token: struct_name, ..
-                }) = &*self.expression.lhs_expression
-                {
-                    if let Expression::Identifier(Identifier {
-                        token: field_name, ..
-                    }) = &*self.expression.rhs_expression
-                    {
-                        return LLVMStructAccess {
-                            struct_name,
-                            field_name,
-                        }
-                            .generate(codegen, function_context)
-                            .as_basic_value_enum();
-                    }
+                        .generate(codegen, function_context);
                 }
 
-                panic!("Malformed property access");
+                // TODO lhs should always be a pointer if it is not a function call
+                // Do a fold of pointer accesses?
+
+                // else if let Expression::Identifier(Identifier {
+                //     token: struct_name, ..
+                // }) = &*self.expression.lhs_expression
+                // {
+                //     if let Expression::Identifier(Identifier {
+                //         token: field_name, ..
+                //     }) = &*self.expression.rhs_expression
+                //     {
+                //         return LLVMStructAccess {
+                //             struct_name,
+                //             field_name,
+                //         }
+                //             .generate(codegen, function_context)
+                //             .as_basic_value_enum();
+                //     }
+                // }
+                panic!("Malformed property access")
             }
             BinOp::Equal => LLVMAssignment {
                 lhs: &*self.expression.lhs_expression,
@@ -565,7 +572,10 @@ impl<'a> LLVMInoutExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let expr = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
+        let expr = LLVMExpression {
+            expression: &self.expression.expression,
+        }
+            .generate(codegen, function_context);
         // FIX: into_pointer_value() is wrong
         let ptr = codegen.builder.build_alloca(expr.get_type(), "tmpptr");
         codegen.builder.build_store(ptr, expr);
@@ -621,17 +631,27 @@ impl<'a> LLVMCastExpression<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let cast_from_val = LLVMExpression { expression: &self.expression.expression }.generate(codegen, function_context);
-        let cast_to_type = LLVMType { ast_type: &self.expression.cast_type }.generate(codegen);
-        
+        let cast_from_val = LLVMExpression {
+            expression: &self.expression.expression,
+        }
+            .generate(codegen, function_context);
+        let cast_to_type = LLVMType {
+            ast_type: &self.expression.cast_type,
+        }
+            .generate(codegen);
+
         // TODO: which opcode should we pick here?
-        codegen.builder.build_cast(InstructionOpcode::Load, cast_from_val, cast_to_type, "tmpcast")
+        codegen.builder.build_cast(
+            InstructionOpcode::Load,
+            cast_from_val,
+            cast_to_type,
+            "tmpcast",
+        )
     }
 }
 
 struct LLVMStructAccess<'a> {
-    struct_name: &'a str,
-    field_name: &'a str,
+    expr: &'a Expression,
 }
 
 impl<'a> LLVMStructAccess<'a> {
@@ -640,21 +660,70 @@ impl<'a> LLVMStructAccess<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> PointerValue<'ctx> {
-        let (struct_type_name, the_struct) =
-            function_context.get_declaration(self.struct_name).unwrap();
-        let the_struct = the_struct.into_struct_value();
+        if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
+            let the_struct = function_context.get_declaration(first).unwrap();
+            let the_struct = the_struct.into_struct_value();
 
-        // Is there a better way to get a pointer to a struct value?
-        let struct_ptr = codegen
+            // Is there a better way to get a pointer to a struct value?
+            let struct_ptr = codegen
+                .builder
+                .build_alloca(the_struct.get_type(), "struct_ptr");
+            codegen.builder.build_store(struct_ptr, the_struct);
+
+            accesses
+                .iter()
+                .fold(struct_ptr, |ptr, name| self.access(codegen, ptr, name))
+        } else {
+            panic!("Malformed access")
+        }
+    }
+
+    fn access<'ctx>(
+        &self,
+        codegen: &Codegen<'_, 'ctx>,
+        ptr: PointerValue<'ctx>,
+        rhs_name: &str,
+    ) -> PointerValue<'ctx> {
+        codegen.module.print_to_stderr();
+        let struct_type_name =
+            self.get_name_from_struct_type(ptr.get_type().get_element_type().into_struct_type());
+        let (field_names, _) = codegen.types.get(struct_type_name.as_str()).unwrap();
+        let index = field_names
+            .iter()
+            .position(|name| name == rhs_name)
+            .unwrap();
+
+        codegen
             .builder
-            .build_alloca(the_struct.get_type(), "struct_ptr");
-        codegen.builder.build_store(struct_ptr, the_struct);
+            .build_struct_gep(ptr, index as u32, "tmp_ptr")
+            .expect("Bad access")
+    }
 
-        codegen.build_struct_member_getter(
-            struct_type_name.as_ref().unwrap(),
-            self.field_name,
-            struct_ptr,
-            "tmp",
-        )
+    fn flatten_expr(&self, expr: &'a Expression) -> Vec<&'a str> {
+        match expr {
+            Expression::Identifier(id) => vec![id.token.as_str()],
+            Expression::BinaryExpression(BinaryExpression {
+                                             lhs_expression,
+                                             rhs_expression,
+                                             op: BinOp::Dot,
+                                             ..
+                                         }) => {
+                let mut flattened = self.flatten_expr(lhs_expression);
+                flattened.extend(self.flatten_expr(rhs_expression));
+                flattened
+            }
+            // TODO: a.b.foo() is unimplemented for now. Associate struct functions with structs?
+            Expression::FunctionCall(_) => unimplemented!(),
+            _ => panic!("Malformed access"),
+        }
+    }
+
+    fn get_name_from_struct_type(&self, struct_type: StructType<'a>) -> String {
+        struct_type
+            .get_name()
+            .unwrap()
+            .to_str()
+            .expect("Could not convert cstr to str")
+            .to_string()
     }
 }

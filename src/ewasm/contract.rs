@@ -49,15 +49,16 @@ impl<'a> LLVMContract<'a> {
                 LLVMType {
                     ast_type: &member.variable_type,
                 }
-                .generate(codegen)
+                    .generate(codegen)
             })
             .collect::<Vec<BasicTypeEnum>>();
 
-        let struct_type = codegen.context.struct_type(member_types, false);
+        let struct_type = codegen.context.opaque_struct_type(codegen.contract_name);
+        struct_type.set_body(member_types, false);
 
         // add contract initialiser declaration
         codegen.types.insert(
-            self.contract_declaration.identifier.token.clone(),
+            codegen.contract_name.to_string(),
             (member_names, struct_type),
         );
 

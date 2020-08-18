@@ -21,7 +21,7 @@ impl<'a> LLVMType<'a> {
             Type::DictionaryType(_) => unimplemented!(),
             Type::UserDefinedType(definition) => {
                 self.extract_defined_type(definition.token.as_str(), codegen)
-            } // TODO need to create an llvm type, but for this we need more detail than just the identifier
+            }
             Type::Solidity(_) => unimplemented!(),
             Type::SelfType => unimplemented!(), // TODO this depends on how we represent contract data
             Type::Bool => context.bool_type().as_basic_type_enum(),
