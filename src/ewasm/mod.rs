@@ -220,6 +220,7 @@ fn generate_llvm(contract: &LLVMContract) -> String {
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
     //counter(&codegen);
+    factorial(&codegen);
     codegen.module.print_to_stderr();
     llvm_module.print_to_string().to_string()
 }
@@ -282,3 +283,54 @@ fn exit_on_failure(msg: &str) -> ! {
         assert_eq!(1, getter.call());
     }
 }*/
+
+// Test function to see if the LLVM produced is accurate
+pub fn factorial(codegen: &Codegen) {
+    let engine = codegen.module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+
+    fpm.initialize();
+
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+
+        let init = engine
+            .get_function::<VoidToVoid>("FactorialInit")
+            .expect("Could not find FactorialInit");
+
+        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getValue")
+            .expect("Could not find getter");
+
+        init.call();
+
+        assert_eq!(0, getter.call());
+
+        let calculate: JitFunction<unsafe extern "C" fn(i64)> = engine
+            .get_function("calculate")
+            .expect("Could not find decrement");
+
+        calculate.call(1);
+        assert_eq!(1, getter.call());
+        calculate.call(2);
+        assert_eq!(2, getter.call());
+        calculate.call(10);
+        assert_eq!(3628800, getter.call());
+    }
+}
+
