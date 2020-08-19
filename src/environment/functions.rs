@@ -35,7 +35,9 @@ impl Environment {
         if let Some(function_set) = type_info.functions.get_mut(name) {
             function_set.push(function_information(f));
         } else {
-            type_info.functions.insert(name.clone(), vec![function_information(f)]);
+            type_info
+                .functions
+                .insert(name.clone(), vec![function_information(f)]);
         }
     }
 
@@ -251,7 +253,12 @@ impl Environment {
         FunctionCallMatchResult::Failure(Candidates { candidates })
     }
 
-    pub fn argument_types<'a>(&'a self, call: &'a FunctionCall, type_id: &'a str, scope: &'a ScopeContext) -> impl Iterator<Item=Type> + 'a {
+    pub fn argument_types<'a>(
+        &'a self,
+        call: &'a FunctionCall,
+        type_id: &'a str,
+        scope: &'a ScopeContext,
+    ) -> impl Iterator<Item = Type> + 'a {
         call.arguments
             .iter()
             .map(move |a| self.get_expression_type(&a.expression, type_id, &[], &[], scope))
@@ -268,7 +275,9 @@ impl Environment {
         caller_protections: &[CallerProtection],
         scope: &ScopeContext,
     ) -> FunctionCallMatchResult {
-        let result = FunctionCallMatchResult::Failure(Candidates { ..Default::default() });
+        let result = FunctionCallMatchResult::Failure(Candidates {
+            ..Default::default()
+        });
 
         let argument_types: Vec<_> = call
             .arguments
@@ -283,7 +292,10 @@ impl Environment {
 
         let global_match = self.match_global_function(call, &argument_types, caller_protections);
 
-        result.merge(regular_match).merge(initaliser_match).merge(global_match)
+        result
+            .merge(regular_match)
+            .merge(initaliser_match)
+            .merge(global_match)
     }
 
     fn compatible_caller_protections(
@@ -441,8 +453,10 @@ impl Environment {
         true
     }
 
-    pub fn replace_self<'a, I: 'a + Iterator<Item=&'a Type>>(iterator: I, enclosing: &'a str) -> impl Iterator<Item=Type> + 'a {
-        iterator
-            .map(move |t| t.replacing_self(enclosing))
+    pub fn replace_self<'a, I: 'a + Iterator<Item = &'a Type>>(
+        iterator: I,
+        enclosing: &'a str,
+    ) -> impl Iterator<Item = Type> + 'a {
+        iterator.map(move |t| t.replacing_self(enclosing))
     }
 }

@@ -59,21 +59,21 @@ impl CallableInformation {
     pub(crate) fn name(&self) -> &str {
         match self {
             CallableInformation::FunctionInformation(info) => &info.identifier().token,
-            CallableInformation::SpecialInformation(info) => info.name()
+            CallableInformation::SpecialInformation(info) => info.name(),
         }
     }
 
     pub(crate) fn line_info(&self) -> Option<&LineInfo> {
         match self {
             CallableInformation::FunctionInformation(info) => Some(info.line_info()),
-            _ => None
+            _ => None,
         }
     }
 
     pub(crate) fn get_parameter_types(&self) -> Vec<&Type> {
         match self {
             CallableInformation::FunctionInformation(info) => info.get_parameter_types().collect(),
-            CallableInformation::SpecialInformation(info) => info.get_parameter_types().collect()
+            CallableInformation::SpecialInformation(info) => info.get_parameter_types().collect(),
         }
     }
 }
@@ -231,7 +231,9 @@ impl Environment {
                 } else {
                     result_type.is_address_type()
                 }
-            } else { false }
+            } else {
+                false
+            }
         };
         self.types
             .get(type_id)

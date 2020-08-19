@@ -641,18 +641,19 @@ impl FunctionSignatureDeclaration {
         self.modifiers.contains(&Modifier::Public)
     }
 
-    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item=&'a Identifier> + 'a {
+    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a Identifier> + 'a {
         self.parameters.iter().map(|p| &p.identifier)
     }
 
-    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item=&'a Type> + 'a {
+    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
         self.parameters.iter().map(|p| &p.type_assignment)
     }
 
     pub fn is_equal(&self, against: FunctionSignatureDeclaration) -> bool {
         let modifiers_match = self.modifiers == against.modifiers;
         let attributes_match = self.attributes == against.attributes;
-        let parameter_names_match = self.parameter_identifiers()
+        let parameter_names_match = self
+            .parameter_identifiers()
             .eq(against.parameter_identifiers());
         let parameter_types = self.parameter_types().eq(against.parameter_types());
         if self.identifier.token == against.identifier.token
@@ -804,7 +805,7 @@ impl SpecialSignatureDeclaration {
         !self.parameters.is_empty()
     }
 
-    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item=&'a Type> + 'a {
+    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
         self.parameters.iter().map(|p| &p.type_assignment)
     }
 }

@@ -80,16 +80,15 @@ impl Context {
     }
 
     pub fn declaration_context_type_id(&self) -> Option<&str> {
-        self.contract_behaviour_declaration_context.as_ref()
+        self.contract_behaviour_declaration_context
+            .as_ref()
             .map(|c| &*c.identifier.token)
-            .or_else(
-                || self.struct_declaration_context.as_ref()
+            .or_else(|| {
+                self.struct_declaration_context
+                    .as_ref()
                     .map(|c| &*c.identifier.token)
-                    .or_else(
-                        || self.asset_context.as_ref()
-                            .map(|c| &*c.identifier.token)
-                    )
-            )
+                    .or_else(|| self.asset_context.as_ref().map(|c| &*c.identifier.token))
+            })
     }
 }
 

@@ -219,7 +219,7 @@ impl SpecialInformation {
         &self.declaration.head.special_token
     }
 
-    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item=&'a Type> + 'a {
+    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
         self.declaration.head.parameter_types()
     }
 }
@@ -238,16 +238,18 @@ impl FunctionInformation {
         self.declaration.get_result_type()
     }
 
-    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item=&'a Type> + 'a {
+    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
         self.declaration.head.parameter_types()
     }
 
-    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item=&'a Identifier> + 'a {
+    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a Identifier> + 'a {
         self.declaration.head.parameter_identifiers()
     }
 
-    pub fn required_parameter_identifiers(&self) -> impl Iterator<Item=&Identifier> {
-        self.declaration.head.parameters
+    pub fn required_parameter_identifiers(&self) -> impl Iterator<Item = &Identifier> {
+        self.declaration
+            .head
+            .parameters
             .iter()
             .filter(|i| i.expression.is_none())
             .map(|p| &p.identifier)

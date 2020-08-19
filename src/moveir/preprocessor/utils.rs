@@ -721,7 +721,10 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
     }))
 }
 
-pub fn mangle_function_call_name(function_call: &FunctionCall, context: &Context) -> Option<String> {
+pub fn mangle_function_call_name(
+    function_call: &FunctionCall,
+    context: &Context,
+) -> Option<String> {
     if !Environment::is_runtime_function_call(function_call) && !context.is_external_function_call {
         let enclosing_type = if let Some(ref enclosing) = function_call.identifier.enclosing_type {
             enclosing.clone()

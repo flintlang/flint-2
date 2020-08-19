@@ -1,11 +1,11 @@
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use crate::environment::FunctionCallMatchResult::{MatchedFunction, MatchedInitializer, Failure};
+use crate::environment::Candidates;
+use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer};
 use crate::type_checker::ExpressionChecker;
 use crate::utils::unique::Unique;
 use itertools::Itertools;
-use crate::environment::Candidates;
 
 pub struct SemanticAnalysis {}
 
@@ -73,7 +73,7 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                    .as_str(),
+                .as_str(),
             ));
         }
 
@@ -113,8 +113,7 @@ impl Visitor for SemanticAnalysis {
         {
             return Err(Box::from(format!(
                 "Recusive struct definition for {} on {}",
-                declaration.identifier.token,
-                declaration.identifier.line_info
+                declaration.identifier.token, declaration.identifier.line_info
             )));
         }
 
@@ -423,9 +422,9 @@ impl Visitor for SemanticAnalysis {
                 .environment
                 .is_contract_stateful(&context.identifier.token)
                 && !declaration
-                .body
-                .iter()
-                .any(|state| matches!(state, Statement::BecomeStatement(_)))
+                    .body
+                    .iter()
+                    .any(|state| matches!(state, Statement::BecomeStatement(_)))
             {
                 return Err(Box::from(
                     "Initialiser of a contract with typestates must have a `become` statement"
@@ -565,7 +564,7 @@ impl Visitor for SemanticAnalysis {
                             return if scope.is_declared(token) {
                                 Ok(())
                             } else if let Some(contract) =
-                            &ctx.contract_behaviour_declaration_context
+                                &ctx.contract_behaviour_declaration_context
                             {
                                 if let Some(caller) = &contract.caller {
                                     if *token == caller.token {
@@ -606,7 +605,8 @@ impl Visitor for SemanticAnalysis {
         let start = range_expression.start_expression.clone();
         let end = range_expression.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
+        } else {
             return Err(Box::from(format!(
                 "Invalid Range Declaration: {:?}",
                 range_expression
@@ -624,9 +624,9 @@ impl Visitor for SemanticAnalysis {
         if context.enclosing_type_identifier().is_some()
             && !protection.is_any()
             && !context.environment.contains_caller_protection(
-            protection,
-            &context.enclosing_type_identifier().unwrap().token,
-        )
+                protection,
+                &context.enclosing_type_identifier().unwrap().token,
+            )
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -732,31 +732,38 @@ impl Visitor for SemanticAnalysis {
         call: &mut FunctionCall,
         context: &mut crate::context::Context,
     ) -> VResult {
-        let fail = |candidates: Candidates, type_id: &str| if let Some(first) = candidates.candidates.first() {
-            Err(
-                Box::from(format!(
+        let fail = |candidates: Candidates, type_id: &str| {
+            if let Some(first) = candidates.candidates.first() {
+                Err(Box::from(format!(
                     "Could not call `{}` with ({}) on {}, did you mean to call `{}` with ({}){}",
                     &call.identifier.token,
-                    &context.environment.argument_types(&call, type_id, context.scope_or_default()).join(", "),
+                    &context
+                        .environment
+                        .argument_types(&call, type_id, context.scope_or_default())
+                        .join(", "),
                     &call.identifier.line_info,
                     first.name(),
                     first.get_parameter_types().iter().join(", "),
-                    first.line_info().map(|line| format!(" on {}", line)).as_deref().unwrap_or("")
-                ))
-            )
-        } else {
-            Err(
-                Box::from(format!(
+                    first
+                        .line_info()
+                        .map(|line| format!(" on {}", line))
+                        .as_deref()
+                        .unwrap_or("")
+                )))
+            } else {
+                Err(Box::from(format!(
                     "Undefined function `{}` called on {}",
-                    &call.identifier.token,
-                    &call.identifier.line_info
-                ))
-            )
+                    &call.identifier.token, &call.identifier.line_info
+                )))
+            }
         };
 
-        let called_on_type = call.identifier.enclosing_type.as_deref().or_else(
-            || context.declaration_context_type_id()
-        ).unwrap_or_default();
+        let called_on_type = call
+            .identifier
+            .enclosing_type
+            .as_deref()
+            .or_else(|| context.declaration_context_type_id())
+            .unwrap_or_default();
         if let Some(ref behaviour_context) = context.contract_behaviour_declaration_context {
             let contract_name = &*behaviour_context.identifier.token;
             let contract_call = contract_name == called_on_type;
@@ -782,12 +789,20 @@ impl Visitor for SemanticAnalysis {
                     &call.identifier,
                 ),
                 Failure(candidates) => fail(candidates, contract_name),
-                _ => Ok(())
+                _ => Ok(()),
             }
         } else {
-            match context.environment.match_function_call(&call, called_on_type, &[], context.scope_or_default()) {
-                Failure(candidates) => fail(candidates, context.declaration_context_type_id().unwrap_or_default()),
-                _ => Ok(())
+            match context.environment.match_function_call(
+                &call,
+                called_on_type,
+                &[],
+                context.scope_or_default(),
+            ) {
+                Failure(candidates) => fail(
+                    candidates,
+                    context.declaration_context_type_id().unwrap_or_default(),
+                ),
+                _ => Ok(()),
             }
         }
     }
@@ -919,8 +934,8 @@ fn check_if_correct_type_state_possible(
     if allowed_states.is_empty()
         || current_possible_states.is_empty()
         || current_possible_states
-        .iter()
-        .all(|state| allowed_states.contains(state))
+            .iter()
+            .all(|state| allowed_states.contains(state))
     {
         Ok(())
     } else {
@@ -937,7 +952,7 @@ fn check_if_correct_type_state_possible(
     }
 }
 
-fn is_conformance_repeated<'a, T: IntoIterator<Item=&'a Conformance>>(conformances: T) -> bool {
+fn is_conformance_repeated<'a, T: IntoIterator<Item = &'a Conformance>>(conformances: T) -> bool {
     !conformances
         .into_iter()
         .map(|c| &c.identifier.token)
@@ -960,9 +975,9 @@ fn code_block_returns(block: &[Statement]) -> bool {
         .iter()
         .any(|statements| matches!(statements, Statement::ReturnStatement(_)))
         || (branches.peek().is_some()
-        && branches.all(|branch| {
-        code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
-    }))
+            && branches.all(|branch| {
+                code_block_returns(&branch.body) && code_block_returns(&branch.else_body)
+            }))
 }
 
 fn ensure_mutation_declared(token: &str, ctx: &Context) -> VResult {
