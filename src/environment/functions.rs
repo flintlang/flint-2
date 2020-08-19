@@ -192,7 +192,7 @@ impl Environment {
         if let Some(type_info) = self.types.get(&call.identifier.token) {
             for initialiser in &type_info.initialisers {
                 let parameter_types = initialiser.parameter_types();
-                let equal_types = *&parameter_types == argument_types;
+                let equal_types = parameter_types == argument_types;
 
                 if equal_types
                     && self
