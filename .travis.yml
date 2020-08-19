@@ -6,6 +6,7 @@ before_script:
   - sudo apt-get update
   - sudo apt-get install python3
   - sudo apt-get install llvm-10 llvm-10-dev
+  - sudo apt-get install wabt
 
 script:
   - LLVM_SYS_100_PREFIX=/usr/lib/llvm-10 cargo build
