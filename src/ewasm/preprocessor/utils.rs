@@ -16,8 +16,8 @@ pub fn generate_contract_wrapper(
     ctx: &mut Context,
 ) -> FunctionDeclaration {
     let mut wrapper = function.clone();
+    wrapper.is_external = true;
     wrapper.mangled_identifier = None;
-
     wrapper.body = vec![];
 
     let contract_name = contract_behaviour_declaration.identifier.token.as_str();

@@ -1,3 +1,4 @@
+mod abi;
 mod assignment;
 mod call;
 mod codegen;
@@ -26,13 +27,13 @@ use crate::ast::{
 };
 use crate::context::Context;
 
+use crate::ewasm::abi::generate_abi;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::contract::LLVMContract;
 use nom::lib::std::collections::HashMap;
 use std::io::Write;
+use std::path::Path;
 use std::{fs, path, process};
-
-// TODO create ABI JSON struct? (remember we also need to generate the ABI)
 
 pub fn generate(module: &Module, context: &Context) {
     let external_traits = module
@@ -111,7 +112,14 @@ pub fn generate(module: &Module, context: &Context) {
     // It seems from the move target that we are allowed to create multiple contracts, and each of these
     // gets put into a separate file, so we will do the same here
     for contract in ewasm_contracts.iter() {
-        let _contract_file = create_llvm_file(contract);
+        let file_name = contract.contract_declaration.identifier.token.as_str();
+        let file_path = format!("tmp/{}.ll", file_name);
+        let file_path = path::Path::new(file_path.as_str());
+        let _contract_file = create_llvm_file(file_path, contract);
+        create_abi_file(
+            path::Path::new(format!("output/{}.json", file_name).as_str()),
+            contract,
+        );
 
         // TODO use llvm tools to compile _contract_file to WASM, then remove exports etc and
         // probably use WABT tools to verify it etc.
@@ -120,18 +128,44 @@ pub fn generate(module: &Module, context: &Context) {
     }
 }
 
-fn create_llvm_file(contract: &LLVMContract) -> fs::File {
-    let path = path::Path::new("tmp/llvm_ir_contract.ll");
+fn create_abi_file(path: &Path, contract: &LLVMContract) {
+    let abi = generate_abi(&contract.contract_behaviour_declarations);
     let mut file = fs::File::create(path).unwrap_or_else(|err| {
-        println!(
-            "Could not create file {}: {}",
-            path.display(),
-            err.to_string()
-        );
-        process::exit(1);
+        exit_on_failure(
+            format!(
+                "Could not create file {}: {}",
+                path.display(),
+                err.to_string()
+            )
+                .as_str(),
+        )
     });
 
+    file.write_all(abi.as_bytes()).unwrap_or_else(|err| {
+        exit_on_failure(
+            format!(
+                "Could not write to file {}: {}",
+                path.display(),
+                err.to_string()
+            )
+                .as_str(),
+        )
+    });
+}
+
+fn create_llvm_file(path: &Path, contract: &LLVMContract) -> fs::File {
     let llvm_module = generate_llvm(contract);
+
+    let mut file = fs::File::create(path).unwrap_or_else(|err| {
+        exit_on_failure(
+            format!(
+                "Could not create file {}: {}",
+                path.display(),
+                err.to_string()
+            )
+                .as_str(),
+        )
+    });
 
     file.write_all(llvm_module.as_bytes())
         .unwrap_or_else(|err| {
@@ -141,7 +175,7 @@ fn create_llvm_file(contract: &LLVMContract) -> fs::File {
                     path.display(),
                     err.to_string()
                 )
-                .as_str(),
+                    .as_str(),
             )
         });
 
@@ -159,8 +193,19 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     // The fpm will optimise our functions using the LLVM optimisations that we choose to add
     let fpm = PassManager::create(&llvm_module);
-    // TODO add more of the available optimisations
+    // Add more of the available optimisations.
+    // These are commented out while developing, since it is easier to see exactly what is generated
+    // without optimisations
+
+    /*
     fpm.add_verifier_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_cfg_simplification_pass();
+    */
+
     fpm.initialize();
 
     let mut codegen = Codegen {
@@ -185,10 +230,7 @@ fn exit_on_failure(msg: &str) -> ! {
 
 // Test function to see if the LLVM produced is accurate
 pub fn counter(codegen: &Codegen) {
-    codegen.module.print_to_stderr();
-
-    let engine = codegen
-        .module
+    let engine = codegen.module
         .create_jit_execution_engine(OptimizationLevel::None)
         .expect("Could not make engine");
     let fpm = PassManager::create(codegen.module);
@@ -204,6 +246,10 @@ pub fn counter(codegen: &Codegen) {
 
     fpm.initialize();
 
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+
     unsafe {
         type VoidToVoid = unsafe extern "C" fn() -> ();
 
@@ -217,8 +263,8 @@ pub fn counter(codegen: &Codegen) {
 
         init.call();
 
-        //assert_eq!(0, getter.call());
-        /*
+        assert_eq!(0, getter.call());
+
         let increment: JitFunction<VoidToVoid> = engine
             .get_function("increment")
             .expect("Could not find increment");
@@ -228,10 +274,10 @@ pub fn counter(codegen: &Codegen) {
             .expect("Could not find decrement");
 
         increment.call();
-        assert_eq!(6, getter.call());
+        assert_eq!(1, getter.call());
         increment.call();
-        assert_eq!(7, getter.call());
+        assert_eq!(2, getter.call());
         decrement.call();
-        assert_eq!(6, getter.call());*/
+        assert_eq!(1, getter.call());
     }
 }

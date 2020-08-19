@@ -49,7 +49,7 @@ impl Visitor for LLVMPreprocessor {
     ) -> VResult {
         let mut members = vec![];
         for member in &declaration.members {
-            if let ContractBehaviourMember::SpecialDeclaration(declaration) = &member {
+            if let ContractBehaviourMember::SpecialDeclaration(_declaration) = &member {
                 if let Some(dec) = ctx.environment.get_public_initialiser("Counter") {
                     members.push(ContractBehaviourMember::SpecialDeclaration(dec.clone()));
                     continue;
