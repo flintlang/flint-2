@@ -94,7 +94,7 @@ impl<'a> LLVMIdentifier<'a> {
         codegen: &Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        // TODO: Move add this check to the preprocessor
+        // TODO: Move this check to the preprocessor
         if self.identifier.enclosing_type.is_some() {
             let pointer_to_value = LLVMStructAccess {
                 expr: &Expression::BinaryExpression(BinaryExpression {
