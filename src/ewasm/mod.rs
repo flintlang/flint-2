@@ -14,9 +14,10 @@ mod structs;
 mod types;
 
 extern crate inkwell;
+extern crate regex;
+extern crate wabt;
 
 use self::inkwell::context::Context as LLVMContext;
-
 use self::inkwell::passes::PassManager;
 
 use crate::ast::{
@@ -24,15 +25,17 @@ use crate::ast::{
     TraitDeclaration,
 };
 use crate::context::Context;
-
 use crate::ewasm::abi::generate_abi;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::contract::LLVMContract;
+use itertools::Itertools;
 use nom::lib::std::collections::HashMap;
 use process::Command;
+use regex::Regex;
 use std::error::Error;
 use std::io::Write;
 use std::{fs, path::Path, process};
+use wabt::wasm2wat;
 
 pub fn generate(module: &Module, context: &Context) {
     let external_traits = module
@@ -149,12 +152,6 @@ pub fn generate(module: &Module, context: &Context) {
             .status()
             .expect("Could not link externally defined methods");
 
-        // Validate the generated WASM - requires WABT to be installed
-        // Command::new("wasm-validate")
-        //     .arg(get_path("tmp", "wasm"))
-        //     .status()
-        //     .expect("Invalid wasm generated");
-
         // Copy the wasm file into the output directory
         fs::copy(
             Path::new(get_path("tmp", "wasm").as_str()),
@@ -171,17 +168,21 @@ pub fn generate(module: &Module, context: &Context) {
 
         // The following only exists so that we can inspect LLVM output and wasm files as wat files
         // while developing, and should be removed. TODO
-        // let as_wat = Command::new("wasm2wat") // Requires WABT to be installed
-        //     .arg(get_path("tmp", "wasm"))
-        //     .output()
-        //     .expect("Could not convert wasm to wat")
-        //     .stdout
-        //     .iter()
-        //     .map(|ch| ch.as_char())
-        //     .collect::<String>();
-        //
-        // create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
-        //     .expect("Could not create output wat file");
+        let wasm =
+            fs::read(Path::new(get_path("tmp", "wasm").as_str())).expect("Could not read wasm");
+        let as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
+
+        // Remove exports except memory and main
+        let export_regex = Regex::new("export \"((main)|(memory))\"").unwrap();
+
+        let as_wat = as_wat
+            .lines()
+            .filter(|line| !line.contains("export") || export_regex.is_match(line))
+            .intersperse("\n")
+            .collect::<String>();
+
+        create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
+            .expect("Could not create output wat file");
 
         fs::copy(
             Path::new(get_path("tmp", "wasm").as_str()),
@@ -191,8 +192,6 @@ pub fn generate(module: &Module, context: &Context) {
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
-
-        // TODO remove exports etc.
     }
 }
 
@@ -235,7 +234,20 @@ fn generate_llvm(contract: &LLVMContract) -> String {
         types: HashMap::new(),
     };
 
+    build_empty_main_function(&codegen);
+
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
     llvm_module.print_to_string().to_string()
+}
+
+// This simply creates an empty main method, since eWASM requires a main that does not have
+// inputs or outputs
+fn build_empty_main_function(codegen: &Codegen) {
+    let void_type = codegen.context.void_type().fn_type(&[], false);
+    let main = codegen.module.add_function("main", void_type, None);
+    let block = codegen.context.append_basic_block(main, "entry");
+    codegen.builder.position_at_end(block);
+    codegen.builder.build_return(None);
+    codegen.verify_and_optimise(&main);
 }
