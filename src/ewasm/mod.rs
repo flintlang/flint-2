@@ -29,7 +29,6 @@ use crate::ewasm::abi::generate_abi;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::contract::LLVMContract;
 use nom::lib::std::collections::HashMap;
-use nom::AsChar;
 use process::Command;
 use std::error::Error;
 use std::io::Write;
