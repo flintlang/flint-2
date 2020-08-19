@@ -21,7 +21,7 @@ impl<'a> LLVMType<'a> {
             Type::DictionaryType(_) => unimplemented!(),
             Type::UserDefinedType(definition) => {
                 self.extract_defined_type(definition.token.as_str(), codegen)
-            } // TODO need to create an llvm type, but for this we need more detail than just the identifier
+            }
             Type::Solidity(_) => unimplemented!(),
             Type::SelfType => unimplemented!(), // TODO this depends on how we represent contract data
             Type::Bool => context.bool_type().as_basic_type_enum(),
@@ -42,8 +42,7 @@ impl<'a> LLVMType<'a> {
             ast_type: inout.key_type.as_ref(),
         }
         .generate(codegen);
-        //let inner_type = to_llvm_type(inout.key_type.as_ref(), context);
-        BasicTypeEnum::PointerType(inner_type.ptr_type(AddressSpace::Global))
+        BasicTypeEnum::PointerType(inner_type.ptr_type(AddressSpace::Generic))
     }
 
     fn llvm_array<'ctx>(
@@ -55,7 +54,6 @@ impl<'a> LLVMType<'a> {
             ast_type: fixed_arr_type.key_type.as_ref(),
         }
         .generate(codegen);
-        //let elem_type = to_llvm_type(fixed_arr_type.key_type.as_ref(), context);
         BasicTypeEnum::ArrayType(elem_type.array_type(fixed_arr_type.size as u32))
     }
 

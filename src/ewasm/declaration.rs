@@ -1,4 +1,4 @@
-use crate::ast::{Type, VariableDeclaration};
+use crate::ast::VariableDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
@@ -17,7 +17,6 @@ impl<'a> LLVMVariableDeclaration<'a> {
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         let identifier = &self.declaration.identifier;
-        let mut type_name = None;
         let expression: BasicValueEnum;
 
         if let Some(expr) = &self.declaration.expression {
@@ -34,20 +33,12 @@ impl<'a> LLVMVariableDeclaration<'a> {
                 FloatType(f) => BasicValueEnum::FloatValue(f.const_zero()),
                 IntType(i) => BasicValueEnum::IntValue(i.const_zero()),
                 PointerType(p) => BasicValueEnum::PointerValue(p.const_null()),
-                StructType(s) => {
-                    if let Type::UserDefinedType(struct_type_name) = &self.declaration.variable_type
-                    {
-                        type_name = Some(struct_type_name.token.clone());
-                        BasicValueEnum::StructValue(s.const_zero())
-                    } else {
-                        panic!("Wrong type")
-                    }
-                }
+                StructType(s) => BasicValueEnum::StructValue(s.const_zero()),
                 VectorType(v) => BasicValueEnum::VectorValue(v.const_zero()),
             }
         }
 
-        function_context.add_local(&identifier.token, type_name, expression);
+        function_context.add_local(&identifier.token, expression);
         expression
     }
 }

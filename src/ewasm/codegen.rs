@@ -5,7 +5,7 @@ use super::inkwell::module::Linkage;
 use super::inkwell::module::Module as LLVMModule;
 use super::inkwell::passes::PassManager;
 use super::inkwell::types::{BasicType, StructType};
-use super::inkwell::values::{BasicValue, FunctionValue, PointerValue};
+use super::inkwell::values::{BasicValue, FunctionValue};
 use std::collections::HashMap;
 
 pub struct Codegen<'a, 'ctx> {
@@ -63,26 +63,5 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     .unwrap_or("<could not convert func name to str>")
             );
         }
-    }
-
-    pub fn build_struct_member_getter(
-        &self,
-        struct_type_name: &str,
-        field_name: &str,
-        the_struct: PointerValue<'ctx>,
-        name_to_assign: &str,
-    ) -> PointerValue<'ctx> {
-        // PRE: the struct has been defined, and the_struct is a pointer to an instance of it
-        let (field_names, _) = self.types.get(struct_type_name).unwrap();
-        self.builder
-            .build_struct_gep(
-                the_struct,
-                field_names
-                    .iter()
-                    .position(|name| name == field_name)
-                    .unwrap() as u32,
-                name_to_assign,
-            )
-            .unwrap()
     }
 }

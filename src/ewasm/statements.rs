@@ -95,14 +95,22 @@ impl<'a> LLVMIfStatement<'a> {
         for statement in body {
             LLVMStatement { statement }.generate(codegen, function_context);
         }
-        codegen.builder.build_unconditional_branch(continue_bb);
+
+        if let Some(Statement::ReturnStatement(_)) = body.last() {
+        } else {
+            codegen.builder.build_unconditional_branch(continue_bb);
+        }
 
         // Build else block
         codegen.builder.position_at_end(else_bb);
         for statement in else_body {
             LLVMStatement { statement }.generate(codegen, function_context);
         }
-        codegen.builder.build_unconditional_branch(continue_bb);
+
+        if let Some(Statement::ReturnStatement(_)) = else_body.last() {
+        } else {
+            codegen.builder.build_unconditional_branch(continue_bb);
+        }
 
         // Reposition after if
         codegen.builder.position_at_end(continue_bb);
