@@ -23,7 +23,7 @@ impl Visitor for LLVMPreprocessor {
     fn start_contract_declaration(
         &mut self,
         dec: &mut ContractDeclaration,
-        ctx: &mut Context,
+        _ctx: &mut Context,
     ) -> VResult {
         // Add type states field to the contract
         if !dec.type_states.is_empty() {
@@ -38,28 +38,6 @@ impl Visitor for LLVMPreprocessor {
                     None,
                 ));
         }
-
-        Ok(())
-    }
-
-    fn start_contract_behaviour_declaration(
-        &mut self,
-        declaration: &mut ContractBehaviourDeclaration,
-        ctx: &mut Context,
-    ) -> VResult {
-        let mut members = vec![];
-        for member in &declaration.members {
-            if let ContractBehaviourMember::SpecialDeclaration(_declaration) = &member {
-                if let Some(dec) = ctx.environment.get_public_initialiser("Counter") {
-                    members.push(ContractBehaviourMember::SpecialDeclaration(dec.clone()));
-                    continue;
-                }
-            }
-
-            members.push(member.clone());
-        }
-
-        declaration.members = members;
 
         Ok(())
     }
