@@ -4,6 +4,7 @@ dist: bionic
 before_script:
   - rustup component add clippy
   - sudo apt-get update
+  - sudo apt-get upgrade
   - sudo apt-get install python3
   - sudo apt-get install llvm-10 llvm-10-dev
   - sudo apt-get install wabt
