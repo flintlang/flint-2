@@ -61,7 +61,7 @@ impl<'a> LLVMStruct<'a> {
                 LLVMType {
                     ast_type: &dec.variable_type,
                 }
-                    .generate(codegen)
+                .generate(codegen)
             })
             .collect::<Vec<BasicTypeEnum>>();
 

@@ -8,6 +8,7 @@ use crate::ast::expressions::{BinaryExpression, Expression};
 use crate::ast::operators::BinOp;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::{InoutType, Type};
+use crate::ast::Property;
 use crate::ast::{
     ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
     SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
@@ -22,7 +23,7 @@ impl Visitor for LLVMPreprocessor {
     fn start_contract_declaration(
         &mut self,
         dec: &mut ContractDeclaration,
-        ctx: &mut Context,
+        _ctx: &mut Context,
     ) -> VResult {
         // Add type states field to the contract
         if !dec.type_states.is_empty() {
@@ -37,63 +38,6 @@ impl Visitor for LLVMPreprocessor {
                     None,
                 ));
         }
-
-        // Push default variable assignments to the initialiser
-        let vars_with_assignments = dec
-            .contract_members
-            .iter()
-            .filter_map(|m| {
-                if let ContractMember::VariableDeclaration(vd, _) = m {
-                    if vd.expression.is_some() {
-                        return Some(vd);
-                    }
-                }
-                None
-            })
-            .collect::<Vec<&VariableDeclaration>>();
-
-        // Every contract must have an initialiser
-        let init = ctx
-            .environment
-            .get_public_initialiser(dec.identifier.token.as_str())
-            .unwrap();
-        for default_assignment in vars_with_assignments {
-            let assignment = BinaryExpression {
-                lhs_expression: Box::new(Expression::Identifier(
-                    default_assignment.identifier.clone(),
-                )),
-                rhs_expression: Box::new(*default_assignment.expression.clone().unwrap()),
-                op: BinOp::Equal,
-                line_info: Default::default(),
-            };
-
-            init.body
-                .push(Statement::Expression(Expression::BinaryExpression(
-                    assignment,
-                )));
-        }
-
-        Ok(())
-    }
-
-    fn start_contract_behaviour_declaration(
-        &mut self,
-        declaration: &mut ContractBehaviourDeclaration,
-        ctx: &mut Context,
-    ) -> VResult {
-        let mut members = vec![];
-        for member in &declaration.members {
-            if let ContractBehaviourMember::SpecialDeclaration(_declaration) = &member {
-                if let Some(dec) = ctx.environment.get_public_initialiser("Counter") {
-                    members.push(ContractBehaviourMember::SpecialDeclaration(dec.clone()));
-                    continue;
-                }
-            }
-
-            members.push(member.clone());
-        } 
-
-        declaration.members = members;
 
         Ok(())
     }
@@ -121,6 +65,50 @@ impl Visitor for LLVMPreprocessor {
                 }
             })
             .collect();
+
+        Ok(())
+    }
+
+    fn start_special_declaration(
+        &mut self,
+        dec: &mut SpecialDeclaration,
+        ctx: &mut Context,
+    ) -> VResult {
+        // Push default variable assignments to the initialiser
+        if let Some(contract_name) = &dec.head.enclosing_type {
+            let vars_with_assignments = &ctx
+                .environment
+                .types
+                .get(contract_name)
+                .unwrap()
+                .properties
+                .iter()
+                .filter_map(|(_, p_info)| {
+                    if let Property::VariableDeclaration(dec, _) = &p_info.property {
+                        if dec.expression.is_some() {
+                            return Some(dec);
+                        }
+                    }
+                    None
+                })
+                .collect::<Vec<&VariableDeclaration>>();
+
+            for default_assignment in vars_with_assignments {
+                let assignment = BinaryExpression {
+                    lhs_expression: Box::new(Expression::Identifier(
+                        default_assignment.identifier.clone(),
+                    )),
+                    rhs_expression: Box::new(*default_assignment.expression.clone().unwrap()),
+                    op: BinOp::Equal,
+                    line_info: Default::default(),
+                };
+
+                dec.body
+                    .push(Statement::Expression(Expression::BinaryExpression(
+                        assignment,
+                    )));
+            }
+        }
 
         Ok(())
     }

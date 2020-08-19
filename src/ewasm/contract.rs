@@ -50,7 +50,7 @@ impl<'a> LLVMContract<'a> {
                 LLVMType {
                     ast_type: &member.variable_type,
                 }
-                    .generate(codegen)
+                .generate(codegen)
             })
             .collect::<Vec<BasicTypeEnum>>();
 
@@ -96,7 +96,7 @@ impl<'a> LLVMContract<'a> {
             LLVMStruct {
                 struct_declaration: dec,
             }
-                .generate(codegen)
+            .generate(codegen)
         });
 
         // Generate all contract functions

@@ -20,12 +20,12 @@ impl<'a> LLVMAssignment<'a> {
         let lhs = LLVMExpression {
             expression: self.lhs,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
         function_context.assigning = false;
         let rhs = LLVMExpression {
             expression: self.rhs,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
 
         codegen.builder.build_store(lhs.into_pointer_value(), rhs);
         // TODO: what should we return?
