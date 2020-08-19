@@ -76,6 +76,28 @@ impl Visitor for LLVMPreprocessor {
         Ok(())
     }
 
+    fn start_contract_behaviour_declaration(
+        &mut self,
+        declaration: &mut ContractBehaviourDeclaration,
+        ctx: &mut Context,
+    ) -> VResult {
+        let mut members = vec![];
+        for member in &declaration.members {
+            if let ContractBehaviourMember::SpecialDeclaration(declaration) = &member {
+                if let Some(dec) = ctx.environment.get_public_initialiser("Counter") {
+                    members.push(ContractBehaviourMember::SpecialDeclaration(dec.clone()));
+                    continue;
+                }
+            }
+
+            members.push(member.clone());
+        } 
+
+        declaration.members = members;
+
+        Ok(())
+    }
+
     fn finish_contract_behaviour_declaration(
         &mut self,
         declaration: &mut ContractBehaviourDeclaration,

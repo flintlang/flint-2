@@ -13,6 +13,8 @@ mod structs;
 mod types;
 
 extern crate inkwell;
+use inkwell::execution_engine::JitFunction;
+use inkwell::OptimizationLevel;
 
 use self::inkwell::context::Context as LLVMContext;
 
@@ -172,10 +174,63 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
+    counter(&codegen);
     llvm_module.print_to_string().to_string()
 }
 
 fn exit_on_failure(msg: &str) -> ! {
     println!("{}", msg);
     process::exit(1)
+}
+
+// Test function to see if the LLVM produced is accurate
+pub fn counter(codegen: &Codegen) {
+    codegen.module.print_to_stderr();
+
+    let engine = codegen.module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+ 
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+ 
+    fpm.initialize();
+ 
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+ 
+        let init = engine
+            .get_function::<VoidToVoid>("CounterInit")
+            .expect("Could not find CounterInit");
+ 
+        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getValue")
+            .expect("Could not find getter");
+
+        init.call();
+
+        //assert_eq!(0, getter.call());
+        /*
+        let increment: JitFunction<VoidToVoid> = engine
+            .get_function("increment")
+            .expect("Could not find increment");
+ 
+        let decrement: JitFunction<VoidToVoid> = engine
+            .get_function("decrement")
+            .expect("Could not find decrement");
+ 
+        increment.call();
+        assert_eq!(6, getter.call());
+        increment.call();
+        assert_eq!(7, getter.call());
+        decrement.call();
+        assert_eq!(6, getter.call());*/
+    }
 }

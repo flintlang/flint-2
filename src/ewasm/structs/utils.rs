@@ -42,6 +42,9 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen)
     let mut function_context = FunctionContext::new(init_func, params);
     let block = codegen.context.append_basic_block(init_func, "entry");
     codegen.builder.position_at_end(block);
+    let global = codegen.module.get_global(codegen.contract_name).unwrap().as_pointer_value();
+    function_context.add_local("this", global.as_basic_value_enum());
+    
     for statement in initialiser.body.iter() {
         LLVMStatement { statement }.generate(codegen, &mut function_context);
     }

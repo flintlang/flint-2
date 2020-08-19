@@ -62,6 +62,11 @@ impl<'a> LLVMContract<'a> {
             (member_names, struct_type),
         );
 
+        // add global var declaration of struct
+        codegen
+            .module
+            .add_global(struct_type, None, codegen.contract_name);
+
         let initialiser = self
             .contract_behaviour_declarations
             .iter()
@@ -81,11 +86,6 @@ impl<'a> LLVMContract<'a> {
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
         generate_initialiser(initialiser, codegen);
-
-        // add global var declaration of struct
-        codegen
-            .module
-            .add_global(struct_type, None, codegen.contract_name);
 
         // Set up struct definitions here
         self.struct_declarations.iter().for_each(|dec| {
