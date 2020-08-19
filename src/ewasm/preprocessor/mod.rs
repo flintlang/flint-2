@@ -13,6 +13,7 @@ use crate::ast::{
     ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
     SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
 };
+use crate::ast::calls::{FunctionCall, FunctionArgument};
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
 use crate::visitor::Visitor;
@@ -307,6 +308,20 @@ impl Visitor for LLVMPreprocessor {
             expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         }
 
+        Ok(())
+    }
+
+    fn start_function_call(&mut self, call: &mut FunctionCall, _: &mut Context) -> VResult {
+        let function_name = &call.identifier.token;
+        call.identifier.token = mangle_ewasm_function(&function_name);
+
+        let contract_argument = FunctionArgument {
+            identifier: None,
+            expression: Expression::Identifier(Identifier::generated("this")),
+        };
+
+        call.arguments.push(contract_argument);
+        
         Ok(())
     }
 }
