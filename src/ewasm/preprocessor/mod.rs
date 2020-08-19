@@ -1,5 +1,6 @@
 mod utils;
 
+use crate::ast::calls::{FunctionArgument, FunctionCall};
 use crate::ast::declarations::{
     ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, VariableDeclaration,
 };
@@ -13,7 +14,6 @@ use crate::ast::{
     ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
     SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
 };
-use crate::ast::calls::{FunctionCall, FunctionArgument};
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
 use crate::visitor::Visitor;
@@ -321,7 +321,7 @@ impl Visitor for LLVMPreprocessor {
         };
 
         call.arguments.push(contract_argument);
-        
+
         Ok(())
     }
 }

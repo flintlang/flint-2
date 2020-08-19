@@ -371,7 +371,7 @@ dependencies = [
     "byte-tools 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
     "digest 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
     "keccak 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "opaque-debug 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+    "opaque-debug 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

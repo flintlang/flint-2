@@ -238,9 +238,6 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
-    //counter(&codegen);
-    factorial(&codegen);
-    codegen.module.print_to_stderr();
     llvm_module.print_to_string().to_string()
 }
 
@@ -254,4 +251,3 @@ fn build_empty_main_function(codegen: &Codegen) {
     codegen.builder.build_return(None);
     codegen.verify_and_optimise(&main);
 }
-
