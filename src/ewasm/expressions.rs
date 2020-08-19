@@ -104,7 +104,7 @@ impl<'a> LLVMIdentifier<'a> {
                     line_info: Default::default(),
                 }),
             }
-                .generate(codegen, function_context);
+            .generate(codegen, function_context);
 
             if function_context.assigning {
                 pointer_to_value.as_basic_value_enum()
@@ -145,7 +145,7 @@ impl<'a> LLVMBinaryExpression<'a> {
                         function_call: f,
                         module_name: "Self",
                     }
-                        .generate(codegen, function_context);
+                    .generate(codegen, function_context);
                 }
                 // TODO other cases
             }
@@ -154,7 +154,7 @@ impl<'a> LLVMBinaryExpression<'a> {
                     lhs: &*self.expression.lhs_expression,
                     rhs: &*self.expression.rhs_expression,
                 }
-                    .generate(codegen, function_context);
+                .generate(codegen, function_context);
             }
             _ => (),
         }
@@ -162,11 +162,11 @@ impl<'a> LLVMBinaryExpression<'a> {
         let lhs = LLVMExpression {
             expression: &*self.expression.lhs_expression,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
         let rhs = LLVMExpression {
             expression: &*self.expression.rhs_expression,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
 
         match self.expression.op {
             BinOp::Dot => panic!("Expression should already be evaluated"),
@@ -554,15 +554,15 @@ impl<'a> LLVMInoutExpression<'a> {
         let expr = LLVMExpression {
             expression: &self.expression.expression,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
 
         if expr.is_pointer_value()
             && expr
-            .into_pointer_value()
-            .get_name()
-            .to_str()
-            .expect("cannot convert cstr to str")
-            .eq(codegen.contract_name)
+                .into_pointer_value()
+                .get_name()
+                .to_str()
+                .expect("cannot convert cstr to str")
+                .eq(codegen.contract_name)
         {
             return expr;
         }
@@ -624,11 +624,11 @@ impl<'a> LLVMCastExpression<'a> {
         let cast_from_val = LLVMExpression {
             expression: &self.expression.expression,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
         let cast_to_type = LLVMType {
             ast_type: &self.expression.cast_type,
         }
-            .generate(codegen);
+        .generate(codegen);
 
         // TODO: which opcode should we pick here?
         codegen.builder.build_cast(
@@ -686,11 +686,11 @@ impl<'a> LLVMStructAccess<'a> {
         match expr {
             Expression::Identifier(id) => vec![id.token.as_str()],
             Expression::BinaryExpression(BinaryExpression {
-                                             lhs_expression,
-                                             rhs_expression,
-                                             op: BinOp::Dot,
-                                             ..
-                                         }) => {
+                lhs_expression,
+                rhs_expression,
+                op: BinOp::Dot,
+                ..
+            }) => {
                 let mut flattened = self.flatten_expr(lhs_expression);
                 flattened.extend(self.flatten_expr(rhs_expression));
                 flattened
