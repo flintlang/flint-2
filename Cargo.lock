@@ -103,6 +103,7 @@ dependencies = [
  "hex",
  "inkwell",
  "itertools",
+ "json",
  "nom",
  "nom_locate",
  "sha3",
@@ -161,6 +162,12 @@ checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
 dependencies = [
  "either",
 ]
+
+[[package]]
+name = "json"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
 name = "keccak"
