@@ -53,23 +53,21 @@ pub fn generate_contract_wrapper(
         line_info: Default::default(),
     };
 
-    let mut arguments = vec![FunctionArgument {
-        identifier: None,
-        expression: Expression::Identifier(Identifier::generated(contract_name)),
-    }];
+    let mut arguments = function
+        .head
+        .parameters
+        .clone()
+        .into_iter()
+        .map(|p| FunctionArgument {
+            identifier: None,
+            expression: Expression::Identifier(p.identifier),
+        })
+        .collect::<Vec<FunctionArgument>>();
 
-    arguments.extend(
-        function
-            .head
-            .parameters
-            .clone()
-            .into_iter()
-            .map(|p| FunctionArgument {
-                identifier: None,
-                expression: Expression::Identifier(p.identifier),
-            })
-            .collect::<Vec<FunctionArgument>>(),
-    );
+    arguments.push(FunctionArgument {
+        identifier: None,
+        expression: Expression::Identifier(Identifier::generated(contract_name))
+    });
 
     function.head.parameters.push(contract_parameter);
 

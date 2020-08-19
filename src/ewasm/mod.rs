@@ -219,7 +219,8 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
-    counter(&codegen);
+    //counter(&codegen);
+    codegen.module.print_to_stderr();
     llvm_module.print_to_string().to_string()
 }
 
@@ -229,7 +230,7 @@ fn exit_on_failure(msg: &str) -> ! {
 }
 
 // Test function to see if the LLVM produced is accurate
-pub fn counter(codegen: &Codegen) {
+/*pub fn counter(codegen: &Codegen) {
     let engine = codegen.module
         .create_jit_execution_engine(OptimizationLevel::None)
         .expect("Could not make engine");
@@ -280,4 +281,4 @@ pub fn counter(codegen: &Codegen) {
         decrement.call();
         assert_eq!(1, getter.call());
     }
-}
+}*/
