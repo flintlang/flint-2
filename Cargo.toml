@@ -13,3 +13,5 @@ sha3 = "0.8.2"
 hex = "0.4.2"
 itertools = "0.9.0"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "llvm10-0" }
+json = "0.12.4"
+
