@@ -55,6 +55,29 @@ pub enum CallableInformation {
     SpecialInformation(SpecialInformation),
 }
 
+impl CallableInformation {
+    pub(crate) fn name(&self) -> &str {
+        match self {
+            CallableInformation::FunctionInformation(info) => &info.identifier().token,
+            CallableInformation::SpecialInformation(info) => info.name()
+        }
+    }
+
+    pub(crate) fn line_info(&self) -> Option<&LineInfo> {
+        match self {
+            CallableInformation::FunctionInformation(info) => Some(info.line_info()),
+            _ => None
+        }
+    }
+
+    pub(crate) fn get_parameter_types(&self) -> Vec<&Type> {
+        match self {
+            CallableInformation::FunctionInformation(info) => info.get_parameter_types().collect(),
+            CallableInformation::SpecialInformation(info) => info.get_parameter_types().collect()
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Candidates {
     pub(crate) candidates: Vec<CallableInformation>,
@@ -198,22 +221,17 @@ impl Environment {
             _ => false,
         };
         let caller_protection_function = |f: &FunctionInformation| {
-            if f.declaration.get_result_type().is_some() {
-                if f.get_result_type().unwrap().is_address_type()
-                    && f.get_parameter_types().is_empty()
-                {
-                    return true;
+            if let Some(result_type) = f.declaration.get_result_type() {
+                let mut parameter_types = f.get_parameter_types();
+                if let Some(parameter_type) = parameter_types.next() {
+                    // There are no further parameter types
+                    parameter_types.all(|_| false)
+                        && parameter_type.is_address_type()
+                        && result_type.is_bool_type()
+                } else {
+                    result_type.is_address_type()
                 }
-                if f.get_result_type().unwrap().is_bool_type() && f.get_parameter_types().len() == 1
-                {
-                    let element = f.get_parameter_types().remove(0);
-                    if element.is_address_type() {
-                        return true;
-                    }
-                }
-                return false;
-            }
-            false
+            } else { false }
         };
         self.types
             .get(type_id)

@@ -214,6 +214,14 @@ impl SpecialInformation {
             .map(|p| p.type_assignment)
             .collect()
     }
+
+    pub fn name(&self) -> &str {
+        &self.declaration.head.special_token
+    }
+
+    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item=&'a Type> + 'a {
+        self.declaration.head.parameter_types()
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -230,21 +238,27 @@ impl FunctionInformation {
         self.declaration.get_result_type()
     }
 
-    pub fn get_parameter_types(&self) -> Vec<Type> {
+    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item=&'a Type> + 'a {
         self.declaration.head.parameter_types()
     }
 
-    pub fn parameter_identifiers(&self) -> Vec<Identifier> {
+    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item=&'a Identifier> + 'a {
         self.declaration.head.parameter_identifiers()
     }
 
-    pub fn required_parameter_identifiers(&self) -> Vec<Identifier> {
-        let identifiers = self.declaration.head.parameters.clone();
-        identifiers
-            .into_iter()
+    pub fn required_parameter_identifiers(&self) -> impl Iterator<Item=&Identifier> {
+        self.declaration.head.parameters
+            .iter()
             .filter(|i| i.expression.is_none())
-            .map(|p| p.identifier)
-            .collect()
+            .map(|p| &p.identifier)
+    }
+
+    pub fn identifier(&self) -> &Identifier {
+        &self.declaration.head.identifier
+    }
+
+    pub fn line_info(&self) -> &LineInfo {
+        &self.declaration.head.identifier.line_info
     }
 }
 

@@ -74,6 +74,23 @@ impl Context {
             .map(|c| &*c.caller_protections)
             .unwrap_or(&[])
     }
+
+    pub fn scope_or_default(&self) -> &ScopeContext {
+        self.scope_context.as_ref().unwrap_or_default()
+    }
+
+    pub fn declaration_context_type_id(&self) -> Option<&str> {
+        self.contract_behaviour_declaration_context.as_ref()
+            .map(|c| &*c.identifier.token)
+            .or_else(
+                || self.struct_declaration_context.as_ref()
+                    .map(|c| &*c.identifier.token)
+                    .or_else(
+                        || self.asset_context.as_ref()
+                            .map(|c| &*c.identifier.token)
+                    )
+            )
+    }
 }
 
 #[derive(Debug)]

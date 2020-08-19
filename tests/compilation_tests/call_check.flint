@@ -2,6 +2,7 @@ contract Test { }
 
 Test :: (any) {
     public init() {
+        //! compile fail call `test0` with (Bool) on line 6, did you mean to call `test0` with () on line 19
         test0(true)
 
         test1()

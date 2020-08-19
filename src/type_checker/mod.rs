@@ -78,7 +78,7 @@ impl Visitor for TypeChecker {
             enclosing,
             &[],
             &[],
-            _ctx.scope_context.as_ref().unwrap_or_default(),
+            _ctx.scope_or_default(),
         );
         match _t.op {
             BinOp::Dot => _t.rhs_expression.assign_enclosing_type(&lhs_type.name()),

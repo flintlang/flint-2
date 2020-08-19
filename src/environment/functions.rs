@@ -14,15 +14,8 @@ impl Environment {
         caller_protections: Vec<CallerProtection>,
         type_states: Vec<TypeState>,
     ) {
-        let name = f.head.identifier.token.clone();
+        let name = &f.head.identifier.token;
         let mutating = f.is_mutating();
-        let function_information = FunctionInformation {
-            declaration: f,
-            mutating,
-            caller_protections,
-            type_states,
-            ..Default::default()
-        };
         let type_info = if let Some(type_info) = self.types.get_mut(type_id) {
             type_info
         } else {
@@ -30,10 +23,19 @@ impl Environment {
             self.types.get_mut(type_id).unwrap()
         };
 
-        if let Some(function_set) = type_info.functions.get_mut(&name) {
-            function_set.push(function_information);
+        // Allow further references without premature moving or code duplication
+        let function_information = |f| FunctionInformation {
+            declaration: f,
+            mutating,
+            caller_protections,
+            type_states,
+            ..Default::default()
+        };
+
+        if let Some(function_set) = type_info.functions.get_mut(name) {
+            function_set.push(function_information(f));
         } else {
-            type_info.functions.insert(name, vec![function_information]);
+            type_info.functions.insert(name.clone(), vec![function_information(f)]);
         }
     }
 
@@ -107,12 +109,6 @@ impl Environment {
     ) -> FunctionCallMatchResult {
         let mut candidates = Vec::new();
 
-        let argument_types: Vec<Type> = call
-            .arguments
-            .iter()
-            .map(|a| self.get_expression_type(&a.expression, type_id, &[], &[], &scope))
-            .collect();
-
         if let Some(type_info) = self.types.get(type_id) {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
@@ -136,22 +132,12 @@ impl Environment {
             }
         }
 
+        let argument_types: Vec<_> = self.argument_types(call, type_id, scope).collect();
+
         let matched_candidates: Vec<FunctionInformation> = candidates
             .clone()
             .into_iter()
-            .filter(|c| {
-                let p_types = c.get_parameter_types();
-                if p_types.len() != argument_types.len() {
-                    return false;
-                }
-                let mut arg_types = argument_types.clone();
-                for p in p_types {
-                    if p != arg_types.remove(0) {
-                        return false;
-                    }
-                }
-                true
-            })
+            .filter(|c| c.get_parameter_types().eq(argument_types.iter()))
             .collect();
 
         let matched_candidates: Vec<CallableInformation> = matched_candidates
@@ -204,12 +190,7 @@ impl Environment {
         if let Some(type_info) = self.types.get(&call.identifier.token) {
             for initialiser in &type_info.initialisers {
                 let parameter_types = initialiser.parameter_types();
-                let mut equal_types = true;
-                for argument_type in argument_types {
-                    if !parameter_types.contains(argument_type) {
-                        equal_types = false;
-                    }
-                }
+                let equal_types = *&parameter_types == argument_types;
 
                 if equal_types
                     && self
@@ -242,10 +223,10 @@ impl Environment {
         if let Some(type_info) = self.types.get(&"Quartz_Global".to_string()) {
             if let Some(functions) = type_info.functions.get(&call.identifier.token) {
                 for function in functions {
-                    let parameter_types = function.get_parameter_types();
+                    let parameter_types: Vec<_> = function.get_parameter_types().collect();
                     let equal_types = argument_types
                         .iter()
-                        .all(|argument_type| parameter_types.contains(argument_type));
+                        .all(|argument_type| parameter_types.contains(&argument_type));
                     if equal_types
                         && self.compatible_caller_protections(
                             protections,
@@ -270,6 +251,12 @@ impl Environment {
         FunctionCallMatchResult::Failure(Candidates { candidates })
     }
 
+    pub fn argument_types<'a>(&'a self, call: &'a FunctionCall, type_id: &'a str, scope: &'a ScopeContext) -> impl Iterator<Item=Type> + 'a {
+        call.arguments
+            .iter()
+            .map(move |a| self.get_expression_type(&a.expression, type_id, &[], &[], scope))
+    }
+
     pub fn is_runtime_function_call(function_call: &FunctionCall) -> bool {
         function_call.identifier.token.starts_with("Quartz_")
     }
@@ -281,9 +268,7 @@ impl Environment {
         caller_protections: &[CallerProtection],
         scope: &ScopeContext,
     ) -> FunctionCallMatchResult {
-        let result = FunctionCallMatchResult::Failure(Candidates {
-            ..Default::default()
-        });
+        let result = FunctionCallMatchResult::Failure(Candidates { ..Default::default() });
 
         let argument_types: Vec<_> = call
             .arguments
@@ -298,9 +283,7 @@ impl Environment {
 
         let global_match = self.match_global_function(call, &argument_types, caller_protections);
 
-        let result = result.merge(regular_match);
-        let result = result.merge(initaliser_match);
-        result.merge(global_match)
+        result.merge(regular_match).merge(initaliser_match).merge(global_match)
     }
 
     fn compatible_caller_protections(
@@ -337,8 +320,8 @@ impl Environment {
         type_id: &str,
         scope: &ScopeContext,
     ) -> bool {
-        let no_self_declaration_type =
-            Environment::replace_self(source.get_parameter_types(), type_id);
+        let no_self_declaration_type: Vec<_> =
+            Environment::replace_self(source.get_parameter_types(), type_id).collect();
 
         let parameters: Vec<_> = source
             .declaration
@@ -348,8 +331,8 @@ impl Environment {
             .map(|p| p.as_variable_declaration())
             .collect();
 
-        if target.arguments.len() <= source.parameter_identifiers().len()
-            && target.arguments.len() >= source.required_parameter_identifiers().len()
+        if target.arguments.len() <= source.parameter_identifiers().count()
+            && target.arguments.len() >= source.required_parameter_identifiers().count()
         {
             self.check_parameter_compatibility(
                 &target.arguments,
@@ -458,9 +441,8 @@ impl Environment {
         true
     }
 
-    pub fn replace_self(list: Vec<Type>, enclosing: &str) -> Vec<Type> {
-        list.into_iter()
-            .map(|t| t.replacing_self(enclosing))
-            .collect()
+    pub fn replace_self<'a, I: 'a + Iterator<Item=&'a Type>>(iterator: I, enclosing: &'a str) -> impl Iterator<Item=Type> + 'a {
+        iterator
+            .map(move |t| t.replacing_self(enclosing))
     }
 }
