@@ -151,10 +151,10 @@ pub fn generate(module: &Module, context: &Context) {
             .expect("Could not link externally defined methods");
 
         // Validate the generated WASM - requires WABT to be installed
-        Command::new("wasm-validate")
-            .arg(get_path("tmp", "wasm"))
-            .status()
-            .expect("Invalid wasm generated");
+        // Command::new("wasm-validate")
+        //     .arg(get_path("tmp", "wasm"))
+        //     .status()
+        //     .expect("Invalid wasm generated");
 
         // Copy the wasm file into the output directory
         fs::copy(
@@ -172,17 +172,17 @@ pub fn generate(module: &Module, context: &Context) {
 
         // The following only exists so that we can inspect LLVM output and wasm files as wat files
         // while developing, and should be removed. TODO
-        let as_wat = Command::new("wasm2wat") // Requires WABT to be installed
-            .arg(get_path("tmp", "wasm"))
-            .output()
-            .expect("Could not convert wasm to wat")
-            .stdout
-            .iter()
-            .map(|ch| ch.as_char())
-            .collect::<String>();
-
-        create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
-            .expect("Could not create output wat file");
+        // let as_wat = Command::new("wasm2wat") // Requires WABT to be installed
+        //     .arg(get_path("tmp", "wasm"))
+        //     .output()
+        //     .expect("Could not convert wasm to wat")
+        //     .stdout
+        //     .iter()
+        //     .map(|ch| ch.as_char())
+        //     .collect::<String>();
+        //
+        // create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
+        //     .expect("Could not create output wat file");
 
         fs::copy(
             Path::new(get_path("tmp", "wasm").as_str()),
