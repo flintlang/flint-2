@@ -6,7 +6,7 @@ pub struct FunctionContext<'a> {
     pub assigning: bool,
     this_func: FunctionValue<'a>,
     parameters: HashMap<String, BasicValueEnum<'a>>,
-    pub locals: HashMap<String, BasicValueEnum<'a>>,
+    locals: HashMap<String, BasicValueEnum<'a>>,
 }
 
 #[allow(dead_code)]
