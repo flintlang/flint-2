@@ -35,7 +35,7 @@ use std::io::Write;
 use std::path::Path;
 use std::{fs, path, process};
 
-pub fn generate(module: &Module, context: &Context) {
+pub fn generate(module: &Module, context: &mut Context) {
     let external_traits = module
         .declarations
         .iter()
@@ -137,7 +137,7 @@ fn create_abi_file(path: &Path, contract: &LLVMContract) {
                 path.display(),
                 err.to_string()
             )
-                .as_str(),
+            .as_str(),
         )
     });
 
@@ -148,7 +148,7 @@ fn create_abi_file(path: &Path, contract: &LLVMContract) {
                 path.display(),
                 err.to_string()
             )
-                .as_str(),
+            .as_str(),
         )
     });
 }
@@ -163,7 +163,7 @@ fn create_llvm_file(path: &Path, contract: &LLVMContract) -> fs::File {
                 path.display(),
                 err.to_string()
             )
-                .as_str(),
+            .as_str(),
         )
     });
 
@@ -175,7 +175,7 @@ fn create_llvm_file(path: &Path, contract: &LLVMContract) -> fs::File {
                     path.display(),
                     err.to_string()
                 )
-                    .as_str(),
+                .as_str(),
             )
         });
 
@@ -286,7 +286,8 @@ fn exit_on_failure(msg: &str) -> ! {
 
 // Test function to see if the LLVM produced is accurate
 pub fn factorial(codegen: &Codegen) {
-    let engine = codegen.module
+    let engine = codegen
+        .module
         .create_jit_execution_engine(OptimizationLevel::None)
         .expect("Could not make engine");
     let fpm = PassManager::create(codegen.module);
@@ -304,7 +305,6 @@ pub fn factorial(codegen: &Codegen) {
 
     assert!(codegen.module.verify().is_ok());
     codegen.module.print_to_stderr();
-
 
     unsafe {
         type VoidToVoid = unsafe extern "C" fn() -> ();
@@ -333,4 +333,3 @@ pub fn factorial(codegen: &Codegen) {
         assert_eq!(3628800, getter.call());
     }
 }
-

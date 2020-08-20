@@ -39,7 +39,7 @@ impl Default for MovePosition {
     }
 }
 
-pub fn generate(module: Module, context: &mut Context) {
+pub fn generate(module: &Module, context: &mut Context) {
     let trait_declarations: Vec<TraitDeclaration> = module
         .declarations
         .clone()

@@ -66,7 +66,7 @@ pub fn generate_contract_wrapper(
 
     arguments.push(FunctionArgument {
         identifier: None,
-        expression: Expression::Identifier(Identifier::generated(contract_name))
+        expression: Expression::Identifier(Identifier::generated(contract_name)),
     });
 
     function.head.parameters.push(contract_parameter);

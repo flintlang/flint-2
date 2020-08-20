@@ -1,4 +1,6 @@
 use crate::ast::*;
+use crate::target;
+use crate::target::currency::Currency;
 
 #[derive(Debug, Default)]
 pub struct Context {
@@ -28,7 +30,7 @@ pub struct Context {
     pub in_emit: bool,
     pub pre_statements: Vec<Statement>,
     pub post_statements: Vec<Statement>,
-    pub target: crate::ast_processor::Target,
+    pub target: Target,
 }
 
 impl Context {
@@ -89,6 +91,21 @@ impl Context {
                     .map(|c| &*c.identifier.token)
                     .or_else(|| self.asset_context.as_ref().map(|c| &*c.identifier.token))
             })
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Target {
+    pub name: &'static str,
+    pub currency: Currency,
+}
+
+impl From<&target::Target> for Target {
+    fn from(target: &target::Target) -> Self {
+        Target {
+            name: target.name,
+            currency: target.currency.clone(),
+        }
     }
 }
 

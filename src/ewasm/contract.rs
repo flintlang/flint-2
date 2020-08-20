@@ -1,4 +1,5 @@
 use super::inkwell::types::BasicTypeEnum;
+use super::inkwell::values::BasicValue;
 use crate::ast::declarations::VariableDeclaration;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
@@ -10,7 +11,6 @@ use crate::ewasm::function::LLVMFunction;
 use crate::ewasm::structs::utils::generate_initialiser;
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
-use super::inkwell::values::BasicValue;
 
 pub struct LLVMContract<'a> {
     pub contract_declaration: &'a ContractDeclaration,
@@ -70,7 +70,6 @@ impl<'a> LLVMContract<'a> {
         // Required so that the global variable is safe to access in memory. Note this is garbage
         // data but this should not matter since an initialiser will overwrite it
         global.set_initializer(&struct_type.const_zero().as_basic_value_enum());
-
 
         let initialiser = self
             .contract_behaviour_declarations

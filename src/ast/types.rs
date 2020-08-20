@@ -1,7 +1,7 @@
 use crate::ast::*;
-use crate::ast_processor::Currency;
 use crate::context::Context;
 use crate::environment::Environment;
+use crate::target::currency::Currency;
 use crate::visitor::Visitor;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -49,7 +49,7 @@ impl Type {
         return matches!(
             self,
             Type::UserDefinedType(ref i)
-                if currency.currency_types.contains(&i.token)
+                if currency.currency_types.contains(&&*i.token)
         );
     }
 
