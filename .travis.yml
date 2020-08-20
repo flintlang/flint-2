@@ -6,12 +6,13 @@ before_script:
   - sudo apt-get update
   - sudo apt-get install python3
   - sudo apt-get install llvm-10 llvm-10-dev
-  - alias "llc"=llc-10
+  - alias "llc"=/usr/lib/llvm-10/bin/llc
 
 script:
   - LLVM_SYS_100_PREFIX=/usr/lib/llvm-10 cargo build
   - cargo clippy -- -D warnings
   - mkdir output
+  - cargo test --verbose
   - cargo run libra tests/move_tests/counter.flint
   - cargo run libra tests/move_tests/rectangle.flint
   - cargo run libra tests/move_tests/shapes.flint
@@ -24,5 +25,4 @@ script:
   - cargo run libra tests/move_tests/public_and_visible.flint
   - cargo run libra tests/move_tests/typestates_counter.flint
   - python3 run_move_tests.py compilation
-  - cargo test --verbose
 cache: cargo
