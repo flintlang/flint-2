@@ -1,5 +1,5 @@
 {
   "libraPath": "",
   "llcPath": "llc-10",
-  "wasm-ldPath": "wasm-ld"
+  "wasm-ldPath": "wasm-ld-10"
 }
