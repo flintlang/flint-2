@@ -134,6 +134,7 @@ pub fn generate(module: &Module, context: &mut Context) {
         .expect("Could not create file");
 
         // Convert LLVM to wasm32:
+        // TODO need to change llc command to be the correct one on the local system
         Command::new("llc")
             .arg("-O3")
             .arg("-march=wasm32")
@@ -189,7 +190,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "wat").as_str()),
             Path::new(get_path("output", "wat").as_str()),
         )
-            .expect("Could not copy wat file fromt tmp to output");
+            .expect("Could not copy wat file from tmp to output");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
