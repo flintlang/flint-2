@@ -14,11 +14,10 @@ mod structs;
 mod types;
 
 extern crate inkwell;
-use inkwell::execution_engine::JitFunction;
-use inkwell::OptimizationLevel;
+extern crate regex;
+extern crate wabt;
 
 use self::inkwell::context::Context as LLVMContext;
-
 use self::inkwell::passes::PassManager;
 
 use crate::ast::{
@@ -26,14 +25,17 @@ use crate::ast::{
     TraitDeclaration,
 };
 use crate::context::Context;
-
 use crate::ewasm::abi::generate_abi;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::contract::LLVMContract;
+use itertools::Itertools;
 use nom::lib::std::collections::HashMap;
+use process::Command;
+use regex::Regex;
+use std::error::Error;
 use std::io::Write;
-use std::path::Path;
-use std::{fs, path, process};
+use std::{fs, path::Path, process};
+use wabt::wasm2wat;
 
 pub fn generate(module: &Module, context: &mut Context) {
     let external_traits = module
@@ -111,75 +113,90 @@ pub fn generate(module: &Module, context: &mut Context) {
 
     // It seems from the move target that we are allowed to create multiple contracts, and each of these
     // gets put into a separate file, so we will do the same here
-    for contract in ewasm_contracts.iter() {
-        let file_name = contract.contract_declaration.identifier.token.as_str();
-        let file_path = format!("tmp/{}.ll", file_name);
-        let file_path = path::Path::new(file_path.as_str());
-        let _contract_file = create_llvm_file(file_path, contract);
-        create_abi_file(
-            path::Path::new(format!("output/{}.json", file_name).as_str()),
-            contract,
-        );
+    let output_path = Path::new("output");
+    if !output_path.exists() {
+        fs::create_dir(output_path).expect("Could not create output directory");
+    }
 
-        // TODO use llvm tools to compile _contract_file to WASM, then remove exports etc and
-        // probably use WABT tools to verify it etc.
-        // Also create the ABI file
-        // remove the temporary ewasm file
+    for contract in ewasm_contracts.iter() {
+        let tmp_path = Path::new("tmp");
+        fs::create_dir(tmp_path).expect("Could not create tmp directory");
+
+        let file_name = contract.contract_declaration.identifier.token.as_str();
+        let get_path = |folder: &str, ext: &str| format!("{}/{}.{}", folder, file_name, ext);
+
+        // Create LLVM file
+        create_and_write_to_file(
+            Path::new(get_path("tmp", "ll").as_str()),
+            &*generate_llvm(contract),
+        )
+            .expect("Could not create file");
+
+        // Convert LLVM to wasm32:
+        Command::new("llc")
+            .arg("-O3")
+            .arg("-march=wasm32")
+            .arg("-filetype=obj")
+            .arg(get_path("tmp", "ll"))
+            .status()
+            .expect("Could not compile to WASM");
+
+        // Link externally defined functions
+        Command::new("wasm-ld")
+            .arg("--no-entry")
+            .arg("--export-dynamic")
+            .arg("--allow-undefined")
+            .arg("-o")
+            .arg(get_path("tmp", "wasm"))
+            .arg(get_path("tmp", "o"))
+            .status()
+            .expect("Could not link externally defined methods");
+
+        // Copy the wasm file into the output directory
+        fs::copy(
+            Path::new(get_path("tmp", "wasm").as_str()),
+            Path::new(get_path("output", "wasm").as_str()),
+        )
+            .expect("Could not move wasm file to output directory");
+
+        // Generate the ABI
+        create_and_write_to_file(
+            Path::new(get_path("output", "json").as_str()),
+            &*generate_abi(&contract.contract_behaviour_declarations),
+        )
+            .expect("Could not generate abi file");
+
+        // The following only exists so that we can inspect LLVM output and wasm files as wat files
+        // while developing, and should be removed. TODO
+        let wasm =
+            fs::read(Path::new(get_path("tmp", "wasm").as_str())).expect("Could not read wasm");
+        let as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
+
+        // Remove exports except memory and main
+        let export_regex = Regex::new("export \"((main)|(memory))\"").unwrap();
+
+        let as_wat = as_wat
+            .lines()
+            .filter(|line| !line.contains("export") || export_regex.is_match(line))
+            .intersperse("\n")
+            .collect::<String>();
+
+        create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
+            .expect("Could not create output wat file");
+
+        fs::copy(
+            Path::new(get_path("tmp", "wasm").as_str()),
+            Path::new(get_path("output", "wasm").as_str()),
+        )
+            .expect("Could not move wasm file to output directory");
+
+        // Delete all tmp files
+        fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
     }
 }
 
-fn create_abi_file(path: &Path, contract: &LLVMContract) {
-    let abi = generate_abi(&contract.contract_behaviour_declarations);
-    let mut file = fs::File::create(path).unwrap_or_else(|err| {
-        exit_on_failure(
-            format!(
-                "Could not create file {}: {}",
-                path.display(),
-                err.to_string()
-            )
-            .as_str(),
-        )
-    });
-
-    file.write_all(abi.as_bytes()).unwrap_or_else(|err| {
-        exit_on_failure(
-            format!(
-                "Could not write to file {}: {}",
-                path.display(),
-                err.to_string()
-            )
-            .as_str(),
-        )
-    });
-}
-
-fn create_llvm_file(path: &Path, contract: &LLVMContract) -> fs::File {
-    let llvm_module = generate_llvm(contract);
-
-    let mut file = fs::File::create(path).unwrap_or_else(|err| {
-        exit_on_failure(
-            format!(
-                "Could not create file {}: {}",
-                path.display(),
-                err.to_string()
-            )
-            .as_str(),
-        )
-    });
-
-    file.write_all(llvm_module.as_bytes())
-        .unwrap_or_else(|err| {
-            exit_on_failure(
-                format!(
-                    "Could not write to file {}: {}",
-                    path.display(),
-                    err.to_string()
-                )
-                .as_str(),
-            )
-        });
-
-    file
+fn create_and_write_to_file(path: &Path, data: &str) -> Result<(), Box<dyn Error + 'static>> {
+    Ok(fs::File::create(path)?.write_all(data.as_bytes())?)
 }
 
 fn generate_llvm(contract: &LLVMContract) -> String {
@@ -217,119 +234,20 @@ fn generate_llvm(contract: &LLVMContract) -> String {
         types: HashMap::new(),
     };
 
+    build_empty_main_function(&codegen);
+
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
-    //counter(&codegen);
-    factorial(&codegen);
-    codegen.module.print_to_stderr();
     llvm_module.print_to_string().to_string()
 }
 
-fn exit_on_failure(msg: &str) -> ! {
-    println!("{}", msg);
-    process::exit(1)
-}
-
-// Test function to see if the LLVM produced is accurate
-/*pub fn counter(codegen: &Codegen) {
-    let engine = codegen.module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .expect("Could not make engine");
-    let fpm = PassManager::create(codegen.module);
-
-    fpm.add_instruction_combining_pass();
-    fpm.add_reassociate_pass();
-    fpm.add_gvn_pass();
-    fpm.add_cfg_simplification_pass();
-    fpm.add_basic_alias_analysis_pass();
-    fpm.add_promote_memory_to_register_pass();
-    fpm.add_instruction_combining_pass();
-    fpm.add_reassociate_pass();
-
-    fpm.initialize();
-
-    assert!(codegen.module.verify().is_ok());
-    codegen.module.print_to_stderr();
-
-
-    unsafe {
-        type VoidToVoid = unsafe extern "C" fn() -> ();
-
-        let init = engine
-            .get_function::<VoidToVoid>("CounterInit")
-            .expect("Could not find CounterInit");
-
-        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
-            .get_function("getValue")
-            .expect("Could not find getter");
-
-        init.call();
-
-        assert_eq!(0, getter.call());
-
-        let increment: JitFunction<VoidToVoid> = engine
-            .get_function("increment")
-            .expect("Could not find increment");
-
-        let decrement: JitFunction<VoidToVoid> = engine
-            .get_function("decrement")
-            .expect("Could not find decrement");
-
-        increment.call();
-        assert_eq!(1, getter.call());
-        increment.call();
-        assert_eq!(2, getter.call());
-        decrement.call();
-        assert_eq!(1, getter.call());
-    }
-}*/
-
-// Test function to see if the LLVM produced is accurate
-pub fn factorial(codegen: &Codegen) {
-    let engine = codegen
-        .module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .expect("Could not make engine");
-    let fpm = PassManager::create(codegen.module);
-
-    fpm.add_instruction_combining_pass();
-    fpm.add_reassociate_pass();
-    fpm.add_gvn_pass();
-    fpm.add_cfg_simplification_pass();
-    fpm.add_basic_alias_analysis_pass();
-    fpm.add_promote_memory_to_register_pass();
-    fpm.add_instruction_combining_pass();
-    fpm.add_reassociate_pass();
-
-    fpm.initialize();
-
-    assert!(codegen.module.verify().is_ok());
-    codegen.module.print_to_stderr();
-
-    unsafe {
-        type VoidToVoid = unsafe extern "C" fn() -> ();
-
-        let init = engine
-            .get_function::<VoidToVoid>("FactorialInit")
-            .expect("Could not find FactorialInit");
-
-        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
-            .get_function("getValue")
-            .expect("Could not find getter");
-
-        init.call();
-
-        assert_eq!(0, getter.call());
-
-        let calculate: JitFunction<unsafe extern "C" fn(i64)> = engine
-            .get_function("calculate")
-            .expect("Could not find decrement");
-
-        calculate.call(1);
-        assert_eq!(1, getter.call());
-        calculate.call(2);
-        assert_eq!(2, getter.call());
-        calculate.call(10);
-        assert_eq!(3628800, getter.call());
-    }
+// This simply creates an empty main method, since eWASM requires a main that does not have
+// inputs or outputs
+fn build_empty_main_function(codegen: &Codegen) {
+    let void_type = codegen.context.void_type().fn_type(&[], false);
+    let main = codegen.module.add_function("main", void_type, None);
+    let block = codegen.context.append_basic_block(main, "entry");
+    codegen.builder.position_at_end(block);
+    codegen.builder.build_return(None);
+    codegen.verify_and_optimise(&main);
 }
