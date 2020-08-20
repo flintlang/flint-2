@@ -4,7 +4,7 @@ use super::environment::*;
 use super::semantic_analysis::*;
 use super::type_assigner::*;
 use super::type_checker::*;
-use crate::target::target::Target;
+use crate::target::Target;
 
 pub fn process_ast(mut module: Module, environment: Environment, mut target: Target) -> VResult {
     let type_assigner = &mut TypeAssigner {};

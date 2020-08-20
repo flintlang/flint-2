@@ -46,7 +46,14 @@ Imperial College London under the supervision of Professor
 Susan Eisenbach, undertaken by Jessica Lally, Matthew Ross
 Rachar, and George Stacey, with the core of the project the
 Quartz research compiler by Ali Chaudhry, built for his MEng
-thesis."
+thesis.
+
+     ..           _________       __     ___
+    &&&&         / ____/ (_)___  / /_   |__ \
+  &&&&&&&&      / /_  / / / __ \/ __/   __/ /
+ &&&>**<&&&    / __/ / / / / / / /_    / __/
+ %/      \%   /_/   /_/_/_/ /_/\__/   /____/
+"
     );
     None
 }

@@ -1,7 +1,7 @@
 use crate::moveir;
 use crate::moveir::preprocessor::MovePreProcessor;
 use crate::target::currency::Currency;
-use crate::target::target::Target;
+use crate::target::Target;
 
 pub(crate) fn currency() -> Currency {
     Currency {
