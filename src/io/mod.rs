@@ -1,2 +1,2 @@
 pub(crate) mod prompt;
-mod target;
+pub(crate) mod target;

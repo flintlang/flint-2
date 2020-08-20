@@ -20,6 +20,7 @@ extern crate wabt;
 use self::inkwell::context::Context as LLVMContext;
 use self::inkwell::passes::PassManager;
 
+use self::wabt::wat2wasm;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, Module, StructDeclaration, TopLevelDeclaration,
     TraitDeclaration,
@@ -128,7 +129,7 @@ pub fn generate(module: &Module, context: &mut Context) {
         // Create LLVM file
         create_and_write_to_file(
             Path::new(get_path("tmp", "ll").as_str()),
-            &*generate_llvm(contract),
+            &*generate_llvm(contract).as_bytes(),
         )
         .expect("Could not create file");
 
@@ -152,26 +153,14 @@ pub fn generate(module: &Module, context: &mut Context) {
             .status()
             .expect("Could not link externally defined methods");
 
-        // Copy the wasm file into the output directory
-        fs::copy(
-            Path::new(get_path("tmp", "wasm").as_str()),
-            Path::new(get_path("output", "wasm").as_str()),
-        )
-        .expect("Could not move wasm file to output directory");
-
-        // Generate the ABI
-        create_and_write_to_file(
-            Path::new(get_path("output", "json").as_str()),
-            &*generate_abi(&contract.contract_behaviour_declarations),
-        )
-        .expect("Could not generate abi file");
-
         // The following only exists so that we can inspect LLVM output and wasm files as wat files
         // while developing, and should be removed. TODO
         let wasm =
             fs::read(Path::new(get_path("tmp", "wasm").as_str())).expect("Could not read wasm");
-        let as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
+        let mut as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
 
+        // Shift final module closing curly brace onto its own line so it is not removed when trimming exports
+        as_wat.insert(as_wat.len() - 2, '\n');
         // Remove exports except memory and main
         let export_regex = Regex::new("export \"((main)|(memory))\"").unwrap();
 
@@ -181,22 +170,41 @@ pub fn generate(module: &Module, context: &mut Context) {
             .intersperse("\n")
             .collect::<String>();
 
-        create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
-            .expect("Could not create output wat file");
-
-        fs::copy(
-            Path::new(get_path("tmp", "wasm").as_str()),
-            Path::new(get_path("output", "wasm").as_str()),
+        create_and_write_to_file(
+            Path::new(get_path("tmp", "wat").as_str()),
+            &as_wat.as_bytes(),
         )
-        .expect("Could not move wasm file to output directory");
+            .expect("Could not create tmp wat file");
+
+        let post_processed_wasm =
+            wat2wasm(as_wat.as_bytes()).expect("Could not convert wat to wasm");
+        create_and_write_to_file(
+            Path::new(get_path("output", "wasm").as_str()),
+            &post_processed_wasm,
+        )
+            .expect("Could not write to output wasm file");
+
+        // TODO remove this for the final release, as we do not need to give wat and wasm files
+        fs::copy(
+            Path::new(get_path("tmp", "wat").as_str()),
+            Path::new(get_path("output", "wat").as_str()),
+        )
+            .expect("Could not copy wat file fromt tmp to output");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
+
+        // Generate the ABI
+        create_and_write_to_file(
+            Path::new(get_path("output", "json").as_str()),
+            &*generate_abi(&contract.contract_behaviour_declarations).as_bytes(),
+        )
+            .expect("Could not generate abi file");
     }
 }
 
-fn create_and_write_to_file(path: &Path, data: &str) -> Result<(), Box<dyn Error + 'static>> {
-    Ok(fs::File::create(path)?.write_all(data.as_bytes())?)
+fn create_and_write_to_file(path: &Path, data: &[u8]) -> Result<(), Box<dyn Error + 'static>> {
+    Ok(fs::File::create(path)?.write_all(data)?)
 }
 
 fn generate_llvm(contract: &LLVMContract) -> String {
