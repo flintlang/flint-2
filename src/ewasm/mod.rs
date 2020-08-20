@@ -130,7 +130,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "ll").as_str()),
             &*generate_llvm(contract),
         )
-            .expect("Could not create file");
+        .expect("Could not create file");
 
         // Convert LLVM to wasm32:
         Command::new("llc")
@@ -157,14 +157,14 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "wasm").as_str()),
             Path::new(get_path("output", "wasm").as_str()),
         )
-            .expect("Could not move wasm file to output directory");
+        .expect("Could not move wasm file to output directory");
 
         // Generate the ABI
         create_and_write_to_file(
             Path::new(get_path("output", "json").as_str()),
             &*generate_abi(&contract.contract_behaviour_declarations),
         )
-            .expect("Could not generate abi file");
+        .expect("Could not generate abi file");
 
         // The following only exists so that we can inspect LLVM output and wasm files as wat files
         // while developing, and should be removed. TODO
@@ -188,7 +188,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "wasm").as_str()),
             Path::new(get_path("output", "wasm").as_str()),
         )
-            .expect("Could not move wasm file to output directory");
+        .expect("Could not move wasm file to output directory");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
