@@ -167,7 +167,7 @@ pub fn generate(module: &Module, context: &mut Context) {
         // Link externally defined functions
         Command::new(wasm_ld_path)
             .arg("--no-entry")
-            .arg("--export-dynamic")
+            .arg("--export-all")
             .arg("--allow-undefined")
             .arg("-o")
             .arg(get_path("tmp", "wasm"))
