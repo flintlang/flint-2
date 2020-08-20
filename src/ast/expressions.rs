@@ -283,7 +283,7 @@ impl Visitable for BinaryExpression {
         ctx.external_call_context = old_context;
         ctx.is_enclosing = false;
 
-        let scope = ctx.scope_context.as_ref().unwrap_or_default();
+        let scope = ctx.scope_or_default();
 
         let enclosing = ctx
             .enclosing_type_identifier()

@@ -91,7 +91,7 @@ impl MoveFunction {
         let parameters = parameters.join(", ");
 
         let result_type = match self.function_declaration.get_result_type() {
-            Some(ref result) if _return => {
+            Some(result) if _return => {
                 let result =
                     MoveType::move_type(result.clone(), Option::from(self.environment.clone()));
                 format!("{}", result.generate(&function_context))

@@ -310,14 +310,14 @@ impl Environment {
         let function_call = self.match_function_call(call, type_id, caller_protections, scope);
         match function_call {
             FunctionCallMatchResult::MatchedFunction(m) => {
-                m.get_result_type().unwrap_or(Type::Error)
+                m.get_result_type().cloned().unwrap_or(Type::Error)
             }
             FunctionCallMatchResult::MatchedFunctionWithoutCaller(m) => {
                 if m.candidates.len() == 1 {
                     let first = m.candidates.first();
                     let first = first.unwrap();
                     return if let CallableInformation::FunctionInformation(fi) = first {
-                        fi.get_result_type().unwrap_or(Type::Error)
+                        fi.get_result_type().cloned().unwrap_or(Type::Error)
                     } else {
                         Type::Error
                     };

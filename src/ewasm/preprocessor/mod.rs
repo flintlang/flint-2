@@ -18,9 +18,9 @@ use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
 use crate::visitor::Visitor;
 
-pub struct LLVMPreprocessor {}
+pub struct LLVMPreProcessor {}
 
-impl Visitor for LLVMPreprocessor {
+impl Visitor for LLVMPreProcessor {
     fn start_contract_declaration(
         &mut self,
         dec: &mut ContractDeclaration,

@@ -37,7 +37,7 @@ impl Visitor for TypeAssigner {
         if let BinOp::Dot = bin_expr.op {
             let enclosing = ctx.enclosing_type_identifier();
             let enclosing = enclosing.unwrap();
-            let scope = &ctx.scope_context.as_ref().unwrap_or_default();
+            let scope = &ctx.scope_or_default();
             let lhs_type = ctx.environment.get_expression_type(
                 &*bin_expr.lhs_expression,
                 &enclosing.token,

@@ -55,7 +55,6 @@ pub fn convert_default_parameter_functions(
                 .collect();
 
             if assigned_function.scope_context.is_some() {
-                //REMOVEBEFOREFLIGHT
                 let scope = ScopeContext {
                     parameters: assigned_function.head.parameters.clone(),
                     local_variables: vec![],
@@ -107,7 +106,6 @@ pub fn convert_default_parameter_functions(
                 .collect();
 
             if assigned_function.head.result_type.is_some() {
-                //REMOVEBEFOREFLIGHT
                 let function_call = FunctionCall {
                     identifier: f.head.identifier.clone(),
                     arguments,
@@ -723,24 +721,27 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
     }))
 }
 
-pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) -> Option<String> {
-    if !Environment::is_runtime_function_call(function_call) && !ctx.is_external_function_call {
+pub fn mangle_function_call_name(
+    function_call: &FunctionCall,
+    context: &Context,
+) -> Option<String> {
+    if !Environment::is_runtime_function_call(function_call) && !context.is_external_function_call {
         let enclosing_type = if let Some(ref enclosing) = function_call.identifier.enclosing_type {
             enclosing.clone()
         } else {
-            ctx.enclosing_type_identifier().unwrap().token.clone()
+            context.enclosing_type_identifier().unwrap().token.clone()
         };
 
         let caller_protections: &[CallerProtection] =
-            if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+            if let Some(ref behaviour) = context.contract_behaviour_declaration_context {
                 &behaviour.caller_protections
             } else {
                 &[]
             };
 
-        let scope = &ctx.scope_context.as_ref().unwrap_or_default();
+        let scope = &context.scope_or_default();
 
-        let match_result = ctx.environment.match_function_call(
+        let match_result = context.environment.match_function_call(
             &function_call,
             &enclosing_type,
             caller_protections,
@@ -802,7 +803,7 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
         }
     } else {
         let _lol = !Environment::is_runtime_function_call(function_call);
-        let _lol2 = !ctx.is_external_function_call;
+        let _lol2 = !context.is_external_function_call;
         Some(function_call.identifier.token.clone())
     }
 }
@@ -816,7 +817,7 @@ pub fn is_global_function_call(function_call: &FunctionCall, ctx: &Context) -> b
             &[]
         };
 
-    let scope = ctx.scope_context.as_ref().unwrap_or_default();
+    let scope = ctx.scope_or_default();
 
     let result =
         ctx.environment

@@ -1,0 +1,38 @@
+contract Test { }
+
+struct Struct {
+    public init(x: Int) { }
+
+    public func tests0() -> Int {
+        return 0
+    }
+
+    public func tests1(x: Bool) -> Int {
+        return 1
+    }
+
+    public func tests2(x: Int, y: Int) -> Int {
+        return 2
+    }
+}
+
+Test :: (any) {
+    public init() {
+        //var s0: Struct = Struct()
+        var s: Struct = Struct(1)
+        //var s1: Struct = Struct(1, 2)
+
+        //! compile fail call `tests0` with (Bool) on line 25, did you mean to call `tests0` with () on line 6
+        s.tests0(true)
+        s.tests0()
+
+        s.tests1()
+        s.tests1(1)
+        s.tests1(true, 2)
+
+        s.tests2()
+        s.tests2(1)
+        s.tests2(1, true)
+        s.tests2(1, 2, 3)
+    }
+}

@@ -927,7 +927,7 @@ impl Visitor for MovePreProcessor {
                         &enclosing_type,
                         &[],
                         &[],
-                        ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_or_default(),
                     );
 
                     if let Type::UserDefinedType(_) = expression_type {
@@ -1055,7 +1055,7 @@ impl Visitor for MovePreProcessor {
                                 &enclosing_type,
                                 &[],
                                 &[],
-                                ctx.scope_context.as_ref().unwrap_or_default(),
+                                ctx.scope_or_default(),
                             )
                         }
                     }
@@ -1064,7 +1064,7 @@ impl Visitor for MovePreProcessor {
                         &enclosing_type,
                         &[],
                         &[],
-                        ctx.scope_context.as_ref().unwrap_or_default(),
+                        ctx.scope_or_default(),
                     ),
                 };
 

@@ -92,11 +92,32 @@ _This is currently the advised way of installing Flint_
   
 #### Prerequisites  
 The following must be installed to build Flint:  
-* Rust
+
+ * Rust
+ * LLVM 10, including static libraries
+ * Libstdc++
+ 
+##### Ubuntu
+
+To install prerequisites on Ubuntu, run:
+
+```bash
+sudo apt install llvm-10-dev
+```
+
+##### Fedora
+
+To install prerequisites on Fedora, run:
+
+```bash
+sudo dnf install llvm-devel llvm-static libstdc++-devel
+```
   
-##### Additionally for testing  
-To run the testing libraries, install:  
-* Libra 
+##### For testing  
+Additionally, to run the testing libraries, install:  
+
+ * Python 3
+ * Libra 
   
 #### Install  
 Assuming you have all the prerequisites, you should be able to build flint by running  
@@ -109,7 +130,37 @@ cargo build
   
 ##### Future plans
 *There are plans to streamline the installation process, either by providing binaries or a repository package*
-  
+
+#### Errors
+
+##### No suitable version of LLVM was found
+
+```bash
+No suitable version of LLVM was found system-wide or pointed
+          to by LLVM_SYS_100_PREFIX.
+```
+
+LLVM is not installed on the system, or a development version is needed. Try installing a package named similar to `llvm-dev`, depending on your distro.
+
+##### Cannot find `lstdc++`
+
+```bash
+note: /usr/bin/ld: cannot find -lstdc++
+          collect2: error: ld returned 1 exit status
+```
+
+Your installation is missing `libstdc++`. Either install it directly, or install `g++`.
+
+##### Undefined reference to `LLVM...`
+
+```bash
+undefined reference to `LLVM...'  # Such as `LLVMDisposeTargetData'
+          collect2: error: ld returned 1 exit status
+```
+
+Your installation is missing LLVM's static libraries. The package should be named similar to `llvm-static`,
+depending on your distro.
+
 ## Example  
   
 This section demonstrates the full workflow of writing a smart contract in Flint and compiling it

@@ -1,9 +1,8 @@
 use crate::ast::*;
-use crate::ast_processor::Target;
 use crate::context::*;
 use crate::visitor::Visitor;
 use hex::encode;
-use nom::lib::std::fmt::Formatter;
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TopLevelDeclaration {
@@ -141,7 +140,17 @@ impl Visitable for ContractBehaviourDeclaration {
             caller_protections: self.caller_protections.clone(),
         });
 
-        let local_variables: Vec<VariableDeclaration> = vec![];
+        let local_variables: Vec<VariableDeclaration> =
+            if let Some(ref caller_binding) = self.caller_binding {
+                vec![VariableDeclaration {
+                    declaration_token: None,
+                    identifier: caller_binding.clone(),
+                    variable_type: Type::Address,
+                    expression: None,
+                }]
+            } else {
+                vec![]
+            };
         let parameters: Vec<Parameter> = vec![];
 
         let scope = ScopeContext {
@@ -505,8 +514,8 @@ impl FunctionDeclaration {
         self.head.is_public()
     }
 
-    pub fn get_result_type(&self) -> Option<Type> {
-        self.head.result_type.clone()
+    pub fn get_result_type(&self) -> Option<&Type> {
+        self.head.result_type.as_ref()
     }
 
     pub fn is_void(&self) -> bool {
@@ -631,30 +640,24 @@ impl FunctionSignatureDeclaration {
         self.modifiers.contains(&Modifier::Public)
     }
 
-    pub fn parameter_identifiers(&self) -> Vec<Identifier> {
-        self.parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.identifier)
-            .collect()
+    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a Identifier> + 'a {
+        self.parameters.iter().map(|p| &p.identifier)
     }
 
-    pub fn parameter_types(&self) -> Vec<Type> {
-        self.parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.type_assignment)
-            .collect()
+    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
+        self.parameters.iter().map(|p| &p.type_assignment)
     }
 
     pub fn is_equal(&self, against: FunctionSignatureDeclaration) -> bool {
         let modifiers_match = self.modifiers == against.modifiers;
-        let attibutes_match = self.attributes == against.attributes;
-        let parameter_names_match = self.parameter_identifiers() == against.parameter_identifiers();
-        let parameter_types = self.parameter_types() == against.parameter_types();
+        let attributes_match = self.attributes == against.attributes;
+        let parameter_names_match = self
+            .parameter_identifiers()
+            .eq(against.parameter_identifiers());
+        let parameter_types = self.parameter_types().eq(against.parameter_types());
         if self.identifier.token == against.identifier.token
             && modifiers_match
-            && attibutes_match
+            && attributes_match
             && parameter_names_match
             && parameter_types
         {
@@ -799,6 +802,10 @@ pub struct SpecialSignatureDeclaration {
 impl SpecialSignatureDeclaration {
     pub fn has_parameters(&self) -> bool {
         !self.parameters.is_empty()
+    }
+
+    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
+        self.parameters.iter().map(|p| &p.type_assignment)
     }
 }
 

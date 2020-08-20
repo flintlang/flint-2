@@ -1,8 +1,8 @@
 use super::function::FunctionContext;
 use super::ir::MoveIRType;
 use crate::ast::{FunctionCall, Identifier, Type};
-use crate::ast_processor::Currency;
 use crate::environment::Environment;
+use crate::target::libra;
 
 #[derive(Debug, Clone)]
 pub(crate) enum MoveType {
@@ -46,7 +46,7 @@ impl MoveType {
                     let string = "Self.T".to_string();
                     return MoveIRType::Resource(string);
                 }
-                if resource_type.is_currency_type(&Currency::libra()) {
+                if resource_type.is_currency_type(&libra::currency()) {
                     return MoveIRType::Resource(s.to_string());
                 }
                 let string = format!("{}.T", s);
@@ -145,7 +145,7 @@ impl MoveType {
     }
 
     pub fn is_resource_type(original: Type, type_id: &str, environment: &Environment) -> bool {
-        environment.is_contract_declared(type_id) || original.is_currency_type(&Currency::libra())
+        environment.is_contract_declared(type_id) || original.is_currency_type(&libra::currency())
     }
 
     pub fn is_resource(&self) -> bool {

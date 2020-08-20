@@ -60,7 +60,6 @@ impl MoveIfStatement {
             position: Default::default(),
         }
         .generate(function_context);
-        println!("With new block");
 
         let count = function_context.push_block();
 

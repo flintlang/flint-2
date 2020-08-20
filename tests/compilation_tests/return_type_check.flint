@@ -1,0 +1,12 @@
+contract Test { }
+
+Test :: (any) {
+    public init() {
+        test()
+    }
+
+    func test() -> Bool {
+        //! compile fail return value of type `Int` when `Bool` expected on line 10
+        return 5
+    }
+}
