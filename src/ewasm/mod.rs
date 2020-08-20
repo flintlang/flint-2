@@ -119,6 +119,28 @@ pub fn generate(module: &Module, context: &mut Context) {
         fs::create_dir(output_path).expect("Could not create output directory");
     }
 
+    let flint_config =
+        fs::read_to_string(Path::new("flint_config.json")).expect("Could not find flint config");
+    let flint_config = json::parse(flint_config.as_str()).expect("Could not parse flint config");
+    assert!(flint_config.is_object());
+    let llc_path = flint_config
+        .entries()
+        .find(|(key, _)| *key == "llcPath")
+        .expect("No llcPath in flint config")
+        .1
+        .as_str()
+        .expect("Could not find llcPath in flint config");
+    assert!(!llc_path.is_empty());
+
+    let wasm_ld_path = flint_config
+        .entries()
+        .find(|(key, _)| *key == "wasm-ldPath")
+        .expect("No wasm-ldPath in flint config")
+        .1
+        .as_str()
+        .expect("Could not find wasm-ld path in flint config");
+    assert!(!wasm_ld_path.is_empty());
+
     for contract in ewasm_contracts.iter() {
         let tmp_path = Path::new("tmp");
         fs::create_dir(tmp_path).expect("Could not create tmp directory");
@@ -131,11 +153,10 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "ll").as_str()),
             &*generate_llvm(contract).as_bytes(),
         )
-        .expect("Could not create file");
+            .expect("Could not create file");
 
         // Convert LLVM to wasm32:
-        // TODO need to change llc command to be the correct one on the local system
-        Command::new("llc")
+        Command::new(llc_path)
             .arg("-O3")
             .arg("-march=wasm32")
             .arg("-filetype=obj")
@@ -144,7 +165,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             .expect("Could not compile to WASM");
 
         // Link externally defined functions
-        Command::new("wasm-ld")
+        Command::new(wasm_ld_path)
             .arg("--no-entry")
             .arg("--export-dynamic")
             .arg("--allow-undefined")
