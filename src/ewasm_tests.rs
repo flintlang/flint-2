@@ -75,7 +75,12 @@ mod ewasm_tests {
                     std::process::exit(1);
                 });
 
-            let output_path = format!("output/{}.wasm", file_name);
+            // Make first letter upper case since thats how the output files are named
+            let mut file_name_upper = file_name.chars().collect::<Vec<char>>();
+            file_name_upper[0] = file_name_upper[0].to_uppercase().nth(0).unwrap();
+            let file_name_upper = file_name_upper.iter().collect::<String>();
+
+            let output_path = format!("output/{}.wasm", file_name_upper);
             let output_path = Path::new(output_path.as_str());
             assert!(output_path.exists());
             let output_wasm = fs::read(output_path).expect(&format!(
