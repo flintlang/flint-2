@@ -137,7 +137,7 @@ fn create_abi_file(path: &Path, contract: &LLVMContract) {
                 path.display(),
                 err.to_string()
             )
-                .as_str(),
+            .as_str(),
         )
     });
 
@@ -148,7 +148,7 @@ fn create_abi_file(path: &Path, contract: &LLVMContract) {
                 path.display(),
                 err.to_string()
             )
-                .as_str(),
+            .as_str(),
         )
     });
 }
@@ -163,7 +163,7 @@ fn create_llvm_file(path: &Path, contract: &LLVMContract) -> fs::File {
                 path.display(),
                 err.to_string()
             )
-                .as_str(),
+            .as_str(),
         )
     });
 
@@ -175,7 +175,7 @@ fn create_llvm_file(path: &Path, contract: &LLVMContract) -> fs::File {
                     path.display(),
                     err.to_string()
                 )
-                    .as_str(),
+                .as_str(),
             )
         });
 
@@ -220,8 +220,8 @@ fn generate_llvm(contract: &LLVMContract) -> String {
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
     //counter(&codegen);
-    factorial(&codegen);
-    codegen.module.print_to_stderr();
+    //factorial(&codegen);
+    shapes(&codegen);
     llvm_module.print_to_string().to_string()
 }
 
@@ -229,9 +229,9 @@ fn exit_on_failure(msg: &str) -> ! {
     println!("{}", msg);
     process::exit(1)
 }
-
+/*
 // Test function to see if the LLVM produced is accurate
-/*pub fn counter(codegen: &Codegen) {
+pub fn counter(codegen: &Codegen) {
     let engine = codegen.module
         .create_jit_execution_engine(OptimizationLevel::None)
         .expect("Could not make engine");
@@ -283,7 +283,7 @@ fn exit_on_failure(msg: &str) -> ! {
         assert_eq!(1, getter.call());
     }
 }*/
-
+/*
 // Test function to see if the LLVM produced is accurate
 pub fn factorial(codegen: &Codegen) {
     let engine = codegen.module
@@ -332,5 +332,54 @@ pub fn factorial(codegen: &Codegen) {
         calculate.call(10);
         assert_eq!(3628800, getter.call());
     }
-}
+}*/
 
+pub fn shapes(codegen: &Codegen) {
+    let engine = codegen
+        .module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+
+    fpm.initialize();
+
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+    unsafe {
+        let init: JitFunction<unsafe extern "C" fn(i64)> = engine
+            .get_function("ShapesInit")
+            .expect("Could not find ShapesInit");
+
+        let area: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("area").expect("Could not find area");
+
+        let semi_perimeter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("semiPerimeter")
+            .expect("Could not find semiPerimeter");
+
+        let perimeter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("perimeter")
+            .expect("Could not find perimeter");
+
+        let smaller_width: JitFunction<unsafe extern "C" fn(i64) -> bool> = engine
+            .get_function("smallerWidth")
+            .expect("Could not find smallerWidth");
+
+        init.call(10);
+        assert_eq!(200, area.call());
+        assert_eq!(30, semi_perimeter.call());
+        assert_eq!(60, perimeter.call());
+        assert!(smaller_width.call(21));
+        assert!(!smaller_width.call(19));
+    }
+}

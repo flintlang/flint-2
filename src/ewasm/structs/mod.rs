@@ -13,8 +13,6 @@ pub struct LLVMStruct<'a> {
 
 impl<'a> LLVMStruct<'a> {
     pub fn generate(&self, codegen: &mut Codegen) {
-        self.create_type(codegen);
-
         let initialiser = self
             .struct_declaration
             .members
@@ -36,7 +34,7 @@ impl<'a> LLVMStruct<'a> {
         self.generate_functions(codegen);
     }
 
-    fn create_type(&self, codegen: &mut Codegen) {
+    pub fn create_type(&self, codegen: &mut Codegen) {
         let fields = &self
             .struct_declaration
             .members
@@ -69,10 +67,7 @@ impl<'a> LLVMStruct<'a> {
 
         let struct_type = codegen.context.opaque_struct_type(struct_name);
         struct_type.set_body(field_types, false);
-        println!(
-            "The struct type is {}",
-            struct_type.get_name().unwrap().to_str().expect("thing")
-        );
+
         let struct_info = (field_names, struct_type);
 
         codegen.types.insert(struct_name.to_string(), struct_info);

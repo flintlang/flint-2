@@ -28,6 +28,7 @@ impl<'a> LLVMAssignment<'a> {
         .generate(codegen, function_context);
 
         codegen.builder.build_store(lhs.into_pointer_value(), rhs);
+        // TODO: should we be updating the function context?
         // TODO: what should we return?
         rhs
     }

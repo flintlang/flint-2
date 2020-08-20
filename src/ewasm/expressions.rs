@@ -146,7 +146,30 @@ impl<'a> LLVMBinaryExpression<'a> {
                         module_name: "Self",
                     }
                     .generate(codegen, function_context);
+                } else {
+                    return LLVMStructAccess {
+                        expr: &Expression::BinaryExpression(BinaryExpression {
+                            lhs_expression: self.expression.lhs_expression.clone(),
+                            rhs_expression: self.expression.rhs_expression.clone(),
+                            op: BinOp::Dot,
+                            line_info: Default::default(),
+                        }),
+                    }
+                    .generate(codegen, function_context)
+                    .as_basic_value_enum();
                 }
+                /*} else if let Expression::SelfExpression = &*self.expression.lhs_expression {
+                    // TODO: change to call LLVMStructAccess directly?
+                    return LLVMStructAccess {
+                        expr: &Expression::BinaryExpression(BinaryExpression {
+                            lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+                            rhs_expression: self.expression.rhs_expression.clone(),
+                            op: BinOp::Dot,
+                            line_info: Default::default(),
+                        }),
+                    }
+                    .generate(codegen, function_context).as_basic_value_enum();
+                }*/
                 // TODO other cases
             }
             BinOp::Equal => {
@@ -159,14 +182,30 @@ impl<'a> LLVMBinaryExpression<'a> {
             _ => (),
         }
 
-        let lhs = LLVMExpression {
+        let mut lhs = LLVMExpression {
             expression: &*self.expression.lhs_expression,
         }
         .generate(codegen, function_context);
-        let rhs = LLVMExpression {
+        let mut rhs = LLVMExpression {
             expression: &*self.expression.rhs_expression,
         }
         .generate(codegen, function_context);
+
+        if lhs.get_type().is_pointer_type() {
+            let lhs_val = codegen
+                .builder
+                .build_load(lhs.into_pointer_value(), "tmp_l");
+            function_context.add_local("tmp_l", lhs_val);
+            lhs = lhs_val;
+        }
+
+        if rhs.get_type().is_pointer_type() {
+            let rhs_val = codegen
+                .builder
+                .build_load(rhs.into_pointer_value(), "tmp_r");
+            function_context.add_local("tmp_r", rhs_val);
+            rhs = rhs_val;
+        }
 
         match self.expression.op {
             BinOp::Dot => panic!("Expression should already be evaluated"),
@@ -567,7 +606,7 @@ impl<'a> LLVMInoutExpression<'a> {
             return expr;
         }
 
-        let ptr = codegen.builder.build_alloca(expr.get_type(), "tmpptr");
+        let ptr = codegen.builder.build_alloca(expr.get_type(), "tmp_ptr");
         codegen.builder.build_store(ptr, expr);
 
         BasicValueEnum::PointerValue(ptr)
@@ -684,6 +723,7 @@ impl<'a> LLVMStructAccess<'a> {
 
     fn flatten_expr(&self, expr: &'a Expression) -> Vec<&'a str> {
         match expr {
+            Expression::SelfExpression => vec!["this"],
             Expression::Identifier(id) => vec![id.token.as_str()],
             Expression::BinaryExpression(BinaryExpression {
                 lhs_expression,

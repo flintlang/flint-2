@@ -31,6 +31,27 @@ impl<'a> LLVMFunctionCall<'a> {
     ) -> BasicValueEnum<'ctx> {
         let fn_name = &self.function_call.identifier.token;
 
+        if self.is_init() {
+            // add local variable of struct field
+
+            let struct_type = codegen
+                .module
+                .get_function(self.function_call.identifier.token.as_str())
+                .unwrap()
+                .get_params()
+                .last()
+                .unwrap()
+                .get_type()
+                .into_pointer_type()
+                .get_element_type()
+                .into_struct_type();
+
+            let struct_var = struct_type.const_zero();
+
+            // add local variable to function call arguments
+            function_context.add_local("this", BasicValueEnum::StructValue(struct_var));
+        }
+
         let arguments: Vec<BasicValueEnum> = self
             .function_call
             .arguments
@@ -53,10 +74,25 @@ impl<'a> LLVMFunctionCall<'a> {
                 .left()
             {
                 Some(val) => return val,
-                None => return BasicValueEnum::IntValue(codegen.context.i8_type().const_zero()),
+                None => {
+                    if self.is_init() {
+                        if let Some(this_argument) = arguments.last() {
+                            if this_argument.is_pointer_value() {
+                                let ptr = this_argument.into_pointer_value();
+                                return codegen.builder.build_load(ptr, "initialised");
+                            }
+                        }
+                    }
+
+                    return BasicValueEnum::IntValue(codegen.context.i8_type().const_zero());
+                }
             }
         }
 
         panic!(format!("Function {} is not defined", fn_name))
+    }
+
+    fn is_init(&self) -> bool {
+        self.function_call.identifier.token.contains("Init")
     }
 }
