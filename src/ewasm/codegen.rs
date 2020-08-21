@@ -14,7 +14,6 @@ pub struct Codegen<'a, 'ctx> {
     pub module: &'a LLVMModule<'ctx>,
     pub builder: &'a Builder<'ctx>,
     pub fpm: &'a PassManager<FunctionValue<'ctx>>,
-    // I THINK we need this to keep track of user defined types.
     pub types: HashMap<String, (Vec<String>, StructType<'ctx>)>,
 }
 

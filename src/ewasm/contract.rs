@@ -83,6 +83,7 @@ impl<'a> LLVMContract<'a> {
         global.set_initializer(&struct_type.const_zero().as_basic_value_enum());
 
         // Set up struct definitions here
+        // TODO try moving to the top
         self.struct_declarations.iter().for_each(|dec| {
             LLVMStruct {
                 struct_declaration: dec,

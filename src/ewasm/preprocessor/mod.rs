@@ -70,50 +70,6 @@ impl Visitor for LLVMPreProcessor {
         Ok(())
     }
 
-    fn start_special_declaration(
-        &mut self,
-        dec: &mut SpecialDeclaration,
-        ctx: &mut Context,
-    ) -> VResult {
-        // Push default variable assignments to the initialiser
-        if let Some(contract_name) = &dec.head.enclosing_type {
-            let vars_with_assignments = &ctx
-                .environment
-                .types
-                .get(contract_name)
-                .unwrap()
-                .properties
-                .iter()
-                .filter_map(|(_, p_info)| {
-                    if let Property::VariableDeclaration(dec, _) = &p_info.property {
-                        if dec.expression.is_some() {
-                            return Some(dec);
-                        }
-                    }
-                    None
-                })
-                .collect::<Vec<&VariableDeclaration>>();
-
-            for default_assignment in vars_with_assignments {
-                let assignment = BinaryExpression {
-                    lhs_expression: Box::new(Expression::Identifier(
-                        default_assignment.identifier.clone(),
-                    )),
-                    rhs_expression: Box::new(*default_assignment.expression.clone().unwrap()),
-                    op: BinOp::Equal,
-                    line_info: Default::default(),
-                };
-
-                dec.body
-                    .push(Statement::Expression(Expression::BinaryExpression(
-                        assignment,
-                    )));
-            }
-        }
-
-        Ok(())
-    }
-
     fn start_struct_declaration(
         &mut self,
         dec: &mut StructDeclaration,
@@ -249,6 +205,50 @@ impl Visitor for LLVMPreProcessor {
         Ok(())
     }
 
+    fn start_special_declaration(
+        &mut self,
+        dec: &mut SpecialDeclaration,
+        ctx: &mut Context,
+    ) -> VResult {
+        // Push default variable assignments to the initialiser
+        if let Some(contract_name) = &dec.head.enclosing_type {
+            let vars_with_assignments = &ctx
+                .environment
+                .types
+                .get(contract_name)
+                .unwrap()
+                .properties
+                .iter()
+                .filter_map(|(_, p_info)| {
+                    if let Property::VariableDeclaration(dec, _) = &p_info.property {
+                        if dec.expression.is_some() {
+                            return Some(dec);
+                        }
+                    }
+                    None
+                })
+                .collect::<Vec<&VariableDeclaration>>();
+
+            for default_assignment in vars_with_assignments {
+                let assignment = BinaryExpression {
+                    lhs_expression: Box::new(Expression::Identifier(
+                        default_assignment.identifier.clone(),
+                    )),
+                    rhs_expression: Box::new(*default_assignment.expression.clone().unwrap()),
+                    op: BinOp::Equal,
+                    line_info: Default::default(),
+                };
+
+                dec.body
+                    .push(Statement::Expression(Expression::BinaryExpression(
+                        assignment,
+                    )));
+            }
+        }
+
+        Ok(())
+    }
+
     fn finish_special_declaration(
         &mut self,
         declaration: &mut SpecialDeclaration,
@@ -285,19 +285,18 @@ impl Visitor for LLVMPreProcessor {
                 .position(|state| state == &bs.state)
                 .unwrap() as u8;
 
-            let state_variable = if ctx.special_declaration_context.is_some() {
-                // Special declarations have no 'this' yet as it is being constructed
-                Expression::Identifier(Identifier::generated(Identifier::TYPESTATE_VAR_NAME))
-            } else {
-                Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: Box::new(Expression::SelfExpression),
-                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                        Identifier::TYPESTATE_VAR_NAME,
-                    ))),
-                    op: BinOp::Dot,
-                    line_info: Default::default(),
-                })
+            let type_state_var_id = Identifier {
+                token: Identifier::TYPESTATE_VAR_NAME.to_string(),
+                enclosing_type: Some(contract_name.to_string()),
+                line_info: Default::default(),
             };
+
+            let state_variable = Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(Expression::SelfExpression),
+                rhs_expression: Box::new(Expression::Identifier(type_state_var_id)),
+                op: BinOp::Dot,
+                line_info: Default::default(),
+            });
 
             *statement = Statement::Expression(Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(state_variable),

@@ -16,19 +16,17 @@ impl<'a> LLVMVariableDeclaration<'a> {
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
-        let identifier = &self.declaration.identifier;
-        let expression: BasicValueEnum;
-
-        if let Some(expr) = &self.declaration.expression {
-            expression = LLVMExpression { expression: expr }.generate(codegen, function_context);
+        let name = self.declaration.identifier.token.as_str();
+        let expression = if let Some(expr) = &self.declaration.expression {
+            LLVMExpression { expression: expr }.generate(codegen, function_context)
         } else {
             // creates dummy value for variable assignment to be overwritten
             let variable_type = LLVMType {
                 ast_type: &self.declaration.variable_type,
             }
-            .generate(codegen);
+                .generate(codegen);
 
-            expression = match variable_type {
+            match variable_type {
                 ArrayType(a) => BasicValueEnum::ArrayValue(a.const_zero()),
                 FloatType(f) => BasicValueEnum::FloatValue(f.const_zero()),
                 IntType(i) => BasicValueEnum::IntValue(i.const_zero()),
@@ -36,9 +34,9 @@ impl<'a> LLVMVariableDeclaration<'a> {
                 StructType(s) => BasicValueEnum::StructValue(s.const_zero()),
                 VectorType(v) => BasicValueEnum::VectorValue(v.const_zero()),
             }
-        }
+        };
 
-        function_context.add_local(&identifier.token, expression);
+        function_context.add_local(name, expression);
         expression
     }
 }
