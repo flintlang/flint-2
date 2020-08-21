@@ -10,7 +10,6 @@ pub struct LLVMType<'a> {
 
 impl<'a> LLVMType<'a> {
     pub fn generate<'ctx>(&self, codegen: &mut Codegen<'_, 'ctx>) -> BasicTypeEnum<'ctx> {
-        dbg!(self.ast_type.clone());
         let context = codegen.context;
         // TODO add address space parameter? (see documentation)
 
@@ -63,8 +62,6 @@ impl<'a> LLVMType<'a> {
         type_name: &str,
         codegen: &mut Codegen<'_, 'ctx>,
     ) -> BasicTypeEnum<'ctx> {
-        dbg!(type_name.clone());
-        dbg!(self.ast_type.clone());
         codegen.module.print_to_stderr();
         if let Some((_, struct_type)) = codegen.types.get(type_name) {
             return struct_type.as_basic_type_enum();
