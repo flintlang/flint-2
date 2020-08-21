@@ -12,7 +12,7 @@ pub struct LLVMFunction<'a> {
 }
 
 impl<'a> LLVMFunction<'a> {
-    pub fn generate(&self, codegen: &Codegen) {
+    pub fn generate(&self, codegen: &mut Codegen) {
         // TODO: declare function context and scope context?
         // TODO: how do we treat modifiers?
         let _modifiers: Vec<&Modifier> = self

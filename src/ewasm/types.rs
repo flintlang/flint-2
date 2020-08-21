@@ -9,7 +9,8 @@ pub struct LLVMType<'a> {
 }
 
 impl<'a> LLVMType<'a> {
-    pub fn generate<'ctx>(&self, codegen: &Codegen<'_, 'ctx>) -> BasicTypeEnum<'ctx> {
+    pub fn generate<'ctx>(&self, codegen: &mut Codegen<'_, 'ctx>) -> BasicTypeEnum<'ctx> {
+        dbg!(self.ast_type.clone());
         let context = codegen.context;
         // TODO add address space parameter? (see documentation)
 
@@ -36,7 +37,7 @@ impl<'a> LLVMType<'a> {
     fn inout_to_llvm<'ctx>(
         &self,
         inout: &InoutType,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
     ) -> BasicTypeEnum<'ctx> {
         let inner_type = LLVMType {
             ast_type: inout.key_type.as_ref(),
@@ -48,7 +49,7 @@ impl<'a> LLVMType<'a> {
     fn llvm_array<'ctx>(
         &self,
         fixed_arr_type: &FixedSizedArrayType,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
     ) -> BasicTypeEnum<'ctx> {
         let elem_type = LLVMType {
             ast_type: fixed_arr_type.key_type.as_ref(),
@@ -60,9 +61,19 @@ impl<'a> LLVMType<'a> {
     fn extract_defined_type<'ctx>(
         &self,
         type_name: &str,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
     ) -> BasicTypeEnum<'ctx> {
-        let (_, struct_type) = codegen.types.get(type_name).expect("Type not declared");
-        struct_type.as_basic_type_enum()
+        dbg!(type_name.clone());
+        dbg!(self.ast_type.clone());
+        codegen.module.print_to_stderr();
+        if let Some((_, struct_type)) = codegen.types.get(type_name) {
+            return struct_type.as_basic_type_enum();
+        }
+        
+        let struct_value = codegen.context.opaque_struct_type(type_name);
+        codegen.types.insert(type_name.to_string(), (vec![], struct_value));
+        struct_value.as_basic_type_enum()
+        //let (_, struct_type) = codegen.types.get(type_name).expect("Type not declared");
+        //struct_type.as_basic_type_enum()
     }
 }

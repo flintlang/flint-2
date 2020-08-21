@@ -13,7 +13,7 @@ pub struct LLVMVariableDeclaration<'a> {
 impl<'a> LLVMVariableDeclaration<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         let identifier = &self.declaration.identifier;

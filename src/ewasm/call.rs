@@ -26,7 +26,7 @@ pub struct LLVMFunctionCall<'a> {
 impl<'a> LLVMFunctionCall<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         let fn_name = &self.function_call.identifier.token;

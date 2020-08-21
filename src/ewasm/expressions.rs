@@ -23,7 +23,7 @@ impl<'a> LLVMExpression<'a> {
     // and then return the variable that stores the evaluated result
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         match self.expression {
@@ -135,7 +135,7 @@ struct LLVMBinaryExpression<'a> {
 impl<'a> LLVMBinaryExpression<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         match &self.expression.op {
@@ -620,7 +620,7 @@ struct LLVMInoutExpression<'a> {
 impl<'a> LLVMInoutExpression<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         let expr = LLVMExpression {
@@ -690,7 +690,7 @@ struct LLVMCastExpression<'a> {
 impl<'a> LLVMCastExpression<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         let cast_from_val = LLVMExpression {

@@ -7,7 +7,7 @@ use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
 
-pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen) {
+pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Codegen) {
     let params = &initialiser.head.parameters;
     let param_types = params
         .iter()
@@ -20,7 +20,8 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen)
         .collect::<Vec<BasicTypeEnum>>();
 
     let void_type = codegen.context.void_type().fn_type(&param_types, false);
-
+    //dbg!(initialiser.clone());
+    // TODO: change from initialiser head enclosing type to type assigment of parameter?
     let func_name = &format!("{}Init", initialiser.head.enclosing_type.as_ref().unwrap());
     let init_func = codegen.module.add_function(func_name, void_type, None);
 
