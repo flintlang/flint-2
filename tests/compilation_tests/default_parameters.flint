@@ -1,0 +1,30 @@
+contract Test { }
+
+Test :: (any) {
+    public init() {
+        test01()
+        //test01(2)
+
+//        test12()
+//        test12(1)
+//        test12(true, 1)
+//
+//        test02()
+//        test02(1)
+//        test02(true)
+//        test02(true, 3)
+//        test02(1, 2, 3)
+    }
+
+    func test01(x: Int = 1) -> Int {
+        return x
+    }
+
+//    func test12(x: Bool, y: Bool = true) -> Int {
+//        return x && y
+//    }
+//
+//    func test02(x: Int = 1, y: Int = 1) -> Int {
+//        return x ^ y
+//    }
+}

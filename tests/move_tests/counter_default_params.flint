@@ -8,17 +8,20 @@ Counter :: (any) {
     }
 
     public func record() mutates (count) {
-        let x: [Adress] = 1
-        count.increment(0x0, hey: 2)
+        count.increment(0)
     }
 
     public func cancel() mutates (count) {
-        //count.decrement()
+        count.decrement()
     }
 }
 
 struct Count {
-    visible var value: Int
+    visible var value: Int = 0
+
+    public init() { // This should not be necessary
+        value = 0
+    }
 
     public func increment(by: Int = 1) mutates (value) {
         value += by
