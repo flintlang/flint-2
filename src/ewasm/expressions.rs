@@ -158,18 +158,7 @@ impl<'a> LLVMBinaryExpression<'a> {
                     .generate(codegen, function_context)
                     .as_basic_value_enum();
                 }
-                /*} else if let Expression::SelfExpression = &*self.expression.lhs_expression {
-                    // TODO: change to call LLVMStructAccess directly?
-                    return LLVMStructAccess {
-                        expr: &Expression::BinaryExpression(BinaryExpression {
-                            lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
-                            rhs_expression: self.expression.rhs_expression.clone(),
-                            op: BinOp::Dot,
-                            line_info: Default::default(),
-                        }),
-                    }
-                    .generate(codegen, function_context).as_basic_value_enum();
-                }*/
+                
                 // TODO other cases
             }
             BinOp::Equal => {
@@ -217,19 +206,21 @@ impl<'a> LLVMBinaryExpression<'a> {
                             codegen.builder.build_int_add(lhs, rhs, "tmpadd"),
                         );
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_add(
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpadd",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_add(
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpadd",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -248,19 +239,21 @@ impl<'a> LLVMBinaryExpression<'a> {
                             codegen.builder.build_int_sub(lhs, rhs, "tmpsub"),
                         );
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpsub",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_sub(
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpsub",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -279,19 +272,21 @@ impl<'a> LLVMBinaryExpression<'a> {
                             codegen.builder.build_int_mul(lhs, rhs, "tmpmul"),
                         );
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpmul",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::FloatValue(codegen.builder.build_float_mul(
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpmul",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -305,8 +300,34 @@ impl<'a> LLVMBinaryExpression<'a> {
             }
             BinOp::Power => panic!("operator not supported"),
             BinOp::Divide => {
-                if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::FloatValue(rhs) = rhs {
+                if let BasicValueEnum::IntValue(lhs) = lhs {
+                    if let BasicValueEnum::IntValue(rhs) = rhs {
+                        let first_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let first = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
+                        let second = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
+                        let result_type = codegen.context.i64_type();
+                        let result = codegen.builder.build_float_div(first.into_float_value(), second.into_float_value(), "tmpdiv");
+                        return codegen.builder.build_cast(InstructionOpcode::FPToSI, result, result_type, "tmp_cast");
+                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
+                        return BasicValueEnum::FloatValue(codegen.builder.build_float_div(
+                            first_val.into_float_value(),
+                            rhs,
+                            "tmpdiv",
+                        ));
+                    }
+                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
+                    if let BasicValueEnum::IntValue(rhs) = rhs {
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
+                        return BasicValueEnum::FloatValue(codegen.builder.build_float_div(
+                            lhs,
+                            second_val.into_float_value(),
+                            "tmpdiv",
+                        ));
+                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
                         return BasicValueEnum::FloatValue(
                             codegen.builder.build_float_div(lhs, rhs, "tmpdiv"),
                         );
@@ -330,21 +351,23 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpeq",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OEQ,
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpeq",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OEQ,
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpeq",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -369,21 +392,23 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpne",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::ONE,
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpne",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::ONE,
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpne",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -408,21 +433,23 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmplt",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OLT,
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmplt",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OLT,
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmplt",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -447,21 +474,23 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmple",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OLE,
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmple",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OLE,
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmple",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -486,21 +515,23 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpgt",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OGT,
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpgt",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OGT,
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpgt",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
@@ -525,21 +556,23 @@ impl<'a> LLVMBinaryExpression<'a> {
                             "tmpge",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let first_type = codegen.context.f64_type();
+                        let first_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, lhs, first_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OGE,
-                            lhs.const_signed_to_float(float_type),
+                            first_val.into_float_value(),
                             rhs,
                             "tmpge",
                         ));
                     }
                 } else if let BasicValueEnum::FloatValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let float_type = codegen.context.f64_type();
+                        let second_type = codegen.context.f64_type();
+                        let second_val = codegen.builder.build_cast(InstructionOpcode::SIToFP, rhs, second_type, "tmp_cast");
                         return BasicValueEnum::IntValue(codegen.builder.build_float_compare(
                             FloatPredicate::OGE,
                             lhs,
-                            rhs.const_signed_to_float(float_type),
+                            second_val.into_float_value(),
                             "tmpge",
                         ));
                     } else if let BasicValueEnum::FloatValue(rhs) = rhs {
