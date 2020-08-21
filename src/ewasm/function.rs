@@ -97,7 +97,7 @@ impl<'a> LLVMFunction<'a> {
             LLVMStatement {
                 statement: &statement,
             }
-                .generate(codegen, &mut function_context);
+            .generate(codegen, &mut function_context);
         }
 
         codegen.verify_and_optimise(&func_val);

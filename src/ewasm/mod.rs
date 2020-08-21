@@ -156,7 +156,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "ll").as_str()),
             &*generate_llvm(contract).as_bytes(),
         )
-            .expect("Could not create file");
+        .expect("Could not create file");
 
         // Convert LLVM to wasm32:
         Command::new(llc_path)
@@ -199,7 +199,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("tmp", "wat").as_str()),
             &as_wat.as_bytes(),
         )
-            .expect("Could not create tmp wat file");
+        .expect("Could not create tmp wat file");
 
         let post_processed_wasm =
             wat2wasm(as_wat.as_bytes()).expect("Could not convert wat to wasm");
@@ -207,14 +207,14 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("output", "wasm").as_str()),
             &post_processed_wasm,
         )
-            .expect("Could not write to output wasm file");
+        .expect("Could not write to output wasm file");
 
         // TODO remove this for the final release, as we do not need to give wat and wasm files
         fs::copy(
             Path::new(get_path("tmp", "wat").as_str()),
             Path::new(get_path("output", "wat").as_str()),
         )
-            .expect("Could not copy wat file from tmp to output");
+        .expect("Could not copy wat file from tmp to output");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
@@ -224,7 +224,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("output", "json").as_str()),
             &*generate_abi(&contract.contract_behaviour_declarations).as_bytes(),
         )
-            .expect("Could not generate abi file");
+        .expect("Could not generate abi file");
     }
 }
 

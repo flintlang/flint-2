@@ -385,7 +385,7 @@ impl CallerProtection {
 
     pub fn any() -> CallerProtection {
         CallerProtection {
-            identifier: Identifier::generated(Self::ANY)
+            identifier: Identifier::generated(Self::ANY),
         }
     }
 }

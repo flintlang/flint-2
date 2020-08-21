@@ -768,14 +768,16 @@ pub fn mangle_function_call_name(
                     )
                 }
 
-                let candidate = c.candidates.first()
+                let candidate = c
+                    .candidates
+                    .first()
                     .expect("Unable to find function declaration");
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = &fi.declaration;
                     let param_types = &declaration.head.parameters;
-                     let _param_types: Vec<&Type> =
-                         param_types.iter().map(|p| &p.type_assignment).collect();
+                    let _param_types: Vec<&Type> =
+                        param_types.iter().map(|p| &p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         &declaration.head.identifier.token,

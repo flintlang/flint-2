@@ -67,13 +67,13 @@ impl<'a> LLVMStruct<'a> {
 
         let struct_type = match codegen.types.get(struct_name) {
             Some((_, struct_type)) => *struct_type,
-            None => codegen.context.opaque_struct_type(struct_name)
+            None => codegen.context.opaque_struct_type(struct_name),
         };
 
         struct_type.set_body(field_types, false);
-        
+
         let struct_info = (field_names, struct_type);
-        
+
         codegen.types.insert(struct_name.to_string(), struct_info);
     }
 

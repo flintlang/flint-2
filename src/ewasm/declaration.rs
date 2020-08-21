@@ -24,7 +24,7 @@ impl<'a> LLVMVariableDeclaration<'a> {
             let variable_type = LLVMType {
                 ast_type: &self.declaration.variable_type,
             }
-                .generate(codegen);
+            .generate(codegen);
 
             match variable_type {
                 ArrayType(a) => BasicValueEnum::ArrayValue(a.const_zero()),
