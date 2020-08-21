@@ -63,15 +63,15 @@ impl<'a> LLVMType<'a> {
         type_name: &str,
         codegen: &mut Codegen<'_, 'ctx>,
     ) -> BasicTypeEnum<'ctx> {
-        dbg!(type_name.clone());
-        dbg!(self.ast_type.clone());
         codegen.module.print_to_stderr();
         if let Some((_, struct_type)) = codegen.types.get(type_name) {
             return struct_type.as_basic_type_enum();
         }
-        
+
         let struct_value = codegen.context.opaque_struct_type(type_name);
-        codegen.types.insert(type_name.to_string(), (vec![], struct_value));
+        codegen
+            .types
+            .insert(type_name.to_string(), (vec![], struct_value));
         struct_value.as_basic_type_enum()
         //let (_, struct_type) = codegen.types.get(type_name).expect("Type not declared");
         //struct_type.as_basic_type_enum()

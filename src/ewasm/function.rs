@@ -1,4 +1,4 @@
-use crate::ast::{FunctionDeclaration, Modifier};
+use crate::ast::FunctionDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
@@ -12,7 +12,7 @@ pub struct LLVMFunction<'a> {
 }
 
 impl<'a> LLVMFunction<'a> {
-    pub fn generate(&self, codegen: &Codegen) {
+    pub fn generate(&self, codegen: &mut Codegen) {
         let function_name = &self.function_declaration.head.identifier.token;
         let function_name = self
             .function_declaration

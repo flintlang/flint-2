@@ -33,6 +33,7 @@ impl<'a> FunctionContext<'a> {
             .or_else(|| self.locals.get(name).or(None))
     }
 
+    #[allow(dead_code)]
     pub fn update_declaration(&mut self, name: &str, val: BasicValueEnum<'a>) {
         // PRE local should already exist
         if self.parameters.contains_key(name) {

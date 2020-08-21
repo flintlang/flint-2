@@ -117,6 +117,34 @@ pub fn shapes(codegen: &Codegen) {
 }
 
 #[allow(dead_code)]
+pub fn operators(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("OperatorsInit")
+            .expect("Could not find OperatorsInit");
+
+        let lt: JitFunction<unsafe extern "C" fn(i64, i64) -> bool> =
+            engine.get_function("lt").expect("Could not find lt");
+
+        let plus: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> =
+            engine.get_function("plus").expect("Could not find plus");
+
+        let divide: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> = engine
+            .get_function("divide")
+            .expect("Could not find divide");
+
+        init.call();
+        assert!(lt.call(5, 10));
+        assert_eq!(15, plus.call(10, 5));
+        assert_eq!(2, divide.call(10, 5));
+        assert_eq!(2, divide.call(11, 5));
+    }
+}
+
+#[allow(dead_code)]
 pub fn traffic_lights(codegen: &Codegen) {
     let engine = set_up_tests(&codegen);
 
