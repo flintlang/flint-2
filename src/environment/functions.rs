@@ -1,10 +1,11 @@
 use crate::ast::{
     CallerProtection, FunctionArgument, FunctionCall, FunctionDeclaration, FunctionInformation,
-    FunctionSignatureDeclaration, Type, TypeInfo, TypeState, VariableDeclaration,
+    FunctionSignatureDeclaration, Type, TypeInfo, TypeState,
 };
 use crate::context::ScopeContext;
 use crate::environment::*;
 use crate::type_checker::ExpressionChecker;
+use itertools::{EitherOrBoth, Itertools};
 
 impl Environment {
     pub fn add_function(
@@ -287,14 +288,13 @@ impl Environment {
 
         let regular_match = self.match_regular_function(&call, type_id, caller_protections, scope);
 
-        let initaliser_match =
+        let initialiser_match =
             self.match_initialiser_function(call, &argument_types, caller_protections);
-
         let global_match = self.match_global_function(call, &argument_types, caller_protections);
 
         result
             .merge(regular_match)
-            .merge(initaliser_match)
+            .merge(initialiser_match)
             .merge(global_match)
     }
 
@@ -335,20 +335,14 @@ impl Environment {
         let no_self_declaration_type: Vec<_> =
             Environment::replace_self(source.get_parameter_types(), type_id).collect();
 
-        let parameters: Vec<_> = source
-            .declaration
-            .head
-            .parameters
-            .iter()
-            .map(|p| p.as_variable_declaration())
-            .collect();
+        let parameters: &[_] = &source.declaration.head.parameters;
 
         if target.arguments.len() <= source.parameter_identifiers().count()
             && target.arguments.len() >= source.required_parameter_identifiers().count()
         {
             self.check_parameter_compatibility(
                 &target.arguments,
-                &parameters,
+                parameters,
                 type_id,
                 scope,
                 &no_self_declaration_type,
@@ -361,94 +355,38 @@ impl Environment {
     fn check_parameter_compatibility(
         &self,
         arguments: &[FunctionArgument],
-        parameters: &[VariableDeclaration],
+        parameters: &[Parameter],
         enclosing: &str,
         scope: &ScopeContext,
         declared_types: &[Type],
     ) -> bool {
-        let required_parameters: Vec<&VariableDeclaration> = parameters
+        let _required_parameters: Vec<&Parameter> = parameters
             .iter()
             .filter(|f| f.expression.is_none())
             .collect();
 
-        for (index, _) in required_parameters.iter().enumerate() {
-            if let Some(ref argument) = arguments[index].identifier {
-                if argument.token != parameters[index].identifier.token {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-
-            // Check Types
-            let declared_type = &declared_types[index];
-            let argument_expression = &arguments[index].expression;
-            let argument_type =
-                self.get_expression_type(argument_expression, enclosing, &[], &[], &scope);
-
-            if argument_type != *declared_type {
-                return false;
-            }
-        }
-
-        let mut index = required_parameters.len();
-        let mut argument_index = index;
-
-        while index < required_parameters.len() && argument_index < arguments.len() {
-            if arguments[argument_index].identifier.is_none() {
-                let declared_type = &declared_types[index];
-
-                let argument_type = self.get_expression_type(
-                    &arguments[argument_index].expression,
-                    enclosing,
-                    &[],
-                    &[],
-                    scope,
-                );
-                //TODO replacing self
-                if argument_type != *declared_type {
-                    return false;
-                }
-                index += 1;
-                argument_index += 1;
-                continue;
-            }
-
-            while index < parameters.len() {
-                if let Some(ref argument) = arguments[argument_index].identifier {
-                    if argument.token != parameters[index].identifier.token {
-                        index += 1;
+        // Cannot use itertools::izip! as it's important to consume parameters, to ensure no required parameters are left hanging
+        for element in parameters
+            .into_iter()
+            .zip_longest(arguments.iter().zip(declared_types))
+        {
+            match element {
+                EitherOrBoth::Both(parameter, (argument, declared_type)) => {
+                    if !matches!(argument.identifier, Some(ref argument) if argument.token == parameter.identifier.token)
+                    {
+                        return false;
                     }
-                } else {
-                    break;
+
+                    let argument_type =
+                        self.get_expression_type(&argument.expression, enclosing, &[], &[], &scope);
+
+                    if argument_type != *declared_type {
+                        return false;
+                    }
                 }
+                EitherOrBoth::Left(parameter) if parameter.expression.is_some() => (),
+                _ => return false,
             }
-
-            if index == parameters.len() {
-                // Identifier was not found
-                return false;
-            }
-
-            // Check Types
-            let declared_type = &declared_types[index];
-            let argument_type = self.get_expression_type(
-                &arguments[argument_index].expression,
-                enclosing,
-                &[],
-                &[],
-                scope,
-            );
-
-            if *declared_type != argument_type {
-                return false;
-            }
-
-            index += 1;
-            argument_index += 1;
-        }
-
-        if argument_index < arguments.len() {
-            return false;
         }
         true
     }

@@ -848,12 +848,13 @@ impl Parameter {
     pub fn is_dynamic(&self) -> bool {
         self.type_assignment.is_dynamic_type()
     }
+
     pub fn as_variable_declaration(&self) -> VariableDeclaration {
         VariableDeclaration {
             declaration_token: None,
             identifier: self.identifier.clone(),
             variable_type: self.type_assignment.clone(),
-            expression: None,
+            expression: self.expression.as_ref().map(|e| Box::new(e.clone())),
         }
     }
 

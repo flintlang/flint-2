@@ -222,6 +222,46 @@ impl SpecialInformation {
     pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
         self.declaration.head.parameter_types()
     }
+
+    /**
+    Generate a default initialiser for use when the struct doesn't already have one
+    Right now, this generates one where unassigned fields must be provided. After default arguments
+    are fixed, this should be able to be cleaned up. It would probably better to generate this in
+    the AST and make them actually exist in some pass, but right now this is still delegated to the
+    target generation
+    */
+    pub fn default_initialiser(
+        declaration: &declarations::StructDeclaration,
+    ) -> SpecialInformation {
+        SpecialInformation {
+            declaration: declarations::SpecialDeclaration {
+                head: declarations::SpecialSignatureDeclaration {
+                    special_token: "init".to_string(),
+                    enclosing_type: None,
+                    attributes: vec![],
+                    modifiers: vec![declarations::Modifier::Public],
+                    mutates: vec![],
+                    parameters: declaration
+                        .get_variable_declarations()
+                        .filter(|x| x.expression.is_none())
+                        .map(|d| declarations::Parameter {
+                            identifier: d.identifier.clone(),
+                            type_assignment: d.variable_type.clone(),
+                            expression: d.expression.as_ref().map(|e| (**e).clone()),
+                            line_info: Default::default(),
+                        })
+                        .collect(),
+                },
+                body: vec![],
+                scope_context: Default::default(),
+                generated: true,
+            },
+            type_states: vec![],
+            caller_protections: vec![CallerProtection {
+                identifier: expressions::Identifier::generated("new"),
+            }],
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone)]
