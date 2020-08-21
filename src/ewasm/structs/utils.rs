@@ -7,7 +7,7 @@ use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
 
-pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen) {
+pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Codegen) {
     let params = &initialiser.head.parameters;
     let param_types = params
         .iter()
@@ -20,7 +20,8 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen)
         .collect::<Vec<BasicTypeEnum>>();
 
     let void_type = codegen.context.void_type().fn_type(&param_types, false);
-
+    //dbg!(initialiser.clone());
+    // TODO: change from initialiser head enclosing type to type assigment of parameter?
     let func_name = &format!("{}Init", initialiser.head.enclosing_type.as_ref().unwrap());
     let init_func = codegen.module.add_function(func_name, void_type, None);
 
@@ -42,12 +43,17 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &Codegen)
     let mut function_context = FunctionContext::new(init_func, params);
     let block = codegen.context.append_basic_block(init_func, "entry");
     codegen.builder.position_at_end(block);
-    let global = codegen
-        .module
-        .get_global(codegen.contract_name)
-        .unwrap()
-        .as_pointer_value();
-    function_context.add_local("this", global.as_basic_value_enum());
+
+    if let Some(enclosing_type) = &initialiser.head.enclosing_type {
+        if enclosing_type == codegen.contract_name {
+            let global = codegen
+                .module
+                .get_global(codegen.contract_name)
+                .unwrap()
+                .as_pointer_value();
+            function_context.add_local("this", global.as_basic_value_enum());
+        }
+    }
 
     for statement in initialiser.body.iter() {
         LLVMStatement { statement }.generate(codegen, &mut function_context);

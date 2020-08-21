@@ -2,10 +2,10 @@ mod utils;
 
 use crate::ast::calls::{FunctionArgument, FunctionCall};
 use crate::ast::declarations::{
-    ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, VariableDeclaration,
+    ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, Parameter,
+    VariableDeclaration,
 };
-use crate::ast::expressions::Identifier;
-use crate::ast::expressions::{BinaryExpression, Expression};
+use crate::ast::expressions::{BinaryExpression, Expression, Identifier, InoutExpression};
 use crate::ast::operators::BinOp;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::{InoutType, Type};
@@ -148,6 +148,19 @@ impl Visitor for LLVMPreProcessor {
             )));
         }
 
+        for mut declaration in &mut dec.members {
+            if let StructMember::SpecialDeclaration(sd) = &mut declaration {
+                sd.head.parameters.push(Parameter {
+                    identifier: Identifier::generated("this"),
+                    type_assignment: Type::InoutType(InoutType {
+                        key_type: Box::new(Type::UserDefinedType(dec.identifier.clone())),
+                    }),
+                    expression: None,
+                    line_info: Default::default(),
+                });
+            }
+        }
+
         if let Some(init) = ctx
             .environment
             .get_public_initialiser(dec.identifier.token.as_str())
@@ -162,7 +175,12 @@ impl Visitor for LLVMPreProcessor {
                     attributes: vec![],
                     modifiers: vec![Modifier::Public],
                     mutates: vec![],
-                    parameters: vec![],
+                    parameters: vec![Parameter {
+                        identifier: Identifier::generated("this"),
+                        type_assignment: Type::UserDefinedType(dec.identifier.clone()),
+                        expression: None,
+                        line_info: Default::default(),
+                    }],
                 },
                 body: assignments,
                 scope_context: Default::default(),
@@ -311,16 +329,28 @@ impl Visitor for LLVMPreProcessor {
         Ok(())
     }
 
-    fn start_function_call(&mut self, call: &mut FunctionCall, _: &mut Context) -> VResult {
+    fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         let function_name = &call.identifier.token;
-        call.identifier.token = mangle_ewasm_function(&function_name);
+        if ctx.environment.types.get(function_name).is_some() {
+            call.identifier.token = format!("{}Init", function_name);
 
-        let contract_argument = FunctionArgument {
-            identifier: None,
-            expression: Expression::Identifier(Identifier::generated("this")),
-        };
+            call.arguments.push(FunctionArgument {
+                identifier: None,
+                expression: Expression::InoutExpression(InoutExpression {
+                    ampersand_token: "&".to_string(),
+                    expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+                }),
+            });
+        } else {
+            call.identifier.token = mangle_ewasm_function(&function_name);
 
-        call.arguments.push(contract_argument);
+            let contract_argument = FunctionArgument {
+                identifier: None,
+                expression: Expression::Identifier(Identifier::generated("this")),
+            };
+
+            call.arguments.push(contract_argument);
+        }
 
         Ok(())
     }

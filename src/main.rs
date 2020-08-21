@@ -1,4 +1,5 @@
 mod ewasm;
+mod ewasm_tests;
 
 mod ast;
 mod ast_processor;

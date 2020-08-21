@@ -20,6 +20,7 @@ extern crate wabt;
 use self::inkwell::context::Context as LLVMContext;
 use self::inkwell::passes::PassManager;
 
+use self::wabt::wat2wasm;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, Module, StructDeclaration, TopLevelDeclaration,
     TraitDeclaration,
@@ -28,6 +29,8 @@ use crate::context::Context;
 use crate::ewasm::abi::generate_abi;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::contract::LLVMContract;
+// use crate::ewasm::inkwell::execution_engine::JitFunction;
+// use crate::ewasm::inkwell::OptimizationLevel;
 use itertools::Itertools;
 use nom::lib::std::collections::HashMap;
 use process::Command;
@@ -118,9 +121,33 @@ pub fn generate(module: &Module, context: &mut Context) {
         fs::create_dir(output_path).expect("Could not create output directory");
     }
 
+    let flint_config =
+        fs::read_to_string(Path::new("flint_config.json")).expect("Could not find flint config");
+    let flint_config = json::parse(flint_config.as_str()).expect("Could not parse flint config");
+    assert!(flint_config.is_object());
+    let llc_path = flint_config
+        .entries()
+        .find(|(key, _)| *key == "llcPath")
+        .expect("No llcPath in flint config")
+        .1
+        .as_str()
+        .expect("Could not find llcPath in flint config");
+    assert!(!llc_path.is_empty());
+
+    let wasm_ld_path = flint_config
+        .entries()
+        .find(|(key, _)| *key == "wasm-ldPath")
+        .expect("No wasm-ldPath in flint config")
+        .1
+        .as_str()
+        .expect("Could not find wasm-ld path in flint config");
+    assert!(!wasm_ld_path.is_empty());
+
     for contract in ewasm_contracts.iter() {
         let tmp_path = Path::new("tmp");
-        fs::create_dir(tmp_path).expect("Could not create tmp directory");
+        if !tmp_path.exists() {
+            fs::create_dir(tmp_path).expect("Could not create tmp directory");
+        }
 
         let file_name = contract.contract_declaration.identifier.token.as_str();
         let get_path = |folder: &str, ext: &str| format!("{}/{}.{}", folder, file_name, ext);
@@ -128,12 +155,12 @@ pub fn generate(module: &Module, context: &mut Context) {
         // Create LLVM file
         create_and_write_to_file(
             Path::new(get_path("tmp", "ll").as_str()),
-            &*generate_llvm(contract),
+            &*generate_llvm(contract).as_bytes(),
         )
-        .expect("Could not create file");
+            .expect("Could not create file");
 
         // Convert LLVM to wasm32:
-        Command::new("llc")
+        Command::new(llc_path)
             .arg("-O3")
             .arg("-march=wasm32")
             .arg("-filetype=obj")
@@ -142,9 +169,9 @@ pub fn generate(module: &Module, context: &mut Context) {
             .expect("Could not compile to WASM");
 
         // Link externally defined functions
-        Command::new("wasm-ld")
+        Command::new(wasm_ld_path)
             .arg("--no-entry")
-            .arg("--export-dynamic")
+            .arg("--export-all")
             .arg("--allow-undefined")
             .arg("-o")
             .arg(get_path("tmp", "wasm"))
@@ -152,26 +179,14 @@ pub fn generate(module: &Module, context: &mut Context) {
             .status()
             .expect("Could not link externally defined methods");
 
-        // Copy the wasm file into the output directory
-        fs::copy(
-            Path::new(get_path("tmp", "wasm").as_str()),
-            Path::new(get_path("output", "wasm").as_str()),
-        )
-        .expect("Could not move wasm file to output directory");
-
-        // Generate the ABI
-        create_and_write_to_file(
-            Path::new(get_path("output", "json").as_str()),
-            &*generate_abi(&contract.contract_behaviour_declarations),
-        )
-        .expect("Could not generate abi file");
-
         // The following only exists so that we can inspect LLVM output and wasm files as wat files
         // while developing, and should be removed. TODO
         let wasm =
             fs::read(Path::new(get_path("tmp", "wasm").as_str())).expect("Could not read wasm");
-        let as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
+        let mut as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
 
+        // Shift final module closing curly brace onto its own line so it is not removed when trimming exports
+        as_wat.insert(as_wat.len() - 2, '\n');
         // Remove exports except memory and main
         let export_regex = Regex::new("export \"((main)|(memory))\"").unwrap();
 
@@ -181,22 +196,41 @@ pub fn generate(module: &Module, context: &mut Context) {
             .intersperse("\n")
             .collect::<String>();
 
-        create_and_write_to_file(Path::new(get_path("output", "wat").as_str()), &as_wat)
-            .expect("Could not create output wat file");
-
-        fs::copy(
-            Path::new(get_path("tmp", "wasm").as_str()),
-            Path::new(get_path("output", "wasm").as_str()),
+        create_and_write_to_file(
+            Path::new(get_path("tmp", "wat").as_str()),
+            &as_wat.as_bytes(),
         )
-        .expect("Could not move wasm file to output directory");
+            .expect("Could not create tmp wat file");
+
+        let post_processed_wasm =
+            wat2wasm(as_wat.as_bytes()).expect("Could not convert wat to wasm");
+        create_and_write_to_file(
+            Path::new(get_path("output", "wasm").as_str()),
+            &post_processed_wasm,
+        )
+            .expect("Could not write to output wasm file");
+
+        // TODO remove this for the final release, as we do not need to give wat and wasm files
+        fs::copy(
+            Path::new(get_path("tmp", "wat").as_str()),
+            Path::new(get_path("output", "wat").as_str()),
+        )
+            .expect("Could not copy wat file from tmp to output");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
+
+        // Generate the ABI
+        create_and_write_to_file(
+            Path::new(get_path("output", "json").as_str()),
+            &*generate_abi(&contract.contract_behaviour_declarations).as_bytes(),
+        )
+            .expect("Could not generate abi file");
     }
 }
 
-fn create_and_write_to_file(path: &Path, data: &str) -> Result<(), Box<dyn Error + 'static>> {
-    Ok(fs::File::create(path)?.write_all(data.as_bytes())?)
+fn create_and_write_to_file(path: &Path, data: &[u8]) -> Result<(), Box<dyn Error + 'static>> {
+    Ok(fs::File::create(path)?.write_all(data)?)
 }
 
 fn generate_llvm(contract: &LLVMContract) -> String {
@@ -238,8 +272,213 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
+    //counter(&codegen);
+    //factorial(&codegen);
+    //shapes(&codegen);
+    //operators(&codegen);
     llvm_module.print_to_string().to_string()
 }
+
+
+/*// Test function to see if the LLVM produced is accurate
+pub fn counter(codegen: &Codegen) {
+    let engine = codegen.module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+
+    fpm.initialize();
+
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+
+        let init = engine
+            .get_function::<VoidToVoid>("CounterInit")
+            .expect("Could not find CounterInit");
+
+        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getValue")
+            .expect("Could not find getter");
+
+        init.call();
+
+        assert_eq!(0, getter.call());
+
+        let increment: JitFunction<VoidToVoid> = engine
+            .get_function("increment")
+            .expect("Could not find increment");
+
+        let decrement: JitFunction<VoidToVoid> = engine
+            .get_function("decrement")
+            .expect("Could not find decrement");
+
+        increment.call();
+        assert_eq!(1, getter.call());
+        increment.call();
+        assert_eq!(2, getter.call());
+        decrement.call();
+        assert_eq!(1, getter.call());
+    }
+}
+
+// Test function to see if the LLVM produced is accurate
+pub fn factorial(codegen: &Codegen) {
+    let engine = codegen.module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+
+    fpm.initialize();
+
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+
+        let init = engine
+            .get_function::<VoidToVoid>("FactorialInit")
+            .expect("Could not find FactorialInit");
+
+        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getValue")
+            .expect("Could not find getter");
+
+        init.call();
+
+        assert_eq!(0, getter.call());
+
+        let calculate: JitFunction<unsafe extern "C" fn(i64)> = engine
+            .get_function("calculate")
+            .expect("Could not find decrement");
+
+        calculate.call(1);
+        assert_eq!(1, getter.call());
+        calculate.call(2);
+        assert_eq!(2, getter.call());
+        calculate.call(10);
+        assert_eq!(3628800, getter.call());
+    }
+}
+
+pub fn shapes(codegen: &Codegen) {
+    let engine = codegen
+        .module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+
+    fpm.initialize();
+
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+    unsafe {
+        let init: JitFunction<unsafe extern "C" fn(i64)> = engine
+            .get_function("ShapesInit")
+            .expect("Could not find ShapesInit");
+
+        let area: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("area").expect("Could not find area");
+
+        let semi_perimeter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("semiPerimeter")
+            .expect("Could not find semiPerimeter");
+
+        let perimeter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("perimeter")
+            .expect("Could not find perimeter");
+
+        let smaller_width: JitFunction<unsafe extern "C" fn(i64) -> bool> = engine
+            .get_function("smallerWidth")
+            .expect("Could not find smallerWidth");
+
+        init.call(10);
+        assert_eq!(200, area.call());
+        assert_eq!(30, semi_perimeter.call());
+        assert_eq!(60, perimeter.call());
+        assert!(smaller_width.call(21));
+        assert!(!smaller_width.call(19));
+    }
+}
+
+
+pub fn operators(codegen: &Codegen) {
+    let engine = codegen
+        .module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .expect("Could not make engine");
+    let fpm = PassManager::create(codegen.module);
+
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+    fpm.add_gvn_pass();
+    fpm.add_cfg_simplification_pass();
+    fpm.add_basic_alias_analysis_pass();
+    fpm.add_promote_memory_to_register_pass();
+    fpm.add_instruction_combining_pass();
+    fpm.add_reassociate_pass();
+
+    fpm.initialize();
+
+    assert!(codegen.module.verify().is_ok());
+    codegen.module.print_to_stderr();
+
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("OperatorsInit")
+            .expect("Could not find OperatorsInit");
+
+        let lt: JitFunction<unsafe extern "C" fn(i64, i64) -> bool> =
+            engine.get_function("lt").expect("Could not find lt");
+
+        let plus: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> =
+        engine.get_function("plus").expect("Could not find plus");
+
+        let divide: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> =
+        engine.get_function("divide").expect("Could not find divide");
+
+        init.call();
+        assert!(lt.call(5, 10));
+        assert_eq!(15, plus.call(10, 5));
+        assert_eq!(2, divide.call(10, 5));
+        assert_eq!(2, divide.call(11, 5));
+    }
+}
+*/
 
 // This simply creates an empty main method, since eWASM requires a main that does not have
 // inputs or outputs

@@ -24,6 +24,15 @@ pub struct LLVMContract<'a> {
 impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
+        // Add each struct to the list of known types
+        // TODO: don't make it an LLVMStruct?
+        self.struct_declarations.iter().for_each(|dec| {
+            LLVMStruct {
+                struct_declaration: dec,
+            }
+            .create_type(codegen)
+        });
+
         // setting up a struct to contain the contract data
         let members = self
             .contract_declaration
@@ -69,7 +78,17 @@ impl<'a> LLVMContract<'a> {
             .add_global(struct_type, None, codegen.contract_name);
         // Required so that the global variable is safe to access in memory. Note this is garbage
         // data but this should not matter since an initialiser will overwrite it
+
+        // Create initialiser for contract
         global.set_initializer(&struct_type.const_zero().as_basic_value_enum());
+
+        // Set up struct definitions here
+        self.struct_declarations.iter().for_each(|dec| {
+            LLVMStruct {
+                struct_declaration: dec,
+            }
+            .generate(codegen)
+        });
 
         let initialiser = self
             .contract_behaviour_declarations
@@ -90,14 +109,6 @@ impl<'a> LLVMContract<'a> {
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
         generate_initialiser(initialiser, codegen);
-
-        // Set up struct definitions here
-        self.struct_declarations.iter().for_each(|dec| {
-            LLVMStruct {
-                struct_declaration: dec,
-            }
-            .generate(codegen)
-        });
 
         // Generate all contract functions
         self.contract_behaviour_declarations

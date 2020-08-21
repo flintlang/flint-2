@@ -13,7 +13,7 @@ pub struct LLVMAssignment<'a> {
 impl<'a> LLVMAssignment<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         function_context.assigning = true;
@@ -28,6 +28,7 @@ impl<'a> LLVMAssignment<'a> {
         .generate(codegen, function_context);
 
         codegen.builder.build_store(lhs.into_pointer_value(), rhs);
+        // TODO: should we be updating the function context?
         // TODO: what should we return?
         rhs
     }
