@@ -775,7 +775,7 @@ pub fn mangle_function_call_name(
                     let declaration = &fi.declaration;
                     let param_types = &declaration.head.parameters;
                      let _param_types: Vec<&Type> =
-                         param_types.into_iter().map(|p| &p.type_assignment).collect();
+                         param_types.iter().map(|p| &p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         &declaration.head.identifier.token,
