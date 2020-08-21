@@ -1,4 +1,4 @@
-use crate::ast::FunctionDeclaration;
+use crate::ast::{FunctionDeclaration, Modifier};
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};

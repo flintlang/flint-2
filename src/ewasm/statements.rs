@@ -12,7 +12,7 @@ pub struct LLVMStatement<'a> {
 impl<'a> LLVMStatement<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) {
         match self.statement {
@@ -46,7 +46,7 @@ struct LLVMReturnStatement<'a> {
 impl<'a> LLVMReturnStatement<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) {
         if let Some(return_expression) = &self.statement.expression {
@@ -68,7 +68,7 @@ struct LLVMIfStatement<'a> {
 impl<'a> LLVMIfStatement<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) {
         // TODO I suspect this will not work, but it is likely along the right lines. It will
@@ -123,7 +123,7 @@ struct LLVMAssertion<'a> {
 impl<'a> LLVMAssertion<'a> {
     fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) {
         let condition =
@@ -149,7 +149,7 @@ impl<'a> LLVMAssertion<'a> {
 
 fn condition_to_int_value<'ctx>(
     condition: &Expression,
-    codegen: &Codegen<'_, 'ctx>,
+    codegen: &mut Codegen<'_, 'ctx>,
     function_context: &mut FunctionContext<'ctx>,
 ) -> IntValue<'ctx> {
     let condition = LLVMExpression {

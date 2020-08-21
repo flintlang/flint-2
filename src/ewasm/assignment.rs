@@ -13,7 +13,7 @@ pub struct LLVMAssignment<'a> {
 impl<'a> LLVMAssignment<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         function_context.assigning = true;
