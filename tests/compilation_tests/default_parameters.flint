@@ -3,7 +3,7 @@ contract Test { }
 Test :: (any) {
     public init() {
         test01()
-        test01(2)
+        //test01(2)
 
 //        test12()
 //        test12(1)

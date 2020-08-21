@@ -367,7 +367,7 @@ impl Environment {
 
         // Cannot use itertools::izip! as it's important to consume parameters, to ensure no required parameters are left hanging
         for element in parameters
-            .into_iter()
+            .iter()
             .zip_longest(arguments.iter().zip(declared_types))
         {
             match element {

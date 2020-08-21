@@ -761,22 +761,21 @@ pub fn mangle_function_call_name(
                 ))
             }
             FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) => {
-                if c.candidates.len() == 0 {
-                    panic!("Unable to find function declaration")
-                } else if c.candidates.len() > 1 {
+                if c.candidates.len() > 1 {
                     panic!(
                         "Found too many function declarations! ({} found)",
                         c.candidates.len()
                     )
                 }
 
-                let candidate = c.candidates[0].clone();
+                let candidate = c.candidates.first()
+                    .expect("Unable to find function declaration");
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
-                    let declaration = fi.declaration;
-                    let param_types = declaration.head.parameters;
-                    let _param_types: Vec<Type> =
-                        param_types.into_iter().map(|p| p.type_assignment).collect();
+                    let declaration = &fi.declaration;
+                    let param_types = &declaration.head.parameters;
+                     let _param_types: Vec<&Type> =
+                         param_types.into_iter().map(|p| &p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         &declaration.head.identifier.token,
