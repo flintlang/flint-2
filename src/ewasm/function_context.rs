@@ -1,22 +1,20 @@
 use super::inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::HashMap;
-//TODO: make locals private
 #[derive(Debug)]
 pub struct FunctionContext<'a> {
-    pub assigning: bool,
     this_func: FunctionValue<'a>,
-    pub parameters: HashMap<String, BasicValueEnum<'a>>,
-    pub locals: HashMap<String, BasicValueEnum<'a>>,
+    parameters: HashMap<String, BasicValueEnum<'a>>,
+    locals: HashMap<String, BasicValueEnum<'a>>,
+    pub assigning: bool,
 }
 
-#[allow(dead_code)]
 impl<'a> FunctionContext<'a> {
     pub fn new(func: FunctionValue<'a>, params: HashMap<String, BasicValueEnum<'a>>) -> Self {
         FunctionContext {
-            assigning: false,
             this_func: func,
             parameters: params,
             locals: HashMap::new(),
+            assigning: false,
         }
     }
 

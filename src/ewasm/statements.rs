@@ -22,7 +22,6 @@ impl<'a> LLVMStatement<'a> {
             Statement::Expression(expression) => {
                 LLVMExpression { expression }.generate(codegen, function_context);
             }
-            // TODO do become statements in the preprocessor!
             Statement::BecomeStatement(_) => {
                 panic!("This should have been done in the preprocessor")
             }
@@ -137,7 +136,7 @@ impl<'a> LLVMAssertion<'a> {
 
         codegen
             .builder
-            .build_conditional_branch(condition, fail_block, continue_block);
+            .build_conditional_branch(condition, continue_block, fail_block);
 
         // Build fail block
         codegen.builder.position_at_end(fail_block);

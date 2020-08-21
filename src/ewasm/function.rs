@@ -1,4 +1,4 @@
-use crate::ast::{FunctionDeclaration, Modifier};
+use crate::ast::FunctionDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
@@ -13,16 +13,6 @@ pub struct LLVMFunction<'a> {
 
 impl<'a> LLVMFunction<'a> {
     pub fn generate(&self, codegen: &Codegen) {
-        // TODO: declare function context and scope context?
-        // TODO: how do we treat modifiers?
-        let _modifiers: Vec<&Modifier> = self
-            .function_declaration
-            .head
-            .modifiers
-            .iter()
-            .filter(|s| s == &&Modifier::Public)
-            .collect();
-
         let function_name = &self.function_declaration.head.identifier.token;
         let function_name = self
             .function_declaration
@@ -66,7 +56,6 @@ impl<'a> LLVMFunction<'a> {
         let func_val = codegen.module.add_function(&function_name, func_type, None);
 
         // set argument names
-
         for (i, arg) in func_val.get_param_iter().enumerate() {
             arg.set_name(parameter_names[i].as_str())
         }
@@ -87,18 +76,29 @@ impl<'a> LLVMFunction<'a> {
 
         let mut function_context = FunctionContext::new(func_val, local_parameters);
 
+        // Here, we add the contract global variable to the context as a pointer, under the name of the contract
+        // We do this only if it is a contract wrapper function (and thus does not already have the contract in scope)
+        if let Some(enclosing) = &self.function_declaration.head.identifier.enclosing_type {
+            if enclosing.eq(codegen.contract_name) && self.function_declaration.is_external {
+                let contract_global = codegen
+                    .module
+                    .get_global(codegen.contract_name)
+                    .unwrap()
+                    .as_pointer_value()
+                    .as_basic_value_enum();
+                function_context.add_local(codegen.contract_name, contract_global);
+            }
+        }
+
         // TODO: add tags
-        let _tags = &self.function_declaration.tags;
         // add dictionary to tags?
 
         for statement in &self.function_declaration.body {
             LLVMStatement {
                 statement: &statement,
             }
-            .generate(codegen, &mut function_context);
+                .generate(codegen, &mut function_context);
         }
-
-        // TODO: add statement to context?
 
         codegen.verify_and_optimise(&func_val);
     }
