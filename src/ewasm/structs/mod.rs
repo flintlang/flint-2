@@ -71,9 +71,7 @@ impl<'a> LLVMStruct<'a> {
         };
 
         struct_type.set_body(field_types, false);
-
         let struct_info = (field_names, struct_type);
-
         codegen.types.insert(struct_name.to_string(), struct_info);
     }
 
