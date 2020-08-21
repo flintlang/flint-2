@@ -257,9 +257,7 @@ impl SpecialInformation {
                 generated: true,
             },
             type_states: vec![],
-            caller_protections: vec![CallerProtection {
-                identifier: expressions::Identifier::generated("new"),
-            }],
+            caller_protections: vec![CallerProtection::any()],
         }
     }
 }
@@ -371,8 +369,10 @@ pub struct CallerProtection {
 }
 
 impl CallerProtection {
+    const ANY: &'static str = "any";
+
     pub fn is_any(&self) -> bool {
-        self.identifier.token.eq("any")
+        self.identifier.token.eq(Self::ANY)
     }
 
     pub fn name(&self) -> String {
@@ -381,6 +381,12 @@ impl CallerProtection {
 
     pub fn is_sub_protection(&self, parent: &CallerProtection) -> bool {
         parent.is_any() || self.name() == parent.name()
+    }
+
+    pub fn any() -> CallerProtection {
+        CallerProtection {
+            identifier: Identifier::generated(Self::ANY)
+        }
     }
 }
 

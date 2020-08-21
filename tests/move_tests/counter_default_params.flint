@@ -4,7 +4,7 @@ contract Counter {
 
 Counter :: (any) {
     public init() {
-        count = Count()
+        count = Count(1)
     }
 
     public func record() mutates (count) {
@@ -17,11 +17,7 @@ Counter :: (any) {
 }
 
 struct Count {
-    visible var value: Int = 0
-
-    public init() { // This should not be necessary
-        value = 0
-    }
+    visible var value: Int
 
     public func increment(by: Int = 1) mutates (value) {
         value += by
