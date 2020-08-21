@@ -145,7 +145,9 @@ pub fn generate(module: &Module, context: &mut Context) {
 
     for contract in ewasm_contracts.iter() {
         let tmp_path = Path::new("tmp");
-        fs::create_dir(tmp_path).expect("Could not create tmp directory");
+        if !tmp_path.exists() {
+            fs::create_dir(tmp_path).expect("Could not create tmp directory");
+        }
 
         let file_name = contract.contract_declaration.identifier.token.as_str();
         let get_path = |folder: &str, ext: &str| format!("{}/{}.{}", folder, file_name, ext);

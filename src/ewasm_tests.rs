@@ -50,7 +50,7 @@ mod ewasm_tests {
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let file_names = "counter factorial".split(' ').collect::<Vec<&str>>();
+        let file_names = "counter factorial shapes assert".split(' ').collect::<Vec<&str>>();
 
         for file_name in file_names {
             let file_path = format!("tests/move_tests/{}.flint", file_name);
