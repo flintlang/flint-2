@@ -1,3 +1,5 @@
 {
-  "libraPath": "../libra"
+  "libraPath": "",
+  "llcPath": "llc-10",
+  "wasm-ldPath": "wasm-ld-10"
 }
