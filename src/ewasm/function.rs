@@ -90,7 +90,7 @@ impl<'a> LLVMFunction<'a> {
         // TODO: add tags
         let _tags = &self.function_declaration.tags;
         // add dictionary to tags?
-
+        
         for statement in &self.function_declaration.body {
             LLVMStatement {
                 statement: &statement,

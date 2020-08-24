@@ -49,7 +49,7 @@ impl<'a> LLVMFunctionCall<'a> {
             let struct_var = struct_type.const_zero();
 
             // add local variable to function call arguments
-            function_context.add_local("this", BasicValueEnum::StructValue(struct_var));
+            function_context.add_local("tmp_var", BasicValueEnum::StructValue(struct_var));
         }
 
         let arguments: Vec<BasicValueEnum> = self

@@ -63,8 +63,6 @@ impl<'a> LLVMStruct<'a> {
             })
             .collect::<Vec<BasicTypeEnum>>();
 
-        dbg!(codegen.types.clone());
-
         let struct_name = self.struct_declaration.identifier.token.as_str();
 
         let struct_type = match codegen.types.get(struct_name) {

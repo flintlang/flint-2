@@ -212,7 +212,7 @@ impl Visitor for LLVMPreProcessor {
         // construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
             let self_param = construct_parameter(
-                Identifier::SELF.to_string(),
+                "this".to_string(),
                 Type::InoutType(InoutType {
                     key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                         &struct_ctx.identifier.token,
@@ -338,7 +338,7 @@ impl Visitor for LLVMPreProcessor {
                 identifier: None,
                 expression: Expression::InoutExpression(InoutExpression {
                     ampersand_token: "&".to_string(),
-                    expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+                    expression: Box::new(Expression::Identifier(Identifier::generated("tmp_var"))),
                 }),
             });
         } else {
