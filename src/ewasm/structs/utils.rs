@@ -20,7 +20,6 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
         .collect::<Vec<BasicTypeEnum>>();
 
     let void_type = codegen.context.void_type().fn_type(&param_types, false);
-    // TODO: change from initialiser head enclosing type to type assigment of parameter?
     let func_name = &format!("{}Init", initialiser.head.enclosing_type.as_ref().unwrap());
     let init_func = codegen.module.add_function(func_name, void_type, None);
 

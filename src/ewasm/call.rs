@@ -20,7 +20,6 @@ impl<'a> LLVMExternalCall<'a> {
 
 pub struct LLVMFunctionCall<'a> {
     pub function_call: &'a FunctionCall,
-    pub module_name: &'a str,
 }
 
 impl<'a> LLVMFunctionCall<'a> {
@@ -55,8 +54,7 @@ impl<'a> LLVMFunctionCall<'a> {
         let arguments: Vec<BasicValueEnum> = self
             .function_call
             .arguments
-            .clone()
-            .into_iter()
+            .iter()
             .map(|a| {
                 LLVMExpression {
                     expression: &a.expression,

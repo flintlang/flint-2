@@ -123,8 +123,8 @@ pub fn generate_contract_wrapper(
     wrapper
 }
 
-pub fn mangle_ewasm_function(function_name: &str) -> String {
-    format!("inner_{}", function_name)
+pub fn mangle_ewasm_function(function_name: &str, enclosing: &str) -> String {
+    format!("{}_{}", enclosing, function_name)
 }
 
 pub fn construct_parameter(name: String, t: Type) -> Parameter {

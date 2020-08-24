@@ -25,7 +25,6 @@ impl<'a> LLVMStatement<'a> {
             Statement::BecomeStatement(_) => {
                 panic!("This should have been done in the preprocessor")
             }
-            // TODO what is an emit statement as opposed to an expression function call?
             Statement::EmitStatement(_) => unimplemented!(),
             Statement::ForStatement(_) => unimplemented!(),
             Statement::IfStatement(if_statement) => {
@@ -71,8 +70,6 @@ impl<'a> LLVMIfStatement<'a> {
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) {
-        // TODO I suspect this will not work, but it is likely along the right lines. It will
-        // be difficult to fix until we can run the code and see, however, so I will leave it for now
         let IfStatement {
             condition,
             body,

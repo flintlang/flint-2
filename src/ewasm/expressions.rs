@@ -1,5 +1,5 @@
-use super::inkwell::types::{StructType, VectorType};
-use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode, PointerValue};
+use super::inkwell::types::VectorType;
+use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
@@ -12,6 +12,7 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::declaration::LLVMVariableDeclaration;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::literal::LLVMLiteral;
+use crate::ewasm::struct_access::LLVMStructAccess;
 use crate::ewasm::types::LLVMType;
 
 pub struct LLVMExpression<'a> {
@@ -40,12 +41,8 @@ impl<'a> LLVMExpression<'a> {
                 LLVMExternalCall { external_call: f }.generate(codegen, function_context)
             }
             Expression::FunctionCall(f) => {
-                LLVMFunctionCall {
-                    function_call: f,
-                    module_name: &"Self".to_string(),
-                }
+                { LLVMFunctionCall { function_call: f } }.generate(codegen, function_context)
             }
-            .generate(codegen, function_context),
             Expression::VariableDeclaration(v) => {
                 LLVMVariableDeclaration { declaration: v }.generate(codegen, function_context)
             }
@@ -91,7 +88,7 @@ pub struct LLVMIdentifier<'a> {
 impl<'a> LLVMIdentifier<'a> {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         // TODO: Move this check to the preprocessor
@@ -141,11 +138,8 @@ impl<'a> LLVMBinaryExpression<'a> {
         match &self.expression.op {
             BinOp::Dot => {
                 if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
-                    return LLVMFunctionCall {
-                        function_call: f,
-                        module_name: "Self",
-                    }
-                    .generate(codegen, function_context);
+                    return LLVMFunctionCall { function_call: f }
+                        .generate(codegen, function_context);
                 } else {
                     return LLVMStructAccess {
                         expr: &Expression::BinaryExpression(BinaryExpression {
@@ -158,8 +152,6 @@ impl<'a> LLVMBinaryExpression<'a> {
                     .generate(codegen, function_context)
                     .as_basic_value_enum();
                 }
-
-                // TODO other cases
             }
             BinOp::Equal => {
                 return LLVMAssignment {
@@ -770,7 +762,7 @@ struct LLVMSelfExpression {}
 impl<'a> LLVMSelfExpression {
     pub fn generate<'ctx>(
         &self,
-        codegen: &Codegen<'_, 'ctx>,
+        codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> BasicValueEnum<'ctx> {
         LLVMIdentifier {
@@ -828,77 +820,5 @@ impl<'a> LLVMCastExpression<'a> {
             cast_to_type,
             "tmpcast",
         )
-    }
-}
-
-struct LLVMStructAccess<'a> {
-    expr: &'a Expression,
-}
-
-impl<'a> LLVMStructAccess<'a> {
-    fn generate<'ctx>(
-        &self,
-        codegen: &Codegen<'_, 'ctx>,
-        function_context: &mut FunctionContext<'ctx>,
-    ) -> PointerValue<'ctx> {
-        if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
-            let the_struct = function_context.get_declaration(first).unwrap();
-            let the_struct = the_struct.into_pointer_value();
-
-            accesses
-                .iter()
-                .fold(the_struct, |ptr, name| self.access(codegen, ptr, name))
-        } else {
-            panic!("Malformed access")
-        }
-    }
-
-    fn access<'ctx>(
-        &self,
-        codegen: &Codegen<'_, 'ctx>,
-        ptr: PointerValue<'ctx>,
-        rhs_name: &str,
-    ) -> PointerValue<'ctx> {
-        let struct_type_name =
-            self.get_name_from_struct_type(ptr.get_type().get_element_type().into_struct_type());
-        let (field_names, _) = codegen.types.get(struct_type_name.as_str()).unwrap();
-        let index = field_names
-            .iter()
-            .position(|name| name == rhs_name)
-            .unwrap();
-
-        codegen
-            .builder
-            .build_struct_gep(ptr, index as u32, "tmp_ptr")
-            .expect("Bad access")
-    }
-
-    fn flatten_expr(&self, expr: &'a Expression) -> Vec<&'a str> {
-        match expr {
-            Expression::SelfExpression => vec!["this"],
-            Expression::Identifier(id) => vec![id.token.as_str()],
-            Expression::BinaryExpression(BinaryExpression {
-                lhs_expression,
-                rhs_expression,
-                op: BinOp::Dot,
-                ..
-            }) => {
-                let mut flattened = self.flatten_expr(lhs_expression);
-                flattened.extend(self.flatten_expr(rhs_expression));
-                flattened
-            }
-            // TODO: a.b.foo() is unimplemented for now. Associate struct functions with structs?
-            Expression::FunctionCall(_) => unimplemented!(),
-            _ => panic!("Malformed access"),
-        }
-    }
-
-    fn get_name_from_struct_type(&self, struct_type: StructType<'a>) -> String {
-        struct_type
-            .get_name()
-            .unwrap()
-            .to_str()
-            .expect("Could not convert cstr to str")
-            .to_string()
     }
 }

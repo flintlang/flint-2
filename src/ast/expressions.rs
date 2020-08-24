@@ -268,6 +268,8 @@ impl Visitable for BinaryExpression {
         }
 
         if let BinOp::Dot = self.op {
+            ctx.function_call_receiver_trail
+                .push(*self.lhs_expression.clone());
             ctx.is_enclosing = true;
         }
 
@@ -304,8 +306,12 @@ impl Visitable for BinaryExpression {
             }
         };
 
+        if BinOp::Dot == self.op {
+            ctx.function_call_receiver_trail.pop();
+        }
+
         v.finish_binary_expression(self, ctx)?;
-        ctx.is_lvalue = old_is_lvalue; // TODO ensure is_lvalue is correct
+        ctx.is_lvalue = old_is_lvalue;
         Ok(())
     }
 }

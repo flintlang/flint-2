@@ -10,6 +10,7 @@ mod function_context;
 mod literal;
 pub mod preprocessor;
 mod statements;
+mod struct_access;
 mod structs;
 mod temporary_llvm_tests;
 mod types;
@@ -217,7 +218,7 @@ pub fn generate(module: &Module, context: &mut Context) {
         .expect("Could not copy wat file from tmp to output");
 
         // Delete all tmp files
-        fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
+        // fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory"); TODO uncomment
 
         // Generate the ABI
         create_and_write_to_file(

@@ -785,8 +785,6 @@ impl Visitor for MovePreProcessor {
             };
             bin_expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
         } else if let BinOp::Dot = bin_expr.op {
-            ctx.function_call_receiver_trail
-                .push(*bin_expr.lhs_expression.clone());
             match *bin_expr.lhs_expression.clone() {
                 Expression::Identifier(_) => {
                     if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {
@@ -835,18 +833,6 @@ impl Visitor for MovePreProcessor {
                     be.rhs_expression = Box::new(Expression::Identifier(id));
                 }
             }
-        }
-
-        Ok(())
-    }
-
-    fn finish_binary_expression(
-        &mut self,
-        _t: &mut BinaryExpression,
-        _ctx: &mut Context,
-    ) -> VResult {
-        if let BinOp::Dot = _t.op {
-            _ctx.function_call_receiver_trail.clear();
         }
 
         Ok(())

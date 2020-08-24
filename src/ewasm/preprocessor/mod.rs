@@ -17,6 +17,7 @@ use crate::ast::{
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
 use crate::visitor::Visitor;
+use itertools::Itertools;
 
 pub struct LLVMPreProcessor {}
 
@@ -161,7 +162,10 @@ impl Visitor for LLVMPreProcessor {
         declaration: &mut FunctionDeclaration,
         ctx: &mut Context,
     ) -> VResult {
-        let mangled_name = mangle_ewasm_function(&declaration.head.identifier.token);
+        let mangled_name = mangle_ewasm_function(
+            &declaration.head.identifier.token,
+            declaration.head.identifier.enclosing_type.as_ref().unwrap(),
+        );
 
         declaration.mangled_identifier = Some(mangled_name);
 
@@ -176,7 +180,7 @@ impl Visitor for LLVMPreProcessor {
                 }),
             );
 
-            declaration.head.parameters.insert(0, self_param);
+            declaration.head.parameters.push(self_param);
             // TODO: add to scope?
         }
         // TODO: dynamic parameters?
@@ -341,11 +345,39 @@ impl Visitor for LLVMPreProcessor {
                 }),
             });
         } else {
-            call.identifier.token = mangle_ewasm_function(&function_name);
+            // Gets the contract name / struct name
+            let enclosing_type = if let Some(enclosing) = &call.identifier.enclosing_type {
+                enclosing
+            } else {
+                ctx.enclosing_type_identifier().unwrap().token.as_str()
+            };
 
-            let contract_argument = FunctionArgument {
-                identifier: None,
-                expression: Expression::Identifier(Identifier::generated("this")),
+            // mangles name
+            call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
+
+            // Passes in the self parameter, at the moment, always this
+            let contract_argument = if ctx.function_call_receiver_trail.is_empty() {
+                FunctionArgument {
+                    identifier: None,
+                    expression: Expression::Identifier(Identifier::generated("this")),
+                }
+            } else {
+                FunctionArgument {
+                    identifier: None,
+                    expression: ctx
+                        .function_call_receiver_trail
+                        .clone()
+                        .into_iter()
+                        .fold1(|lhs, next| {
+                            Expression::BinaryExpression(BinaryExpression {
+                                lhs_expression: Box::new(lhs),
+                                rhs_expression: Box::new(next),
+                                op: BinOp::Dot,
+                                line_info: Default::default(),
+                            })
+                        })
+                        .unwrap(),
+                }
             };
 
             call.arguments.push(contract_argument);

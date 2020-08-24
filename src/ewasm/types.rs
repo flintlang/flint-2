@@ -23,7 +23,7 @@ impl<'a> LLVMType<'a> {
                 self.extract_defined_type(definition.token.as_str(), codegen)
             }
             Type::Solidity(_) => unimplemented!(),
-            Type::SelfType => unimplemented!(), // TODO this depends on how we represent contract data
+            Type::SelfType => unimplemented!(), // TODO implement
             Type::Bool => context.bool_type().as_basic_type_enum(),
             Type::Int => context.i64_type().as_basic_type_enum(),
             Type::String => unimplemented!(),
@@ -62,7 +62,6 @@ impl<'a> LLVMType<'a> {
         type_name: &str,
         codegen: &mut Codegen<'_, 'ctx>,
     ) -> BasicTypeEnum<'ctx> {
-        codegen.module.print_to_stderr();
         if let Some((_, struct_type)) = codegen.types.get(type_name) {
             return struct_type.as_basic_type_enum();
         }
