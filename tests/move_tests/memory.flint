@@ -61,7 +61,7 @@ struct S {
   public var s: Address
   var v: V = V(0)
 
-  init(a: Int, s: Address) {
+  public init(a: Int, s: Address) {
     self.a = a
     self.s = s
   }
@@ -75,7 +75,7 @@ struct S {
 struct V {
   public var x: Int
 
-  init(x: Int) {
+  public init(x: Int) {
     self.x = x
   }
 

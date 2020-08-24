@@ -71,7 +71,5 @@ impl<'a> LLVMType<'a> {
             .types
             .insert(type_name.to_string(), (vec![], struct_value));
         struct_value.as_basic_type_enum()
-        //let (_, struct_type) = codegen.types.get(type_name).expect("Type not declared");
-        //struct_type.as_basic_type_enum()
     }
 }

@@ -1,8 +1,10 @@
+use super::inkwell::types::AnyType;
 use crate::ast::calls::{ExternalCall, FunctionCall};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::values::BasicValueEnum;
+use crate::ewasm::utils::get_num_pointer_layers;
 
 pub struct LLVMExternalCall<'a> {
     pub external_call: &'a ExternalCall,
@@ -48,10 +50,16 @@ impl<'a> LLVMFunctionCall<'a> {
             let struct_var = struct_type.const_zero();
 
             // add local variable to function call arguments
-            function_context.add_local("this", BasicValueEnum::StructValue(struct_var));
+            function_context.add_local("tmp_var", BasicValueEnum::StructValue(struct_var));
         }
 
-        let arguments: Vec<BasicValueEnum> = self
+        let params = codegen
+            .module
+            .get_function(self.function_call.identifier.token.as_str())
+            .unwrap()
+            .get_params();
+
+        let mut arguments: Vec<BasicValueEnum> = self
             .function_call
             .arguments
             .iter()
@@ -63,6 +71,22 @@ impl<'a> LLVMFunctionCall<'a> {
                     .unwrap()
             })
             .collect();
+
+        for (index, argument) in arguments.iter_mut().enumerate() {
+            let param_num_pointers =
+                get_num_pointer_layers(params.get(index).unwrap().get_type().as_any_type_enum());
+            let argument_num_pointers =
+                get_num_pointer_layers(argument.get_type().as_any_type_enum());
+
+            if argument_num_pointers == param_num_pointers + 1 {
+                *argument = codegen
+                    .builder
+                    .build_load(argument.into_pointer_value(), "tmp_load");
+            } else if argument_num_pointers == param_num_pointers {
+            } else {
+                panic!("Invalid argument")
+            }
+        }
 
         if let Some(fn_value) = codegen.module.get_function(fn_name) {
             match codegen

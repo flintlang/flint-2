@@ -172,7 +172,7 @@ impl Visitor for LLVMPreProcessor {
         // construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
             let self_param = construct_parameter(
-                Identifier::SELF.to_string(),
+                "this".to_string(),
                 Type::InoutType(InoutType {
                     key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                         &struct_ctx.identifier.token,
@@ -313,7 +313,11 @@ impl Visitor for LLVMPreProcessor {
         Ok(())
     }
 
-    fn start_binary_expression(&mut self, expr: &mut BinaryExpression, _: &mut Context) -> VResult {
+    fn start_binary_expression(
+        &mut self,
+        expr: &mut BinaryExpression,
+        ctx: &mut Context,
+    ) -> VResult {
         // Removes assignment shorthand expressions, e.g. += and *=
         if expr.op.is_assignment_shorthand() {
             let op = expr.op.get_assignment_shorthand();
@@ -327,6 +331,29 @@ impl Visitor for LLVMPreProcessor {
             };
 
             expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
+        } else if expr.op == BinOp::Dot {
+            if let Some(scope_ctx) = &mut ctx.scope_context {
+                if let Expression::Identifier(id) = *expr.lhs_expression.clone() {
+                    if !scope_ctx.is_declared(&id.token) {
+                        let rhs = BinaryExpression {
+                            lhs_expression: expr.lhs_expression.clone(),
+                            rhs_expression: expr.rhs_expression.clone(),
+                            op: BinOp::Dot,
+                            line_info: expr.line_info.clone(),
+                        };
+
+                        expr.lhs_expression = Box::from(Expression::SelfExpression);
+                        expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
+                        // TODO: check if this is the correct local variable to add
+                        scope_ctx.local_variables.push(VariableDeclaration {
+                            declaration_token: None,
+                            identifier: id,
+                            variable_type: Type::Int,
+                            expression: None,
+                        });
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -341,7 +368,7 @@ impl Visitor for LLVMPreProcessor {
                 identifier: None,
                 expression: Expression::InoutExpression(InoutExpression {
                     ampersand_token: "&".to_string(),
-                    expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+                    expression: Box::new(Expression::Identifier(Identifier::generated("tmp_var"))),
                 }),
             });
         } else {

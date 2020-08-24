@@ -3,12 +3,12 @@ use super::inkwell::values::BasicValue;
 use crate::ast::declarations::VariableDeclaration;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
-    ContractMember, SpecialDeclaration, StructDeclaration, TraitDeclaration,
+    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::LLVMFunction;
-use crate::ewasm::structs::utils::generate_initialiser;
+use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generate_initialiser};
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
 
@@ -83,7 +83,26 @@ impl<'a> LLVMContract<'a> {
         global.set_initializer(&struct_type.const_zero().as_basic_value_enum());
 
         // Set up struct definitions here
-        // TODO try moving to the top
+
+        self.struct_declarations.iter().for_each(|dec| {
+            let initialiser = dec
+                .members
+                .iter()
+                .filter_map(|m| {
+                    if let StructMember::SpecialDeclaration(sp) = m {
+                        if sp.is_public() && sp.is_init() {
+                            return Some(sp);
+                        }
+                    }
+                    None
+                })
+                .collect::<Vec<&SpecialDeclaration>>();
+
+            assert_eq!(initialiser.len(), 1);
+            let initialiser = initialiser[0];
+            add_initialiser_function_declaration(initialiser, codegen);
+        });
+
         self.struct_declarations.iter().for_each(|dec| {
             LLVMStruct {
                 struct_declaration: dec,
@@ -109,6 +128,7 @@ impl<'a> LLVMContract<'a> {
         // There should only be one contract initialiser
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
+        add_initialiser_function_declaration(initialiser, codegen);
         generate_initialiser(initialiser, codegen);
 
         // Generate all contract functions
