@@ -6,7 +6,7 @@ use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::Type;
-use crate::ast::{Assertion, InoutType};
+use crate::ast::{Assertion, BinOp, BinaryExpression, InoutType, VariableDeclaration};
 use crate::context::Context;
 use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 
@@ -24,7 +24,28 @@ pub fn generate_contract_wrapper(
 
     // Add type state assertions
     if !contract_behaviour_declaration.type_states.is_empty() {
-        let contract_name = contract_behaviour_declaration.identifier.token.as_str();
+        let type_state_var = BinaryExpression {
+            lhs_expression: Box::new(Expression::Identifier(Identifier::generated(contract_name))),
+            rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                Identifier::TYPESTATE_VAR_NAME,
+            ))),
+            op: BinOp::Dot,
+            line_info: Default::default(),
+        };
+
+        let type_state_var = VariableDeclaration {
+            declaration_token: None,
+            identifier: Identifier::generated(Identifier::TYPESTATE_VAR_NAME),
+            variable_type: Type::TypeState,
+            expression: Some(Box::from(Expression::BinaryExpression(type_state_var))),
+        };
+
+        wrapper
+            .body
+            .push(Statement::Expression(Expression::VariableDeclaration(
+                type_state_var,
+            )));
+
         let allowed_type_states_as_u8s = extract_allowed_states(
             &contract_behaviour_declaration.type_states,
             &ctx.environment.get_contract_type_states(contract_name),
@@ -103,7 +124,6 @@ pub fn generate_contract_wrapper(
 }
 
 pub fn mangle_ewasm_function(function_name: &str) -> String {
-    // TODO implement properly
     format!("inner_{}", function_name)
 }
 

@@ -4,16 +4,15 @@ contract Counter {
 
 Counter :: (any) {
     public init() {
-        count = Count()
+        count = Count(1)
     }
 
     public func record() mutates (count) {
-        let x: [Adress] = 1
-        count.increment(0x0, hey: 2)
+        count.increment(0)
     }
 
     public func cancel() mutates (count) {
-        //count.decrement()
+        count.decrement()
     }
 }
 

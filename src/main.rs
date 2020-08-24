@@ -24,22 +24,16 @@ use std::process::exit;
 fn main() {
     let configuration = prompt::process(&mut env::args()).unwrap_or_else(|| exit(1));
 
-    let mut file = File::open(&configuration.file).expect(&*format!(
-        "Unable to open file at path `{}`",
-        configuration.file.to_str().unwrap_or("<?>")
-    ));
+    let mut file = File::open(&configuration.file)
+        .unwrap_or_else(|err| prompt::error::unable_to_open_file(&configuration.file, err));
 
     let mut program = String::new();
     file.read_to_string(&mut program)
-        .expect("Unable to read the file");
+        .unwrap_or_else(|err| prompt::error::unable_to_read_file(&configuration.file, err));
 
-    let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
-        println!("Could not parse file: {}", err);
-        std::process::exit(1);
-    });
+    let (module, environment) =
+        parser::parse_program(&program).unwrap_or_else(|err| prompt::error::parse_failed(&*err));
 
-    ast_processor::process_ast(module, environment, configuration.target).unwrap_or_else(|err| {
-        println!("Could not parse invalid flint file: {}", err);
-        std::process::exit(1);
-    });
+    ast_processor::process_ast(module, environment, configuration.target)
+        .unwrap_or_else(|err| prompt::error::semantic_check_failed(&*err));
 }

@@ -764,6 +764,7 @@ impl Visitor for SemanticAnalysis {
             .as_deref()
             .or_else(|| context.declaration_context_type_id())
             .unwrap_or_default();
+
         if let Some(ref behaviour_context) = context.contract_behaviour_declaration_context {
             let contract_name = &*behaviour_context.identifier.token;
             let contract_call = contract_name == called_on_type;

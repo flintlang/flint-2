@@ -1,4 +1,6 @@
+use super::inkwell::types::{AnyType, AnyTypeEnum};
 use crate::ast::expressions::Expression;
+use crate::ast::Identifier;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
@@ -20,16 +22,40 @@ impl<'a> LLVMAssignment<'a> {
         let lhs = LLVMExpression {
             expression: self.lhs,
         }
-        .generate(codegen, function_context);
+            .generate(codegen, function_context);
         function_context.assigning = false;
         let rhs = LLVMExpression {
             expression: self.rhs,
         }
-        .generate(codegen, function_context);
+            .generate(codegen, function_context);
 
-        codegen.builder.build_store(lhs.into_pointer_value(), rhs);
-        // TODO: should we be updating the function context?
-        // TODO: what should we return?
+        let lhs_num_pointers = get_num_pointer_layers(lhs.get_type().as_any_type_enum());
+        let rhs_num_pointers = get_num_pointer_layers(rhs.get_type().as_any_type_enum());
+
+        // Update the value either in the context, or by storing into the pointer.
+        if lhs_num_pointers == rhs_num_pointers + 1 {
+            codegen.builder.build_store(lhs.into_pointer_value(), rhs);
+        } else if lhs_num_pointers == rhs_num_pointers {
+            if let Expression::Identifier(Identifier { token, .. }) = self.lhs {
+                assert!(function_context.get_declaration(token).is_some());
+                function_context.update_declaration(token, rhs);
+            } else {
+                panic!("variable not in scope")
+            }
+        } else {
+            panic!("Invalid assignment")
+        }
+
         rhs
     }
+}
+
+fn get_num_pointer_layers(val_type: AnyTypeEnum) -> u8 {
+    let mut num_pointers = 0;
+    let mut val_type = val_type;
+    while val_type.is_pointer_type() {
+        num_pointers += 1;
+        val_type = val_type.into_pointer_type().get_element_type();
+    }
+    num_pointers
 }

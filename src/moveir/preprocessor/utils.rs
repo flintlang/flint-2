@@ -761,17 +761,23 @@ pub fn mangle_function_call_name(
                 ))
             }
             FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) => {
-                if c.candidates.len() != 1 {
-                    panic!("Unable to find function declaration")
+                if c.candidates.len() > 1 {
+                    panic!(
+                        "Found too many function declarations! ({} found)",
+                        c.candidates.len()
+                    )
                 }
 
-                let candidate = c.candidates[0].clone();
+                let candidate = c
+                    .candidates
+                    .first()
+                    .expect("Unable to find function declaration");
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
-                    let declaration = fi.declaration;
-                    let param_types = declaration.head.parameters;
-                    let _param_types: Vec<Type> =
-                        param_types.into_iter().map(|p| p.type_assignment).collect();
+                    let declaration = &fi.declaration;
+                    let param_types = &declaration.head.parameters;
+                    let _param_types: Vec<&Type> =
+                        param_types.iter().map(|p| &p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         &declaration.head.identifier.token,
@@ -951,8 +957,9 @@ pub fn generate_caller_protections_predicate(
                     line_info: Default::default(),
                 })),
                 Type::ArrayType(array_type) => {
-                    assert!(
-                        *array_type.key_type == Type::Address,
+                    assert_eq!(
+                        *array_type.key_type,
+                        Type::Address,
                         "Array values for caller protection must have type Address"
                     );
                     if let Some(property) = context.environment.get_caller_protection(&c) {
@@ -991,8 +998,9 @@ pub fn generate_caller_protections_predicate(
                     }
                 }
                 Type::DictionaryType(dict_type) => {
-                    assert!(
-                        *dict_type.value_type == Type::Address,
+                    assert_eq!(
+                        *dict_type.value_type,
+                        Type::Address,
                         "Dictionary values for caller protection must have type Address"
                     );
                     if let Some(property) = context.environment.get_caller_protection(&c) {
@@ -1039,9 +1047,9 @@ pub fn generate_caller_protections_predicate(
                                 let function_signature = &function.declaration.head;
                                 if function_signature.is_predicate() {
                                     // caller protection is a predicate function
-                                    if ident.token != function_name {
+                                    return if ident.token != function_name {
                                         // prevents predicate being added to the predicate function itself
-                                        return Some(Expression::FunctionCall(FunctionCall {
+                                        Some(Expression::FunctionCall(FunctionCall {
                                             identifier: ident,
                                             arguments: vec![
                                                 FunctionArgument {
@@ -1066,47 +1074,41 @@ pub fn generate_caller_protections_predicate(
                                                 },
                                             ],
                                             mangled_identifier: None,
-                                        }));
+                                        }))
                                     } else {
-                                        return None;
-                                    }
+                                        None
+                                    };
                                 } else if function_signature.is_0_ary_function() {
                                     // caller protection is a 0-ary function
-                                    if ident.token != function_name {
+                                    return if ident.token != function_name {
                                         // prevents 0-ary function being added to the 0-ary function itself
-                                        return Some(Expression::BinaryExpression(
-                                            BinaryExpression {
-                                                lhs_expression: Box::new(Expression::FunctionCall(
-                                                    FunctionCall {
-                                                        identifier: ident,
-                                                        arguments: vec![FunctionArgument {
-                                                            identifier: None,
-                                                            expression: Expression::Identifier(
-                                                                Identifier {
-                                                                    token: "address_this"
-                                                                        .to_string(),
-                                                                    enclosing_type: None,
-                                                                    line_info: Default::default(),
-                                                                },
-                                                            ),
-                                                        }],
-                                                        mangled_identifier: None,
-                                                    },
-                                                )),
-                                                rhs_expression: Box::new(Expression::RawAssembly(
-                                                    format!(
-                                                        "Signer.address_of(copy({}))",
-                                                        caller_id
-                                                    ),
-                                                    None,
-                                                )),
-                                                op: BinOp::DoubleEqual,
-                                                line_info: Default::default(),
-                                            },
-                                        ));
+                                        Some(Expression::BinaryExpression(BinaryExpression {
+                                            lhs_expression: Box::new(Expression::FunctionCall(
+                                                FunctionCall {
+                                                    identifier: ident,
+                                                    arguments: vec![FunctionArgument {
+                                                        identifier: None,
+                                                        expression: Expression::Identifier(
+                                                            Identifier {
+                                                                token: "address_this".to_string(),
+                                                                enclosing_type: None,
+                                                                line_info: Default::default(),
+                                                            },
+                                                        ),
+                                                    }],
+                                                    mangled_identifier: None,
+                                                },
+                                            )),
+                                            rhs_expression: Box::new(Expression::RawAssembly(
+                                                format!("Signer.address_of(copy({}))", caller_id),
+                                                None,
+                                            )),
+                                            op: BinOp::DoubleEqual,
+                                            line_info: Default::default(),
+                                        }))
                                     } else {
-                                        return None;
-                                    }
+                                        None
+                                    };
                                 }
                             }
                         }

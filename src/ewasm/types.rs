@@ -65,9 +65,11 @@ impl<'a> LLVMType<'a> {
         if let Some((_, struct_type)) = codegen.types.get(type_name) {
             return struct_type.as_basic_type_enum();
         }
-        
+
         let struct_value = codegen.context.opaque_struct_type(type_name);
-        codegen.types.insert(type_name.to_string(), (vec![], struct_value));
+        codegen
+            .types
+            .insert(type_name.to_string(), (vec![], struct_value));
         struct_value.as_basic_type_enum()
     }
 }
