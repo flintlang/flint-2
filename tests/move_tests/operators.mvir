@@ -25,10 +25,10 @@ main(account: &signer) {
     assert(Operators.times(Signer.address_of(copy(account)), 2, 6, copy(account)) == 12, 3);
     assert(Operators.divide(Signer.address_of(copy(account)), 24, 2, copy(account)) == 12, 3);
     assert(Operators.divide(Signer.address_of(copy(account)), 156, 13, copy(account)) == 12, 3);
-    assert(Operators.power(Signer.address_of(copy(account)), 5, 2, copy(account)) == 25, 3);
-    assert(Operators.power(Signer.address_of(copy(account)), 2, 10, copy(account)) == 1024, 3);
-    assert(Operators.remainder(Signer.address_of(copy(account)), 10, 3, copy(account)) == 1, 3);
-    assert(Operators.remainder(Signer.address_of(copy(account)), 27, 8, copy(account)) == 3, 3);
+    //assert(Operators.power(Signer.address_of(copy(account)), 5, 2, copy(account)) == 25, 3);
+    //assert(Operators.power(Signer.address_of(copy(account)), 2, 10, copy(account)) == 1024, 3);
+    //assert(Operators.remainder(Signer.address_of(copy(account)), 10, 3, copy(account)) == 1, 3);
+    //assert(Operators.remainder(Signer.address_of(copy(account)), 27, 8, copy(account)) == 3, 3);
 
     // Logic
     assert(Operators.andOp(Signer.address_of(copy(account)), false, false, copy(account)) == false, 4);
