@@ -940,6 +940,10 @@ impl Visitable for VariableDeclaration {
             ctx.scope_context = previous_scope;
         }
 
+        if let Some(scope_ctx) = &mut ctx.scope_context {
+            scope_ctx.local_variables.push(self.clone());
+        }
+
         v.finish_variable_declaration(self, ctx)?;
 
         Ok(())

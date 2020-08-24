@@ -1,9 +1,9 @@
+use super::inkwell::types::AnyType;
 use crate::ast::calls::{ExternalCall, FunctionCall};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::values::BasicValueEnum;
-use super::inkwell::types::AnyType;
 use crate::ewasm::utils::get_num_pointer_layers;
 
 pub struct LLVMExternalCall<'a> {
@@ -72,15 +72,17 @@ impl<'a> LLVMFunctionCall<'a> {
                 .generate(codegen, function_context)
             })
             .collect();
-        
-        let mut index = 0;
-        for argument in &mut arguments {
-            let param_num_pointers = get_num_pointer_layers(params.get(index).unwrap().get_type().as_any_type_enum());
-            let argument_num_pointers = get_num_pointer_layers(argument.get_type().as_any_type_enum());
-            index = index + 1;
+
+        for (index, argument) in arguments.iter_mut().enumerate() {
+            let param_num_pointers =
+                get_num_pointer_layers(params.get(index).unwrap().get_type().as_any_type_enum());
+            let argument_num_pointers =
+                get_num_pointer_layers(argument.get_type().as_any_type_enum());
 
             if argument_num_pointers == param_num_pointers + 1 {
-                *argument = codegen.builder.build_load(argument.into_pointer_value(), "tmp_load");
+                *argument = codegen
+                    .builder
+                    .build_load(argument.into_pointer_value(), "tmp_load");
             } else if argument_num_pointers == param_num_pointers {
             } else {
                 panic!("Invalid argument")

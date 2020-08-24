@@ -13,12 +13,10 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
     let mut func_name: String = "".to_string();
     if let Some(contract_name) = initialiser.head.enclosing_type.as_ref() {
         func_name = format!("{}Init", contract_name);
-    } else {
-        if let Some(self_argument) = initialiser.head.parameters.last() {
-            if self_argument.identifier.token == "this" {
-                if let Type::UserDefinedType(t) = &self_argument.type_assignment {
-                    func_name = format!("{}Init", t.token.clone());
-                }
+    } else if let Some(self_argument) = initialiser.head.parameters.last() {
+        if self_argument.identifier.token == "this" {
+            if let Type::UserDefinedType(t) = &self_argument.type_assignment {
+                func_name = format!("{}Init", t.token.clone());
             }
         }
     }
@@ -83,12 +81,10 @@ pub fn add_initialiser_function_declaration(
     let mut func_name: String = "".to_string();
     if let Some(contract_name) = initialiser.head.enclosing_type.as_ref() {
         func_name = format!("{}Init", contract_name);
-    } else {
-        if let Some(self_argument) = initialiser.head.parameters.last() {
-            if self_argument.identifier.token == "this" {
-                if let Type::UserDefinedType(t) = &self_argument.type_assignment {
-                    func_name = format!("{}Init", t.token.clone());
-                }
+    } else if let Some(self_argument) = initialiser.head.parameters.last() {
+        if self_argument.identifier.token == "this" {
+            if let Type::UserDefinedType(t) = &self_argument.type_assignment {
+                func_name = format!("{}Init", t.token.clone());
             }
         }
     }
