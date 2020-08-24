@@ -23,19 +23,6 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
     let init_func = codegen.module.get_function(&func_name).unwrap();
 
     let params = &initialiser.head.parameters;
-    let param_types = params
-        .iter()
-        .map(|param| {
-            LLVMType {
-                ast_type: &param.type_assignment,
-            }
-            .generate(codegen)
-        })
-        .collect::<Vec<BasicTypeEnum>>();
-
-    let void_type = codegen.context.void_type().fn_type(&param_types, false);
-    let func_name = &format!("{}Init", initialiser.head.enclosing_type.as_ref().unwrap());
-    let init_func = codegen.module.add_function(func_name, void_type, None);
 
     let param_names = params
         .iter()

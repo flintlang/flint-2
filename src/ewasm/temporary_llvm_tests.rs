@@ -177,6 +177,7 @@ pub fn traffic_lights(codegen: &Codegen) {
         assert_eq!(get_signal.call(), 2);
 
         // NOTE this should cause a SIGILL
+        println!("We should now get a SIGILL, and should have had no errors up until now");
         move_to_red.call();
     }
 }

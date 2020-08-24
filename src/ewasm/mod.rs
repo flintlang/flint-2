@@ -219,7 +219,7 @@ pub fn generate(module: &Module, context: &mut Context) {
         .expect("Could not copy wat file from tmp to output");
 
         // Delete all tmp files
-        // fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory"); TODO uncomment
+        fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
 
         // Generate the ABI
         create_and_write_to_file(
