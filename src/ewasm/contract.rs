@@ -3,12 +3,12 @@ use super::inkwell::values::BasicValue;
 use crate::ast::declarations::VariableDeclaration;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
-    ContractMember, SpecialDeclaration, StructDeclaration, TraitDeclaration, StructMember
+    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::LLVMFunction;
-use crate::ewasm::structs::utils::{generate_initialiser, add_initialiser_function_declaration};
+use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generate_initialiser};
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
 

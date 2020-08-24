@@ -843,7 +843,18 @@ impl<'a> LLVMStructAccess<'a> {
     ) -> PointerValue<'ctx> {
         if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
             let the_struct = function_context.get_declaration(first).unwrap();
-            let the_struct = the_struct.into_pointer_value();
+            let the_struct = if the_struct.is_struct_value() {
+                // build pointer
+                let ptr = codegen
+                    .builder
+                    .build_alloca(the_struct.get_type(), "tmp_ptr");
+                codegen
+                    .builder
+                    .build_store(ptr, the_struct.as_basic_value_enum());
+                ptr
+            } else {
+                the_struct.into_pointer_value()
+            };
 
             accesses
                 .iter()

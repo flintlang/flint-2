@@ -1,5 +1,5 @@
-use crate::ast::SpecialDeclaration;
 use crate::ast::types::Type;
+use crate::ast::SpecialDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::BasicTypeEnum;
@@ -23,7 +23,7 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
         }
     }
     let init_func = codegen.module.get_function(&func_name).unwrap();
-    
+
     let params = &initialiser.head.parameters;
 
     let param_names = params
@@ -63,7 +63,10 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
     codegen.verify_and_optimise(&init_func);
 }
 
-pub fn add_initialiser_function_declaration(initialiser: &SpecialDeclaration, codegen: &mut Codegen) {
+pub fn add_initialiser_function_declaration(
+    initialiser: &SpecialDeclaration,
+    codegen: &mut Codegen,
+) {
     let params = &initialiser.head.parameters;
     let param_types = params
         .iter()

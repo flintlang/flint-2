@@ -3,6 +3,8 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::values::BasicValueEnum;
+use super::inkwell::types::AnyType;
+use crate::ewasm::utils::get_num_pointer_layers;
 
 pub struct LLVMExternalCall<'a> {
     pub external_call: &'a ExternalCall,
@@ -52,7 +54,13 @@ impl<'a> LLVMFunctionCall<'a> {
             function_context.add_local("tmp_var", BasicValueEnum::StructValue(struct_var));
         }
 
-        let arguments: Vec<BasicValueEnum> = self
+        let params = codegen
+            .module
+            .get_function(self.function_call.identifier.token.as_str())
+            .unwrap()
+            .get_params();
+
+        let mut arguments: Vec<BasicValueEnum> = self
             .function_call
             .arguments
             .clone()
@@ -64,6 +72,20 @@ impl<'a> LLVMFunctionCall<'a> {
                 .generate(codegen, function_context)
             })
             .collect();
+        
+        let mut index = 0;
+        for argument in &mut arguments {
+            let param_num_pointers = get_num_pointer_layers(params.get(index).unwrap().get_type().as_any_type_enum());
+            let argument_num_pointers = get_num_pointer_layers(argument.get_type().as_any_type_enum());
+            index = index + 1;
+
+            if argument_num_pointers == param_num_pointers + 1 {
+                *argument = codegen.builder.build_load(argument.into_pointer_value(), "tmp_load");
+            } else if argument_num_pointers == param_num_pointers {
+            } else {
+                panic!("Invalid argument")
+            }
+        }
 
         if let Some(fn_value) = codegen.module.get_function(fn_name) {
             // TODO: if the function returns void then we shouldn't return a BasicValueEnum

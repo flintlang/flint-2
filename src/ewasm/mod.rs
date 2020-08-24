@@ -13,6 +13,7 @@ mod statements;
 mod structs;
 mod temporary_llvm_tests;
 mod types;
+mod utils;
 
 extern crate inkwell;
 extern crate regex;
