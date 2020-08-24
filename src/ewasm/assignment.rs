@@ -17,17 +17,19 @@ impl<'a> LLVMAssignment<'a> {
         &self,
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> BasicValueEnum<'ctx> {
+    ) -> Option<BasicValueEnum<'ctx>> {
         function_context.assigning = true;
         let lhs = LLVMExpression {
             expression: self.lhs,
         }
-            .generate(codegen, function_context);
+            .generate(codegen, function_context)
+            .unwrap();
         function_context.assigning = false;
         let rhs = LLVMExpression {
             expression: self.rhs,
         }
-            .generate(codegen, function_context);
+            .generate(codegen, function_context)
+            .unwrap();
 
         let lhs_num_pointers = get_num_pointer_layers(lhs.get_type().as_any_type_enum());
         let rhs_num_pointers = get_num_pointer_layers(rhs.get_type().as_any_type_enum());
@@ -46,7 +48,7 @@ impl<'a> LLVMAssignment<'a> {
             panic!("Invalid assignment")
         }
 
-        rhs
+        None
     }
 }
 

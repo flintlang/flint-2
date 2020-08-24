@@ -38,14 +38,18 @@ impl<'a> LLVMStructAccess<'a> {
         &self,
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> PointerValue<'ctx> {
+    ) -> Option<PointerValue<'ctx>> {
         if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
             // TODO account for the fact that we might have something like foo().bar() if foo returns a struct
             let the_struct = function_context.get_declaration(first.as_field()).unwrap();
             let the_struct = the_struct.into_pointer_value();
 
-            accesses.iter().fold(the_struct, |ptr, name| {
-                self.access(codegen, ptr, name, function_context)
+            accesses.iter().fold(Some(the_struct), |ptr, name| {
+                if let Some(ptr) = ptr {
+                    self.access(codegen, ptr, name, function_context)
+                } else {
+                    None
+                }
             })
         } else {
             panic!("Malformed access")
@@ -58,7 +62,7 @@ impl<'a> LLVMStructAccess<'a> {
         ptr: PointerValue<'ctx>,
         rhs: &FieldOrFunction,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> PointerValue<'ctx> {
+    ) -> Option<PointerValue<'ctx>> {
         let struct_type_name =
             self.get_name_from_struct_type(ptr.get_type().get_element_type().into_struct_type());
         match rhs {
@@ -69,35 +73,25 @@ impl<'a> LLVMStructAccess<'a> {
                     .position(|name| name == field_name)
                     .unwrap();
 
-                codegen
-                    .builder
-                    .build_struct_gep(ptr, index as u32, "tmp_ptr")
-                    .expect("Bad access")
-            }
-            FieldOrFunction::StructFunctionCall(call) => {
-                let mangled_name =
-                    format!("{}_{}", struct_type_name, call.identifier.token.as_str());
-                // TODO account for void functions - return dummy pointer? or return Option<Pointer>? If the latter, needs to be
-                // project wide probably, a bit like assignments will be
-                let return_type = codegen
-                    .module
-                    .get_function(mangled_name.as_str())
-                    .unwrap()
-                    .get_type()
-                    .get_return_type();
-                if let Some(return_type) = return_type {
-                    let ret_ptr = codegen.builder.build_alloca(return_type, "tmp");
-                    let val = LLVMFunctionCall {
-                        function_call: call,
-                    }
-                        .generate(codegen, function_context);
-                    codegen.builder.build_store(ret_ptr, val);
-                    ret_ptr
-                } else {
-                    // TODO switch to returning None
+                Some(
                     codegen
                         .builder
-                        .build_alloca(codegen.context.i32_type(), "junk-remove-me")
+                        .build_struct_gep(ptr, index as u32, "tmp_ptr")
+                        .expect("Bad access"),
+                )
+            }
+            FieldOrFunction::StructFunctionCall(call) => {
+                let val = LLVMFunctionCall {
+                    function_call: call,
+                }
+                    .generate(codegen, function_context);
+
+                if let Some(returned) = val {
+                    let ret_ptr = codegen.builder.build_alloca(returned.get_type(), "tmp");
+                    codegen.builder.build_store(ret_ptr, returned);
+                    Some(ret_ptr)
+                } else {
+                    None
                 }
             }
         }

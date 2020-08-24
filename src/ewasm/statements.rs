@@ -52,7 +52,7 @@ impl<'a> LLVMReturnStatement<'a> {
             let expr = LLVMExpression {
                 expression: return_expression,
             };
-            let expr = expr.generate(codegen, function_context);
+            let expr = expr.generate(codegen, function_context).unwrap();
             codegen.builder.build_return(Some(&expr));
         } else {
             codegen.builder.build_return(None);
@@ -152,7 +152,8 @@ fn condition_to_int_value<'ctx>(
     let condition = LLVMExpression {
         expression: condition,
     }
-    .generate(codegen, function_context);
+        .generate(codegen, function_context)
+        .unwrap();
 
     // Evaluated conditions should be boolean, which in llvm is represented by a one bit int
     assert!(condition.is_int_value());

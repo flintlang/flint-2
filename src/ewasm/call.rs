@@ -13,7 +13,7 @@ impl<'a> LLVMExternalCall<'a> {
         &self,
         _codegen: &Codegen<'_, 'ctx>,
         _function_context: &FunctionContext,
-    ) -> BasicValueEnum<'ctx> {
+    ) -> Option<BasicValueEnum<'ctx>> {
         unimplemented!();
     }
 }
@@ -27,7 +27,7 @@ impl<'a> LLVMFunctionCall<'a> {
         &self,
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> BasicValueEnum<'ctx> {
+    ) -> Option<BasicValueEnum<'ctx>> {
         let fn_name = &self.function_call.identifier.token;
 
         if self.is_init() {
@@ -59,30 +59,29 @@ impl<'a> LLVMFunctionCall<'a> {
                 LLVMExpression {
                     expression: &a.expression,
                 }
-                .generate(codegen, function_context)
+                    .generate(codegen, function_context)
+                    .unwrap()
             })
             .collect();
 
         if let Some(fn_value) = codegen.module.get_function(fn_name) {
-            // TODO: if the function returns void then we shouldn't return a BasicValueEnum
             match codegen
                 .builder
                 .build_call(fn_value, &arguments, fn_name)
                 .try_as_basic_value()
                 .left()
             {
-                Some(val) => return val,
+                Some(val) => return Some(val),
                 None => {
                     if self.is_init() {
                         if let Some(this_argument) = arguments.last() {
                             if this_argument.is_pointer_value() {
                                 let ptr = this_argument.into_pointer_value();
-                                return codegen.builder.build_load(ptr, "initialised");
+                                return Some(codegen.builder.build_load(ptr, "initialised"));
                             }
                         }
                     }
-
-                    return BasicValueEnum::IntValue(codegen.context.i8_type().const_zero());
+                    return None;
                 }
             }
         }

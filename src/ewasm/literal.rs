@@ -12,8 +12,8 @@ impl<'a> LLVMLiteral<'a> {
         &self,
         codegen: &Codegen<'_, 'ctx>,
         _function_context: &FunctionContext,
-    ) -> BasicValueEnum<'ctx> {
-        match self.literal {
+    ) -> Option<BasicValueEnum<'ctx>> {
+        Some(match self.literal {
             Literal::BooleanLiteral(b) => {
                 let bool_type = codegen.context.bool_type();
 
@@ -42,6 +42,6 @@ impl<'a> LLVMLiteral<'a> {
             Literal::FloatLiteral(f) => {
                 BasicValueEnum::FloatValue(codegen.context.f64_type().const_float(*f))
             }
-        }
+        })
     }
 }

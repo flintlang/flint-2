@@ -15,10 +15,12 @@ impl<'a> LLVMVariableDeclaration<'a> {
         &self,
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> BasicValueEnum<'ctx> {
+    ) -> Option<BasicValueEnum<'ctx>> {
         let name = self.declaration.identifier.token.as_str();
         let expression = if let Some(expr) = &self.declaration.expression {
-            LLVMExpression { expression: expr }.generate(codegen, function_context)
+            LLVMExpression { expression: expr }
+                .generate(codegen, function_context)
+                .unwrap()
         } else {
             // creates dummy value for variable assignment to be overwritten
             let variable_type = LLVMType {
@@ -37,6 +39,6 @@ impl<'a> LLVMVariableDeclaration<'a> {
         };
 
         function_context.add_local(name, expression);
-        expression
+        None
     }
 }
