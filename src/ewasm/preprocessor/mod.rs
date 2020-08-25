@@ -565,13 +565,27 @@ fn generate_and_add_setter(
     };
 
     let assignment = Statement::Expression(Expression::BinaryExpression(assignment));
+    let return_statement = Statement::ReturnStatement(ReturnStatement {
+        expression: None,
+        cleanup: vec![],
+        line_info: Default::default(),
+    });
+
+    let mangled_name = mangle_ewasm_function(
+        setter_name.as_str(),
+        behaviour_declaration.identifier.token.as_str(),
+    );
 
     let setter_signature = FunctionSignatureDeclaration {
         func_token: "func".to_string(),
         attributes: vec![],
         modifiers: vec![Modifier::Public],
         mutates: vec![member_identifier],
-        identifier: Identifier::generated(&setter_name),
+        identifier: Identifier {
+            token: setter_name,
+            enclosing_type: Some(behaviour_declaration.identifier.token.clone()),
+            line_info: Default::default(),
+        },
         parameters: vec![parameter],
         result_type: None,
         payable: false,
@@ -579,10 +593,10 @@ fn generate_and_add_setter(
 
     let setter_declaration = FunctionDeclaration {
         head: setter_signature,
-        body: vec![assignment],
+        body: vec![assignment, return_statement],
         scope_context: Some(Default::default()),
         tags: vec![],
-        mangled_identifier: None,
+        mangled_identifier: Some(mangled_name),
         is_external: false,
     };
 

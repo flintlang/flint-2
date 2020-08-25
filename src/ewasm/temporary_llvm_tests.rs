@@ -338,3 +338,72 @@ pub fn rock_paper_scissors(codegen: &Codegen) {
         println!("Test passed");
     }
 }
+
+#[allow(dead_code)]
+pub fn public_and_visible(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("MyContractInit")
+            .expect("Could not find initialiser");
+
+        let get_value: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getValue")
+            .expect("Could not find getValue");
+
+        let get_other_value: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getOtherValue")
+            .expect("Could not find getOtherValue");
+
+        let set_other_value: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("setOtherValue")
+            .expect("Could not find setOtherValue");
+
+        init.call();
+
+        assert_eq!(get_value.call(), 0);
+        assert_eq!(get_other_value.call(), 0);
+
+        set_other_value.call(9);
+        assert_eq!(get_other_value.call(), 9);
+
+        println!("Test passed");
+    }
+}
+
+#[allow(dead_code)]
+pub fn typestates_counter(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("CounterInit")
+            .expect("Could not find initialiser");
+
+        let increment: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("increment")
+            .expect("Could not find increment function");
+
+        let reset: JitFunction<VoidToVoid> = engine
+            .get_function("reset")
+            .expect("Could not find the reset function");
+
+        let getter: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getCount")
+            .expect("Could not find getCount");
+
+        init.call();
+
+        assert_eq!(getter.call(), 0);
+        increment.call(1);
+        assert_eq!(getter.call(), 1);
+        reset.call();
+        assert_eq!(getter.call(), 0);
+
+        // NOTE this should cause a SIGILL
+        println!("We should now get a SIGILL, and should have had no errors up until now");
+        println!("If we do, then test passed!");
+        reset.call();
+    }
+}
