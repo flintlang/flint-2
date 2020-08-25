@@ -1,6 +1,6 @@
 contract Memory {
   var s: S = S(0, 0x00000000000000000000000000000000)
-  var v: V = V(2)
+  var v: V = V(1)
 }
 
 Memory :: (any) {

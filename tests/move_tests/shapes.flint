@@ -24,7 +24,7 @@ Shapes :: (any) {
 
     public func smallerWidth(otherRectWidth: Int) -> Bool {
         return self.rectangle.width < otherRectWidth
-    } 
+    }
 }
 
 struct Rectangle {

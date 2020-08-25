@@ -5,6 +5,7 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::BasicTypeEnum::*;
 use crate::ewasm::inkwell::values::BasicValueEnum;
 use crate::ewasm::types::LLVMType;
+use super::inkwell::values::BasicValue;
 
 pub struct LLVMVariableDeclaration<'a> {
     pub declaration: &'a VariableDeclaration,
@@ -33,12 +34,17 @@ impl<'a> LLVMVariableDeclaration<'a> {
                 FloatType(f) => BasicValueEnum::FloatValue(f.const_zero()),
                 IntType(i) => BasicValueEnum::IntValue(i.const_zero()),
                 PointerType(p) => BasicValueEnum::PointerValue(p.const_null()),
-                StructType(s) => BasicValueEnum::StructValue(s.const_zero()),
+                StructType(s) => {
+                    let value = BasicValueEnum::StructValue(s.const_zero());
+                    let ptr = codegen.builder.build_alloca(s, name);
+                    codegen.builder.build_store(ptr, value);
+                    ptr.as_basic_value_enum()
+                },
                 VectorType(v) => BasicValueEnum::VectorValue(v.const_zero()),
             }
         };
 
         function_context.add_local(name, expression);
-        None
+        Some(expression)
     }
 }
