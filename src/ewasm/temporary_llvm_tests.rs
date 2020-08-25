@@ -214,14 +214,28 @@ pub fn inits(codegen: &Codegen) {
         .get_function("setT")
         .expect("Could not find setT");
 
+        let get_tx: JitFunction<unsafe extern "C" fn() -> i64> = engine
+        .get_function("getTx")
+        .expect("Could not find getTx");
+
+        let get_ty: JitFunction<unsafe extern "C" fn() -> bool> = engine
+        .get_function("getTy")
+        .expect("Could not find getTy");
+
+        let get_ts: JitFunction<unsafe extern "C" fn() -> bool> = engine
+        .get_function("getTs")
+        .expect("Could not find getTs");
+
         init.call(10, true);
         assert_eq!(10, get_a.call());
         assert_eq!(0x1000, get_b.call());
         assert!(get_s.call());
         assert_eq!(0x72981077347248757091884308802679, get_z.call());
         
-        set_t.call(5, false);
-
+        set_t.call(5, true);
+        assert_eq!(5, get_tx.call());
+        assert!(get_ty.call());
+        assert!(!get_ts.call());
     }
 }
 
