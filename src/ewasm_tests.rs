@@ -17,9 +17,9 @@ mod ewasm_tests {
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors"
+        let file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible"
             .split(' ')
-            .zip("Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors".split(' '))
+            .zip("Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract".split(' '))
             .collect::<Vec<(&str, &str)>>();
 
         for (flint_file_name, wasm_file_name) in file_names {
