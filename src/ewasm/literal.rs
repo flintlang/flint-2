@@ -28,7 +28,7 @@ impl<'a> LLVMLiteral<'a> {
                 let address_type = codegen.context.custom_width_int_type(160);
                 let address = a.trim_start_matches("0x");
                 if let Some(address) =
-                address_type.const_int_from_string(address, StringRadix::Hexadecimal)
+                    address_type.const_int_from_string(address, StringRadix::Hexadecimal)
                 {
                     return Some(BasicValueEnum::IntValue(address));
                 }

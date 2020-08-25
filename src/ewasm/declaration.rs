@@ -1,3 +1,4 @@
+use super::inkwell::values::BasicValue;
 use crate::ast::VariableDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
@@ -5,7 +6,6 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::BasicTypeEnum::*;
 use crate::ewasm::inkwell::values::BasicValueEnum;
 use crate::ewasm::types::LLVMType;
-use super::inkwell::values::BasicValue;
 
 pub struct LLVMVariableDeclaration<'a> {
     pub declaration: &'a VariableDeclaration,
