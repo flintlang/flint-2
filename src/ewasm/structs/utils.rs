@@ -9,22 +9,8 @@ use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
 
 pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Codegen) {
-    // TODO: clean this up
-    let mut func_name: String = "".to_string();
-    if let Some(contract_name) = initialiser.head.enclosing_type.as_ref() {
-        func_name = format!("{}Init", contract_name);
-    } else if let Some(self_argument) = initialiser.head.parameters.last() {
-        if self_argument.identifier.token == "this" {
-            if let Type::InoutType(t) = &self_argument.type_assignment {
-                if let Type::UserDefinedType(t) = &*t.key_type {
-                    func_name = format!("{}Init", t.token.clone());
-                }
-            }
-        }
-    }
-    
+    let func_name = get_function_name(initialiser);
     let init_func = codegen.module.get_function(&func_name).unwrap();
-
     let params = &initialiser.head.parameters;
 
     let param_names = params
@@ -80,18 +66,22 @@ pub fn add_initialiser_function_declaration(
         .collect::<Vec<BasicTypeEnum>>();
 
     let void_type = codegen.context.void_type().fn_type(&param_types, false);
-    // TODO: clean this up
-    let mut func_name: String = "".to_string();
+    let func_name = get_function_name(initialiser);
+    codegen.module.add_function(&func_name, void_type, None);
+}
+
+fn get_function_name(initialiser: &SpecialDeclaration) -> String {
     if let Some(contract_name) = initialiser.head.enclosing_type.as_ref() {
-        func_name = format!("{}Init", contract_name);
+        return format!("{}Init", contract_name);
     } else if let Some(self_argument) = initialiser.head.parameters.last() {
         if self_argument.identifier.token == "this" {
             if let Type::InoutType(t) = &self_argument.type_assignment {
                 if let Type::UserDefinedType(t) = &*t.key_type {
-                    func_name = format!("{}Init", t.token.clone());
+                    return format!("{}Init", t.token.clone());
                 }
             }
         }
     }
-    codegen.module.add_function(&func_name, void_type, None);
+
+    panic!("Invalid initialiser function")
 }

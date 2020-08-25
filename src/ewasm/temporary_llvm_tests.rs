@@ -1,6 +1,7 @@
 use super::inkwell::execution_engine::{ExecutionEngine, JitFunction};
 use super::inkwell::OptimizationLevel;
 use crate::ewasm::codegen::Codegen;
+use num_bigint::BigInt;
 
 type VoidToVoid = unsafe extern "C" fn() -> ();
 
@@ -250,14 +251,13 @@ pub fn memory(codegen: &Codegen) {
         let get_sa: JitFunction<unsafe extern "C" fn() -> u64> =
             engine.get_function("getSa").expect("Could not find getSa");
 
-        // TODO u128 not big enough for an address
-        let get_ss: JitFunction<unsafe extern "C" fn() -> u128> =
+        let get_ss: JitFunction<unsafe extern "C" fn() -> BigInt> =
             engine.get_function("getSs").expect("Could not find getSs");
 
         let get_vx: JitFunction<unsafe extern "C" fn() -> u64> =
             engine.get_function("getVx").expect("Could not find getVx");
 
-        let set_s: JitFunction<unsafe extern "C" fn(u64, u128) -> ()> =
+        let set_s: JitFunction<unsafe extern "C" fn(u64, BigInt) -> ()> =
             engine.get_function("setS").expect("Could not find setS");
 
         let set_v1: JitFunction<unsafe extern "C" fn(u64) -> ()> =
@@ -272,13 +272,13 @@ pub fn memory(codegen: &Codegen) {
         init.call();
 
         assert_eq!(get_sa.call(), 0);
-        assert_eq!(get_ss.call(), 0);
+        assert_eq!(get_ss.call(), BigInt::from(0));
         assert_eq!(get_vx.call(), 1);
 
-        set_s.call(1, 1);
+        set_s.call(1, BigInt::from(1));
 
         assert_eq!(get_sa.call(), 2);
-        assert_eq!(get_ss.call(), 1);
+        assert_eq!(get_ss.call(), BigInt::from(1));
 
         set_v1.call(2);
         assert_eq!(get_vx.call(), 2);

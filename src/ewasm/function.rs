@@ -55,7 +55,7 @@ impl<'a> LLVMFunction<'a> {
         }
 
         // TODO: add tags
-        // add dictionary to tags?
+        // TODO: add dictionary to tags?
         for statement in &self.function_declaration.body {
             if statement.eq(self.function_declaration.body.last().unwrap()) {
                 function_context.is_last_statement = true;

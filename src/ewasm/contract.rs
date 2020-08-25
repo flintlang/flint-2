@@ -9,7 +9,7 @@ use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::{LLVMFunction, generate_function_type};
 use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generate_initialiser};
-use crate::ewasm::structs::LLVMStruct;
+use crate::ewasm::structs::{LLVMStruct, create_type};
 use crate::ewasm::types::LLVMType;
 
 pub struct LLVMContract<'a> {
@@ -25,13 +25,7 @@ impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
         // Add each struct to the list of known types
-        // TODO: don't make it an LLVMStruct?
-        self.struct_declarations.iter().for_each(|dec| {
-            LLVMStruct {
-                struct_declaration: dec,
-            }
-            .create_type(codegen)
-        });
+        self.struct_declarations.iter().for_each(|dec| create_type(dec, codegen));
 
         // setting up a struct to contain the contract data
         let members = self

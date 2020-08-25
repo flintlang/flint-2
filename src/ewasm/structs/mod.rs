@@ -35,47 +35,6 @@ impl<'a> LLVMStruct<'a> {
         self.generate_functions(codegen);
     }
 
-    pub fn create_type(&self, codegen: &mut Codegen) {
-        let fields = &self
-            .struct_declaration
-            .members
-            .iter()
-            .filter_map(|f| {
-                if let StructMember::VariableDeclaration(vd, _) = f {
-                    Some(vd)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<&VariableDeclaration>>();
-
-        let field_names = fields
-            .iter()
-            .map(|dec| dec.identifier.token.clone())
-            .collect::<Vec<String>>();
-
-        let field_types = &fields
-            .iter()
-            .map(|dec| {
-                LLVMType {
-                    ast_type: &dec.variable_type,
-                }
-                .generate(codegen)
-            })
-            .collect::<Vec<BasicTypeEnum>>();
-
-        let struct_name = self.struct_declaration.identifier.token.as_str();
-
-        let struct_type = match codegen.types.get(struct_name) {
-            Some((_, struct_type)) => *struct_type,
-            None => codegen.context.opaque_struct_type(struct_name),
-        };
-
-        struct_type.set_body(field_types, false);
-        let struct_info = (field_names, struct_type);
-        codegen.types.insert(struct_name.to_string(), struct_info);
-    }
-
     fn generate_functions(&self, codegen: &mut Codegen) {
         let function_declarations = self.struct_declaration
             .members
@@ -102,4 +61,44 @@ impl<'a> LLVMStruct<'a> {
                 .generate(codegen)
             });
     }
+}
+
+pub fn create_type(struct_declaration: &StructDeclaration, codegen: &mut Codegen) {
+    let fields = struct_declaration
+        .members
+        .iter()
+        .filter_map(|f| {
+            if let StructMember::VariableDeclaration(vd, _) = f {
+                Some(vd)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<&VariableDeclaration>>();
+
+    let field_names = fields
+        .iter()
+        .map(|dec| dec.identifier.token.clone())
+        .collect::<Vec<String>>();
+
+    let field_types = &fields
+        .iter()
+        .map(|dec| {
+            LLVMType {
+                ast_type: &dec.variable_type,
+            }
+            .generate(codegen)
+        })
+        .collect::<Vec<BasicTypeEnum>>();
+
+    let struct_name = struct_declaration.identifier.token.as_str();
+
+    let struct_type = match codegen.types.get(struct_name) {
+        Some((_, struct_type)) => *struct_type,
+        None => codegen.context.opaque_struct_type(struct_name),
+    };
+
+    struct_type.set_body(field_types, false);
+    let struct_info = (field_names, struct_type);
+    codegen.types.insert(struct_name.to_string(), struct_info);
 }

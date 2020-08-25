@@ -198,8 +198,10 @@ impl Visitor for LLVMPreProcessor {
                 }),
             );
 
-            declaration.head.parameters.push(self_param);
-            // TODO: add to scope?
+            declaration.head.parameters.push(self_param.clone());
+            if let Some(scope_ctx) = &mut ctx.scope_context {
+                scope_ctx.parameters.push(self_param)
+            }
         }
         // TODO: dynamic parameters?
 
