@@ -15,11 +15,14 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
         func_name = format!("{}Init", contract_name);
     } else if let Some(self_argument) = initialiser.head.parameters.last() {
         if self_argument.identifier.token == "this" {
-            if let Type::UserDefinedType(t) = &self_argument.type_assignment {
-                func_name = format!("{}Init", t.token.clone());
+            if let Type::InoutType(t) = &self_argument.type_assignment {
+                if let Type::UserDefinedType(t) = &*t.key_type {
+                    func_name = format!("{}Init", t.token.clone());
+                }
             }
         }
     }
+    
     let init_func = codegen.module.get_function(&func_name).unwrap();
 
     let params = &initialiser.head.parameters;
@@ -83,8 +86,10 @@ pub fn add_initialiser_function_declaration(
         func_name = format!("{}Init", contract_name);
     } else if let Some(self_argument) = initialiser.head.parameters.last() {
         if self_argument.identifier.token == "this" {
-            if let Type::UserDefinedType(t) = &self_argument.type_assignment {
-                func_name = format!("{}Init", t.token.clone());
+            if let Type::InoutType(t) = &self_argument.type_assignment {
+                if let Type::UserDefinedType(t) = &*t.key_type {
+                    func_name = format!("{}Init", t.token.clone());
+                }
             }
         }
     }

@@ -134,7 +134,9 @@ impl Visitor for LLVMPreProcessor {
                     mutates: vec![],
                     parameters: vec![Parameter {
                         identifier: Identifier::generated("this"),
-                        type_assignment: Type::UserDefinedType(dec.identifier.clone()),
+                        type_assignment: Type::InoutType(InoutType {
+                            key_type: Box::new(Type::UserDefinedType(dec.identifier.clone())),
+                        }),
                         expression: None,
                         line_info: Default::default(),
                     }],
