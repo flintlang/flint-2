@@ -273,6 +273,7 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
+    crate::ewasm::temporary_llvm_tests::inits(&codegen);
     llvm_module.print_to_string().to_string()
 }
 

@@ -75,8 +75,8 @@ pub fn add_initialiser_function_declaration(
             .generate(codegen)
         })
         .collect::<Vec<BasicTypeEnum>>();
+
     let void_type = codegen.context.void_type().fn_type(&param_types, false);
-    codegen.module.print_to_stderr();
     // TODO: clean this up
     let mut func_name: String = "".to_string();
     if let Some(contract_name) = initialiser.head.enclosing_type.as_ref() {

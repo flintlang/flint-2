@@ -181,3 +181,43 @@ pub fn traffic_lights(codegen: &Codegen) {
         move_to_red.call();
     }
 }
+
+#[allow(dead_code)]
+pub fn inits(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        type VoidToVoid = unsafe extern "C" fn() -> ();
+        let init: JitFunction<unsafe extern "C" fn(i64, bool)> = engine
+            .get_function("InitsInit")
+            .expect("Could not find InitsInit");
+        
+        let get_a: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getA")
+            .expect("Could not find getA");
+
+        let get_b: JitFunction<unsafe extern "C" fn() -> i128> = engine
+        .get_function("getB")
+        .expect("Could not find getB");
+
+        let get_s: JitFunction<unsafe extern "C" fn() -> bool> = engine
+        .get_function("getS")
+        .expect("Could not find getS");
+
+        let get_z: JitFunction<unsafe extern "C" fn() -> i128> = engine
+        .get_function("getZ")
+        .expect("Could not find getZ");
+
+        let set_t: JitFunction<unsafe extern "C" fn(i64, bool)> = engine
+        .get_function("setT")
+        .expect("Could not find setT");
+
+        init.call(10, true);
+        assert_eq!(10, get_a.call());
+        assert_eq!(0x1000, get_b.call());
+        assert!(get_s.call());
+        assert_eq!(0x72981077347248757091884308802679, get_z.call());
+        
+        set_t.call(5, false);
+    }
+}
