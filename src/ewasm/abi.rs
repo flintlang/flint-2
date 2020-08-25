@@ -14,7 +14,7 @@ pub fn generate_abi(behaviour_declarations: &[&ContractBehaviourDeclaration]) ->
         .iter()
         .filter_map(|m| {
             if let ContractBehaviourMember::FunctionDeclaration(fd) = m {
-                if fd.is_external {
+                if fd.is_external && fd.is_public() {
                     return Some(fd);
                 }
             }
