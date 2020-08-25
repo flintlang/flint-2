@@ -59,40 +59,10 @@ impl Visitor for LLVMPreProcessor {
             .iter()
             .any(|dec| is_init_declaration(dec))
         {
-            let non_private_contract_members = ctx
-                .environment
-                .property_declarations(&declaration.identifier.token)
-                .into_iter()
-                // Some(_) ensures it has some modifier, and is therefore not private
-                .filter(|property| property.get_modifier().is_some())
-                .collect::<Vec<Property>>();
-
             let mangler = declaration.identifier.token.clone();
             let mangler = |name: &str| mangle_ewasm_function(name, mangler.as_str());
-            for non_private_contract_member in non_private_contract_members {
-                match non_private_contract_member.get_modifier().as_ref().unwrap() {
-                    Modifier::Public => {
-                        generate_and_add_getter(
-                            &non_private_contract_member,
-                            declaration,
-                            ctx,
-                            &mangler,
-                        );
-                        generate_and_add_setter(
-                            &non_private_contract_member,
-                            declaration,
-                            ctx,
-                            &mangler,
-                        );
-                    }
-                    Modifier::Visible => generate_and_add_getter(
-                        &non_private_contract_member,
-                        declaration,
-                        ctx,
-                        &mangler,
-                    ),
-                }
-            }
+
+            generate_and_add_getters_and_setters(declaration, ctx, &mangler);
         }
 
         declaration.members = declaration

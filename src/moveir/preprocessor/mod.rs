@@ -4,9 +4,9 @@ use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionChecker;
-use crate::utils::getters_and_setters::{generate_and_add_getter, generate_and_add_setter};
 use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
+use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
 
 pub mod utils;
 
@@ -64,41 +64,8 @@ impl Visitor for MovePreProcessor {
             .iter()
             .any(|dec| is_init_declaration(dec))
         {
-            let non_private_contract_members = ctx
-                .environment
-                .property_declarations(&declaration.identifier.token)
-                .into_iter()
-                // Some(_) ensures it has some modifier, and is therefore not private
-                .filter(|property| property.get_modifier().is_some())
-                .collect::<Vec<Property>>();
-
             let mangler = |name: &str| name.to_string();
-            for non_private_contract_member in non_private_contract_members {
-                match non_private_contract_member.get_modifier().as_ref().unwrap() {
-                    Modifier::Public => {
-                        generate_and_add_getter(
-                            &non_private_contract_member,
-                            declaration,
-                            ctx,
-                            &mangler,
-                        );
-                        generate_and_add_setter(
-                            &non_private_contract_member,
-                            declaration,
-                            ctx,
-                            &mangler,
-                        );
-                    }
-                    Modifier::Visible => {
-                        generate_and_add_getter(
-                            &non_private_contract_member,
-                            declaration,
-                            ctx,
-                            &mangler,
-                        );
-                    }
-                }
-            }
+            generate_and_add_getters_and_setters(declaration, ctx, &mangler);
         }
 
         declaration.members = declaration

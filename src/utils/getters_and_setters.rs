@@ -5,7 +5,42 @@ use crate::ast::{
 };
 use crate::context::Context;
 
-pub fn generate_and_add_getter(
+pub fn generate_and_add_getters_and_setters(behaviour_declaration: &mut ContractBehaviourDeclaration, ctx: &mut Context, mangler: &dyn Fn(&str) -> String) {
+    let non_private_contract_members = ctx
+        .environment
+        .property_declarations(&behaviour_declaration.identifier.token)
+        .into_iter()
+        // Some(_) ensures it has some modifier, and is therefore not private
+        .filter(|property| property.get_modifier().is_some())
+        .collect::<Vec<Property>>();
+
+    for non_private_contract_member in non_private_contract_members {
+        match non_private_contract_member.get_modifier().as_ref().unwrap() {
+            Modifier::Public => {
+                generate_and_add_getter(
+                    &non_private_contract_member,
+                    behaviour_declaration,
+                    ctx,
+                    &mangler,
+                );
+                generate_and_add_setter(
+                    &non_private_contract_member,
+                    behaviour_declaration,
+                    ctx,
+                    &mangler,
+                );
+            }
+            Modifier::Visible => generate_and_add_getter(
+                &non_private_contract_member,
+                behaviour_declaration,
+                ctx,
+                &mangler,
+            ),
+        }
+    }
+}
+
+fn generate_and_add_getter(
     member: &Property,
     behaviour_declaration: &mut ContractBehaviourDeclaration,
     ctx: &mut Context,
@@ -77,7 +112,7 @@ pub fn generate_and_add_getter(
     );
 }
 
-pub fn generate_and_add_setter(
+fn generate_and_add_setter(
     member: &Property,
     behaviour_declaration: &mut ContractBehaviourDeclaration,
     ctx: &mut Context,
