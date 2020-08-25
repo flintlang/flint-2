@@ -80,7 +80,6 @@ impl<'a> LLVMIfStatement<'a> {
         let this_func = function_context.get_current_func();
         let then_bb = codegen.context.append_basic_block(this_func, "then");
         let else_bb = codegen.context.append_basic_block(this_func, "else");
-        let continue_bb = codegen.context.append_basic_block(this_func, "after_if");
 
         codegen
             .builder
@@ -92,24 +91,32 @@ impl<'a> LLVMIfStatement<'a> {
             LLVMStatement { statement }.generate(codegen, function_context);
         }
 
-        if let Some(Statement::ReturnStatement(_)) = body.last() {
+        if !function_context.is_last_statement {
+            let continue_bb = codegen.context.append_basic_block(function_context.get_current_func(), "after_if");
+
+            if !matches!(body.last(), Some(Statement::ReturnStatement(_))) {
+                codegen.builder.build_unconditional_branch(continue_bb);
+            }
+
+            // Build else block
+            codegen.builder.position_at_end(else_bb);
+            for statement in else_body {
+                LLVMStatement { statement }.generate(codegen, function_context);
+            }
+
+            if !matches!(else_body.last(), Some(Statement::ReturnStatement(_))) {
+                codegen.builder.build_unconditional_branch(continue_bb);
+            }
+
+            // Reposition after if
+            codegen.builder.position_at_end(continue_bb);
         } else {
-            codegen.builder.build_unconditional_branch(continue_bb);
+            // Build else block
+            codegen.builder.position_at_end(else_bb);
+            for statement in else_body {
+                LLVMStatement { statement }.generate(codegen, function_context);
+            }
         }
-
-        // Build else block
-        codegen.builder.position_at_end(else_bb);
-        for statement in else_body {
-            LLVMStatement { statement }.generate(codegen, function_context);
-        }
-
-        if let Some(Statement::ReturnStatement(_)) = else_body.last() {
-        } else {
-            codegen.builder.build_unconditional_branch(continue_bb);
-        }
-
-        // Reposition after if
-        codegen.builder.position_at_end(continue_bb);
     }
 }
 

@@ -20,52 +20,16 @@ impl<'a> LLVMFunction<'a> {
             .as_ref()
             .unwrap_or(&function_name);
 
-        let parameter_types = &self
-            .function_declaration
-            .head
-            .parameters
-            .iter()
-            .map(|param| {
-                LLVMType {
-                    ast_type: &param.type_assignment,
-                }
-                .generate(codegen)
-            })
-            .collect::<Vec<BasicTypeEnum>>();
-
-        let parameter_names: Vec<String> = self
-            .function_declaration
-            .head
-            .parameters
-            .iter()
-            .map(|param| param.identifier.token.clone())
-            .collect();
-
-        let func_type = if let Some(result_type) = self.function_declaration.get_result_type() {
-            // TODO: should is_var_args be false?
-            LLVMType {
-                ast_type: &result_type,
-            }
-            .generate(codegen)
-            .fn_type(parameter_types, false)
-        } else {
-            codegen.context.void_type().fn_type(parameter_types, false)
-        };
-
-        // add function type to module
-        let func_val = codegen.module.add_function(&function_name, func_type, None);
-
-        // set argument names
-        for (i, arg) in func_val.get_param_iter().enumerate() {
-            arg.set_name(parameter_names[i].as_str())
-        }
-
+        let func_val = codegen.module.get_function(function_name).unwrap();
         let body = codegen.context.append_basic_block(func_val, "entry");
         codegen.builder.position_at_end(body);
 
-        let parameter_names: Vec<&str> = parameter_names
+        let parameter_names: Vec<&str> = self
+            .function_declaration
+            .head
+            .parameters
             .iter()
-            .map(|p_name| p_name.as_str())
+            .map(|param| param.identifier.token.as_str())
             .collect();
 
         let local_parameters = parameter_names
@@ -93,6 +57,10 @@ impl<'a> LLVMFunction<'a> {
         // TODO: add tags
         // add dictionary to tags?
         for statement in &self.function_declaration.body {
+            if statement.eq(self.function_declaration.body.last().unwrap()) {
+                function_context.is_last_statement = true;
+            }
+
             LLVMStatement {
                 statement: &statement,
             }
@@ -100,5 +68,51 @@ impl<'a> LLVMFunction<'a> {
         }
 
         codegen.verify_and_optimise(&func_val);
+    }
+}
+
+pub fn generate_function_type(function_declaration: &FunctionDeclaration, codegen: &mut Codegen) {
+    let function_name = &function_declaration.head.identifier.token;
+    let function_name = function_declaration
+        .mangled_identifier
+        .as_ref()
+        .unwrap_or(&function_name);
+
+    let parameter_types = function_declaration
+        .head
+        .parameters
+        .iter()
+        .map(|param| {
+            LLVMType {
+                ast_type: &param.type_assignment,
+            }
+            .generate(codegen)
+        })
+        .collect::<Vec<BasicTypeEnum>>();
+
+    let parameter_names: Vec<String> = function_declaration
+        .head
+        .parameters
+        .iter()
+        .map(|param| param.identifier.token.clone())
+        .collect();
+
+    let func_type = if let Some(result_type) = function_declaration.get_result_type() {
+        // TODO: should is_var_args be false?
+        LLVMType {
+            ast_type: &result_type,
+        }
+        .generate(codegen)
+        .fn_type(&parameter_types, false)
+    } else {
+        codegen.context.void_type().fn_type(&parameter_types, false)
+    };
+
+    // add function type to module
+    let func_val = codegen.module.add_function(&function_name, func_type, None);
+
+    // set argument names
+    for (i, arg) in func_val.get_param_iter().enumerate() {
+        arg.set_name(parameter_names[i].as_str())
     }
 }
