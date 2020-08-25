@@ -334,7 +334,8 @@ impl<'a> LLVMBinaryExpression<'a> {
             }
             BinOp::Power => {
                 codegen.module.print_to_stderr();
-                panic!("operator not supported")},
+                panic!("operator not supported")
+            }
             BinOp::Divide => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
@@ -464,7 +465,8 @@ impl<'a> LLVMBinaryExpression<'a> {
                         ));
                     }
                 }
-                panic!("operator not supported")},
+                panic!("operator not supported")
+            }
             BinOp::PlusEqual => panic!("should have been preprocessed"),
             BinOp::MinusEqual => panic!("should have been preprocessed"),
             BinOp::TimesEqual => panic!("should have been preprocessed"),

@@ -4,6 +4,7 @@ use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionChecker;
+use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
 
 pub mod utils;
@@ -57,14 +58,11 @@ impl Visitor for MovePreProcessor {
         // If we are in the declaration that contains the initialiser, then that is where we will insert the
         // getters and setters since there are no caller protections or type state restrictions
         // TODO the above explanation is somewhat hacky
-        let is_init_decl = |member: &ContractBehaviourMember| {
-            if let ContractBehaviourMember::SpecialDeclaration(special) = member {
-                special.head.special_token.eq("init")
-            } else {
-                false
-            }
-        };
-        if declaration.members.iter().any(is_init_decl) {
+        if declaration
+            .members
+            .iter()
+            .any(|dec| is_init_declaration(dec))
+        {
             let non_private_contract_members = ctx
                 .environment
                 .property_declarations(&declaration.identifier.token)
