@@ -5,7 +5,7 @@ main(account: &signer) {
     Memory.publish(copy(account));
     assert(Memory.getSa(Signer.address_of(copy(account)), copy(account)) == 0, 1);
     assert(Memory.getSs(Signer.address_of(copy(account)), copy(account)) == 0x00000000000000000000000000000000, 1);
-    assert(Memory.getVx(Signer.address_of(copy(account)), copy(account)) == 2, 2);
+    assert(Memory.getVx(Signer.address_of(copy(account)), copy(account)) == 1, 2);
 
     Memory.setS(Signer.address_of(copy(account)), 1, 0x1, copy(account));
 

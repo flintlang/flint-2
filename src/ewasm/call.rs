@@ -82,8 +82,7 @@ impl<'a> LLVMFunctionCall<'a> {
                 *argument = codegen
                     .builder
                     .build_load(argument.into_pointer_value(), "tmp_load");
-            } else if argument_num_pointers == param_num_pointers {
-            } else {
+            } else if argument_num_pointers != param_num_pointers {
                 panic!("Invalid argument")
             }
         }

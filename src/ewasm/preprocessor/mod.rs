@@ -382,7 +382,8 @@ impl Visitor for LLVMPreProcessor {
             // mangles name
             call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
 
-            // Passes in the self parameter, at the moment, always this
+            // Pass in the parameter for the function to operate on. If it is a struct function,
+            // it should be an instance of that struct. Otherwise it will be the contract variable
             let contract_argument = if ctx.function_call_receiver_trail.is_empty() {
                 FunctionArgument {
                     identifier: None,
@@ -391,19 +392,23 @@ impl Visitor for LLVMPreProcessor {
             } else {
                 FunctionArgument {
                     identifier: None,
-                    expression: ctx
-                        .function_call_receiver_trail
-                        .clone()
-                        .into_iter()
-                        .fold1(|lhs, next| {
-                            Expression::BinaryExpression(BinaryExpression {
-                                lhs_expression: Box::new(lhs),
-                                rhs_expression: Box::new(next),
-                                op: BinOp::Dot,
-                                line_info: Default::default(),
-                            })
-                        })
-                        .unwrap(),
+                    expression: Expression::InoutExpression(InoutExpression {
+                        ampersand_token: "&".to_string(),
+                        expression: Box::from(
+                            ctx.function_call_receiver_trail
+                                .clone()
+                                .into_iter()
+                                .fold1(|lhs, next| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(lhs),
+                                        rhs_expression: Box::new(next),
+                                        op: BinOp::Dot,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .unwrap(),
+                        ),
+                    }),
                 }
             };
 

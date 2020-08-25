@@ -97,9 +97,8 @@ impl<'a> LLVMIdentifier<'a> {
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
-        // TODO: Move this check to the preprocessor
         if self.identifier.enclosing_type.is_some() {
-            let pointer_to_value = LLVMStructAccess {
+            LLVMStructAccess {
                 expr: &Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
                     rhs_expression: Box::new(Expression::Identifier(self.identifier.clone())),
@@ -108,14 +107,8 @@ impl<'a> LLVMIdentifier<'a> {
                 }),
             }
                 .generate(codegen, function_context)
-                .unwrap();
-
-            if function_context.assigning {
-                Some(pointer_to_value.as_basic_value_enum())
-            } else {
-                Some(codegen.builder.build_load(pointer_to_value, "val"))
-            }
         } else if self.identifier.token.as_str().eq(codegen.contract_name) {
+            // TODO is this necessary? Might we just add the global to the function context instead?
             Some(
                 codegen
                     .module

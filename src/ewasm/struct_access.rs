@@ -1,5 +1,5 @@
 use super::inkwell::types::StructType;
-use super::inkwell::values::PointerValue;
+use super::inkwell::values::{PointerValue, BasicValueEnum, BasicValue};
 use crate::ast::{BinOp, BinaryExpression, Expression, FunctionCall};
 use crate::ewasm::call::LLVMFunctionCall;
 use crate::ewasm::codegen::Codegen;
@@ -38,19 +38,27 @@ impl<'a> LLVMStructAccess<'a> {
         &self,
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> Option<BasicValueEnum<'ctx>> {
         if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
             // TODO account for the fact that we might have something like foo().bar() if foo returns a struct
             let the_struct = function_context.get_declaration(first.as_field()).unwrap();
             let the_struct = the_struct.into_pointer_value();
 
-            accesses.iter().fold(Some(the_struct), |ptr, name| {
+            let access = accesses.iter().fold(Some(the_struct), |ptr, name| {
                 if let Some(ptr) = ptr {
                     self.access(codegen, ptr, name, function_context)
                 } else {
                     None
                 }
-            })
+            });
+
+            if function_context.assigning {
+                access.map(|ptr| ptr.as_basic_value_enum())
+            } else if let Some(ptr) = access {
+                Some(codegen.builder.build_load(ptr, "loaded"))
+            } else {
+                None
+            }
         } else {
             panic!("Malformed access")
         }

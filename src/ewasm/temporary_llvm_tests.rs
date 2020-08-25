@@ -2,6 +2,8 @@ use super::inkwell::execution_engine::{ExecutionEngine, JitFunction};
 use super::inkwell::OptimizationLevel;
 use crate::ewasm::codegen::Codegen;
 
+type VoidToVoid = unsafe extern "C" fn() -> ();
+
 #[allow(dead_code)]
 fn set_up_tests<'a>(codegen: &'a Codegen) -> ExecutionEngine<'a> {
     let engine = codegen
@@ -20,8 +22,6 @@ pub fn counter(codegen: &Codegen) {
     let engine = set_up_tests(codegen);
 
     unsafe {
-        type VoidToVoid = unsafe extern "C" fn() -> ();
-
         let init = engine
             .get_function::<VoidToVoid>("CounterInit")
             .expect("Could not find CounterInit");
@@ -48,6 +48,7 @@ pub fn counter(codegen: &Codegen) {
         assert_eq!(2, getter.call());
         decrement.call();
         assert_eq!(1, getter.call());
+        println!("Test passed");
     }
 }
 
@@ -56,8 +57,6 @@ pub fn factorial(codegen: &Codegen) {
     let engine = set_up_tests(codegen);
 
     unsafe {
-        type VoidToVoid = unsafe extern "C" fn() -> ();
-
         let init = engine
             .get_function::<VoidToVoid>("FactorialInit")
             .expect("Could not find FactorialInit");
@@ -80,6 +79,7 @@ pub fn factorial(codegen: &Codegen) {
         assert_eq!(2, getter.call());
         calculate.call(10);
         assert_eq!(3628800, getter.call());
+        println!("Test passed");
     }
 }
 
@@ -113,6 +113,7 @@ pub fn shapes(codegen: &Codegen) {
         assert_eq!(60, perimeter.call());
         assert!(smaller_width.call(21));
         assert!(!smaller_width.call(19));
+        println!("Test passed");
     }
 }
 
@@ -121,7 +122,6 @@ pub fn operators(codegen: &Codegen) {
     let engine = set_up_tests(codegen);
 
     unsafe {
-        type VoidToVoid = unsafe extern "C" fn() -> ();
         let init: JitFunction<VoidToVoid> = engine
             .get_function("OperatorsInit")
             .expect("Could not find OperatorsInit");
@@ -141,6 +141,8 @@ pub fn operators(codegen: &Codegen) {
         assert_eq!(15, plus.call(10, 5));
         assert_eq!(2, divide.call(10, 5));
         assert_eq!(2, divide.call(11, 5));
+
+        println!("Test passed");
     }
 }
 
@@ -149,7 +151,6 @@ pub fn traffic_lights(codegen: &Codegen) {
     let engine = set_up_tests(&codegen);
 
     unsafe {
-        type VoidToVoid = unsafe extern "C" fn() -> ();
         let init: JitFunction<VoidToVoid> = engine
             .get_function("TrafficLightsInit")
             .expect("Could not find TrafficLightsInit");
@@ -178,6 +179,7 @@ pub fn traffic_lights(codegen: &Codegen) {
 
         // NOTE this should cause a SIGILL
         println!("We should now get a SIGILL, and should have had no errors up until now");
+        println!("If we do, then test passed!");
         move_to_red.call();
     }
 }
@@ -219,5 +221,71 @@ pub fn inits(codegen: &Codegen) {
         assert_eq!(0x72981077347248757091884308802679, get_z.call());
         
         set_t.call(5, false);
+
+    }
+}
+
+#[allow(dead_code)]
+pub fn memory(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("MemoryInit")
+            .expect("Could not find initialiser");
+
+        let get_sa: JitFunction<unsafe extern "C" fn() -> u64> = engine
+            .get_function("getSa")
+            .expect("Could not find getSa");
+
+        // TODO u128 not big enough for an address
+        let get_ss: JitFunction<unsafe extern "C" fn() -> u128> = engine
+            .get_function("getSs")
+            .expect("Could not find getSs");
+
+        let get_vx: JitFunction<unsafe extern "C" fn() -> u64> = engine
+            .get_function("getVx")
+            .expect("Could not find getVx");
+
+        let set_s: JitFunction<unsafe extern "C" fn(u64, u128) -> ()> = engine
+            .get_function("setS")
+            .expect("Could not find setS");
+
+        let set_v1: JitFunction<unsafe extern "C" fn(u64) -> ()> = engine
+            .get_function("setV1")
+            .expect("Could not find setV1");
+
+        let set_v2: JitFunction<unsafe extern "C" fn(u64) -> ()> = engine
+            .get_function("setV2")
+            .expect("Could not find setV2");
+
+        let set_v3: JitFunction<unsafe extern "C" fn(bool, u64, u64) -> ()> = engine
+            .get_function("setV3")
+            .expect("Could not find setV3");
+
+        init.call();
+
+        assert_eq!(get_sa.call(), 0);
+        assert_eq!(get_ss.call(), 0);
+        assert_eq!(get_vx.call(), 1);
+
+        set_s.call(1, 1);
+
+        assert_eq!(get_sa.call(), 2);
+        assert_eq!(get_ss.call(), 1);
+
+        set_v1.call(2);
+        assert_eq!(get_vx.call(), 2);
+
+        set_v2.call(2);
+        assert_eq!(get_vx.call(), 3);
+
+        set_v3.call(true, 2, 3);
+        assert_eq!(get_vx.call(), 3);
+
+        set_v3.call(false, 2, 3);
+        assert_eq!(get_vx.call(), 4);
+
+        println!("Test passed");
     }
 }
