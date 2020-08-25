@@ -9,13 +9,14 @@ use crate::ast::expressions::{BinaryExpression, Expression, Identifier, InoutExp
 use crate::ast::operators::BinOp;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::{InoutType, Type};
-use crate::ast::Property;
 use crate::ast::{
     ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
     SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
 };
+use crate::ast::{FunctionSignatureDeclaration, Property};
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
+use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
 use itertools::Itertools;
 
@@ -49,6 +50,35 @@ impl Visitor for LLVMPreProcessor {
         declaration: &mut ContractBehaviourDeclaration,
         ctx: &mut Context,
     ) -> VResult {
+        // If we are in the declaration that contains the initialiser, then that is where we will insert the
+        // getters and setters since there are no caller protections or type state restrictions
+        // TODO the above explanation is somewhat hacky
+        if declaration
+            .members
+            .iter()
+            .any(|dec| is_init_declaration(dec))
+        {
+            let non_private_contract_members = ctx
+                .environment
+                .property_declarations(&declaration.identifier.token)
+                .into_iter()
+                // Some(_) ensures it has some modifier, and is therefore not private
+                .filter(|property| property.get_modifier().is_some())
+                .collect::<Vec<Property>>();
+
+            for non_private_contract_member in non_private_contract_members {
+                match non_private_contract_member.get_modifier().as_ref().unwrap() {
+                    Modifier::Public => {
+                        generate_and_add_getter(&non_private_contract_member, declaration, ctx);
+                        generate_and_add_setter(&non_private_contract_member, declaration);
+                    }
+                    Modifier::Visible => {
+                        generate_and_add_getter(&non_private_contract_member, declaration, ctx)
+                    }
+                }
+            }
+        }
+
         declaration.members = declaration
             .members
             .clone()
@@ -419,4 +449,146 @@ impl Visitor for LLVMPreProcessor {
 
         Ok(())
     }
+}
+
+// TODO abstract this out as it is almost identical to that created in move preprocessor
+fn generate_and_add_getter(
+    member: &Property,
+    behaviour_declaration: &mut ContractBehaviourDeclaration,
+    ctx: &mut Context,
+) {
+    let mut member_identifier = member.get_identifier();
+    member_identifier.enclosing_type = Some(behaviour_declaration.identifier.token.clone());
+
+    // converts the name to start with a capital, so value becomes getValue
+    let getter_name = format!(
+        "get{}{}",
+        member_identifier
+            .token
+            .chars()
+            .next()
+            .unwrap()
+            .to_ascii_uppercase(),
+        member_identifier.token.chars().skip(1).collect::<String>()
+    );
+
+    let member_type = member.get_type();
+
+    let return_statement = Statement::ReturnStatement(ReturnStatement {
+        expression: Some(Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(Expression::SelfExpression),
+            rhs_expression: Box::new(Expression::Identifier(member_identifier)),
+            op: BinOp::Dot,
+            line_info: Default::default(),
+        })),
+        cleanup: vec![],
+        line_info: Default::default(),
+    });
+
+    let mangled_name = mangle_ewasm_function(
+        getter_name.as_str(),
+        behaviour_declaration.identifier.token.as_str(),
+    );
+
+    let getter_signature = FunctionSignatureDeclaration {
+        func_token: "func".to_string(),
+        attributes: vec![],
+        modifiers: vec![Modifier::Public],
+        mutates: vec![],
+        identifier: Identifier {
+            token: getter_name,
+            enclosing_type: Some(behaviour_declaration.identifier.token.clone()),
+            line_info: Default::default(),
+        },
+        parameters: vec![],
+        result_type: Some(member_type),
+        payable: false,
+    };
+
+    let getter = FunctionDeclaration {
+        head: getter_signature,
+        body: vec![return_statement],
+        scope_context: Some(Default::default()),
+        tags: vec![],
+        mangled_identifier: Some(mangled_name),
+        is_external: false,
+    };
+
+    behaviour_declaration
+        .members
+        .push(ContractBehaviourMember::FunctionDeclaration(getter.clone()));
+
+    ctx.environment.add_function(
+        getter,
+        &behaviour_declaration.identifier.token,
+        vec![], // These should be empty anyway as we should only make getters and setters
+        vec![], // In restriction free zones
+    );
+}
+
+fn generate_and_add_setter(
+    member: &Property,
+    behaviour_declaration: &mut ContractBehaviourDeclaration,
+) {
+    let member_identifier = member.get_identifier();
+
+    // converts the name to start with a capital, so value becomes setValue
+    let setter_name = format!(
+        "set{}{}",
+        member_identifier
+            .token
+            .chars()
+            .next()
+            .unwrap()
+            .to_ascii_uppercase(),
+        member_identifier.token.chars().skip(1).collect::<String>()
+    );
+
+    let parameter_identifier = Identifier::generated(member_identifier.token.as_str());
+    let parameter = Parameter {
+        identifier: parameter_identifier.clone(),
+        type_assignment: member.get_type(),
+        expression: None,
+        line_info: Default::default(),
+    };
+
+    let assignment = BinaryExpression {
+        lhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
+            lhs_expression: Box::new(Expression::SelfExpression),
+            rhs_expression: Box::new(Expression::Identifier(member_identifier.clone())),
+            op: BinOp::Dot,
+            line_info: Default::default(),
+        })),
+        rhs_expression: Box::new(Expression::Identifier(parameter_identifier)),
+        op: BinOp::Equal,
+        line_info: Default::default(),
+    };
+
+    let assignment = Statement::Expression(Expression::BinaryExpression(assignment));
+
+    let setter_signature = FunctionSignatureDeclaration {
+        func_token: "func".to_string(),
+        attributes: vec![],
+        modifiers: vec![Modifier::Public],
+        mutates: vec![member_identifier],
+        identifier: Identifier::generated(&setter_name),
+        parameters: vec![parameter],
+        result_type: None,
+        payable: false,
+    };
+
+    let setter_declaration = FunctionDeclaration {
+        head: setter_signature,
+        body: vec![assignment],
+        scope_context: Some(Default::default()),
+        tags: vec![],
+        mangled_identifier: None,
+        is_external: false,
+    };
+
+    behaviour_declaration
+        .members
+        .push(ContractBehaviourMember::FunctionDeclaration(
+            setter_declaration,
+        ));
 }

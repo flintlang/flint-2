@@ -334,7 +334,8 @@ impl<'a> LLVMBinaryExpression<'a> {
             }
             BinOp::Power => {
                 codegen.module.print_to_stderr();
-                panic!("operator not supported")},
+                panic!("operator not supported")
+            }
             BinOp::Divide => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
@@ -402,69 +403,15 @@ impl<'a> LLVMBinaryExpression<'a> {
                 panic!("Invalid operation supplied")
             }
             BinOp::Percent => {
-                if let BasicValueEnum::IntValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let first_type = codegen.context.f64_type();
-                        let second_type = codegen.context.f64_type();
-                        let first = codegen.builder.build_cast(
-                            InstructionOpcode::SIToFP,
-                            lhs,
-                            first_type,
-                            "tmp_cast",
-                        );
-                        let second = codegen.builder.build_cast(
-                            InstructionOpcode::SIToFP,
-                            rhs,
-                            second_type,
-                            "tmp_cast",
-                        );
-                        let result_type = codegen.context.i64_type();
-                        let result = codegen.builder.build_float_rem(
-                            first.into_float_value(),
-                            second.into_float_value(),
-                            "tmpdiv",
-                        );
-                        return Some(codegen.builder.build_cast(
-                            InstructionOpcode::FPToSI,
-                            result,
-                            result_type,
-                            "tmp_cast",
-                        ));
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        let first_type = codegen.context.f64_type();
-                        let first_val = codegen.builder.build_cast(
-                            InstructionOpcode::SIToFP,
-                            lhs,
-                            first_type,
-                            "tmp_cast",
-                        );
-                        return Some(BasicValueEnum::FloatValue(codegen.builder.build_float_rem(
-                            first_val.into_float_value(),
-                            rhs,
-                            "tmpdiv",
-                        )));
-                    }
-                } else if let BasicValueEnum::FloatValue(lhs) = lhs {
-                    if let BasicValueEnum::IntValue(rhs) = rhs {
-                        let second_type = codegen.context.f64_type();
-                        let second_val = codegen.builder.build_cast(
-                            InstructionOpcode::SIToFP,
-                            rhs,
-                            second_type,
-                            "tmp_cast",
-                        );
-                        return Some(BasicValueEnum::FloatValue(codegen.builder.build_float_rem(
-                            lhs,
-                            second_val.into_float_value(),
-                            "tmpdiv",
-                        )));
-                    } else if let BasicValueEnum::FloatValue(rhs) = rhs {
-                        return Some(BasicValueEnum::FloatValue(
-                            codegen.builder.build_float_rem(lhs, rhs, "tmpdiv"),
-                        ));
-                    }
-                }
-                panic!("operator not supported")},
+                // Assume mod can only be used on ints:
+                assert!(lhs.is_int_value() && rhs.is_int_value());
+                Some(
+                    codegen
+                        .builder
+                        .build_int_signed_rem(lhs.into_int_value(), rhs.into_int_value(), "modulo")
+                        .as_basic_value_enum(),
+                )
+            }
             BinOp::PlusEqual => panic!("should have been preprocessed"),
             BinOp::MinusEqual => panic!("should have been preprocessed"),
             BinOp::TimesEqual => panic!("should have been preprocessed"),

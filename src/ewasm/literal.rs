@@ -1,8 +1,8 @@
 use crate::ast::literals::Literal;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::values::BasicValueEnum;
 use crate::ewasm::inkwell::types::StringRadix;
+use crate::ewasm::inkwell::values::BasicValueEnum;
 
 pub struct LLVMLiteral<'a> {
     pub literal: &'a Literal,
@@ -27,7 +27,9 @@ impl<'a> LLVMLiteral<'a> {
             Literal::AddressLiteral(a) => {
                 let address_type = codegen.context.custom_width_int_type(160);
                 let address = a.trim_start_matches("0x");
-                if let Some(address) = address_type.const_int_from_string(address, StringRadix::Hexadecimal) {
+                if let Some(address) =
+                    address_type.const_int_from_string(address, StringRadix::Hexadecimal)
+                {
                     return Some(BasicValueEnum::IntValue(address));
                 }
 
