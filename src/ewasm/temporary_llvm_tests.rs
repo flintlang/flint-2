@@ -381,20 +381,16 @@ pub fn property_modification(codegen: &Codegen) {
             .get_function("PropertyModificationInit")
             .expect("Could not find initialiser");
 
-            
-        let get_u: JitFunction<unsafe extern "C" fn() -> i64> = engine
-        .get_function("getU")
-        .expect("Could not find getU");
+        let get_u: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("getU").expect("Could not find getU");
 
-        
-        let get_vx: JitFunction<unsafe extern "C" fn() -> i64> = engine
-        .get_function("getVx")
-        .expect("Could not find getVx");
+        let get_vx: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("getVx").expect("Could not find getVx");
 
         init.call();
         assert_eq!(2, get_u.call());
         assert_eq!(4, get_vx.call());
-    
+
         println!("Test passed");
     }
 }
@@ -432,5 +428,144 @@ pub fn typestates_counter(codegen: &Codegen) {
         println!("We should now get a SIGILL, and should have had no errors up until now");
         println!("If we do, then test passed!");
         reset.call();
+    }
+}
+
+#[allow(dead_code)]
+pub fn structs(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("CInit")
+            .expect("Could not find initialiser");
+
+        let get_ax: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("getAx").expect("Could not find getAx");
+
+        let set_ax: JitFunction<unsafe extern "C" fn(i64) -> ()> =
+            engine.get_function("setAx").expect("Could not find setAx");
+
+        let get_ay: JitFunction<unsafe extern "C" fn() -> bool> =
+            engine.get_function("getAy").expect("Could not find getAy");
+
+        let set_ay: JitFunction<unsafe extern "C" fn(bool) -> ()> =
+            engine.get_function("setAy").expect("Could not find setAy");
+
+        let get_bxx: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getBxx")
+            .expect("Could not find getBxx");
+
+        let set_bxx: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("setBxx")
+            .expect("Could not find setBxx");
+
+        let get_bxx2: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getBxx2")
+            .expect("Could not find getBxx2");
+
+        // let get_bxx3: JitFunction<unsafe extern "C" fn() -> i64> = engine
+        //     .get_function("getBxx3")
+        //     .expect("Could not find getBxx3");
+
+        let set_bxx3: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("setBxx3")
+            .expect("Could not find setBxx");
+
+        let get_cxx: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getCxx")
+            .expect("Could not find getCxx");
+
+        let set_cxx: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("setCxx")
+            .expect("Could not find setCxx");
+
+        let set_cxx2: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("setCxx2")
+            .expect("Could not find setCxx2");
+
+        let get_bxy: JitFunction<unsafe extern "C" fn() -> bool> = engine
+            .get_function("getBxy")
+            .expect("Could not find getBxy");
+
+        let set_bxy: JitFunction<unsafe extern "C" fn(bool) -> ()> = engine
+            .get_function("setBxy")
+            .expect("Could not find setBxy");
+
+        let get_by: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("getBy").expect("Could not find getBy");
+
+        let set_by: JitFunction<unsafe extern "C" fn(i64) -> ()> =
+            engine.get_function("setBy").expect("Could not find setBy");
+
+        let get_size: JitFunction<unsafe extern "C" fn() -> i64> = engine
+            .get_function("getSize")
+            .expect("Could not find getSize");
+
+        let get: JitFunction<unsafe extern "C" fn(i64) -> i64> =
+            engine.get_function("get").expect("Could not find get");
+
+        let append: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
+            .get_function("append")
+            .expect("Could not find append");
+
+        let get_d: JitFunction<unsafe extern "C" fn() -> i64> =
+            engine.get_function("getD").expect("Could not find getD");
+
+        let get_e: JitFunction<unsafe extern "C" fn() -> bool> =
+            engine.get_function("getE").expect("Could not find getE");
+
+        init.call();
+
+        // Ax
+        assert_eq!(get_ax.call(), 0);
+        set_ax.call(10);
+        assert_eq!(get_ax.call(), 10);
+
+        // Ay
+        assert!(!get_ay.call());
+        set_ay.call(true);
+        assert!(get_ay.call());
+
+        // Bxx
+        assert_eq!(get_bxx.call(), 0);
+        set_bxx.call(0);
+        assert_eq!(get_bxx.call(), 0);
+        assert_eq!(get_bxx2.call(), 0);
+        // assert_eq!(get_bxx3.call(), 256); Power function not implemented
+        set_bxx3.call(5);
+        assert_eq!(get_bxx.call(), 5); // TODO does not pass
+
+        // Cxx
+        assert_eq!(get_cxx.call(), 0);
+        set_cxx.call(10);
+        assert_eq!(get_cxx.call(), 10); // TODO does not pass
+        set_cxx2.call(5);
+        assert_eq!(get_cxx.call(), 5); // TODO does not pass
+
+        // Bxy
+        assert!(!get_bxy.call());
+        set_bxy.call(true);
+        assert!(get_bxy.call());
+
+        // By
+        assert_eq!(get_by.call(), 0);
+        set_by.call(5);
+        assert_eq!(get_by.call(), 5);
+
+        // arr
+        assert_eq!(get_size.call(), 0);
+        assert_eq!(get.call(0), 0);
+        append.call(5);
+        assert_eq!(get_size.call(), 1); // TODO does not pass
+        assert_eq!(get.call(0), 5); // TODO does not pass
+
+        // D
+        assert_eq!(get_d.call(), 5);
+
+        // E
+        assert!(get_e.call());
+
+        println!("Test passed");
     }
 }
