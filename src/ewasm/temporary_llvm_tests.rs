@@ -136,12 +136,17 @@ pub fn operators(codegen: &Codegen) {
             .get_function("divide")
             .expect("Could not find divide");
 
+        let modulus: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> = engine
+            .get_function("remainder")
+            .expect("Could not find remainder");
+
         init.call();
         assert!(lt.call(5, 10));
         assert_eq!(15, plus.call(10, 5));
         assert_eq!(2, divide.call(10, 5));
         assert_eq!(2, divide.call(11, 5));
-
+        assert_eq!(2, modulus.call(12, 5));
+        
         println!("Test passed");
     }
 }
