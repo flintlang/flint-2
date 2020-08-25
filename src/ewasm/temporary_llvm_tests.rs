@@ -373,6 +373,33 @@ pub fn public_and_visible(codegen: &Codegen) {
 }
 
 #[allow(dead_code)]
+pub fn property_modification(codegen: &Codegen) {
+    let engine = set_up_tests(codegen);
+
+    unsafe {
+        let init: JitFunction<VoidToVoid> = engine
+            .get_function("PropertyModificationInit")
+            .expect("Could not find initialiser");
+
+            
+        let get_u: JitFunction<unsafe extern "C" fn() -> i64> = engine
+        .get_function("getU")
+        .expect("Could not find getU");
+
+        
+        let get_vx: JitFunction<unsafe extern "C" fn() -> i64> = engine
+        .get_function("getVx")
+        .expect("Could not find getVx");
+
+        init.call();
+        assert_eq!(2, get_u.call());
+        assert_eq!(4, get_vx.call());
+    
+        println!("Test passed");
+    }
+}
+
+#[allow(dead_code)]
 pub fn typestates_counter(codegen: &Codegen) {
     let engine = set_up_tests(codegen);
 

@@ -130,7 +130,7 @@ impl Visitor for LLVMPreProcessor {
                 line_info: Default::default(),
             };
 
-            assignments.push(Statement::Expression(Expression::BinaryExpression(
+            assignments.insert(0, Statement::Expression(Expression::BinaryExpression(
                 assignment,
             )));
         }
@@ -276,7 +276,7 @@ impl Visitor for LLVMPreProcessor {
                 };
 
                 dec.body
-                    .push(Statement::Expression(Expression::BinaryExpression(
+                    .insert(0, Statement::Expression(Expression::BinaryExpression(
                         assignment,
                     )));
             }
