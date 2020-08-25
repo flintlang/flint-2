@@ -21,12 +21,20 @@ PropertyModification :: (any) {
     assert v.x == 1
     v.x = 1
   }
+
+  public func getU() -> Int {
+    return u
+  }
+
+  public func getVx() -> Int {
+    return v.x
+  }
 }
 
 struct V {
   public var x: Int = 0
 
-  init(x: Int) {
+  public init(x: Int) {
     self.x = x
   }
 
