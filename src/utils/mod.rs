@@ -1,5 +1,6 @@
 use crate::ast::ContractBehaviourMember;
 
+pub(crate) mod getters_and_setters;
 pub(crate) mod type_states;
 pub mod unique;
 

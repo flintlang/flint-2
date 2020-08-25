@@ -6,6 +6,7 @@ use crate::environment::*;
 use crate::type_checker::ExpressionChecker;
 use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
+use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
 
 pub mod utils;
 
@@ -63,25 +64,8 @@ impl Visitor for MovePreProcessor {
             .iter()
             .any(|dec| is_init_declaration(dec))
         {
-            let non_private_contract_members = ctx
-                .environment
-                .property_declarations(&declaration.identifier.token)
-                .into_iter()
-                // Some(_) ensures it has some modifier, and is therefore not private
-                .filter(|property| property.get_modifier().is_some())
-                .collect::<Vec<Property>>();
-
-            for non_private_contract_member in non_private_contract_members {
-                match non_private_contract_member.get_modifier().as_ref().unwrap() {
-                    Modifier::Public => {
-                        generate_and_add_getter(&non_private_contract_member, declaration, ctx);
-                        generate_and_add_setter(&non_private_contract_member, declaration);
-                    }
-                    Modifier::Visible => {
-                        generate_and_add_getter(&non_private_contract_member, declaration, ctx)
-                    }
-                }
-            }
+            let mangler = |name: &str| name.to_string();
+            generate_and_add_getters_and_setters(declaration, ctx, &mangler);
         }
 
         declaration.members = declaration
@@ -556,6 +540,50 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
+    fn finish_statement(&mut self, statement: &mut Statement, context: &mut Context) -> VResult {
+        if let Statement::BecomeStatement(bs) = statement {
+            // MID we should be in a contract behaviour context since we are using type states
+            let contract_name = &context
+                .contract_behaviour_declaration_context
+                .as_ref()
+                .unwrap()
+                .identifier
+                .token;
+            let declared_states = context.environment.get_contract_type_states(contract_name);
+            // We immediately unwrap as all become statements should have been checked for having a declared typestate
+            let type_state_as_u8 = declared_states
+                .iter()
+                .position(|state| state == &bs.state)
+                .unwrap() as u8;
+
+            let state_variable = if context.special_declaration_context.is_some() {
+                // Special declarations have no 'this' yet as it is being constructed
+                // TODO the mangling is a problem
+                Expression::Identifier(Identifier::generated(&format!(
+                    "_this_{}",
+                    Identifier::TYPESTATE_VAR_NAME,
+                )))
+            } else {
+                Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::SelfExpression),
+                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                        Identifier::TYPESTATE_VAR_NAME,
+                    ))),
+                    op: BinOp::Dot,
+                    line_info: Default::default(),
+                })
+            };
+
+            *statement = Statement::Expression(Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(state_variable),
+                rhs_expression: Box::new(Expression::Literal(Literal::U8Literal(type_state_as_u8))),
+                op: BinOp::Equal,
+                line_info: Default::default(),
+            }));
+        }
+        Ok(())
+    }
+
     fn start_expression(&mut self, _t: &mut Expression, _ctx: &mut Context) -> VResult {
         if let Expression::BinaryExpression(b) = _t {
             if let BinOp::Dot = b.op {
@@ -594,7 +622,7 @@ impl Visitor for MovePreProcessor {
                     *_t = expression;
                     // If is function declaration context, or else if special declaration context
                     if let Some(ref mut function_declaration_context) =
-                        _ctx.function_declaration_context
+                    _ctx.function_declaration_context
                     {
                         let mut variable_present = false;
 
@@ -625,7 +653,7 @@ impl Visitor for MovePreProcessor {
                                 .push(variable);
                         }
                     } else if let Some(ref mut special_declaration_context) =
-                        _ctx.special_declaration_context
+                    _ctx.special_declaration_context
                     {
                         special_declaration_context
                             .local_variables
@@ -662,13 +690,13 @@ impl Visitor for MovePreProcessor {
                 }
 
                 if let Some(predicate) =
-                    crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
-                        &caller_protections,
-                        caller_id,
-                        &contract_ctx.identifier,
-                        &expr.function_call.identifier.token,
-                        &_ctx,
-                    )
+                crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
+                    &caller_protections,
+                    caller_id,
+                    &contract_ctx.identifier,
+                    &expr.function_call.identifier.token,
+                    &_ctx,
+                )
                 {
                     match expr.kind.as_str() {
                         "!" => {
@@ -704,7 +732,7 @@ impl Visitor for MovePreProcessor {
                                 context.local_variables.push(new_declaration.clone());
 
                                 if let Some(ref mut scope_context) =
-                                    context.declaration.scope_context
+                                context.declaration.scope_context
                                 {
                                     scope_context.local_variables.push(new_declaration.clone());
                                 }
@@ -785,8 +813,7 @@ impl Visitor for MovePreProcessor {
         } else if let BinOp::Dot = bin_expr.op {
             match *bin_expr.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {
-                    } else {
+                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {} else {
                         let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, ctx, false);
@@ -891,7 +918,7 @@ impl Visitor for MovePreProcessor {
                 || ctx.environment.is_contract_declared(&declared_enclosing)
                 || ctx.environment.is_trait_declared(&declared_enclosing)
                 || ctx.environment.is_asset_declared(&declared_enclosing)
-                    && !is_global_function_call
+                && !is_global_function_call
             {
                 let mut expression = construct_expression(&receiver_trail);
                 let enclosing_type = ctx
@@ -968,7 +995,7 @@ impl Visitor for MovePreProcessor {
                                 context.local_variables.push(new_declaration.clone());
 
                                 if let Some(ref mut scope_context) =
-                                    context.declaration.scope_context
+                                context.declaration.scope_context
                                 {
                                     scope_context.local_variables.push(new_declaration.clone());
                                 }
@@ -1175,52 +1202,9 @@ impl Visitor for MovePreProcessor {
         }
         Ok(())
     }
-
-    fn finish_statement(&mut self, statement: &mut Statement, context: &mut Context) -> VResult {
-        if let Statement::BecomeStatement(bs) = statement {
-            // MID we should be in a contract behaviour context since we are using type states
-            let contract_name = &context
-                .contract_behaviour_declaration_context
-                .as_ref()
-                .unwrap()
-                .identifier
-                .token;
-            let declared_states = context.environment.get_contract_type_states(contract_name);
-            // We immediately unwrap as all become statements should have been checked for having a declared typestate
-            let type_state_as_u8 = declared_states
-                .iter()
-                .position(|state| state == &bs.state)
-                .unwrap() as u8;
-
-            let state_variable = if context.special_declaration_context.is_some() {
-                // Special declarations have no 'this' yet as it is being constructed
-                // TODO the mangling is a problem
-                Expression::Identifier(Identifier::generated(&format!(
-                    "_this_{}",
-                    Identifier::TYPESTATE_VAR_NAME,
-                )))
-            } else {
-                Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: Box::new(Expression::SelfExpression),
-                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                        Identifier::TYPESTATE_VAR_NAME,
-                    ))),
-                    op: BinOp::Dot,
-                    line_info: Default::default(),
-                })
-            };
-
-            *statement = Statement::Expression(Expression::BinaryExpression(BinaryExpression {
-                lhs_expression: Box::new(state_variable),
-                rhs_expression: Box::new(Expression::Literal(Literal::U8Literal(type_state_as_u8))),
-                op: BinOp::Equal,
-                line_info: Default::default(),
-            }));
-        }
-        Ok(())
-    }
 }
 
+/*
 fn generate_and_add_getter(
     member: &Property,
     behaviour_declaration: &mut ContractBehaviourDeclaration,
@@ -1354,6 +1338,7 @@ fn generate_and_add_setter(
             setter_declaration,
         ));
 }
+*/
 
 fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Option<Identifier> {
     // returns a mutable reference to a local struct variable if it is not already mutably referenced
