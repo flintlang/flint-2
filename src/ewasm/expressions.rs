@@ -333,7 +333,6 @@ impl<'a> LLVMBinaryExpression<'a> {
                 panic!("Invalid operation supplied")
             }
             BinOp::Power => {
-                codegen.module.print_to_stderr();
                 panic!("operator not supported")
             }
             BinOp::Divide => {

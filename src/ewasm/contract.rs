@@ -1,13 +1,13 @@
 use super::inkwell::types::BasicTypeEnum;
 use super::inkwell::values::BasicValue;
-use crate::ast::declarations::VariableDeclaration;
+use crate::ast::declarations::{VariableDeclaration, FunctionDeclaration};
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
     ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::function::LLVMFunction;
+use crate::ewasm::function::{LLVMFunction, generate_function_type};
 use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generate_initialiser};
 use crate::ewasm::structs::LLVMStruct;
 use crate::ewasm::types::LLVMType;
@@ -132,7 +132,8 @@ impl<'a> LLVMContract<'a> {
         generate_initialiser(initialiser, codegen);
 
         // Generate all contract functions
-        self.contract_behaviour_declarations
+        let function_declarations = self
+            .contract_behaviour_declarations
             .iter()
             .flat_map(|declaration| {
                 declaration.members.iter().filter_map(|m| {
@@ -143,6 +144,14 @@ impl<'a> LLVMContract<'a> {
                     }
                 })
             })
+            .collect::<Vec<&FunctionDeclaration>>();
+
+        function_declarations
+            .iter()
+            .for_each(|func| generate_function_type(func, codegen));
+
+        function_declarations
+            .iter()
             .for_each(|func| {
                 LLVMFunction {
                     function_declaration: func,

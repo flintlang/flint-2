@@ -1,8 +1,9 @@
 pub mod utils;
 
 use crate::ast::{SpecialDeclaration, StructDeclaration, StructMember, VariableDeclaration};
+use crate::ast::declarations::FunctionDeclaration;
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::function::LLVMFunction;
+use crate::ewasm::function::{LLVMFunction, generate_function_type};
 use crate::ewasm::inkwell::types::BasicTypeEnum;
 use crate::ewasm::structs::utils::generate_initialiser;
 use crate::ewasm::types::LLVMType;
@@ -76,7 +77,7 @@ impl<'a> LLVMStruct<'a> {
     }
 
     fn generate_functions(&self, codegen: &mut Codegen) {
-        self.struct_declaration
+        let function_declarations = self.struct_declaration
             .members
             .iter()
             .filter_map(|m| {
@@ -86,6 +87,14 @@ impl<'a> LLVMStruct<'a> {
                     None
                 }
             })
+            .collect::<Vec<&FunctionDeclaration>>();
+
+        function_declarations
+            .iter()
+            .for_each(|func| generate_function_type(func, codegen));
+        
+        function_declarations
+            .iter()
             .for_each(|func| {
                 LLVMFunction {
                     function_declaration: func,
