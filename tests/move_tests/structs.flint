@@ -99,10 +99,10 @@ C :: (any) {
     return b.getXx()
   }
 
-  //public func getBxx3() -> Int mutates (b) {
-  //  setBxx(x: 2 ** 8)
-  //  return b.getXx2()
-  //}
+  public func getBxx3() -> Int mutates (b) {
+    setBxx(x: 2 ** 8)
+    return b.getXx2()
+  }
 
   public func setBxx2(x: Int) mutates (b) {
     b.setXx(y: x)

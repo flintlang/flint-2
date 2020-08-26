@@ -332,7 +332,22 @@ impl<'a> LLVMBinaryExpression<'a> {
 
                 panic!("Invalid operation supplied")
             }
-            BinOp::Power => panic!("operator not supported"),
+            BinOp::Power => {
+                if lhs.is_int_value() && rhs.is_int_value() {
+                    let exp_func = codegen
+                        .module
+                        .get_function("_exp")
+                        .unwrap();
+
+                    codegen
+                        .builder
+                        .build_call(exp_func, &[lhs, rhs], "exp")
+                        .try_as_basic_value()
+                        .left()
+                } else {
+                    panic!("Only int values can use the power operator")
+                }
+            }
             BinOp::Divide => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {

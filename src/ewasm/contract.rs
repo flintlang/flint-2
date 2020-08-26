@@ -24,6 +24,8 @@ pub struct LLVMContract<'a> {
 impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
+        codegen.runtime_functions();
+
         // Add each struct to the list of known types
         self.struct_declarations
             .iter()

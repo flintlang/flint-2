@@ -498,9 +498,9 @@ mod ewasm_tests {
                 .get_function("getBxx2")
                 .expect("Could not find getBxx2");
 
-            // let get_bxx3: JitFunction<unsafe extern "C" fn() -> i64> = engine
-            //     .get_function("getBxx3")
-            //     .expect("Could not find getBxx3");
+            let get_bxx3: JitFunction<unsafe extern "C" fn() -> i64> = engine
+                .get_function("getBxx3")
+                .expect("Could not find getBxx3");
 
             let set_bxx3: JitFunction<unsafe extern "C" fn(i64) -> ()> = engine
                 .get_function("setBxx3")
@@ -566,7 +566,7 @@ mod ewasm_tests {
             set_bxx.call(0);
             assert_eq!(get_bxx.call(), 0);
             assert_eq!(get_bxx2.call(), 0);
-            // assert_eq!(get_bxx3.call(), 256); Power function not implemented
+            assert_eq!(get_bxx3.call(), 256);
             set_bxx3.call(5);
             assert_eq!(get_bxx.call(), 5);
 
@@ -669,7 +669,9 @@ mod ewasm_tests {
             move_to_green.call();
             assert_eq!(get_signal.call(), 2);
 
-            println!("Traffic lights test passed, up until where it should fail, which cannot be tested");
+            println!(
+                "Traffic lights test passed, up until where it should fail, which cannot be tested"
+            );
 
             // NOTE this should cause a SIGILL so we cannot test it TODO
             // move_to_red.call();
