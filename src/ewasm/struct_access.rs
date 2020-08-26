@@ -92,7 +92,7 @@ impl<'a> LLVMStructAccess<'a> {
                 let val = LLVMFunctionCall {
                     function_call: call,
                 }
-                    .generate(codegen, function_context);
+                .generate(codegen, function_context);
 
                 if let Some(returned) = val {
                     let ret_ptr = codegen.builder.build_alloca(returned.get_type(), "tmp");
@@ -110,11 +110,11 @@ impl<'a> LLVMStructAccess<'a> {
             Expression::SelfExpression => vec![FieldOrFunction::StructField("this")],
             Expression::Identifier(id) => vec![FieldOrFunction::StructField(id.token.as_str())],
             Expression::BinaryExpression(BinaryExpression {
-                                             lhs_expression,
-                                             rhs_expression,
-                                             op: BinOp::Dot,
-                                             ..
-                                         }) => {
+                lhs_expression,
+                rhs_expression,
+                op: BinOp::Dot,
+                ..
+            }) => {
                 let mut flattened = self.flatten_expr(lhs_expression);
                 flattened.extend(self.flatten_expr(rhs_expression));
                 flattened

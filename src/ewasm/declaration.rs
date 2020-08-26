@@ -39,7 +39,7 @@ impl<'a> LLVMVariableDeclaration<'a> {
                     let ptr = codegen.builder.build_alloca(s, name);
                     codegen.builder.build_store(ptr, value);
                     ptr.as_basic_value_enum()
-                },
+                }
                 VectorType(v) => BasicValueEnum::VectorValue(v.const_zero()),
             }
         };

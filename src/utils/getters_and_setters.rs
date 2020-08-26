@@ -5,7 +5,11 @@ use crate::ast::{
 };
 use crate::context::Context;
 
-pub fn generate_and_add_getters_and_setters(behaviour_declaration: &mut ContractBehaviourDeclaration, ctx: &mut Context, mangler: &dyn Fn(&str) -> String) {
+pub fn generate_and_add_getters_and_setters(
+    behaviour_declaration: &mut ContractBehaviourDeclaration,
+    ctx: &mut Context,
+    mangler: &dyn Fn(&str) -> String,
+) {
     let non_private_contract_members = ctx
         .environment
         .property_declarations(&behaviour_declaration.identifier.token)

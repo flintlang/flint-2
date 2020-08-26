@@ -1,15 +1,15 @@
 use super::inkwell::types::BasicTypeEnum;
 use super::inkwell::values::BasicValue;
-use crate::ast::declarations::{VariableDeclaration, FunctionDeclaration};
+use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
     ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::function::{LLVMFunction, generate_function_type};
+use crate::ewasm::function::{generate_function_type, LLVMFunction};
 use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generate_initialiser};
-use crate::ewasm::structs::{LLVMStruct, create_type};
+use crate::ewasm::structs::{create_type, LLVMStruct};
 use crate::ewasm::types::LLVMType;
 
 pub struct LLVMContract<'a> {
@@ -25,7 +25,9 @@ impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
         // Add each struct to the list of known types
-        self.struct_declarations.iter().for_each(|dec| create_type(dec, codegen));
+        self.struct_declarations
+            .iter()
+            .for_each(|dec| create_type(dec, codegen));
 
         // setting up a struct to contain the contract data
         let members = self
@@ -144,14 +146,12 @@ impl<'a> LLVMContract<'a> {
             .iter()
             .for_each(|func| generate_function_type(func, codegen));
 
-        function_declarations
-            .iter()
-            .for_each(|func| {
-                LLVMFunction {
-                    function_declaration: func,
-                }
-                .generate(codegen)
-            });
+        function_declarations.iter().for_each(|func| {
+            LLVMFunction {
+                function_declaration: func,
+            }
+            .generate(codegen)
+        });
         // TODO Asset declarations?
     }
 }

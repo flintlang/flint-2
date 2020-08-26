@@ -1,4 +1,4 @@
-use super::inkwell::types::VectorType;
+use super::inkwell::types::{AnyType, VectorType};
 use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
@@ -14,6 +14,7 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::literal::LLVMLiteral;
 use crate::ewasm::struct_access::LLVMStructAccess;
 use crate::ewasm::types::LLVMType;
+use crate::ewasm::utils::*;
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
@@ -106,7 +107,7 @@ impl<'a> LLVMIdentifier<'a> {
                     line_info: Default::default(),
                 }),
             }
-                .generate(codegen, function_context)
+            .generate(codegen, function_context)
         } else if self.identifier.token.as_str().eq(codegen.contract_name) {
             // TODO is this necessary? Might we just add the global to the function context instead?
             Some(
@@ -151,8 +152,8 @@ impl<'a> LLVMBinaryExpression<'a> {
                             line_info: Default::default(),
                         }),
                     }
-                        .generate(codegen, function_context)
-                        .map(|opt| opt.as_basic_value_enum());
+                    .generate(codegen, function_context)
+                    .map(|opt| opt.as_basic_value_enum());
                 }
             }
             BinOp::Equal => {
@@ -168,11 +169,11 @@ impl<'a> LLVMBinaryExpression<'a> {
         let lhs = LLVMExpression {
             expression: &*self.expression.lhs_expression,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
         let rhs = LLVMExpression {
             expression: &*self.expression.rhs_expression,
         }
-            .generate(codegen, function_context);
+        .generate(codegen, function_context);
 
         if lhs.is_none() || rhs.is_none() {
             return None;
@@ -332,9 +333,7 @@ impl<'a> LLVMBinaryExpression<'a> {
 
                 panic!("Invalid operation supplied")
             }
-            BinOp::Power => {
-                panic!("operator not supported")
-            }
+            BinOp::Power => panic!("operator not supported"),
             BinOp::Divide => {
                 if let BasicValueEnum::IntValue(lhs) = lhs {
                     if let BasicValueEnum::IntValue(rhs) = rhs {
@@ -793,13 +792,39 @@ impl<'a> LLVMInoutExpression<'a> {
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
+        // An assumption is that inout expressions are only used on structs
+        function_context.assigning = true;
+        dbg!(self.expression.clone());
         let expr = LLVMExpression {
             expression: &self.expression.expression,
         }
-            .generate(codegen, function_context)
-            .unwrap();
+        .generate(codegen, function_context)
+        .unwrap();
+        function_context.assigning = false;
 
         if expr.is_pointer_value()
+            && expr
+                .into_pointer_value()
+                .get_name()
+                .to_str()
+                .expect("cannot convert cstr to str")
+                .eq(codegen.contract_name)
+        {
+            assert_eq!(
+                get_num_pointer_layers(expr.get_type().as_any_type_enum()),
+                1
+            );
+            Some(expr)
+        } else if expr.is_pointer_value() {
+            Some(expr)
+        } else {
+            let ptr = codegen.builder.build_alloca(expr.get_type(), "tmp_ptr");
+            codegen.builder.build_store(ptr, expr);
+
+            Some(BasicValueEnum::PointerValue(ptr))
+        }
+
+        /*if expr.is_pointer_value()
             && expr
             .into_pointer_value()
             .get_name()
@@ -813,7 +838,7 @@ impl<'a> LLVMInoutExpression<'a> {
         let ptr = codegen.builder.build_alloca(expr.get_type(), "tmp_ptr");
         codegen.builder.build_store(ptr, expr);
 
-        Some(BasicValueEnum::PointerValue(ptr))
+        Some(BasicValueEnum::PointerValue(ptr))*/
     }
 }
 
@@ -828,7 +853,7 @@ impl<'a> LLVMSelfExpression {
         LLVMIdentifier {
             identifier: &Identifier::generated(self.name()),
         }
-            .generate(codegen, function_context)
+        .generate(codegen, function_context)
     }
 
     fn name(&self) -> &'static str {
@@ -867,13 +892,13 @@ impl<'a> LLVMCastExpression<'a> {
         let cast_from_val = LLVMExpression {
             expression: &self.expression.expression,
         }
-            .generate(codegen, function_context)
-            .unwrap();
+        .generate(codegen, function_context)
+        .unwrap();
 
         let cast_to_type = LLVMType {
             ast_type: &self.expression.cast_type,
         }
-            .generate(codegen);
+        .generate(codegen);
 
         // TODO: which opcode should we pick here?
         Some(codegen.builder.build_cast(

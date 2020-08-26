@@ -7,7 +7,7 @@ pub struct FunctionContext<'a> {
     parameters: HashMap<String, BasicValueEnum<'a>>,
     locals: HashMap<String, BasicValueEnum<'a>>,
     pub assigning: bool,
-    pub is_last_statement: bool
+    pub is_last_statement: bool,
 }
 
 impl<'a> FunctionContext<'a> {
@@ -17,7 +17,7 @@ impl<'a> FunctionContext<'a> {
             parameters: params,
             locals: HashMap::new(),
             assigning: false,
-            is_last_statement: false
+            is_last_statement: false,
         }
     }
 

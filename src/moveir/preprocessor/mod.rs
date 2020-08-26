@@ -4,9 +4,9 @@ use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
 use crate::type_checker::ExpressionChecker;
+use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
 use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
-use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
 
 pub mod utils;
 
@@ -622,7 +622,7 @@ impl Visitor for MovePreProcessor {
                     *_t = expression;
                     // If is function declaration context, or else if special declaration context
                     if let Some(ref mut function_declaration_context) =
-                    _ctx.function_declaration_context
+                        _ctx.function_declaration_context
                     {
                         let mut variable_present = false;
 
@@ -653,7 +653,7 @@ impl Visitor for MovePreProcessor {
                                 .push(variable);
                         }
                     } else if let Some(ref mut special_declaration_context) =
-                    _ctx.special_declaration_context
+                        _ctx.special_declaration_context
                     {
                         special_declaration_context
                             .local_variables
@@ -690,13 +690,13 @@ impl Visitor for MovePreProcessor {
                 }
 
                 if let Some(predicate) =
-                crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
-                    &caller_protections,
-                    caller_id,
-                    &contract_ctx.identifier,
-                    &expr.function_call.identifier.token,
-                    &_ctx,
-                )
+                    crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
+                        &caller_protections,
+                        caller_id,
+                        &contract_ctx.identifier,
+                        &expr.function_call.identifier.token,
+                        &_ctx,
+                    )
                 {
                     match expr.kind.as_str() {
                         "!" => {
@@ -732,7 +732,7 @@ impl Visitor for MovePreProcessor {
                                 context.local_variables.push(new_declaration.clone());
 
                                 if let Some(ref mut scope_context) =
-                                context.declaration.scope_context
+                                    context.declaration.scope_context
                                 {
                                     scope_context.local_variables.push(new_declaration.clone());
                                 }
@@ -813,7 +813,8 @@ impl Visitor for MovePreProcessor {
         } else if let BinOp::Dot = bin_expr.op {
             match *bin_expr.lhs_expression.clone() {
                 Expression::Identifier(_) => {
-                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {} else {
+                    if let Expression::FunctionCall(_) = *bin_expr.rhs_expression {
+                    } else {
                         let lhs = bin_expr.lhs_expression.clone();
                         let lhs = *lhs;
                         let lhs = expand_properties(lhs, ctx, false);
@@ -918,7 +919,7 @@ impl Visitor for MovePreProcessor {
                 || ctx.environment.is_contract_declared(&declared_enclosing)
                 || ctx.environment.is_trait_declared(&declared_enclosing)
                 || ctx.environment.is_asset_declared(&declared_enclosing)
-                && !is_global_function_call
+                    && !is_global_function_call
             {
                 let mut expression = construct_expression(&receiver_trail);
                 let enclosing_type = ctx
@@ -995,7 +996,7 @@ impl Visitor for MovePreProcessor {
                                 context.local_variables.push(new_declaration.clone());
 
                                 if let Some(ref mut scope_context) =
-                                context.declaration.scope_context
+                                    context.declaration.scope_context
                                 {
                                     scope_context.local_variables.push(new_declaration.clone());
                                 }

@@ -23,14 +23,14 @@ impl<'a> LLVMAssignment<'a> {
         let lhs = LLVMExpression {
             expression: self.lhs,
         }
-            .generate(codegen, function_context)
-            .unwrap();
+        .generate(codegen, function_context)
+        .unwrap();
         function_context.assigning = false;
         let rhs = LLVMExpression {
             expression: self.rhs,
         }
-            .generate(codegen, function_context)
-            .unwrap();
+        .generate(codegen, function_context)
+        .unwrap();
 
         let lhs_num_pointers = get_num_pointer_layers(lhs.get_type().as_any_type_enum());
         let rhs_num_pointers = get_num_pointer_layers(rhs.get_type().as_any_type_enum());

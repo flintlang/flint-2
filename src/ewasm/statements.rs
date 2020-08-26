@@ -92,7 +92,9 @@ impl<'a> LLVMIfStatement<'a> {
         }
 
         if !function_context.is_last_statement {
-            let continue_bb = codegen.context.append_basic_block(function_context.get_current_func(), "after_if");
+            let continue_bb = codegen
+                .context
+                .append_basic_block(function_context.get_current_func(), "after_if");
 
             if !matches!(body.last(), Some(Statement::ReturnStatement(_))) {
                 codegen.builder.build_unconditional_branch(continue_bb);
@@ -159,8 +161,8 @@ fn condition_to_int_value<'ctx>(
     let condition = LLVMExpression {
         expression: condition,
     }
-        .generate(codegen, function_context)
-        .unwrap();
+    .generate(codegen, function_context)
+    .unwrap();
 
     // Evaluated conditions should be boolean, which in llvm is represented by a one bit int
     assert!(condition.is_int_value());

@@ -67,8 +67,8 @@ impl<'a> LLVMFunctionCall<'a> {
                 LLVMExpression {
                     expression: &a.expression,
                 }
-                    .generate(codegen, function_context)
-                    .unwrap()
+                .generate(codegen, function_context)
+                .unwrap()
             })
             .collect();
 

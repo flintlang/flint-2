@@ -116,9 +116,10 @@ impl Visitor for LLVMPreProcessor {
                 line_info: Default::default(),
             };
 
-            assignments.insert(0, Statement::Expression(Expression::BinaryExpression(
-                assignment,
-            )));
+            assignments.insert(
+                0,
+                Statement::Expression(Expression::BinaryExpression(assignment)),
+            );
         }
 
         for mut declaration in &mut dec.members {
@@ -263,10 +264,10 @@ impl Visitor for LLVMPreProcessor {
                     line_info: Default::default(),
                 };
 
-                dec.body
-                    .insert(0, Statement::Expression(Expression::BinaryExpression(
-                        assignment,
-                    )));
+                dec.body.insert(
+                    0,
+                    Statement::Expression(Expression::BinaryExpression(assignment)),
+                );
             }
         }
 
