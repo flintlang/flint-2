@@ -53,7 +53,6 @@ impl Visitor for LLVMPreProcessor {
     ) -> VResult {
         // If we are in the declaration that contains the initialiser, then that is where we will insert the
         // getters and setters since there are no caller protections or type state restrictions
-        // TODO the above explanation is somewhat hacky
         if declaration
             .members
             .iter()
@@ -204,7 +203,6 @@ impl Visitor for LLVMPreProcessor {
                 scope_ctx.parameters.push(self_param)
             }
         }
-        // TODO: dynamic parameters?
 
         Ok(())
     }
@@ -365,7 +363,6 @@ impl Visitor for LLVMPreProcessor {
 
                         expr.lhs_expression = Box::from(Expression::SelfExpression);
                         expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
-                        // TODO: check if this is the correct local variable to add
                         scope_ctx.local_variables.push(VariableDeclaration {
                             declaration_token: None,
                             identifier: id,

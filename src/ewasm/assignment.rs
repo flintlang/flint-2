@@ -19,13 +19,13 @@ impl<'a> LLVMAssignment<'a> {
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
-        function_context.assigning = true;
+        function_context.requires_pointer = true;
         let lhs = LLVMExpression {
             expression: self.lhs,
         }
         .generate(codegen, function_context)
         .unwrap();
-        function_context.assigning = false;
+        function_context.requires_pointer = false;
         let rhs = LLVMExpression {
             expression: self.rhs,
         }

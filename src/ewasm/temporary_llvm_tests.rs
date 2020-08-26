@@ -533,14 +533,14 @@ pub fn structs(codegen: &Codegen) {
         assert_eq!(get_bxx2.call(), 0);
         // assert_eq!(get_bxx3.call(), 256); Power function not implemented
         set_bxx3.call(5);
-        assert_eq!(get_bxx.call(), 5); // TODO does not pass
+        assert_eq!(get_bxx.call(), 5);
 
         // Cxx
         assert_eq!(get_cxx.call(), 0);
         set_cxx.call(10);
-        assert_eq!(get_cxx.call(), 10); // TODO does not pass
+        assert_eq!(get_cxx.call(), 10);
         set_cxx2.call(5);
-        assert_eq!(get_cxx.call(), 5); // TODO does not pass
+        assert_eq!(get_cxx.call(), 5);
 
         // Bxy
         assert!(!get_bxy.call());
@@ -556,8 +556,8 @@ pub fn structs(codegen: &Codegen) {
         assert_eq!(get_size.call(), 0);
         assert_eq!(get.call(0), 0);
         append.call(5);
-        assert_eq!(get_size.call(), 1); // TODO does not pass
-        assert_eq!(get.call(0), 5); // TODO does not pass
+        assert_eq!(get_size.call(), 1);
+        assert_eq!(get.call(0), 5);
 
         // D
         assert_eq!(get_d.call(), 5);

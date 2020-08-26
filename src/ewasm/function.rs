@@ -54,8 +54,6 @@ impl<'a> LLVMFunction<'a> {
             }
         }
 
-        // TODO: add tags
-        // TODO: add dictionary to tags?
         for statement in &self.function_declaration.body {
             if statement.eq(self.function_declaration.body.last().unwrap()) {
                 function_context.is_last_statement = true;
@@ -98,7 +96,6 @@ pub fn generate_function_type(function_declaration: &FunctionDeclaration, codege
         .collect();
 
     let func_type = if let Some(result_type) = function_declaration.get_result_type() {
-        // TODO: should is_var_args be false?
         LLVMType {
             ast_type: &result_type,
         }

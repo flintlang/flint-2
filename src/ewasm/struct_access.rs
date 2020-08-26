@@ -40,7 +40,6 @@ impl<'a> LLVMStructAccess<'a> {
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
         if let [first, accesses @ ..] = self.flatten_expr(self.expr).as_slice() {
-            // TODO account for the fact that we might have something like foo().bar() if foo returns a struct
             let the_struct = function_context.get_declaration(first.as_field()).unwrap();
             let the_struct = the_struct.into_pointer_value();
 
@@ -52,7 +51,7 @@ impl<'a> LLVMStructAccess<'a> {
                 }
             });
 
-            if function_context.assigning {
+            if function_context.requires_pointer {
                 access.map(|ptr| ptr.as_basic_value_enum())
             } else if let Some(ptr) = access {
                 Some(codegen.builder.build_load(ptr, "loaded"))

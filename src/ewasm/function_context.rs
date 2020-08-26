@@ -6,7 +6,7 @@ pub struct FunctionContext<'a> {
     this_func: FunctionValue<'a>,
     parameters: HashMap<String, BasicValueEnum<'a>>,
     locals: HashMap<String, BasicValueEnum<'a>>,
-    pub assigning: bool,
+    pub requires_pointer: bool,
     pub is_last_statement: bool,
 }
 
@@ -16,7 +16,7 @@ impl<'a> FunctionContext<'a> {
             this_func: func,
             parameters: params,
             locals: HashMap::new(),
-            assigning: false,
+            requires_pointer: false,
             is_last_statement: false,
         }
     }

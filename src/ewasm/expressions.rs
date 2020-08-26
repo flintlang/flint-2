@@ -107,9 +107,14 @@ impl<'a> LLVMIdentifier<'a> {
                     line_info: Default::default(),
                 }),
             }
-            .generate(codegen, function_context)
-        } else if self.identifier.token.as_str().eq(codegen.contract_name) {
-            // TODO is this necessary? Might we just add the global to the function context instead?
+                .generate(codegen, function_context)
+        } else if !self.identifier.token.as_str().eq(codegen.contract_name) {
+            let variable = function_context
+                .get_declaration(self.identifier.token.as_str())
+                .unwrap();
+
+            Some(*variable)
+        } else {
             Some(
                 codegen
                     .module
@@ -118,12 +123,6 @@ impl<'a> LLVMIdentifier<'a> {
                     .as_pointer_value()
                     .as_basic_value_enum(),
             )
-        } else {
-            let variable = function_context
-                .get_declaration(self.identifier.token.as_str())
-                .unwrap();
-
-            Some(*variable)
         }
     }
 }
@@ -793,14 +792,13 @@ impl<'a> LLVMInoutExpression<'a> {
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
         // An assumption is that inout expressions are only used on structs
-        function_context.assigning = true;
-        dbg!(self.expression.clone());
+        function_context.requires_pointer = true;
         let expr = LLVMExpression {
             expression: &self.expression.expression,
         }
         .generate(codegen, function_context)
         .unwrap();
-        function_context.assigning = false;
+        function_context.requires_pointer = false;
 
         if expr.is_pointer_value()
             && expr
@@ -823,22 +821,6 @@ impl<'a> LLVMInoutExpression<'a> {
 
             Some(BasicValueEnum::PointerValue(ptr))
         }
-
-        /*if expr.is_pointer_value()
-            && expr
-            .into_pointer_value()
-            .get_name()
-                .to_str()
-                .expect("cannot convert cstr to str")
-                .eq(codegen.contract_name)
-        {
-            return Some(expr);
-        }
-
-        let ptr = codegen.builder.build_alloca(expr.get_type(), "tmp_ptr");
-        codegen.builder.build_store(ptr, expr);
-
-        Some(BasicValueEnum::PointerValue(ptr))*/
     }
 }
 
@@ -900,7 +882,7 @@ impl<'a> LLVMCastExpression<'a> {
         }
         .generate(codegen);
 
-        // TODO: which opcode should we pick here?
+        // TODO: which opcode should we pick here? We need tests for this
         Some(codegen.builder.build_cast(
             InstructionOpcode::Load,
             cast_from_val,

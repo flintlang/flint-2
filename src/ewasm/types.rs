@@ -3,7 +3,6 @@ use super::inkwell::AddressSpace;
 use crate::ast::{FixedSizedArrayType, InoutType, Type};
 use crate::ewasm::Codegen;
 
-// I wonder whether we should return our own wrapper type, so we may add more information if we want?
 pub struct LLVMType<'a> {
     pub ast_type: &'a Type,
 }
@@ -11,7 +10,6 @@ pub struct LLVMType<'a> {
 impl<'a> LLVMType<'a> {
     pub fn generate<'ctx>(&self, codegen: &mut Codegen<'_, 'ctx>) -> BasicTypeEnum<'ctx> {
         let context = codegen.context;
-        // TODO add address space parameter? (see documentation)
 
         match self.ast_type {
             Type::InoutType(inout) => self.inout_to_llvm(inout, codegen),
@@ -23,11 +21,11 @@ impl<'a> LLVMType<'a> {
                 self.extract_defined_type(definition.token.as_str(), codegen)
             }
             Type::Solidity(_) => unimplemented!(),
-            Type::SelfType => unimplemented!(), // TODO implement
+            Type::SelfType => unimplemented!(),
             Type::Bool => context.bool_type().as_basic_type_enum(),
             Type::Int => context.i64_type().as_basic_type_enum(),
             Type::String => unimplemented!(),
-            Type::Address => context.custom_width_int_type(160).as_basic_type_enum(), // Needs to be a 160 bit number?
+            Type::Address => context.custom_width_int_type(160).as_basic_type_enum(),
             Type::Error => unimplemented!(),
             Type::TypeState => context.i8_type().as_basic_type_enum(),
         }
