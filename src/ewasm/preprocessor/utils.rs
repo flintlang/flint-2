@@ -65,15 +65,6 @@ pub fn generate_contract_wrapper(
 
     // TODO: caller protections
 
-    let contract_parameter = Parameter {
-        identifier: Identifier::generated("this"),
-        type_assignment: Type::InoutType(InoutType {
-            key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
-        }),
-        expression: None,
-        line_info: Default::default(),
-    };
-
     let mut arguments = function
         .head
         .parameters
@@ -89,6 +80,15 @@ pub fn generate_contract_wrapper(
         identifier: None,
         expression: Expression::Identifier(Identifier::generated(contract_name)),
     });
+
+    let contract_parameter = Parameter {
+        identifier: Identifier::generated("this"),
+        type_assignment: Type::InoutType(InoutType {
+            key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
+        }),
+        expression: None,
+        line_info: Default::default(),
+    };
 
     function.head.parameters.push(contract_parameter);
 
