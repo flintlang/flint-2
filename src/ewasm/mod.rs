@@ -12,7 +12,6 @@ pub mod preprocessor;
 mod statements;
 mod struct_access;
 mod structs;
-mod temporary_llvm_tests;
 mod types;
 mod utils;
 
@@ -209,14 +208,21 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("output", "wasm").as_str()),
             &post_processed_wasm,
         )
-        .expect("Could not write to output wasm file");
+            .expect("Could not write to output wasm file");
 
         // TODO remove this for the final release, as we do not need to give wat and wasm files
         fs::copy(
             Path::new(get_path("tmp", "wat").as_str()),
             Path::new(get_path("output", "wat").as_str()),
         )
-        .expect("Could not copy wat file from tmp to output");
+            .expect("Could not copy wat file from tmp to output");
+
+        // TODO remove this for the final release, but for testing the LLVM, we need to be able to read the LLVM files
+        fs::copy(
+            Path::new(get_path("tmp", "ll").as_str()),
+            Path::new(get_path("output", "ll").as_str()),
+        )
+            .expect("Could not copy wat file from tmp to output");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove tmp directory");
@@ -226,7 +232,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path("output", "json").as_str()),
             &*generate_abi(&contract.contract_behaviour_declarations).as_bytes(),
         )
-        .expect("Could not generate abi file");
+            .expect("Could not generate abi file");
     }
 }
 
@@ -271,7 +277,6 @@ fn generate_llvm(contract: &LLVMContract) -> String {
 
     build_empty_main_function(&codegen);
 
-    // Since all mutation happens in C++, (below Rust) we need not mark codegen as mutable
     contract.generate(&mut codegen);
     llvm_module.print_to_string().to_string()
 }
