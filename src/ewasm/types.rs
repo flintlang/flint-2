@@ -13,7 +13,7 @@ impl<'a> LLVMType<'a> {
 
         match self.ast_type {
             Type::InoutType(inout) => self.inout_to_llvm(inout, codegen),
-            Type::ArrayType(_) => unimplemented!(), // Just a fixed size array with a large size?
+            Type::ArrayType(_) => unimplemented!(), // TODO implement dynamic arrays, perhaps with a pointer to an array, which is dynamically adjusted with runtime functions
             Type::RangeType(_) => unimplemented!(),
             Type::FixedSizedArrayType(fixed_arr_type) => self.llvm_array(fixed_arr_type, codegen),
             Type::DictionaryType(_) => unimplemented!(),

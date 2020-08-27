@@ -186,6 +186,25 @@ impl Visitor for SemanticAnalysis {
                     context.caller_protections(),
                     Default::default(),
                 );
+
+                if let Type::FixedSizedArrayType(FixedSizedArrayType {
+                                                     key_type: lhs_type,
+                                                     size: _size,
+                                                 }) = &declaration.variable_type
+                {
+                    // TODO check the length of the source and declaration match
+                    if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
+                        return if *lhs_type == *rhs_type {
+                            Ok(())
+                        } else {
+                            Err(Box::from(format!(
+                                "Cannot assign array of type `{}` to an array of type `{}` on {}",
+                                rhs_type, lhs_type, &declaration.identifier.line_info
+                            )))
+                        };
+                    }
+                }
+
                 if declaration.variable_type != source_type {
                     return Err(Box::from(format!(
                         "Cannot initialise contract property of type `{}` with type `{}` on {}",
@@ -679,6 +698,28 @@ impl Visitor for SemanticAnalysis {
                 ),
                 Expression::VariableDeclaration(ref declaration) => {
                     declaration.variable_type.clone()
+                }
+                Expression::SubscriptExpression(ref subscript) => {
+                    let arr_type = context.environment.get_expression_type(
+                        &Expression::Identifier(subscript.base_expression.clone()),
+                        &enclosing.token,
+                        context.type_states(),
+                        context.caller_protections(),
+                        scope,
+                    );
+
+                    match arr_type {
+                        Type::ArrayType(ArrayType { key_type }) => *key_type,
+                        Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => {
+                            *key_type
+                        }
+                        _ => {
+                            return Err(Box::from(format!(
+                                "Subscript expression on non-array type: {:?}",
+                                expression.lhs_expression
+                            )))
+                        }
+                    }
                 }
                 Expression::BinaryExpression(ref binary) if matches!(binary.op, BinOp::Dot) => {
                     context.environment.get_expression_type(

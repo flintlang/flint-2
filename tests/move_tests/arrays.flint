@@ -1,0 +1,15 @@
+contract Arrays {
+  var nums: Int[3] = [1, 2, 3]
+}
+
+Arrays :: (any) {
+  public init() {}
+
+  public func get(x: Int) -> Int {
+    return nums[x]
+  }
+
+  public func set(i: Int, val: Int) mutates(nums) {
+    nums[i] = val
+  }
+}

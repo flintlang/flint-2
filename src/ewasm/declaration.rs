@@ -30,7 +30,17 @@ impl<'a> LLVMVariableDeclaration<'a> {
             .generate(codegen);
 
             match variable_type {
-                ArrayType(a) => BasicValueEnum::ArrayValue(a.const_zero()),
+                ArrayType(a) => {
+                    let value = BasicValueEnum::ArrayValue(a.const_zero());
+                    let ptr = codegen.builder.build_array_alloca(
+                        a.get_element_type(),
+                        a.size_of()
+                            .unwrap_or_else(|| codegen.context.i32_type().const_int(10, false)),
+                        "arr_ptr",
+                    );
+                    codegen.builder.build_store(ptr, value);
+                    ptr.as_basic_value_enum()
+                }
                 FloatType(f) => BasicValueEnum::FloatValue(f.const_zero()),
                 IntType(i) => BasicValueEnum::IntValue(i.const_zero()),
                 PointerType(p) => BasicValueEnum::PointerValue(p.const_null()),
@@ -40,7 +50,7 @@ impl<'a> LLVMVariableDeclaration<'a> {
                     codegen.builder.build_store(ptr, value);
                     ptr.as_basic_value_enum()
                 }
-                VectorType(v) => BasicValueEnum::VectorValue(v.const_zero()),
+                VectorType(_) => panic!("Vector types are unsupported"),
             }
         };
 

@@ -1,4 +1,4 @@
-use super::inkwell::types::{AnyType, VectorType};
+use super::inkwell::types::{AnyType, BasicType};
 use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
@@ -67,17 +67,36 @@ impl<'a> LLVMExpression<'a> {
                     })
                     .collect::<Vec<BasicValueEnum>>();
 
-                Some(BasicValueEnum::VectorValue(VectorType::const_vector(
-                    &elements,
-                )))
+                // If we have an empty list, we default to an empty int32 array
+                let elem_type = elements
+                    .first()
+                    .map_or(codegen.context.i32_type().as_basic_type_enum(), |val| {
+                        val.get_type()
+                    });
+                let arr_ptr = codegen
+                    .builder
+                    .build_alloca(elem_type.array_type(elements.len() as u32), "arr_ptr");
+
+                unsafe {
+                    let zero = codegen.context.i32_type().const_int(0, false);
+                    for (index, elem) in elements.into_iter().enumerate() {
+                        let index = codegen.context.i32_type().const_int(index as u64, false);
+                        let position_ptr = codegen.builder.build_in_bounds_gep(
+                            arr_ptr,
+                            &[zero, index],
+                            "index_ptr",
+                        );
+                        codegen.builder.build_store(position_ptr, elem);
+                    }
+                }
+
+                Some(codegen.builder.build_load(arr_ptr, "loaded_arr"))
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => LLVMSelfExpression {}.generate(codegen, function_context),
-            Expression::SubscriptExpression(s) => LLVMSubscriptExpression {
-                expression: s,
-                rhs: None,
+            Expression::SubscriptExpression(s) => {
+                LLVMSubscriptExpression { expression: s }.generate(codegen, function_context)
             }
-            .generate(codegen, function_context),
             Expression::RangeExpression(_) => unimplemented!(),
             Expression::RawAssembly(_, _) => unimplemented!(),
             Expression::CastExpression(c) => {
@@ -139,11 +158,10 @@ impl<'a> LLVMBinaryExpression<'a> {
     ) -> Option<BasicValueEnum<'ctx>> {
         match &self.expression.op {
             BinOp::Dot => {
-                if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
-                    return LLVMFunctionCall { function_call: f }
-                        .generate(codegen, function_context);
+                return if let Expression::FunctionCall(f) = &*self.expression.rhs_expression {
+                    LLVMFunctionCall { function_call: f }.generate(codegen, function_context)
                 } else {
-                    return LLVMStructAccess {
+                    LLVMStructAccess {
                         expr: &Expression::BinaryExpression(BinaryExpression {
                             lhs_expression: self.expression.lhs_expression.clone(),
                             rhs_expression: self.expression.rhs_expression.clone(),
@@ -151,8 +169,8 @@ impl<'a> LLVMBinaryExpression<'a> {
                             line_info: Default::default(),
                         }),
                     }
-                    .generate(codegen, function_context)
-                    .map(|opt| opt.as_basic_value_enum());
+                        .generate(codegen, function_context)
+                        .map(|opt| opt.as_basic_value_enum())
                 }
             }
             BinOp::Equal => {
@@ -856,20 +874,48 @@ impl<'a> LLVMSelfExpression {
 }
 
 pub struct LLVMSubscriptExpression<'a> {
-    #[allow(dead_code)]
     expression: &'a SubscriptExpression,
-    #[allow(dead_code)]
-    rhs: Option<LLVMExpression<'a>>,
 }
 
 impl<'a> LLVMSubscriptExpression<'a> {
     fn generate<'ctx>(
         &self,
-        _codegen: &Codegen<'_, 'ctx>,
-        _function_context: &FunctionContext,
+        codegen: &mut Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
-        // TODO: implement once arrays are implemented
-        unimplemented!();
+        let previous_requires_ptr = function_context.requires_pointer;
+        function_context.requires_pointer = true;
+        let arr_ptr = LLVMIdentifier {
+            identifier: &self.expression.base_expression,
+        }
+            .generate(codegen, function_context)
+            .unwrap();
+        function_context.requires_pointer = previous_requires_ptr;
+
+        assert!(arr_ptr.is_pointer_value());
+        let arr_ptr = arr_ptr.into_pointer_value();
+
+        let index = LLVMExpression {
+            expression: &*self.expression.index_expression,
+        }
+            .generate(codegen, function_context)
+            .unwrap();
+
+        assert!(index.is_int_value());
+        let index = index.into_int_value();
+        let zero = codegen.context.i32_type().const_int(0, false);
+
+        let access = unsafe {
+            codegen
+                .builder
+                .build_in_bounds_gep(arr_ptr, &[zero, index], "accessed")
+        };
+
+        if function_context.requires_pointer {
+            Some(access.as_basic_value_enum())
+        } else {
+            Some(codegen.builder.build_load(access, "loaded"))
+        }
     }
 }
 
