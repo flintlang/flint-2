@@ -56,6 +56,35 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     pub fn runtime_functions(&self) {
+        self.get_caller();
+        self.power();
+    }
+
+    pub fn get_caller(&self) {
+        // Dummy implementation of the eWASM getCaller function
+        let param_type = self
+            .context
+            .custom_width_int_type(160)
+            .ptr_type(AddressSpace::Generic)
+            .as_basic_type_enum();
+        
+        let func_type = self
+            .context
+            .void_type()
+            .fn_type(&[param_type], false);
+
+        let func_val = self.module.add_function("getCaller", func_type, None);
+        let bb = self.context.append_basic_block(func_val, "entry");
+        self.builder.position_at_end(bb);
+
+        let memory_offset = func_val.get_params()[0].into_pointer_value();
+        let address = self.context.custom_width_int_type(160).const_int(1, false);
+
+        self.builder.build_store(memory_offset, address);
+        self.builder.build_return(None);
+    }
+
+    pub fn power(&self) {
         // Integer exponent method. Naive implementation
         // PRE: a >= 0, b > 0 and a and b are integers
         let param_type = self.context.i64_type().as_basic_type_enum();
@@ -167,7 +196,7 @@ mod runtime_tests {
             types: HashMap::new(),
         };
 
-        codegen.runtime_functions();
+        codegen.power();
 
         let engine = codegen
             .module

@@ -195,7 +195,7 @@ pub fn generate_caller_protections_predicate(
                     counter: 0,
                 },
             );
-
+            
             match caller_type {
                 Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::Identifier(ident)),

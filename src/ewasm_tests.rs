@@ -22,8 +22,8 @@ mod ewasm_tests {
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs".split(' ');
-        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C".split(' ');
+        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter".split(' ');
+        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2".split(' ');
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -38,6 +38,7 @@ mod ewasm_tests {
             Some(typestates_counter),
             Some(property_modification),
             Some(structs),
+            Some(caller_protections_counter)
         ];
         let test_info = input_file_names
             .zip(output_file_names)
@@ -675,6 +676,39 @@ mod ewasm_tests {
 
             // NOTE this should cause a SIGILL so we cannot test it TODO
             // move_to_red.call();
+        }
+    }
+
+    fn caller_protections_counter(module: &Module) {
+        let engine = set_up_tests(module);
+    
+        unsafe {
+            let init: JitFunction<VoidToVoid> = engine
+                .get_function("Counter2Init")
+                .expect("Could not find initialiser");
+    
+            let get_count: JitFunction<unsafe extern "C" fn() -> i64> =
+                engine.get_function("getCount").expect("Could not find getCount");
+    
+            let get_owner: JitFunction<unsafe extern "C" fn() -> i128> =
+                engine.get_function("getOwner").expect("Could not find getOwner");
+    
+            let get_friend: JitFunction<unsafe extern "C" fn() -> i128> =
+            engine.get_function("getFriend").expect("Could not find getFriend");
+
+            let increment: JitFunction<VoidToVoid> = engine
+                .get_function("increment")
+                .expect("Could not find increment");
+    
+            init.call();
+            println!("HELLO GEORGE");
+            assert_eq!(0, get_count.call());
+            assert_eq!(21267647932558653966460912964485513216, get_owner.call());
+            assert_eq!(1, get_friend.call());
+    
+            increment.call();
+            assert_eq!(1, get_count.call());
+            println!("Caller protections counter test passed");
         }
     }
 }
