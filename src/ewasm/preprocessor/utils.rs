@@ -6,9 +6,12 @@ use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::Type;
-use crate::ast::{Assertion, BinOp, BinaryExpression, InoutType, VariableDeclaration};
+use crate::ast::{Assertion, BinOp, BinaryExpression, InoutType, VariableDeclaration, CallerProtection};
 use crate::context::Context;
 use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
+use crate::context::ScopeContext;
+use crate::type_checker::ExpressionChecker;
+use itertools::Itertools;
 
 pub fn generate_contract_wrapper(
     function: &mut FunctionDeclaration,
@@ -25,7 +28,7 @@ pub fn generate_contract_wrapper(
     // Add type state assertions
     if !contract_behaviour_declaration.type_states.is_empty() {
         let type_state_var = BinaryExpression {
-            lhs_expression: Box::new(Expression::Identifier(Identifier::generated(contract_name))),
+            lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
             rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
                 Identifier::TYPESTATE_VAR_NAME,
             ))),
@@ -63,7 +66,32 @@ pub fn generate_contract_wrapper(
         }))
     }
 
-    // TODO: caller protections
+    let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration.caller_protections.clone();
+
+    if !caller_protections.is_empty() && !contains_any(&caller_protections) {
+        let caller_id: Identifier;
+
+        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
+            caller_id = caller.clone();
+        } else {
+            caller_id = Identifier::generated("caller");
+        }
+
+        if let Some(predicate) = generate_caller_protections_predicate(
+            &caller_protections,
+            &caller_id.token,
+            &contract_behaviour_declaration.identifier,
+            &wrapper.head.identifier.token,
+            &ctx,
+        ) {
+            let assertion = Assertion {
+                expression: predicate,
+                line_info: contract_behaviour_declaration.identifier.line_info.clone(),
+            };
+
+            wrapper.body.push(Statement::Assertion(assertion));
+        }
+    }
 
     let contract_parameter = Parameter {
         identifier: Identifier::generated("this"),
@@ -139,4 +167,59 @@ pub fn construct_parameter(name: String, t: Type) -> Parameter {
         expression: None,
         line_info: Default::default(),
     }
+}
+
+pub fn generate_caller_protections_predicate(
+    caller_protections: &[CallerProtection],
+    caller_id: &str,
+    contract_id: &Identifier,
+    function_name: &str,
+    ctx: &Context,
+) -> Option<Expression> {
+    caller_protections
+        .iter()
+        .cloned()
+        .filter_map(|c| {
+            let mut ident = c.clone().identifier;
+            ident.enclosing_type = Option::from(contract_id.token.clone());
+            let contract_id = contract_id.token.clone();
+            let caller_type = ctx.environment.get_expression_type(
+                &Expression::Identifier(ident.clone()),
+                &contract_id,
+                &[],
+                &[],
+                &ScopeContext {
+                    parameters: vec![],
+                    local_variables: vec![],
+                    counter: 0,
+                },
+            );
+
+            match caller_type {
+                Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
+                    lhs_expression: Box::new(Expression::Identifier(ident)),
+                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(caller_id))),
+                    op: BinOp::DoubleEqual,
+                    line_info: Default::default(),
+                })),
+                _ => None
+            }
+        })
+        .fold1(|left, right| {
+            Expression::BinaryExpression(BinaryExpression {
+                lhs_expression: Box::new(left),
+                rhs_expression: Box::new(right),
+                op: BinOp::Or,
+                line_info: Default::default(),
+            })
+        })
+}
+
+fn contains_any(caller_protections: &Vec<CallerProtection>) -> bool {
+    !caller_protections
+        .clone()
+        .into_iter()
+        .filter(|c| c.is_any())
+        .collect::<Vec<CallerProtection>>()
+        .is_empty()
 }

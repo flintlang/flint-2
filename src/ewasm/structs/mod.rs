@@ -31,7 +31,7 @@ impl<'a> LLVMStruct<'a> {
         assert_eq!(initialiser.len(), 1);
 
         let initialiser = initialiser[0];
-        generate_initialiser(initialiser, codegen);
+        generate_initialiser(initialiser, codegen, None);
         self.generate_functions(codegen);
     }
 
@@ -56,6 +56,7 @@ impl<'a> LLVMStruct<'a> {
         function_declarations.iter().for_each(|func| {
             LLVMFunction {
                 function_declaration: func,
+                caller_binding: &None
             }
             .generate(codegen)
         });

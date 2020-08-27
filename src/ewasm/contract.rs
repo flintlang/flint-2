@@ -1,9 +1,10 @@
 use super::inkwell::types::BasicTypeEnum;
 use super::inkwell::values::BasicValue;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
+use crate::ast::expressions::Identifier;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
-    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration,
+    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration, CallerProtection
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
@@ -124,8 +125,26 @@ impl<'a> LLVMContract<'a> {
         // There should only be one contract initialiser
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
+        // TODO: check caller protections
+        let (caller_binding, caller_protections) = self
+            .contract_behaviour_declarations
+            .iter()
+            .find_map(|dec| {
+                if dec.members.iter().any(|m| {
+                    if let ContractBehaviourMember::SpecialDeclaration(sp) = m {
+                        sp.is_public() && sp.is_init()
+                    } else {
+                        false
+                    }
+                }) {
+                    Some((&dec.caller_binding, &dec.caller_protections))
+                } else {
+                    None
+                }
+            }).unwrap();
+
         add_initialiser_function_declaration(initialiser, codegen);
-        generate_initialiser(initialiser, codegen);
+        generate_initialiser(initialiser, codegen, caller_binding.clone());
 
         // Generate all contract functions
         let function_declarations = self
@@ -142,16 +161,33 @@ impl<'a> LLVMContract<'a> {
             })
             .collect::<Vec<&FunctionDeclaration>>();
 
+        let bindings = self
+            .contract_behaviour_declarations
+            .iter()
+            .flat_map(|dec| {
+                dec.members.iter().filter_map(move |m| {
+                    if let ContractBehaviourMember::FunctionDeclaration(_) = m {
+                        Some((&dec.caller_binding, &dec.caller_protections))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect::<Vec<(&Option<Identifier>, &Vec<CallerProtection>)>>();
+
         function_declarations
             .iter()
             .for_each(|func| generate_function_type(func, codegen));
-
+        let mut index = 0;
         function_declarations.iter().for_each(|func| {
             LLVMFunction {
                 function_declaration: func,
+                caller_binding: bindings.get(index).unwrap().0
             }
-            .generate(codegen)
+            .generate(codegen);
+            index += 1;
         });
         // TODO Asset declarations?
+        codegen.module.print_to_stderr();
     }
 }

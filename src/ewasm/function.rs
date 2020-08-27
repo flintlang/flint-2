@@ -1,4 +1,5 @@
 use crate::ast::FunctionDeclaration;
+use crate::ast::expressions::Identifier;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
@@ -9,6 +10,7 @@ use std::collections::HashMap;
 
 pub struct LLVMFunction<'a> {
     pub function_declaration: &'a FunctionDeclaration,
+    pub caller_binding: &'a Option<Identifier>
 }
 
 impl<'a> LLVMFunction<'a> {
@@ -50,9 +52,11 @@ impl<'a> LLVMFunction<'a> {
                     .unwrap()
                     .as_pointer_value()
                     .as_basic_value_enum();
-                function_context.add_local(codegen.contract_name, contract_global);
+                function_context.add_local("this", contract_global);
             }
         }
+
+        generate_caller_variable(codegen, &mut function_context, self.caller_binding.clone());
 
         for statement in &self.function_declaration.body {
             if statement.eq(self.function_declaration.body.last().unwrap()) {
@@ -111,5 +115,19 @@ pub fn generate_function_type(function_declaration: &FunctionDeclaration, codege
     // set argument names
     for (i, arg) in func_val.get_param_iter().enumerate() {
         arg.set_name(parameter_names[i].as_str())
+    }
+}
+
+pub fn generate_caller_variable<'ctx>(codegen: &mut Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>, caller_binding: Option<Identifier>) {
+    let address_type = codegen.context.custom_width_int_type(160).as_basic_type_enum();
+    let memory_offset = codegen.builder.build_alloca(address_type, "memory_offset");
+    let get_caller = codegen.module.get_function("getCaller").unwrap();
+    codegen.builder.build_call(get_caller, &[BasicValueEnum::PointerValue(memory_offset)], "tmp_call");
+    if let Some(caller) = caller_binding {
+        let caller_address = codegen.builder.build_load(memory_offset, &caller.token);
+        function_context.add_local(&caller.token, caller_address);
+    } else {
+        let caller_address = codegen.builder.build_load(memory_offset, "caller");
+        function_context.add_local("caller", caller_address);
     }
 }

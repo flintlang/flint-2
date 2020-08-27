@@ -1,5 +1,6 @@
 use crate::ast::types::Type;
 use crate::ast::SpecialDeclaration;
+use crate::ast::expressions::Identifier;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::BasicTypeEnum;
@@ -8,7 +9,7 @@ use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use std::collections::HashMap;
 
-pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Codegen) {
+pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Codegen, caller_binding: Option<Identifier>) {
     let func_name = get_function_name(initialiser);
     let init_func = codegen.module.get_function(&func_name).unwrap();
     let params = &initialiser.head.parameters;
@@ -42,6 +43,8 @@ pub fn generate_initialiser(initialiser: &SpecialDeclaration, codegen: &mut Code
             function_context.add_local("this", global.as_basic_value_enum());
         }
     }
+
+    crate::ewasm::function::generate_caller_variable(codegen, &mut function_context, caller_binding);
 
     for statement in initialiser.body.iter() {
         LLVMStatement { statement }.generate(codegen, &mut function_context);

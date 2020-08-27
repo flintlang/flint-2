@@ -6,6 +6,7 @@ use super::inkwell::module::Module as LLVMModule;
 use super::inkwell::passes::PassManager;
 use super::inkwell::types::{BasicType, StructType};
 use super::inkwell::values::{BasicValue, FunctionValue};
+use super::inkwell::AddressSpace;
 use std::collections::HashMap;
 
 pub struct Codegen<'a, 'ctx> {
@@ -28,7 +29,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Declare getCaller:
         // Takes an i32 input param pointing to where in memory to load the address of the caller
         // Returns nothing
-        let param_type = self.context.i32_type().as_basic_type_enum();
+        let param_type = self.context.custom_width_int_type(160).as_basic_type_enum().ptr_type(AddressSpace::Generic).as_basic_type_enum();
         let return_type = self.context.void_type().fn_type(&[param_type], false);
         let get_caller_extern =
             self.module
