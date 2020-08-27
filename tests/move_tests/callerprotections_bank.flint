@@ -12,6 +12,8 @@ Bank :: caller <- (any) {
 
 Bank :: from <- (manager, accounts) {
   func forManagerOrCustomers() {
+    // Invalid: "accounts" is not compatible with "manager"
+    // forManager()
     // Valid: "manager" is compatible with "manager", and "accounts" is
     // compatible with "accounts"
     forManagerOrCustomers2()

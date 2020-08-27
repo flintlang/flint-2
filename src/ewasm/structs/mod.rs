@@ -57,7 +57,7 @@ impl<'a> LLVMStruct<'a> {
             LLVMFunction {
                 function_declaration: func,
                 caller_binding: &None,
-                caller_protections: &vec![]
+                caller_protections: &vec![],
             }
             .generate(codegen)
         });

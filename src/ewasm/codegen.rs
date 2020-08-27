@@ -68,11 +68,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .custom_width_int_type(160)
             .ptr_type(AddressSpace::Generic)
             .as_basic_type_enum();
-        
-        let func_type = self
-            .context
-            .void_type()
-            .fn_type(&[param_type], false);
+
+        let func_type = self.context.void_type().fn_type(&[param_type], false);
 
         let func_val = self.module.add_function("getCaller", func_type, None);
         let bb = self.context.append_basic_block(func_val, "entry");

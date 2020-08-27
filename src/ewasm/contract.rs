@@ -3,8 +3,9 @@ use super::inkwell::values::BasicValue;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::Identifier;
 use crate::ast::{
-    AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
-    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration, CallerProtection
+    AssetDeclaration, CallerProtection, ContractBehaviourDeclaration, ContractBehaviourMember,
+    ContractDeclaration, ContractMember, SpecialDeclaration, StructDeclaration, StructMember,
+    TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
@@ -146,7 +147,8 @@ impl<'a> LLVMContract<'a> {
                 } else {
                     None
                 }
-            }).unwrap();
+            })
+            .unwrap();
 
         add_initialiser_function_declaration(initialiser, codegen);
         generate_initialiser(initialiser, codegen, caller_binding.clone());
@@ -183,14 +185,18 @@ impl<'a> LLVMContract<'a> {
         function_declarations
             .iter()
             .for_each(|func| generate_function_type(func, codegen));
-        function_declarations.iter().enumerate().for_each(|(index, func)| {
-            LLVMFunction {
-                function_declaration: func,
-                caller_binding: protections.get(index).unwrap().0,
-                caller_protections: protections.get(index).unwrap().1
-            }
-            .generate(codegen);
-        });
+        function_declarations
+            .iter()
+            .enumerate()
+            .for_each(|(index, func)| {
+                LLVMFunction {
+                    function_declaration: func,
+                    caller_binding: protections.get(index).unwrap().0,
+                    caller_protections: protections.get(index).unwrap().1,
+                }
+                .generate(codegen);
+            });
+        codegen.module.print_to_stderr();
         // TODO Asset declarations?
     }
 }

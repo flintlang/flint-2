@@ -1,5 +1,5 @@
 use crate::ast::expressions::Identifier;
-use crate::ast::{FunctionDeclaration, CallerProtection};
+use crate::ast::{CallerProtection, FunctionDeclaration};
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
@@ -11,7 +11,7 @@ use std::collections::HashMap;
 pub struct LLVMFunction<'a> {
     pub function_declaration: &'a FunctionDeclaration,
     pub caller_binding: &'a Option<Identifier>,
-    pub caller_protections: &'a Vec<CallerProtection>
+    pub caller_protections: &'a Vec<CallerProtection>,
 }
 
 impl<'a> LLVMFunction<'a> {
@@ -57,8 +57,9 @@ impl<'a> LLVMFunction<'a> {
             }
         }
 
-        
-        if !self.caller_protections.iter().any(|c| c.is_any()) && !self.caller_protections.is_empty() {
+        if !self.caller_protections.iter().any(|c| c.is_any())
+            && !self.caller_protections.is_empty()
+        {
             generate_caller_variable(codegen, &mut function_context, self.caller_binding.clone());
         }
 
