@@ -22,8 +22,8 @@ mod ewasm_tests {
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter".split(' ');
-        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2".split(' ');
+        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays".split(' ');
+        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays".split(' ');
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -39,6 +39,7 @@ mod ewasm_tests {
             Some(property_modification),
             Some(structs),
             Some(caller_protections_counter),
+            Some(arrays),
         ];
         let test_info = input_file_names
             .zip(output_file_names)
@@ -727,6 +728,37 @@ mod ewasm_tests {
             // NOTE this should cause a SIGILL so we cannot test it TODO
             // increment.call();
             println!("Caller protections counter test passed");
+        }
+    }
+
+    fn arrays(module: &Module) {
+        let engine = set_up_tests(module);
+
+        unsafe {
+            let init: JitFunction<VoidToVoid> = engine
+                .get_function("ArraysInit")
+                .expect("Could not find initialiser");
+
+            let get: JitFunction<unsafe extern "C" fn(i64) -> i64> =
+                engine.get_function("get").expect("Could not find get");
+
+            let set: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> =
+                engine.get_function("set").expect("Could not find set");
+
+            init.call();
+            assert_eq!(get.call(0), 1);
+            assert_eq!(get.call(1), 2);
+            assert_eq!(get.call(2), 3);
+
+            set.call(0, 5);
+            set.call(1, 6);
+            set.call(2, 7);
+
+            assert_eq!(get.call(0), 5);
+            assert_eq!(get.call(1), 6);
+            assert_eq!(get.call(2), 7);
+
+            println!("Arrays test passed");
         }
     }
 }

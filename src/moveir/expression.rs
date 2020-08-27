@@ -203,6 +203,7 @@ impl MoveSubscriptExpression {
         let inner_type = match base_type.clone() {
             Type::ArrayType(a) => *a.key_type,
             Type::DictionaryType(d) => *d.key_type,
+            Type::FixedSizedArrayType(fsa) => *fsa.key_type,
             _ => unimplemented!(),
         };
 
@@ -214,10 +215,9 @@ impl MoveSubscriptExpression {
 
         if let MovePosition::Left = self.position.clone() {
             return match base_type {
-                Type::ArrayType(_) => {
+                Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
                     MoveRuntimeFunction::append_to_array_int(identifier_code, rhs)
                 }
-                Type::FixedSizedArrayType(_) => panic!("Fixed Size Arrays not currently supported"),
                 Type::DictionaryType(_) => {
                     let f_name = format!(
                         "Self._insert_{}",
@@ -233,17 +233,16 @@ impl MoveSubscriptExpression {
         }
 
         match base_type {
-            Type::ArrayType(_) => {
+            Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
                 let identifier = self.expression.base_expression.clone();
 
                 let identifier_code = MoveIdentifier {
                     identifier,
                     position: self.position.clone(),
                 }
-                .generate(function_context, false, true);
+                    .generate(function_context, false, true);
                 MoveRuntimeFunction::get_from_array_int(identifier_code, index)
             }
-            Type::FixedSizedArrayType(_) => panic!("Fixed Size Arrays not currently supported"),
             Type::DictionaryType(_) => {
                 let f_name = format!(
                     "Self._get_{}",
