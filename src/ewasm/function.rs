@@ -57,11 +57,8 @@ impl<'a> LLVMFunction<'a> {
             }
 
             if !self.caller_protections.iter().any(|c| c.is_any())
-                && !self.caller_protections.is_empty() 
-            {
-                if self.function_declaration.is_external || self.caller_binding.is_some() || contains_function(self.caller_protections, codegen, enclosing) {
+                && !self.caller_protections.is_empty() && (self.function_declaration.is_external || self.caller_binding.is_some() || contains_function(self.caller_protections, codegen, enclosing)) {
                     generate_caller_variable(codegen, &mut function_context, self.caller_binding.clone());
-                }
             }
         }
 
@@ -156,9 +153,7 @@ pub fn generate_caller_variable<'ctx>(
 fn contains_function(caller_protections: &[CallerProtection], codegen: &Codegen, enclosing: &str) -> bool {
     caller_protections
         .iter()
-        .filter(|c| codegen.module.get_function(&mangle_ewasm_function(&c.identifier.token, enclosing)).is_some())
-        .next()
-        .is_some()    
+        .any(|c| codegen.module.get_function(&mangle_ewasm_function(&c.identifier.token, enclosing)).is_some())
 }
 
 fn mangle_ewasm_function(function_name: &str, enclosing: &str) -> String {

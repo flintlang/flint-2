@@ -109,7 +109,6 @@ impl<'a> LLVMIdentifier<'a> {
             }
             .generate(codegen, function_context)
         } else if !self.identifier.token.as_str().eq(codegen.contract_name) {
-            dbg!(self.identifier.clone());
             let variable = function_context
                 .get_declaration(self.identifier.token.as_str())
                 .unwrap();

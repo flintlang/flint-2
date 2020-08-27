@@ -30,8 +30,6 @@ impl<'a> LLVMFunctionCall<'a> {
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
-        dbg!(self.function_call.clone());
-        codegen.module.print_to_stderr();
         let fn_name = &self.function_call.identifier.token;
 
         if self.is_init() {

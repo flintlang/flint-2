@@ -196,7 +196,6 @@ impl<'a> LLVMContract<'a> {
                 }
                 .generate(codegen);
             });
-        codegen.module.print_to_stderr();
         // TODO Asset declarations?
     }
 }
