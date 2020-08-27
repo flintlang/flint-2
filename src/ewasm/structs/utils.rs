@@ -45,14 +45,18 @@ pub fn generate_initialiser(
                 .unwrap()
                 .as_pointer_value();
             function_context.add_local("this", global.as_basic_value_enum());
+
+            // TODO: there may be more cases where a caller variable is needed in the initialisation function
+            if caller_binding.is_some() {
+                // TODO: move generate_caller_variable to utils
+                crate::ewasm::function::generate_caller_variable(
+                    codegen,
+                    &mut function_context,
+                    caller_binding,
+                );
+            }
         }
     }
-
-    crate::ewasm::function::generate_caller_variable(
-        codegen,
-        &mut function_context,
-        caller_binding,
-    );
 
     for statement in initialiser.body.iter() {
         LLVMStatement { statement }.generate(codegen, &mut function_context);
