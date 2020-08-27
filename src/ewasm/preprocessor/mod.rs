@@ -70,13 +70,29 @@ impl Visitor for LLVMPreProcessor {
             .into_iter()
             .flat_map(|member| {
                 if let ContractBehaviourMember::FunctionDeclaration(mut function) = member {
-                    let wrapper = generate_contract_wrapper(&mut function, declaration, ctx);
-                    let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
-                    function.head.modifiers.retain(|x| x != &Modifier::Public);
-                    vec![
-                        ContractBehaviourMember::FunctionDeclaration(function),
-                        wrapper,
-                    ]
+                    if function.is_public() {
+                        let wrapper = generate_contract_wrapper(&mut function, declaration, ctx);
+                        let wrapper = ContractBehaviourMember::FunctionDeclaration(wrapper);
+                        function.head.modifiers.retain(|x| x != &Modifier::Public);
+                        vec![
+                            ContractBehaviourMember::FunctionDeclaration(function),
+                            wrapper,
+                        ]
+                    } else {
+                        let contract_parameter = Parameter {
+                            identifier: Identifier::generated("this"),
+                            type_assignment: Type::InoutType(InoutType {
+                                key_type: Box::new(Type::UserDefinedType(Identifier::generated(
+                                    declaration.identifier.token.as_str(),
+                                ))),
+                            }),
+                            expression: None,
+                            line_info: Default::default(),
+                        };
+
+                        function.head.parameters.push(contract_parameter);
+                        vec![ContractBehaviourMember::FunctionDeclaration(function)]
+                    }
                 } else {
                     vec![member]
                 }

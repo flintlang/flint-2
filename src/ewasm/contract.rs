@@ -4,7 +4,7 @@ use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::Identifier;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
-    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration, CallerProtection
+    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration,
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
@@ -25,6 +25,8 @@ pub struct LLVMContract<'a> {
 impl<'a> LLVMContract<'a> {
     pub(crate) fn generate(&self, codegen: &mut Codegen) {
         codegen.ether_imports();
+        codegen.runtime_functions();
+
         // Add each struct to the list of known types
         self.struct_declarations
             .iter()
@@ -126,7 +128,7 @@ impl<'a> LLVMContract<'a> {
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
         // TODO: check caller protections
-        let (caller_binding, caller_protections) = self
+        let (caller_binding, _) = self
             .contract_behaviour_declarations
             .iter()
             .find_map(|dec| {
@@ -141,7 +143,8 @@ impl<'a> LLVMContract<'a> {
                 } else {
                     None
                 }
-            }).unwrap();
+            })
+            .unwrap();
 
         add_initialiser_function_declaration(initialiser, codegen);
         generate_initialiser(initialiser, codegen, caller_binding.clone());
@@ -167,26 +170,28 @@ impl<'a> LLVMContract<'a> {
             .flat_map(|dec| {
                 dec.members.iter().filter_map(move |m| {
                     if let ContractBehaviourMember::FunctionDeclaration(_) = m {
-                        Some((&dec.caller_binding, &dec.caller_protections))
+                        Some(&dec.caller_binding)
                     } else {
                         None
                     }
                 })
             })
-            .collect::<Vec<(&Option<Identifier>, &Vec<CallerProtection>)>>();
+            .collect::<Vec<&Option<Identifier>>>();
 
         function_declarations
             .iter()
             .for_each(|func| generate_function_type(func, codegen));
-        let mut index = 0;
-        function_declarations.iter().for_each(|func| {
-            LLVMFunction {
-                function_declaration: func,
-                caller_binding: bindings.get(index).unwrap().0
-            }
-            .generate(codegen);
-            index += 1;
-        });
+
+        function_declarations
+            .iter()
+            .enumerate()
+            .for_each(|(index, func)| {
+                LLVMFunction {
+                    function_declaration: func,
+                    caller_binding: bindings.get(index).unwrap(),
+                }
+                .generate(codegen);
+            });
         // TODO Asset declarations?
         codegen.module.print_to_stderr();
     }

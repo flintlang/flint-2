@@ -6,11 +6,13 @@ use crate::ast::expressions::Expression;
 use crate::ast::expressions::Identifier;
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::Type;
-use crate::ast::{Assertion, BinOp, BinaryExpression, InoutType, VariableDeclaration, CallerProtection};
+use crate::ast::{
+    Assertion, BinOp, BinaryExpression, CallerProtection, InoutType, VariableDeclaration,
+};
 use crate::context::Context;
-use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 use crate::context::ScopeContext;
 use crate::type_checker::ExpressionChecker;
+use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 use itertools::Itertools;
 
 pub fn generate_contract_wrapper(
@@ -66,7 +68,8 @@ pub fn generate_contract_wrapper(
         }))
     }
 
-    let caller_protections: Vec<CallerProtection> = contract_behaviour_declaration.caller_protections.clone();
+    let caller_protections: Vec<CallerProtection> =
+        contract_behaviour_declaration.caller_protections.clone();
 
     if !caller_protections.is_empty() && !contains_any(&caller_protections) {
         let caller_id: Identifier;
@@ -81,7 +84,6 @@ pub fn generate_contract_wrapper(
             &caller_protections,
             &caller_id.token,
             &contract_behaviour_declaration.identifier,
-            &wrapper.head.identifier.token,
             &ctx,
         ) {
             let assertion = Assertion {
@@ -92,15 +94,6 @@ pub fn generate_contract_wrapper(
             wrapper.body.push(Statement::Assertion(assertion));
         }
     }
-
-    let contract_parameter = Parameter {
-        identifier: Identifier::generated("this"),
-        type_assignment: Type::InoutType(InoutType {
-            key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
-        }),
-        expression: None,
-        line_info: Default::default(),
-    };
 
     let mut arguments = function
         .head
@@ -117,6 +110,15 @@ pub fn generate_contract_wrapper(
         identifier: None,
         expression: Expression::Identifier(Identifier::generated(contract_name)),
     });
+
+    let contract_parameter = Parameter {
+        identifier: Identifier::generated("this"),
+        type_assignment: Type::InoutType(InoutType {
+            key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
+        }),
+        expression: None,
+        line_info: Default::default(),
+    };
 
     function.head.parameters.push(contract_parameter);
 
@@ -173,7 +175,6 @@ pub fn generate_caller_protections_predicate(
     caller_protections: &[CallerProtection],
     caller_id: &str,
     contract_id: &Identifier,
-    function_name: &str,
     ctx: &Context,
 ) -> Option<Expression> {
     caller_protections
@@ -198,11 +199,13 @@ pub fn generate_caller_protections_predicate(
             match caller_type {
                 Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::Identifier(ident)),
-                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(caller_id))),
+                    rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                        caller_id,
+                    ))),
                     op: BinOp::DoubleEqual,
                     line_info: Default::default(),
                 })),
-                _ => None
+                _ => None,
             }
         })
         .fold1(|left, right| {

@@ -56,7 +56,7 @@ impl<'a> LLVMStruct<'a> {
         function_declarations.iter().for_each(|func| {
             LLVMFunction {
                 function_declaration: func,
-                caller_binding: &None
+                caller_binding: &None,
             }
             .generate(codegen)
         });
