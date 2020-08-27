@@ -133,13 +133,15 @@ impl<'a> LLVMContract<'a> {
             .contract_behaviour_declarations
             .iter()
             .find_map(|dec| {
-                if dec.members.iter().any(|m| {
+                let contains_sp = dec.members.iter().any(|m| {
                     if let ContractBehaviourMember::SpecialDeclaration(sp) = m {
                         sp.is_public() && sp.is_init()
                     } else {
                         false
                     }
-                }) {
+                });
+
+                if contains_sp {
                     Some((&dec.caller_binding, &dec.caller_protections))
                 } else {
                     None

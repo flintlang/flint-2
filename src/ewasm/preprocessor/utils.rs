@@ -181,7 +181,7 @@ pub fn generate_caller_protections_predicate(
         .iter()
         .cloned()
         .filter_map(|c| {
-            let mut ident = c.clone().identifier;
+            let mut ident = c.identifier;
             ident.enclosing_type = Option::from(contract_id.token.clone());
             let contract_id = contract_id.token.clone();
             let caller_type = ctx.environment.get_expression_type(
@@ -218,11 +218,8 @@ pub fn generate_caller_protections_predicate(
         })
 }
 
-fn contains_any(caller_protections: &Vec<CallerProtection>) -> bool {
-    !caller_protections
-        .clone()
-        .into_iter()
-        .filter(|c| c.is_any())
-        .collect::<Vec<CallerProtection>>()
-        .is_empty()
+fn contains_any(caller_protections: &[CallerProtection]) -> bool {
+    caller_protections
+        .iter()
+        .any(|c| c.is_any())
 }

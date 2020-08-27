@@ -699,15 +699,30 @@ mod ewasm_tests {
             let increment: JitFunction<VoidToVoid> = engine
                 .get_function("increment")
                 .expect("Could not find increment");
+
+            let switch: JitFunction<VoidToVoid> = engine
+                .get_function("switch")
+                .expect("Could not find switch");
     
             init.call();
-            println!("HELLO GEORGE");
             assert_eq!(0, get_count.call());
             assert_eq!(21267647932558653966460912964485513216, get_owner.call());
             assert_eq!(1, get_friend.call());
-    
+
+            switch.call();
+
+            assert_eq!(1, get_owner.call());
+            assert_eq!(21267647932558653966460912964485513216, get_friend.call());
+            
+            // this call to increment should pass the caller protections
             increment.call();
             assert_eq!(1, get_count.call());
+
+            switch.call();
+
+            // this call to increment should fail
+            // NOTE this should cause a SIGILL so we cannot test it TODO
+            // increment.call();
             println!("Caller protections counter test passed");
         }
     }

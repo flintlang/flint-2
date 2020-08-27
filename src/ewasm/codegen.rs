@@ -22,6 +22,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     // For now this will just set up what will often likely need, i.e. getCaller
     // TODO have other std library methods linked as they are used
     // alternatively, we could link everything, and unused things will be optimised out?
+    #[allow(dead_code)]
     pub fn ether_imports(&self) {
         let import_linkage_attribute = self
             .context
