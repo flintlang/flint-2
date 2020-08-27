@@ -649,9 +649,9 @@ mod ewasm_tests {
                 .get_function("TrafficLightsInit")
                 .expect("Could not find TrafficLightsInit");
 
-            // let move_to_red: JitFunction<VoidToVoid> = engine
-            //     .get_function("moveToRed")
-            //     .expect("Could not find moveToRed");
+            let move_to_red: JitFunction<VoidToVoid> = engine
+                .get_function("moveToRed")
+                .expect("Could not find moveToRed");
             let move_to_amber: JitFunction<VoidToVoid> = engine
                 .get_function("moveToAmber")
                 .expect("Could not find moveToAmber");
