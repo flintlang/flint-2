@@ -4,7 +4,7 @@ use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::Identifier;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration,
-    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration
+    ContractMember, SpecialDeclaration, StructDeclaration, StructMember, TraitDeclaration, CallerProtection
 };
 use crate::environment::Environment;
 use crate::ewasm::codegen::Codegen;
@@ -166,19 +166,19 @@ impl<'a> LLVMContract<'a> {
             })
             .collect::<Vec<&FunctionDeclaration>>();
 
-        let bindings = self
+        let protections = self
             .contract_behaviour_declarations
             .iter()
             .flat_map(|dec| {
                 dec.members.iter().filter_map(move |m| {
                     if let ContractBehaviourMember::FunctionDeclaration(_) = m {
-                        Some(&dec.caller_binding)
+                        Some((&dec.caller_binding, &dec.caller_protections))
                     } else {
                         None
                     }
                 })
             })
-            .collect::<Vec<&Option<Identifier>>>();
+            .collect::<Vec<(&Option<Identifier>, &Vec<CallerProtection>)>>();
 
         function_declarations
             .iter()
@@ -186,7 +186,8 @@ impl<'a> LLVMContract<'a> {
         function_declarations.iter().enumerate().for_each(|(index, func)| {
             LLVMFunction {
                 function_declaration: func,
-                caller_binding: bindings.get(index).unwrap()
+                caller_binding: protections.get(index).unwrap().0,
+                caller_protections: protections.get(index).unwrap().1
             }
             .generate(codegen);
         });
