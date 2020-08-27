@@ -84,6 +84,7 @@ pub fn generate_contract_wrapper(
             &caller_protections,
             &caller_id.token,
             &contract_behaviour_declaration.identifier,
+            &wrapper.head.identifier.token,
             &ctx,
         ) {
             let assertion = Assertion {
@@ -175,6 +176,7 @@ pub fn generate_caller_protections_predicate(
     caller_protections: &[CallerProtection],
     caller_id: &str,
     contract_id: &Identifier,
+    function_name: &str,
     ctx: &Context,
 ) -> Option<Expression> {
     caller_protections
@@ -205,7 +207,69 @@ pub fn generate_caller_protections_predicate(
                     op: BinOp::DoubleEqual,
                     line_info: Default::default(),
                 })),
-                _ => None,
+                Type::ArrayType(_) => None,
+                Type::DictionaryType(_) => None,
+                _ => {
+                    let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&contract_id);
+                    if let Some(types) = ctx.environment.types.get(enclosing_type) {
+                        if let Some(function_info) = types.functions.get(&ident.token) {
+                            if let Some(function) = function_info.get(0) {
+                                let function_signature = &function.declaration.head;
+                                if function_signature.is_predicate() {
+                                    // caller protection is a predicate function
+                                    return if ident.token != function_name {
+                                        // prevents predicate being added to the predicate function itself
+                                        Some(Expression::FunctionCall(FunctionCall {
+                                            identifier: Identifier::generated(&mangle_ewasm_function(&ident.token, enclosing_type)),
+                                            arguments: vec![
+                                                FunctionArgument {
+                                                    identifier: None,
+                                                    expression: Expression::Identifier(Identifier::generated(caller_id))
+                                                },
+                                                FunctionArgument {
+                                                    identifier: None,
+                                                    expression: Expression::Identifier(Identifier::generated("this")),
+                                                }
+                                            ],
+                                            mangled_identifier: None,
+                                        }))
+                                    } else {
+                                        None
+                                    };
+                                } else if function_signature.is_0_ary_function() {
+                                    // caller protection is a 0-ary function
+                                    return if ident.token != function_name {
+                                        // prevents 0-ary function being added to the 0-ary function itself
+                                        Some(Expression::BinaryExpression(BinaryExpression {
+                                            lhs_expression: Box::new(Expression::FunctionCall(
+                                                FunctionCall {
+                                                    identifier: Identifier::generated(&mangle_ewasm_function(&ident.token, enclosing_type)),
+                                                    arguments: vec![FunctionArgument {
+                                                        identifier: None,
+                                                        expression: Expression::Identifier(Identifier::generated("this")),
+                                                    }],
+                                                    mangled_identifier: None,
+                                                },
+                                            )),
+                                            rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                                                caller_id,
+                                            ))),
+                                            op: BinOp::DoubleEqual,
+                                            line_info: Default::default(),
+                                        }))
+                                    } else {
+                                        None
+                                    };
+                                }
+                            }
+                        }
+                    }
+
+                    panic!(
+                        "Invalid caller protection \"{}\" at line {}",
+                        ident.token, ident.line_info.line
+                    )
+                }
             }
         })
         .fold1(|left, right| {
