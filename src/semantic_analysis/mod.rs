@@ -189,13 +189,24 @@ impl Visitor for SemanticAnalysis {
 
                 if let Type::FixedSizedArrayType(FixedSizedArrayType {
                                                      key_type: lhs_type,
-                                                     size: _size,
+                                                     size,
                                                  }) = &declaration.variable_type
                 {
                     // TODO check the length of the source and declaration match
                     if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
                         return if *lhs_type == *rhs_type {
-                            Ok(())
+                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression {
+                                if *size == elements.len() as u64 {
+                                    Ok(())
+                                } else {
+                                    Err(Box::from(format!(
+                                        "LHS array has fixed size of {} but RHS literal has size {} on line {}",
+                                        size, elements.len(), declaration.identifier.line_info.line
+                                    )))
+                                }
+                            } else {
+                                Ok(())
+                            }
                         } else {
                             Err(Box::from(format!(
                                 "Cannot assign array of type `{}` to an array of type `{}` on {}",

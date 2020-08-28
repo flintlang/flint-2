@@ -102,7 +102,6 @@ pub fn parse_array_literal(i: Span) -> nom::IResult<Span, ArrayLiteral> {
     )(i)?;
     let (i, _) = right_square_bracket(i)?;
     let array_literal = ArrayLiteral {
-        // TODO parse length so that compile check can be done
         elements: expressions,
     };
     Ok((i, array_literal))
