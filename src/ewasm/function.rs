@@ -57,8 +57,16 @@ impl<'a> LLVMFunction<'a> {
             }
 
             if !self.caller_protections.iter().any(|c| c.is_any())
-                && !self.caller_protections.is_empty() && (self.function_declaration.is_external || self.caller_binding.is_some() || contains_function(self.caller_protections, codegen, enclosing)) {
-                    generate_caller_variable(codegen, &mut function_context, self.caller_binding.clone());
+                && !self.caller_protections.is_empty()
+                && (self.function_declaration.is_external
+                || self.caller_binding.is_some()
+                || contains_function(self.caller_protections, codegen, enclosing))
+            {
+                generate_caller_variable(
+                    codegen,
+                    &mut function_context,
+                    self.caller_binding.clone(),
+                );
             }
         }
 
@@ -128,13 +136,13 @@ pub fn generate_caller_variable<'ctx>(
     caller_binding: Option<Identifier>,
 ) {
     let address_type = codegen
-    .context
-    .custom_width_int_type(160)
-    .as_basic_type_enum();
+        .context
+        .custom_width_int_type(160)
+        .as_basic_type_enum();
 
     let memory_offset = codegen.builder.build_alloca(address_type, "memory_offset");
     let get_caller = codegen.module.get_function("getCaller").unwrap();
-    
+
     codegen.builder.build_call(
         get_caller,
         &[BasicValueEnum::PointerValue(memory_offset)],
@@ -150,10 +158,17 @@ pub fn generate_caller_variable<'ctx>(
     }
 }
 
-fn contains_function(caller_protections: &[CallerProtection], codegen: &Codegen, enclosing: &str) -> bool {
-    caller_protections
-        .iter()
-        .any(|c| codegen.module.get_function(&mangle_ewasm_function(&c.identifier.token, enclosing)).is_some())
+fn contains_function(
+    caller_protections: &[CallerProtection],
+    codegen: &Codegen,
+    enclosing: &str,
+) -> bool {
+    caller_protections.iter().any(|c| {
+        codegen
+            .module
+            .get_function(&mangle_ewasm_function(&c.identifier.token, enclosing))
+            .is_some()
+    })
 }
 
 fn mangle_ewasm_function(function_name: &str, enclosing: &str) -> String {
