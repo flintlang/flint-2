@@ -1,16 +1,11 @@
 mod abi;
-mod assignment;
-mod call;
 mod codegen;
 mod contract;
-mod declaration;
 mod expressions;
 mod function;
 mod function_context;
-mod literal;
 pub mod preprocessor;
 mod statements;
-mod struct_access;
 mod structs;
 mod types;
 mod utils;

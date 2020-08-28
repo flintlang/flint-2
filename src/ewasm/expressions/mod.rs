@@ -1,3 +1,11 @@
+extern crate inkwell;
+
+mod assignment;
+mod call;
+mod declaration;
+mod literal;
+mod struct_access;
+
 use super::inkwell::types::{AnyType, BasicType};
 use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
@@ -6,13 +14,13 @@ use crate::ast::expressions::{
 };
 use crate::ast::operators::BinOp;
 use crate::ast::{Expression, Identifier};
-use crate::ewasm::assignment::LLVMAssignment;
-use crate::ewasm::call::{LLVMExternalCall, LLVMFunctionCall};
 use crate::ewasm::codegen::Codegen;
-use crate::ewasm::declaration::LLVMVariableDeclaration;
+use crate::ewasm::expressions::assignment::LLVMAssignment;
+use crate::ewasm::expressions::call::{LLVMExternalCall, LLVMFunctionCall};
+use crate::ewasm::expressions::declaration::LLVMVariableDeclaration;
+use crate::ewasm::expressions::literal::LLVMLiteral;
+use crate::ewasm::expressions::struct_access::LLVMStructAccess;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::literal::LLVMLiteral;
-use crate::ewasm::struct_access::LLVMStructAccess;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::*;
 
@@ -42,7 +50,7 @@ impl<'a> LLVMExpression<'a> {
                 LLVMExternalCall { external_call: f }.generate(codegen, function_context)
             }
             Expression::FunctionCall(f) => {
-                { LLVMFunctionCall { function_call: f } }.generate(codegen, function_context)
+                LLVMFunctionCall { function_call: f }.generate(codegen, function_context)
             }
             Expression::VariableDeclaration(v) => {
                 LLVMVariableDeclaration { declaration: v }.generate(codegen, function_context)
