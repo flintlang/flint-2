@@ -13,7 +13,8 @@ use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
 use crate::ast::operators::BinOp;
-use crate::ast::{Expression, Identifier};
+use crate::ast::{Expression, Identifier, Assertion, Literal};
+use crate::ewasm::statements::LLVMAssertion;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::assignment::LLVMAssignment;
 use crate::ewasm::expressions::call::{LLVMExternalCall, LLVMFunctionCall};
@@ -23,6 +24,7 @@ use crate::ewasm::expressions::struct_access::LLVMStructAccess;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::*;
+use inkwell::values::PointerValue;
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
@@ -902,6 +904,7 @@ impl<'a> LLVMSubscriptExpression<'a> {
 
         assert!(arr_ptr.is_pointer_value());
         let arr_ptr = arr_ptr.into_pointer_value();
+        self.build_bounds_check(&arr_ptr, codegen, function_context);
 
         let index = LLVMExpression {
             expression: &*self.expression.index_expression,
@@ -924,6 +927,42 @@ impl<'a> LLVMSubscriptExpression<'a> {
         } else {
             Some(codegen.builder.build_load(access, "loaded"))
         }
+    }
+
+    fn build_bounds_check<'ctx>(&self, arr_ptr: &PointerValue, codegen: &mut Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>) {
+        // NOTE: this will only work for statically sized arrays
+        // This will need to change when dynamic arrays are introduced TODO
+        let max_index = arr_ptr.get_type().get_element_type().into_array_type().len() - 1;
+
+        let gte_zero_predicate = BinaryExpression {
+            lhs_expression: Box::new(*self.expression.index_expression.clone()),
+            rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(0))),
+            op: BinOp::GreaterThanOrEqual,
+            line_info: Default::default(),
+        };
+
+        let lte_max_predicate = BinaryExpression {
+            lhs_expression: Box::new(*self.expression.index_expression.clone()),
+            rhs_expression: Box::new(Expression::Literal(Literal::IntLiteral(max_index as u64))),
+            op: BinOp::LessThanOrEqual,
+            line_info: Default::default(),
+        };
+
+        let predicate = BinaryExpression {
+            lhs_expression: Box::new(Expression::BinaryExpression(gte_zero_predicate)),
+            rhs_expression: Box::new(Expression::BinaryExpression(lte_max_predicate)),
+            op: BinOp::And,
+            line_info: Default::default(),
+        };
+
+        let bounds_check = Assertion {
+            expression: Expression::BinaryExpression(predicate),
+            line_info: self.expression.base_expression.line_info.clone(),
+        };
+
+        LLVMAssertion {
+            assertion: &bounds_check
+        }.generate(codegen, function_context);
     }
 }
 

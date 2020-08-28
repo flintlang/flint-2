@@ -10,7 +10,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     fn get_caller(&self) {
-        // Dummy implementation of the eWASM getCaller function
+        // Dummy implementation of the eWASM getCaller function TODO remove for release
         let param_type = self
             .context
             .custom_width_int_type(160)

@@ -760,6 +760,10 @@ mod ewasm_tests {
             assert_eq!(get.call(1), 6);
             assert_eq!(get.call(2), 7);
 
+            // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
+            // so we cannot test it here TODO
+            // get.call(3); // Goes out of variable bounds
+
             println!("Arrays test passed");
         }
     }

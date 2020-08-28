@@ -122,12 +122,12 @@ impl<'a> LLVMIfStatement<'a> {
     }
 }
 
-struct LLVMAssertion<'a> {
-    assertion: &'a Assertion,
+pub(crate) struct LLVMAssertion<'a> {
+    pub(crate) assertion: &'a Assertion,
 }
 
 impl<'a> LLVMAssertion<'a> {
-    fn generate<'ctx>(
+    pub(crate) fn generate<'ctx>(
         &self,
         codegen: &mut Codegen<'_, 'ctx>,
         function_context: &mut FunctionContext<'ctx>,
