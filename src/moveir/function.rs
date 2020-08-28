@@ -28,7 +28,7 @@ impl MoveFunction {
             .clone()
             .unwrap_or_default();
 
-        let function_context = FunctionContext {
+        let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
             enclosing_type: self.enclosing_type.token.clone(),
@@ -74,7 +74,7 @@ impl MoveFunction {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                .generate(&mut function_context, false, false)
             })
             .collect();
         let parameters: Vec<String> = parameters
@@ -179,6 +179,7 @@ impl MoveFunction {
         all_variables.append(&mut variables);
 
         scope.local_variables = all_variables;
+    
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             enclosing_type: self.enclosing_type.token.clone(),
@@ -227,7 +228,7 @@ impl MoveFunction {
                     identifier: id,
                     position: Default::default(),
                 }
-                .generate(&function_context, true, false);
+                .generate(&mut function_context, true, false);
                 function_context.emit(MoveIRStatement::Inline(format!("_ = {}", expression)));
             }
         }

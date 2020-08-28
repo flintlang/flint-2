@@ -148,8 +148,8 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
             .local_variables
             .clone()
             .into_iter()
-            .map(|v| {
-                let mut declaration = v;
+            .flat_map(|v| {
+                let mut declaration = v.clone();
                 if !declaration.identifier.is_self() {
                     declaration.identifier = Identifier {
                         token: mangle(&declaration.identifier.token),
@@ -157,7 +157,25 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
                         line_info: Default::default(),
                     };
                 }
-                Statement::Expression(Expression::VariableDeclaration(declaration))
+                let dec = Statement::Expression(Expression::VariableDeclaration(declaration.clone()));
+
+                if let Some(expr) = &declaration.expression {
+                    let expr = Expression::BinaryExpression(BinaryExpression {
+                        lhs_expression: Box::new(Expression::Identifier(Identifier {
+                            token: v.identifier.token,
+                            enclosing_type: None,
+                            line_info: Default::default(),
+                        })),
+                        rhs_expression: expr.clone(),
+                        op: BinOp::Equal,
+                        line_info: Default::default()
+                    });
+
+                    let expr = Statement::Expression(expr);
+                    vec![dec, expr]
+                } else {
+                    vec![dec]
+                }
             })
             .collect();
         return declarations;

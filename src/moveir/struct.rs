@@ -166,7 +166,7 @@ impl MoveStructInitialiser {
             counter: 0,
         };
 
-        let function_context = FunctionContext {
+        let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
             enclosing_type: self.identifier.token.clone(),
@@ -195,7 +195,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                .generate(&mut function_context, false, false)
             })
             .collect();
 
@@ -313,7 +313,7 @@ impl MoveStructInitialiser {
             .map(|f| {
                 let name = format!("__this_{}", f.identifier.token);
                 if let Some(expr) = f.expression {
-                    function_context.emit(MoveIRStatement::Expression(
+                    let statement = MoveIRStatement::Expression(
                         MoveIRExpression::Assignment(crate::moveir::ir::MoveIRAssignment {
                             identifier: name.clone(),
                             expression: Box::from(
@@ -321,10 +321,11 @@ impl MoveStructInitialiser {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                .generate(&function_context),
+                                .generate(&mut function_context),
                             ),
                         }),
-                    ));
+                    );
+                    function_context.emit(statement);
                 }
                 (
                     f.identifier.token,

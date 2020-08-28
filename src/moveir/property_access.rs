@@ -14,7 +14,7 @@ pub(crate) struct MovePropertyAccess {
 }
 
 impl MovePropertyAccess {
-    pub fn generate(&self, function_context: &FunctionContext, f_call: bool) -> MoveIRExpression {
+    pub fn generate(&self, mut function_context: &mut FunctionContext, f_call: bool) -> MoveIRExpression {
         if let Expression::Identifier(ref identifier) = self.left {
             if let Expression::Identifier(ref property) = self.right {
                 if function_context
@@ -29,7 +29,7 @@ impl MovePropertyAccess {
                             expression: property.property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                        .generate(&function_context);
+                        .generate(&mut function_context);
                     }
                 }
             }
@@ -52,7 +52,7 @@ impl MovePropertyAccess {
                 expression: self.left.clone(),
                 position,
             }
-            .generate(&function_context);
+            .generate(&mut function_context);
             if f_call {
                 if let MoveIRExpression::Operation(ref operation) = lhs {
                     if let MoveIROperation::Dereference(ref deref) = operation {

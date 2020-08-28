@@ -142,12 +142,14 @@ impl Visitable for ContractBehaviourDeclaration {
 
         let local_variables: Vec<VariableDeclaration> =
             if let Some(ref caller_binding) = self.caller_binding {
-                vec![VariableDeclaration {
+                let mut caller_declaration = VariableDeclaration {
                     declaration_token: None,
                     identifier: caller_binding.clone(),
                     variable_type: Type::Address,
-                    expression: None,
-                }]
+                    expression: Some(Box::new(Expression::RawAssembly(format!("Signer.address_of(copy({}))", caller_binding.token), None))),
+                };
+                caller_declaration.visit(v, ctx)?;
+                vec![caller_declaration]
             } else {
                 vec![]
             };

@@ -36,7 +36,6 @@ impl MoveContract {
         let import_code = self.generate_imports();
 
         let runtime_functions = MoveRuntimeFunction::get_all_functions().join("\n\n");
-
         let functions = self
             .contract_behaviour_declarations
             .clone()
@@ -59,7 +58,7 @@ impl MoveContract {
             .collect::<Vec<String>>()
             .join("\n\n");
 
-        let function_context = FunctionContext {
+        let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: Default::default(),
             enclosing_type: "".to_string(),
@@ -96,7 +95,7 @@ impl MoveContract {
             .join(",\n");
 
         let (dict_names, dict_resources, dict_runtime, dict_initialisation) =
-            self.get_dict_code(&function_context, &*variable_declarations);
+            self.get_dict_code(&mut function_context, &*variable_declarations);
 
         let dict_names: String = dict_names.into_iter().collect::<Vec<String>>().join(", ");
 
@@ -170,7 +169,7 @@ impl MoveContract {
             counter: 0,
         };
 
-        let function_context = FunctionContext {
+        let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
             enclosing_type: self.contract_declaration.identifier.token.clone(),
@@ -187,7 +186,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                .generate(&mut function_context, false, false)
                 .to_string()
             })
             .collect();
@@ -200,7 +199,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, true, false)
+                .generate(&mut function_context, true, false)
                 .to_string()
             })
             .collect::<Vec<String>>()
@@ -297,7 +296,7 @@ impl MoveContract {
                                 expression: e,
                                 position: Default::default(),
                             }
-                            .generate(&function_context)
+                            .generate(&mut function_context)
                         })
                         .collect();
 
@@ -332,7 +331,7 @@ impl MoveContract {
                         }
                     }
                 } else {
-                    function_context.emit(MoveIRStatement::Expression(
+                    let statement = MoveIRStatement::Expression(
                         MoveIRExpression::Assignment(MoveIRAssignment {
                             identifier,
                             expression: Box::from(
@@ -340,10 +339,11 @@ impl MoveContract {
                                     expression: (**expr).clone(),
                                     position: Default::default(),
                                 }
-                                .generate(&function_context),
+                                .generate(&mut function_context),
                             ),
                         }),
-                    ));
+                    );
+                    function_context.emit(statement);
                 }
             }
         }
@@ -581,7 +581,7 @@ impl MoveContract {
 
     fn get_dict_code(
         &self,
-        function_context: &FunctionContext,
+        mut function_context: &mut FunctionContext,
         variable_declarations: &[VariableDeclaration],
     ) -> (Vec<String>, String, String, Vec<MoveIRStatement>) {
         let dict_resources: Vec<&VariableDeclaration> = variable_declarations
@@ -630,13 +630,13 @@ impl MoveContract {
                                 expression: elem.0.clone(),
                                 position: Default::default(),
                             }
-                            .generate(function_context);
+                            .generate(&mut function_context);
 
                             let rhs = MoveExpression {
                                 expression: elem.1.clone(),
                                 position: Default::default(),
                             }
-                            .generate(function_context);
+                            .generate(&mut function_context);
 
                             let f_name = format!("Self._insert_{}", r_name);
 

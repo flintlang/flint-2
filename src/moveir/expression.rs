@@ -23,7 +23,7 @@ pub(crate) struct MoveExpression {
 }
 
 impl MoveExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
         match self.expression.clone() {
             Expression::Identifier(i) => MoveIdentifier {
                 identifier: i,
@@ -110,7 +110,7 @@ struct MoveCastExpression {
 }
 
 impl MoveCastExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, mut function_context: &mut FunctionContext) -> MoveIRExpression {
         let enclosing = self.expression.expression.enclosing_type();
         let enclosing = enclosing
             .as_ref()
@@ -130,7 +130,7 @@ impl MoveCastExpression {
             expression: (*self.expression.expression).clone(),
             position: Default::default(),
         }
-        .generate(&function_context);
+        .generate(&mut function_context);
 
         if original_type_information.0 <= target_type_information.0 {
             return expression_code;
@@ -173,7 +173,7 @@ pub(crate) struct MoveSubscriptExpression {
 }
 
 impl MoveSubscriptExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
         let rhs = self.rhs.clone();
         let rhs =
             rhs.unwrap_or_else(|| MoveIRExpression::Literal(MoveIRLiteral::Hex("0x0".to_string())));
@@ -263,7 +263,7 @@ struct MoveAttemptExpression {
 }
 
 impl MoveAttemptExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
         let _function_call = self.expression.function_call.clone();
         let identifier =
             "QuartzWrapper".to_owned() + &self.expression.function_call.identifier.token.clone();
@@ -294,7 +294,7 @@ struct MoveInoutExpression {
 }
 
 impl MoveInoutExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, mut function_context: &mut FunctionContext) -> MoveIRExpression {
         let expression_type = function_context.environment.get_expression_type(
             &*self.expression.expression.clone(),
             &function_context.enclosing_type,
@@ -308,7 +308,7 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(&function_context);
+            .generate(&mut function_context);
         }
 
         if let MovePosition::Accessed = self.position {
@@ -319,7 +319,7 @@ impl MoveInoutExpression {
                         expression: *self.expression.expression.clone(),
                         position: MovePosition::Left,
                     }
-                    .generate(&function_context),
+                    .generate(&mut function_context),
                 )));
             }
         }
@@ -329,7 +329,7 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(&function_context);
+            .generate(&mut function_context);
         }
 
         let expression = self.expression.clone();
@@ -338,7 +338,7 @@ impl MoveInoutExpression {
                 expression: *expression.expression,
                 position: MovePosition::Inout,
             }
-            .generate(&function_context),
+            .generate(&mut function_context),
         )))
     }
 }
@@ -349,7 +349,7 @@ struct MoveBinaryExpression {
 }
 
 impl MoveBinaryExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
         if let BinOp::Dot = self.expression.op {
             if let Expression::FunctionCall(f) = *self.expression.rhs_expression.clone() {
                 return MoveFunctionCall {
