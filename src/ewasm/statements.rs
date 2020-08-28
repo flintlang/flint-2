@@ -1,4 +1,4 @@
-use super::inkwell::values::IntValue;
+use super::inkwell::values::{IntValue, BasicValue};
 use crate::ast::{Assertion, Expression, IfStatement, ReturnStatement, Statement};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
@@ -146,7 +146,20 @@ impl<'a> LLVMAssertion<'a> {
 
         // Build fail block
         codegen.builder.position_at_end(fail_block);
+        let revert_function = codegen
+            .module
+            .get_function("revert")
+            .expect("Could not find revert function");
+
+        // TODO fill program return info with something meaningful
+        let zero = codegen.context.i32_type().const_int(0, false);
+        let ptr = codegen.builder.build_alloca(zero.get_type(), "mem_ptr");
+        codegen.builder.build_store(ptr, zero);
+
+        codegen.builder.build_call(revert_function, &[ptr.as_basic_value_enum(), zero.as_basic_value_enum()], "halt");
+        // Build unreachable to indicate we should already have stopped, and to serve as a terminator
         codegen.builder.build_unreachable();
+
 
         // Build continue block
         codegen.builder.position_at_end(continue_block);

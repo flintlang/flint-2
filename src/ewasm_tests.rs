@@ -636,7 +636,8 @@ mod ewasm_tests {
 
             println!("Typestates counter test passed, up until where it should fail, which cannot be tested");
 
-            // NOTE this should cause a SIGILL, so we cannot test it unfortunately TODO
+            // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
+            // so we cannot test it here TODO
             // reset.call();
         }
     }
@@ -675,7 +676,8 @@ mod ewasm_tests {
                 "Traffic lights test passed, up until where it should fail, which cannot be tested"
             );
 
-            // NOTE this should cause a SIGILL so we cannot test it TODO
+            // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
+            // so we cannot test it here TODO
             // move_to_red.call();
         }
     }
@@ -724,8 +726,8 @@ mod ewasm_tests {
 
             switch.call();
 
-            // this call to increment should fail
-            // NOTE this should cause a SIGILL so we cannot test it TODO
+            // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
+            // so we cannot test it here TODO
             // increment.call();
             println!("Caller protections counter test passed");
         }
