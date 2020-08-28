@@ -22,8 +22,8 @@ mod ewasm_tests {
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays".split(' ');
-        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays".split(' ');
+        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank".split(' ');
+        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank".split(' ');
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -40,6 +40,8 @@ mod ewasm_tests {
             Some(structs),
             Some(caller_protections_counter),
             Some(arrays),
+            Some(caller_protections_lottery),
+            Some(caller_protections_bank)
         ];
         let test_info = input_file_names
             .zip(output_file_names)
@@ -641,7 +643,8 @@ mod ewasm_tests {
             // reset.call();
         }
     }
-
+    
+    #[allow(unused_variables)]
     fn traffic_lights(module: &Module) {
         let engine = set_up_tests(module);
 
@@ -730,6 +733,59 @@ mod ewasm_tests {
             // so we cannot test it here TODO
             // increment.call();
             println!("Caller protections counter test passed");
+        }
+    }
+
+    #[allow(unused_variables)]
+    fn caller_protections_lottery(module: &Module) {
+        let engine = set_up_tests(module);
+
+        unsafe {
+            let init: JitFunction<VoidToVoid> = engine
+                .get_function("LotteryInit")
+                .expect("Could not find initialiser");
+
+            let get_winnings: JitFunction<unsafe extern "C" fn() -> i64> = engine
+                .get_function("getWinnings")
+                .expect("Could not find getWinnings");
+
+            let first_address_is_winner: JitFunction<unsafe extern "C" fn() -> bool> = engine
+                .get_function("firstAddressIsWinner")
+                .expect("Could not find firstAddressIsWinner");
+
+            let add_person: JitFunction<VoidToVoid> = engine
+                .get_function("addPerson")
+                .expect("Could not find addPerson");
+
+            let is_winner: JitFunction<unsafe extern "C" fn() -> bool> = engine
+                .get_function("isWinner")
+                .expect("Could not find isWinner");
+
+            init.call();
+
+            assert_eq!(1000, get_winnings.call());
+            assert!(first_address_is_winner.call());
+
+            // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
+            // so we cannot test it here TODO
+            // is_winner.call();
+
+            println!("Caller protections lottery test passed");
+        }
+    }
+
+    fn caller_protections_bank(module: &Module) {
+        // tests static checking of caller protections
+        let engine = set_up_tests(module);
+
+        unsafe {
+            let init: JitFunction<VoidToVoid> = engine
+                .get_function("BankInit")
+                .expect("Could not find initialiser");
+
+            init.call();
+
+            println!("Caller protections bank test passed");
         }
     }
 

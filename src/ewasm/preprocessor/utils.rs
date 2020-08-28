@@ -182,8 +182,8 @@ pub fn generate_caller_protections_predicate(
     caller_protections
         .iter()
         .cloned()
-        .filter_map(|c| {
-            let mut ident = c.identifier;
+        .filter_map(|mut c| {
+            let mut ident = &mut c.identifier;
             ident.enclosing_type = Option::from(contract_id.token.clone());
             let contract_id = contract_id.token.clone();
             let caller_type = ctx.environment.get_expression_type(
@@ -200,7 +200,7 @@ pub fn generate_caller_protections_predicate(
 
             match caller_type {
                 Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: Box::new(Expression::Identifier(ident)),
+                    lhs_expression: Box::new(Expression::Identifier(ident.clone())),
                     rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
                         caller_id,
                     ))),
@@ -208,6 +208,47 @@ pub fn generate_caller_protections_predicate(
                     line_info: Default::default(),
                 })),
                 Type::ArrayType(_) => None,
+                Type::FixedSizedArrayType(array_type) => {
+                    assert_eq!(
+                        *array_type.key_type,
+                        Type::Address,
+                        "Array values for caller protection must have type Address"
+                    );
+
+                    if let Some(property) = ctx.environment.get_caller_protection(&c) {
+                        if let Some(Expression::ArrayLiteral(array)) = property.property.get_value()
+                        {
+                            let predicate = array
+                                .elements
+                                .iter()
+                                .cloned()
+                                .map(|c| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(c),
+                                        rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                                            caller_id,
+                                        ))),
+                                        op: BinOp::DoubleEqual,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .fold1(|left, right| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(left),
+                                        rhs_expression: Box::new(right),
+                                        op: BinOp::Or,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .unwrap();
+                            Some(predicate)
+                        } else {
+                            panic!("Mismatching types for {:?}", c)
+                        }
+                    } else {
+                        panic!("Could not find declaration for caller protection {:?}", c)
+                    }
+                }
                 Type::DictionaryType(_) => None,
                 _ => {
                     let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&contract_id);

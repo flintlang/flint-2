@@ -1,8 +1,8 @@
 contract Lottery {
     var winnings: Int = 1000
-    var players: [Address] = [0x0, 0x1, 0x2]
+    var players: Address[3] = [0x0, 0x1, 0x2]
     //var people: [Address: Address] = [0x0: 0x0, 0x1: 0x1, 0x2: 0x2] Remove until dictionaries implemented
-    var manager: Address = 0x3
+    var manager: Address = 0x1
 }
 
 Lottery :: (any) {
@@ -10,7 +10,7 @@ Lottery :: (any) {
 }
 
 Lottery :: (winner, manager) {
-    public func winner() -> Address {
+    func winner() -> Address {
         return 0x2
     }
 
@@ -30,8 +30,8 @@ Lottery :: (players) { //, people) {
 }
 
 Lottery :: (lucky) {
-  public func lucky(caller_address: Address) -> Bool {
-    return true
+  func lucky(caller_address: Address) -> Bool {
+    return false
   }
 
   public func isWinner() -> Bool {
