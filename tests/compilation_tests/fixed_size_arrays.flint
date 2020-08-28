@@ -1,0 +1,8 @@
+contract A {
+  //! compile fail LHS array has fixed size of 5 but RHS literal has size 6
+  var nums: Int[5] = [1, 2, 3, 4, 5, 6]
+}
+
+A :: (any) {
+  public init() {}
+}
