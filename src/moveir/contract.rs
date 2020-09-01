@@ -13,11 +13,7 @@ use super::r#type::{move_runtime_types, MoveType};
 use super::runtime_function::MoveRuntimeFunction;
 use super::statement::MoveStatement;
 use super::MovePosition;
-use crate::ast::{
-    mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
-    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, Identifier,
-    InoutType, Statement, StructDeclaration, TraitDeclaration, Type, VariableDeclaration,
-};
+use crate::ast::{mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type, VariableDeclaration, FixedSizedArrayType, ArrayType};
 use crate::context::ScopeContext;
 use crate::environment::Environment;
 use crate::moveir::identifier::MoveSelf;
@@ -296,12 +292,12 @@ impl MoveContract {
                                 expression: e,
                                 position: Default::default(),
                             }
-                            .generate(&mut function_context)
+                                .generate(&mut function_context)
                         })
                         .collect();
 
-                    if let crate::ast::types::Type::ArrayType(array) = &property.variable_type {
-                        let array_type = MoveType::move_type(*array.key_type.clone(), None)
+                    if let Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) | Type::ArrayType(ArrayType { key_type }) = &property.variable_type {
+                        let array_type = MoveType::move_type(*key_type.clone(), None)
                             .generate(&function_context);
 
                         function_context.emit(MoveIRStatement::Expression(

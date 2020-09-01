@@ -1,9 +1,4 @@
-use crate::ast::{
-    mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
-    ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
-    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
-    VariableDeclaration,
-};
+use crate::ast::{mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection, ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration, Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type, VariableDeclaration, FixedSizedArrayType, ArrayType};
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::{get_mutable_reference, MovePreProcessor};

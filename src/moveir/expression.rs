@@ -8,7 +8,6 @@ use super::ir::{
 };
 use super::literal::MoveLiteralToken;
 use super::property_access::MovePropertyAccess;
-use super::r#type::MoveType;
 use super::runtime_function::MoveRuntimeFunction;
 use super::*;
 use crate::ast::{
@@ -200,19 +199,6 @@ impl MoveSubscriptExpression {
             &[],
             &function_context.scope_context,
         );
-
-        let inner_type = match base_type.clone() {
-            Type::ArrayType(a) => *a.key_type,
-            Type::DictionaryType(d) => *d.key_type,
-            Type::FixedSizedArrayType(fsa) => *fsa.key_type,
-            _ => unimplemented!(),
-        };
-
-        let move_type = MoveType::move_type(
-            inner_type,
-            Option::from(function_context.environment.clone()),
-        );
-        let _move_type = move_type.generate(function_context);
 
         if let MovePosition::Left = self.position.clone() {
             return match base_type {
