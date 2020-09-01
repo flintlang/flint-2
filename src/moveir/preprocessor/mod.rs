@@ -3,11 +3,11 @@ use crate::ast::Literal::BooleanLiteral;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
+use crate::moveir::preprocessor::utils::generate_caller_protections_predicate;
 use crate::type_checker::ExpressionChecker;
 use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
 use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
-use crate::moveir::preprocessor::utils::generate_caller_protections_predicate;
 
 pub mod utils;
 
@@ -688,13 +688,12 @@ impl Visitor for MovePreProcessor {
                 }
 
                 if let Some(predicate) = generate_caller_protections_predicate(
-                        &caller_protections,
-                        MovePreProcessor::CALLER_PROTECTIONS_PARAM,
-                        &contract_ctx.identifier,
-                        &expr.function_call.identifier.token,
-                        &_ctx,
-                    )
-                {
+                    &caller_protections,
+                    MovePreProcessor::CALLER_PROTECTIONS_PARAM,
+                    &contract_ctx.identifier,
+                    &expr.function_call.identifier.token,
+                    &_ctx,
+                ) {
                     match expr.kind.as_str() {
                         "!" => {
                             let function_call =

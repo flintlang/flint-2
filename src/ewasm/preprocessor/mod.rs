@@ -5,15 +5,15 @@ use crate::ast::declarations::{
     ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, Parameter,
     VariableDeclaration,
 };
-use crate::ast::statements::{IfStatement, Assertion};
 use crate::ast::expressions::{BinaryExpression, Expression, Identifier, InoutExpression};
 use crate::ast::operators::BinOp;
+use crate::ast::statements::{Assertion, IfStatement};
 use crate::ast::statements::{ReturnStatement, Statement};
 use crate::ast::types::{InoutType, Type};
 use crate::ast::Property;
 use crate::ast::{
-    ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
-    SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult, CallerProtection
+    CallerProtection, ContractDeclaration, ContractMember, Literal, Modifier, SpecialDeclaration,
+    SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
 };
 use crate::context::Context;
 use crate::ewasm::preprocessor::utils::*;
@@ -403,9 +403,9 @@ impl Visitor for LLVMPreProcessor {
                     .into_iter()
                     .filter(|protection| !protection.is_any())
                     .collect();
-    
+
                 let caller_id: &str;
-    
+
                 if let Some(caller) = &contract_ctx.caller {
                     caller_id = &caller.token;
                 } else {
@@ -420,30 +420,37 @@ impl Visitor for LLVMPreProcessor {
                         expression: None,
                     }
                 };
-                
-                ctx.pre_statements.push(Statement::Expression(Expression::VariableDeclaration(caller_declaration)));
+
+                ctx.pre_statements
+                    .push(Statement::Expression(Expression::VariableDeclaration(
+                        caller_declaration,
+                    )));
 
                 let caller_assignment = BinaryExpression {
-                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated(caller_id))),
-                    rhs_expression: Box::new(Expression::FunctionCall(FunctionCall{
+                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                        caller_id,
+                    ))),
+                    rhs_expression: Box::new(Expression::FunctionCall(FunctionCall {
                         arguments: vec![],
                         identifier: Identifier::generated("_getCaller"),
-                        mangled_identifier: None
+                        mangled_identifier: None,
                     })),
                     op: BinOp::Equal,
-                    line_info: Default::default()
+                    line_info: Default::default(),
                 };
 
-                ctx.pre_statements.push(Statement::Expression(Expression::BinaryExpression(caller_assignment)));
-    
+                ctx.pre_statements
+                    .push(Statement::Expression(Expression::BinaryExpression(
+                        caller_assignment,
+                    )));
+
                 if let Some(predicate) = generate_caller_protections_predicate(
-                        &caller_protections,
-                        caller_id,
-                        &contract_ctx.identifier,
-                        &attempt_expr.function_call.identifier.token,
-                        &ctx,
-                    )
-                {
+                    &caller_protections,
+                    caller_id,
+                    &contract_ctx.identifier,
+                    &attempt_expr.function_call.identifier.token,
+                    &ctx,
+                ) {
                     match attempt_expr.kind.as_str() {
                         "!" => {
                             let function_call =
@@ -452,15 +459,15 @@ impl Visitor for LLVMPreProcessor {
                                 expression: predicate,
                                 line_info: attempt_expr.function_call.identifier.line_info.clone(),
                             });
-    
+
                             ctx.pre_statements.push(assertion);
                             *expr = function_call;
                         }
-    
+
                         "?" => {
                             let mut function_call = attempt_expr.function_call.clone();
                             self.start_function_call(&mut function_call, ctx)?;
-    
+
                             let function_call =
                                 Statement::Expression(Expression::FunctionCall(function_call));
                             let scope = ctx.scope_context.as_mut().unwrap();
@@ -474,10 +481,12 @@ impl Visitor for LLVMPreProcessor {
                                 }
                             };
 
-                            let declaration_statement = Statement::Expression(Expression::VariableDeclaration(new_declaration));
+                            let declaration_statement = Statement::Expression(
+                                Expression::VariableDeclaration(new_declaration),
+                            );
 
                             ctx.pre_statements.push(declaration_statement);
-    
+
                             let true_assignment = Statement::Expression(
                                 Expression::BinaryExpression(BinaryExpression {
                                     lhs_expression: Box::new(Expression::Identifier(
@@ -490,7 +499,7 @@ impl Visitor for LLVMPreProcessor {
                                     line_info: temp_identifier.line_info.clone(),
                                 }),
                             );
-    
+
                             let false_assignment = Statement::Expression(
                                 Expression::BinaryExpression(BinaryExpression {
                                     lhs_expression: Box::new(Expression::Identifier(
@@ -503,7 +512,7 @@ impl Visitor for LLVMPreProcessor {
                                     line_info: temp_identifier.line_info.clone(),
                                 }),
                             );
-    
+
                             let if_statement = IfStatement {
                                 condition: predicate,
                                 body: vec![function_call, true_assignment],
@@ -511,10 +520,10 @@ impl Visitor for LLVMPreProcessor {
                                 if_body_scope_context: None,
                                 else_body_scope_context: None,
                             };
-    
+
                             ctx.pre_statements
                                 .push(Statement::IfStatement(if_statement));
-    
+
                             *expr = Expression::Identifier(temp_identifier);
                         }
                         _ => {}
@@ -527,8 +536,6 @@ impl Visitor for LLVMPreProcessor {
 
         Ok(())
     }
-
-
 
     fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         let function_name = &call.identifier.token;

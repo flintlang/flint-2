@@ -13,8 +13,7 @@ use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
 use crate::ast::operators::BinOp;
-use crate::ast::{Expression, Identifier, Assertion, Literal};
-use crate::ewasm::statements::LLVMAssertion;
+use crate::ast::{Assertion, Expression, Identifier, Literal};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::assignment::LLVMAssignment;
 use crate::ewasm::expressions::call::{LLVMExternalCall, LLVMFunctionCall};
@@ -22,6 +21,7 @@ use crate::ewasm::expressions::declaration::LLVMVariableDeclaration;
 use crate::ewasm::expressions::literal::LLVMLiteral;
 use crate::ewasm::expressions::struct_access::LLVMStructAccess;
 use crate::ewasm::function_context::FunctionContext;
+use crate::ewasm::statements::LLVMAssertion;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::*;
 use inkwell::values::PointerValue;
@@ -179,8 +179,8 @@ impl<'a> LLVMBinaryExpression<'a> {
                             line_info: Default::default(),
                         }),
                     }
-                        .generate(codegen, function_context)
-                        .map(|opt| opt.as_basic_value_enum())
+                    .generate(codegen, function_context)
+                    .map(|opt| opt.as_basic_value_enum())
                 }
             }
             BinOp::Equal => {
@@ -898,8 +898,8 @@ impl<'a> LLVMSubscriptExpression<'a> {
         let arr_ptr = LLVMIdentifier {
             identifier: &self.expression.base_expression,
         }
-            .generate(codegen, function_context)
-            .unwrap();
+        .generate(codegen, function_context)
+        .unwrap();
         function_context.requires_pointer = previous_requires_ptr;
 
         assert!(arr_ptr.is_pointer_value());
@@ -909,8 +909,8 @@ impl<'a> LLVMSubscriptExpression<'a> {
         let index = LLVMExpression {
             expression: &*self.expression.index_expression,
         }
-            .generate(codegen, function_context)
-            .unwrap();
+        .generate(codegen, function_context)
+        .unwrap();
 
         assert!(index.is_int_value());
         let index = index.into_int_value();
@@ -929,10 +929,20 @@ impl<'a> LLVMSubscriptExpression<'a> {
         }
     }
 
-    fn build_bounds_check<'ctx>(&self, arr_ptr: &PointerValue, codegen: &mut Codegen<'_, 'ctx>, function_context: &mut FunctionContext<'ctx>) {
+    fn build_bounds_check<'ctx>(
+        &self,
+        arr_ptr: &PointerValue,
+        codegen: &mut Codegen<'_, 'ctx>,
+        function_context: &mut FunctionContext<'ctx>,
+    ) {
         // NOTE: this will only work for statically sized arrays
         // This will need to change when dynamic arrays are introduced TODO
-        let max_index = arr_ptr.get_type().get_element_type().into_array_type().len() - 1;
+        let max_index = arr_ptr
+            .get_type()
+            .get_element_type()
+            .into_array_type()
+            .len()
+            - 1;
 
         let gte_zero_predicate = BinaryExpression {
             lhs_expression: Box::new(*self.expression.index_expression.clone()),
@@ -961,8 +971,9 @@ impl<'a> LLVMSubscriptExpression<'a> {
         };
 
         LLVMAssertion {
-            assertion: &bounds_check
-        }.generate(codegen, function_context);
+            assertion: &bounds_check,
+        }
+        .generate(codegen, function_context);
     }
 }
 

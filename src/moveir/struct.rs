@@ -321,7 +321,7 @@ impl MoveStructInitialiser {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                    .generate(&mut function_context),
+                                .generate(&mut function_context),
                             ),
                         },
                     ));

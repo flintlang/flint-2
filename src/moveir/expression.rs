@@ -227,7 +227,7 @@ impl MoveSubscriptExpression {
                     identifier,
                     position: self.position.clone(),
                 }
-                    .generate(function_context, false, true);
+                .generate(function_context, false, true);
                 MoveRuntimeFunction::get_from_array_int(identifier_code, index)
             }
             Type::DictionaryType(_) => {
@@ -453,17 +453,15 @@ impl MoveBinaryExpression {
     }
 }
 
-pub fn is_signer_type(
-    expression: &Expression,
-    function_context: &FunctionContext,
-) -> bool {
+pub fn is_signer_type(expression: &Expression, function_context: &FunctionContext) -> bool {
     if let Expression::Identifier(id) = expression {
         if let Some(identifier_type) = function_context.scope_context.type_for(&id.token) {
-            return identifier_type == Type::UserDefinedType(Identifier {
-                token: "&signer".to_string(),
-                enclosing_type: None,
-                line_info: Default::default(),
-            });
+            return identifier_type
+                == Type::UserDefinedType(Identifier {
+                    token: "&signer".to_string(),
+                    enclosing_type: None,
+                    line_info: Default::default(),
+                });
         }
     }
     false

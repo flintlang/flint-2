@@ -61,7 +61,7 @@ impl<'a> LLVMVariableDeclaration<'a> {
                     let ptr = codegen.builder.build_alloca(p, name);
                     codegen.builder.build_store(ptr, value);
                     ptr.as_basic_value_enum()
-                },
+                }
                 StructType(s) => {
                     let value = BasicValueEnum::StructValue(s.const_zero());
                     let ptr = codegen.builder.build_alloca(s, name);

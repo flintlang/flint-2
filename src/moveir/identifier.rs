@@ -49,7 +49,7 @@ impl MoveIdentifier {
                 token: self.identifier.token.clone(),
                 position: self.position.clone(),
             }
-                .generate(function_context, force);
+            .generate(function_context, force);
         }
 
         let ir_identifier = MoveIRExpression::Identifier(self.identifier.token.clone());

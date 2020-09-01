@@ -42,7 +42,7 @@ mod ewasm_tests {
             Some(arrays),
             Some(caller_protections_lottery),
             Some(caller_protections_bank),
-            Some(dynamic_check)
+            Some(dynamic_check),
         ];
         let test_info = input_file_names
             .zip(output_file_names)
@@ -644,7 +644,7 @@ mod ewasm_tests {
             // reset.call();
         }
     }
-    
+
     #[allow(unused_variables)]
     fn traffic_lights(module: &Module) {
         let engine = set_up_tests(module);
@@ -799,12 +799,13 @@ mod ewasm_tests {
                 .get_function("DynamicCheckInit")
                 .expect("Could not find initialiser");
 
-            let try_bang: JitFunction<unsafe extern "C" fn(i64)> =
-                engine.get_function("tryBang").expect("Could not find tryBang");
+            let try_bang: JitFunction<unsafe extern "C" fn(i64)> = engine
+                .get_function("tryBang")
+                .expect("Could not find tryBang");
 
-            
-            let try_question: JitFunction<unsafe extern "C" fn(i64) -> bool> =
-                engine.get_function("tryQuestion").expect("Could not find tryQuestion");
+            let try_question: JitFunction<unsafe extern "C" fn(i64) -> bool> = engine
+                .get_function("tryQuestion")
+                .expect("Could not find tryQuestion");
 
             init.call();
             try_bang.call(3);

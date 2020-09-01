@@ -59,9 +59,10 @@ impl<'a> LLVMFunction<'a> {
             if !self.caller_protections.iter().any(|c| c.is_any())
                 && !self.caller_protections.is_empty()
                 && (self.function_declaration.is_external
-                || self.caller_binding.is_some()
-                || contains_function(self.caller_protections, codegen, enclosing))
-            {   generate_caller_variable(
+                    || self.caller_binding.is_some()
+                    || contains_function(self.caller_protections, codegen, enclosing))
+            {
+                generate_caller_variable(
                     codegen,
                     &mut function_context,
                     self.caller_binding.clone(),
@@ -134,11 +135,16 @@ pub fn generate_caller_variable<'ctx>(
     function_context: &mut FunctionContext<'ctx>,
     caller_binding: Option<Identifier>,
 ) {
-    let caller_address = codegen.builder.build_call(
-        codegen.module.get_function("_getCaller").unwrap(),
-        &[],
-        "tmp_call",
-    ).try_as_basic_value().left().unwrap();
+    let caller_address = codegen
+        .builder
+        .build_call(
+            codegen.module.get_function("_getCaller").unwrap(),
+            &[],
+            "tmp_call",
+        )
+        .try_as_basic_value()
+        .left()
+        .unwrap();
 
     if let Some(caller) = caller_binding {
         function_context.add_local(&caller.token, caller_address);

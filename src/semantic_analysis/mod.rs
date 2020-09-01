@@ -188,14 +188,15 @@ impl Visitor for SemanticAnalysis {
                 );
 
                 if let Type::FixedSizedArrayType(FixedSizedArrayType {
-                                                     key_type: lhs_type,
-                                                     size,
-                                                 }) = &declaration.variable_type
+                    key_type: lhs_type,
+                    size,
+                }) = &declaration.variable_type
                 {
                     // TODO check the length of the source and declaration match
                     if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
                         return if *lhs_type == *rhs_type {
-                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression {
+                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
+                            {
                                 if *size == elements.len() as u64 {
                                     Ok(())
                                 } else {
@@ -724,6 +725,10 @@ impl Visitor for SemanticAnalysis {
                         Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => {
                             *key_type
                         }
+                        Type::DictionaryType(DictionaryType {
+                            key_type: _,
+                            value_type,
+                        }) => *value_type,
                         _ => {
                             return Err(Box::from(format!(
                                 "Subscript expression on non-array type: {:?}",

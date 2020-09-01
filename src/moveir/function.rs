@@ -179,7 +179,7 @@ impl MoveFunction {
         all_variables.append(&mut variables);
 
         scope.local_variables = all_variables;
-    
+
         let mut function_context = FunctionContext {
             environment: self.environment.clone(),
             enclosing_type: self.enclosing_type.token.clone(),

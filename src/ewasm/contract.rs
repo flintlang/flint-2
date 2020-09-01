@@ -128,7 +128,7 @@ impl<'a> LLVMContract<'a> {
         // There should only be one contract initialiser
         assert_eq!(initialiser.len(), 1);
         let initialiser = initialiser[0];
-        
+
         let (caller_binding, _) = self
             .contract_behaviour_declarations
             .iter()

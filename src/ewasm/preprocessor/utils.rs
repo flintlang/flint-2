@@ -225,9 +225,9 @@ pub fn generate_caller_protections_predicate(
                                 .map(|c| {
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(c),
-                                        rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                                            caller_id,
-                                        ))),
+                                        rhs_expression: Box::new(Expression::Identifier(
+                                            Identifier::generated(caller_id),
+                                        )),
                                         op: BinOp::DoubleEqual,
                                         line_info: Default::default(),
                                     })
