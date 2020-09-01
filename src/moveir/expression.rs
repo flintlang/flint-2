@@ -16,6 +16,7 @@ use crate::ast::{
     Identifier, InoutExpression, SubscriptExpression, Type,
 };
 use crate::moveir::identifier::MoveSelf;
+use crate::moveir::preprocessor::MovePreProcessor;
 
 pub(crate) struct MoveExpression {
     pub expression: Expression,
@@ -382,10 +383,13 @@ impl MoveBinaryExpression {
 
         let rhs: MoveIRExpression;
 
-        let (is_signer, id) = is_signer_type(&*self.expression.rhs_expression, function_context);
+        let is_signer = is_signer_type(&*self.expression.rhs_expression, function_context);
 
         if is_signer {
-            rhs = MoveIRExpression::Inline(format!("Signer.address_of(copy({}))", id));
+            rhs = MoveIRExpression::Inline(format!(
+                "Signer.address_of(copy({}))",
+                MovePreProcessor::CALLER_PROTECTIONS_PARAM
+            ));
         } else {
             rhs = MoveExpression {
                 expression: *self.expression.rhs_expression.clone(),
@@ -466,19 +470,15 @@ impl MoveBinaryExpression {
 pub fn is_signer_type(
     expression: &Expression,
     function_context: &FunctionContext,
-) -> (bool, String) {
+) -> bool {
     if let Expression::Identifier(id) = expression {
         if let Some(identifier_type) = function_context.scope_context.type_for(&id.token) {
-            return (
-                identifier_type
-                    == Type::UserDefinedType(Identifier {
-                        token: "&signer".to_string(),
-                        enclosing_type: None,
-                        line_info: Default::default(),
-                    }),
-                id.token.clone(),
-            );
+            return identifier_type == Type::UserDefinedType(Identifier {
+                token: "&signer".to_string(),
+                enclosing_type: None,
+                line_info: Default::default(),
+            });
         }
     }
-    (false, String::from(""))
+    false
 }

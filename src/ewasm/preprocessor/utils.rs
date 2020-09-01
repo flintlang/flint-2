@@ -220,16 +220,25 @@ pub fn generate_caller_protections_predicate(
                                     return if ident.token != function_name {
                                         // prevents predicate being added to the predicate function itself
                                         Some(Expression::FunctionCall(FunctionCall {
-                                            identifier: Identifier::generated(&mangle_ewasm_function(&ident.token, enclosing_type)),
+                                            identifier: Identifier::generated(
+                                                &mangle_ewasm_function(
+                                                    &ident.token,
+                                                    enclosing_type,
+                                                ),
+                                            ),
                                             arguments: vec![
                                                 FunctionArgument {
                                                     identifier: None,
-                                                    expression: Expression::Identifier(Identifier::generated(caller_id))
+                                                    expression: Expression::Identifier(
+                                                        Identifier::generated(caller_id),
+                                                    ),
                                                 },
                                                 FunctionArgument {
                                                     identifier: None,
-                                                    expression: Expression::Identifier(Identifier::generated("this")),
-                                                }
+                                                    expression: Expression::Identifier(
+                                                        Identifier::generated("this"),
+                                                    ),
+                                                },
                                             ],
                                             mangled_identifier: None,
                                         }))
@@ -243,17 +252,24 @@ pub fn generate_caller_protections_predicate(
                                         Some(Expression::BinaryExpression(BinaryExpression {
                                             lhs_expression: Box::new(Expression::FunctionCall(
                                                 FunctionCall {
-                                                    identifier: Identifier::generated(&mangle_ewasm_function(&ident.token, enclosing_type)),
+                                                    identifier: Identifier::generated(
+                                                        &mangle_ewasm_function(
+                                                            &ident.token,
+                                                            enclosing_type,
+                                                        ),
+                                                    ),
                                                     arguments: vec![FunctionArgument {
                                                         identifier: None,
-                                                        expression: Expression::Identifier(Identifier::generated("this")),
+                                                        expression: Expression::Identifier(
+                                                            Identifier::generated("this"),
+                                                        ),
                                                     }],
                                                     mangled_identifier: None,
                                                 },
                                             )),
-                                            rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                                                caller_id,
-                                            ))),
+                                            rhs_expression: Box::new(Expression::Identifier(
+                                                Identifier::generated(caller_id),
+                                            )),
                                             op: BinOp::DoubleEqual,
                                             line_info: Default::default(),
                                         }))

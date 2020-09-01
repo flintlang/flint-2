@@ -1,12 +1,12 @@
 use crate::ast::{
-    mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
+    mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
     ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
     Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
     VariableDeclaration,
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
-use crate::moveir::preprocessor::get_mutable_reference;
+use crate::moveir::preprocessor::{get_mutable_reference, MovePreProcessor};
 use crate::type_checker::ExpressionChecker;
 use crate::utils::type_states::*;
 use itertools::Itertools;
@@ -152,12 +152,13 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
                 let mut declaration = v.clone();
                 if !declaration.identifier.is_self() {
                     declaration.identifier = Identifier {
-                        token: mangle(&declaration.identifier.token),
+                        token: declaration.identifier.token.clone(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     };
                 }
-                let dec = Statement::Expression(Expression::VariableDeclaration(declaration.clone()));
+                let dec =
+                    Statement::Expression(Expression::VariableDeclaration(declaration.clone()));
 
                 if let Some(expr) = &declaration.expression {
                     let expr = Expression::BinaryExpression(BinaryExpression {
@@ -168,7 +169,7 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
                         })),
                         rhs_expression: expr.clone(),
                         op: BinOp::Equal,
-                        line_info: Default::default()
+                        line_info: Default::default(),
                     });
 
                     let expr = Statement::Expression(expr);
@@ -257,17 +258,9 @@ pub fn generate_contract_wrapper(
         && caller_protections.is_empty()
         && !protection_functions.is_empty()
     {
-        let caller_id: Identifier;
-
-        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
-            caller_id = caller.clone();
-        } else {
-            caller_id = Identifier::generated("caller");
-        }
-
         if let Some(predicate) = generate_caller_protections_predicate(
             &protection_functions,
-            &caller_id.token,
+            MovePreProcessor::CALLER_PROTECTIONS_PARAM,
             &contract_behaviour_declaration.identifier,
             &wrapper.head.identifier.token,
             &context,
@@ -314,17 +307,9 @@ pub fn generate_contract_wrapper(
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
-        let caller_id: Identifier;
-
-        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
-            caller_id = caller.clone();
-        } else {
-            caller_id = Identifier::generated("caller");
-        }
-
         if let Some(predicate) = generate_caller_protections_predicate(
             &state_properties,
-            &caller_id.token,
+            MovePreProcessor::CALLER_PROTECTIONS_PARAM,
             &contract_behaviour_declaration.identifier,
             &wrapper.head.identifier.token,
             &context,
@@ -339,9 +324,7 @@ pub fn generate_contract_wrapper(
     }
 
     if is_stateful {
-        // TODO we need the slice [1..] because an extra _ is added to the front for some reason
-        // This should be fixed
-        let state_identifier = Identifier::generated(&Identifier::TYPESTATE_VAR_NAME[1..]);
+        let state_identifier = Identifier::generated(Identifier::TYPESTATE_VAR_NAME);
         let type_state_assignment = BinaryExpression {
             lhs_expression: Box::new(Expression::Identifier(state_identifier.clone())),
             rhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
@@ -670,9 +653,8 @@ pub fn pre_assign(
                     },
                 )));
         } else {
-            let mangled_identifier = Identifier::generated(&mangle(&temp_identifier.token));
             ctx.post_statements.push(release(
-                Expression::Identifier(mangled_identifier),
+                Expression::Identifier(Identifier::generated(&temp_identifier.token)),
                 Type::InoutType(InoutType {
                     key_type: Box::new(expression_type),
                 }),

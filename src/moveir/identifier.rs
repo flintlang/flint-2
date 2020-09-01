@@ -2,7 +2,7 @@ use super::function::FunctionContext;
 use super::ir::{MoveIRExpression, MoveIROperation, MoveIRTransfer};
 use super::property_access::MovePropertyAccess;
 use super::MovePosition;
-use crate::ast::{mangle, Expression, Identifier};
+use crate::ast::{Expression, Identifier};
 use crate::target::libra;
 
 pub(crate) struct MoveIdentifier {
@@ -49,17 +49,11 @@ impl MoveIdentifier {
                 token: self.identifier.token.clone(),
                 position: self.position.clone(),
             }
-            .generate(function_context, force);
+                .generate(function_context, force);
         }
 
-        let ir_identifier = if function_context
-            .scope_context
-            .contains_variable_declaration(&mangle(&self.identifier.token.clone()))
-        {
-            MoveIRExpression::Identifier(mangle(&self.identifier.token.clone()))
-        } else {
-            MoveIRExpression::Identifier(self.identifier.token.clone())
-        };
+        let ir_identifier = MoveIRExpression::Identifier(self.identifier.token.clone());
+
         if force {
             return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
         }

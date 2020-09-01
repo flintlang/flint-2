@@ -14,7 +14,7 @@ use super::runtime_function::MoveRuntimeFunction;
 use super::statement::MoveStatement;
 use super::MovePosition;
 use crate::ast::{
-    mangle, mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
+    mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
     ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, Identifier,
     InoutType, Statement, StructDeclaration, TraitDeclaration, Type, VariableDeclaration,
 };
@@ -331,18 +331,18 @@ impl MoveContract {
                         }
                     }
                 } else {
-                    let statement = MoveIRStatement::Expression(
-                        MoveIRExpression::Assignment(MoveIRAssignment {
+                    let statement = MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                        MoveIRAssignment {
                             identifier,
                             expression: Box::from(
                                 MoveExpression {
                                     expression: (**expr).clone(),
                                     position: Default::default(),
                                 }
-                                .generate(&mut function_context),
+                                    .generate(&mut function_context),
                             ),
-                        }),
-                    );
+                        },
+                    ));
                     function_context.emit(statement);
                 }
             }
@@ -473,7 +473,7 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: mangle(shadow),
+                identifier: shadow.to_string(),
                 declaration_type: self_type,
             });
 

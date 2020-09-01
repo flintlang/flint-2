@@ -313,18 +313,18 @@ impl MoveStructInitialiser {
             .map(|f| {
                 let name = format!("__this_{}", f.identifier.token);
                 if let Some(expr) = f.expression {
-                    let statement = MoveIRStatement::Expression(
-                        MoveIRExpression::Assignment(crate::moveir::ir::MoveIRAssignment {
+                    let statement = MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                        crate::moveir::ir::MoveIRAssignment {
                             identifier: name.clone(),
                             expression: Box::from(
                                 crate::moveir::expression::MoveExpression {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                .generate(&mut function_context),
+                                    .generate(&mut function_context),
                             ),
-                        }),
-                    );
+                        },
+                    ));
                     function_context.emit(statement);
                 }
                 (
