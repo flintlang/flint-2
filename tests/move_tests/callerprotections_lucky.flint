@@ -8,9 +8,9 @@ Lottery :: (any) {
 }
 
 Lottery :: (lucky) {
-  func lucky(address: Address) -> Bool {
+  func lucky(test: Address) -> Bool {
     // return true or false
-    return winner == address
+    return winner == test
   }
 
   public func getWinnings() -> Int {

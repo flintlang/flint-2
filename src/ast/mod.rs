@@ -426,8 +426,10 @@ pub fn is_literal(expression: &Expression) -> bool {
     }
 }
 
+#[allow(dead_code)]
+// TODO implement mangling
 pub fn mangle(string: &str) -> String {
-    format!("_{}", string)
+    string.to_string()
 }
 
 pub fn mangle_dictionary(string: &str) -> String {

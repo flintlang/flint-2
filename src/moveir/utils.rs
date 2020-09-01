@@ -2,7 +2,6 @@ use super::ir::{
     MoveIRAssignment, MoveIRExpression, MoveIRFunctionCall, MoveIROperation, MoveIRTransfer,
     MoveIRVector,
 };
-use crate::ast::mangle;
 use crate::ast::{Expression, Statement};
 
 fn remove_move_op(op: &MoveIROperation, statement: &Statement) -> Option<MoveIRExpression> {
@@ -256,7 +255,7 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
                 MoveIRExpression::Transfer(transfer) => {
                     if let MoveIRTransfer::Copy(identifier) = transfer {
                         if let MoveIRExpression::Identifier(id) = &**identifier {
-                            if *id == mangle(&variable.token)
+                            if id == &variable.token
                                 || (variable.token == "self" && *id == "this")
                             {
                                 return Some(MoveIRExpression::Transfer(MoveIRTransfer::Move(
@@ -392,7 +391,7 @@ mod test {
                 })),
             )),
             rhs_expression: Box::new(Identifier(Identifier {
-                token: "temp__3".to_string(),
+                token: "_temp__3".to_string(),
                 enclosing_type: None,
                 line_info: LineInfo {
                     line: 18,

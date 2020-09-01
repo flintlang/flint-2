@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::context::*;
+use crate::moveir::preprocessor::MovePreProcessor;
 use crate::visitor::Visitor;
 use hex::encode;
 use std::fmt::Formatter;
@@ -142,12 +143,20 @@ impl Visitable for ContractBehaviourDeclaration {
 
         let local_variables: Vec<VariableDeclaration> =
             if let Some(ref caller_binding) = self.caller_binding {
-                vec![VariableDeclaration {
+                let mut caller_declaration = VariableDeclaration {
                     declaration_token: None,
                     identifier: caller_binding.clone(),
                     variable_type: Type::Address,
-                    expression: None,
-                }]
+                    expression: Some(Box::new(Expression::RawAssembly(
+                        format!(
+                            "Signer.address_of(copy({}))",
+                            MovePreProcessor::CALLER_PROTECTIONS_PARAM
+                        ),
+                        None,
+                    ))),
+                };
+                caller_declaration.visit(v, ctx)?;
+                vec![caller_declaration]
             } else {
                 vec![]
             };

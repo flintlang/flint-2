@@ -100,7 +100,7 @@ struct MoveReturnStatement {
 }
 
 impl MoveReturnStatement {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
+    pub fn generate(&self, mut function_context: &mut FunctionContext) -> MoveIRStatement {
         if self.statement.expression.is_none() {
             return MoveIRStatement::Inline(String::from("return"));
         }
@@ -116,7 +116,7 @@ impl MoveReturnStatement {
             expression,
             position: Default::default(),
         }
-        .generate(&function_context);
+        .generate(&mut function_context);
 
         let (cleanup, expression) =
             remove_moves(self.statement.cleanup.iter().cloned(), expression);
