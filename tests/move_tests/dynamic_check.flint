@@ -1,6 +1,6 @@
 contract DynamicCheck {
-    var owner: Address = 0x2
-    var owners: [Address] = [0x1, 0x2]
+    var owner: Address = 0x1
+    var owners: Address[2] = [0x1, 0x2]
 }
 
 DynamicCheck :: (any) {

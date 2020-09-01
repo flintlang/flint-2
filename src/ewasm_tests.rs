@@ -22,8 +22,8 @@ mod ewasm_tests {
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank".split(' ');
-        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank".split(' ');
+        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank dynamic_check".split(' ');
+        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank DynamicCheck".split(' ');
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -41,7 +41,8 @@ mod ewasm_tests {
             Some(caller_protections_counter),
             Some(arrays),
             Some(caller_protections_lottery),
-            Some(caller_protections_bank)
+            Some(caller_protections_bank),
+            Some(dynamic_check)
         ];
         let test_info = input_file_names
             .zip(output_file_names)
@@ -786,6 +787,30 @@ mod ewasm_tests {
             init.call();
 
             println!("Caller protections bank test passed");
+        }
+    }
+
+    fn dynamic_check(module: &Module) {
+        // tests dynamic checking of caller protections
+        let engine = set_up_tests(module);
+
+        unsafe {
+            let init: JitFunction<VoidToVoid> = engine
+                .get_function("DynamicCheckInit")
+                .expect("Could not find initialiser");
+
+            let try_bang: JitFunction<unsafe extern "C" fn(i64)> =
+                engine.get_function("tryBang").expect("Could not find tryBang");
+
+            
+            let try_question: JitFunction<unsafe extern "C" fn(i64) -> bool> =
+                engine.get_function("tryQuestion").expect("Could not find tryQuestion");
+
+            init.call();
+            try_bang.call(3);
+            assert!(try_question.call(2));
+
+            println!("Dynamic check test passed");
         }
     }
 

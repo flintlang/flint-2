@@ -91,6 +91,8 @@ impl<'a> LLVMIfStatement<'a> {
             LLVMStatement { statement }.generate(codegen, function_context);
         }
 
+        codegen.module.print_to_stderr();
+
         if !function_context.is_last_statement {
             let continue_bb = codegen
                 .context

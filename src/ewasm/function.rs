@@ -61,8 +61,7 @@ impl<'a> LLVMFunction<'a> {
                 && (self.function_declaration.is_external
                 || self.caller_binding.is_some()
                 || contains_function(self.caller_protections, codegen, enclosing))
-            {
-                generate_caller_variable(
+            {   generate_caller_variable(
                     codegen,
                     &mut function_context,
                     self.caller_binding.clone(),
@@ -135,25 +134,15 @@ pub fn generate_caller_variable<'ctx>(
     function_context: &mut FunctionContext<'ctx>,
     caller_binding: Option<Identifier>,
 ) {
-    let address_type = codegen
-        .context
-        .custom_width_int_type(160)
-        .as_basic_type_enum();
-
-    let memory_offset = codegen.builder.build_alloca(address_type, "memory_offset");
-    let get_caller = codegen.module.get_function("getCaller").unwrap();
-
-    codegen.builder.build_call(
-        get_caller,
-        &[BasicValueEnum::PointerValue(memory_offset)],
+    let caller_address = codegen.builder.build_call(
+        codegen.module.get_function("_getCaller").unwrap(),
+        &[],
         "tmp_call",
-    );
+    ).try_as_basic_value().left().unwrap();
 
     if let Some(caller) = caller_binding {
-        let caller_address = codegen.builder.build_load(memory_offset, &caller.token);
         function_context.add_local(&caller.token, caller_address);
     } else {
-        let caller_address = codegen.builder.build_load(memory_offset, "caller");
         function_context.add_local("caller", caller_address);
     }
 }

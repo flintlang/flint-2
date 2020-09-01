@@ -63,7 +63,7 @@ impl<'a> LLVMFunctionCall<'a> {
             .function_call
             .arguments
             .iter()
-            .map(|a| {
+            .map(|(a)| {
                 LLVMExpression {
                     expression: &a.expression,
                 }
@@ -83,6 +83,9 @@ impl<'a> LLVMFunctionCall<'a> {
                     .builder
                     .build_load(argument.into_pointer_value(), "tmp_load");
             } else if argument_num_pointers != param_num_pointers {
+                codegen.module.print_to_stderr();
+                dbg!(argument.clone());
+                dbg!(params.get(index).clone());
                 panic!("Invalid argument")
             }
         }

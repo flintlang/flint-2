@@ -2,11 +2,46 @@ use super::super::inkwell::values::BasicValue;
 use super::super::inkwell::{AddressSpace, IntPredicate};
 use crate::ewasm::codegen::Codegen;
 use inkwell::types::BasicType;
+use inkwell::values::BasicValueEnum;
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn runtime_functions(&self) {
         self.get_caller();
+        self.get_caller_wrapper();
         self.power();
+    }
+
+    fn get_caller_wrapper(&self) { 
+        let address_type = self
+            .context
+            .custom_width_int_type(160)
+            .as_basic_type_enum();
+
+        let func_type = address_type.fn_type(&[], false);
+        
+        let func_val = self.module.add_function("_getCaller", func_type, None);
+        
+        let bb = self.context.append_basic_block(func_val, "entry");
+        
+        self.builder.position_at_end(bb);
+
+        let address_type = self
+            .context
+            .custom_width_int_type(160)
+            .as_basic_type_enum();
+    
+        let memory_offset = self.builder.build_alloca(address_type, "memory_offset");
+        let get_caller = self.module.get_function("getCaller").unwrap();
+    
+        self.builder.build_call(
+            get_caller,
+            &[BasicValueEnum::PointerValue(memory_offset)],
+            "tmp_call",
+        );
+
+        let caller_address = self.builder.build_load(memory_offset, "caller");
+
+        self.builder.build_return(Some(&caller_address));
     }
 
     fn get_caller(&self) {

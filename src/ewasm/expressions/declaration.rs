@@ -41,8 +41,18 @@ impl<'a> LLVMVariableDeclaration<'a> {
                     codegen.builder.build_store(ptr, value);
                     ptr.as_basic_value_enum()
                 }
-                FloatType(f) => BasicValueEnum::FloatValue(f.const_zero()),
-                IntType(i) => BasicValueEnum::IntValue(i.const_zero()),
+                FloatType(f) => {
+                    let value = BasicValueEnum::FloatValue(f.const_zero());
+                    let ptr = codegen.builder.build_alloca(f, name);
+                    codegen.builder.build_store(ptr, value);
+                    ptr.as_basic_value_enum()
+                }
+                IntType(i) => {
+                    let value = BasicValueEnum::IntValue(i.const_zero());
+                    let ptr = codegen.builder.build_alloca(i, name);
+                    codegen.builder.build_store(ptr, value);
+                    ptr.as_basic_value_enum()
+                }
                 PointerType(p) => BasicValueEnum::PointerValue(p.const_null()),
                 StructType(s) => {
                     let value = BasicValueEnum::StructValue(s.const_zero());

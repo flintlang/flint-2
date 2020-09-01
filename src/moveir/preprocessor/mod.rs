@@ -7,6 +7,7 @@ use crate::type_checker::ExpressionChecker;
 use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
 use crate::utils::is_init_declaration;
 use crate::visitor::Visitor;
+use crate::moveir::preprocessor::utils::generate_caller_protections_predicate;
 
 pub mod utils;
 
@@ -689,8 +690,7 @@ impl Visitor for MovePreProcessor {
                     caller_id = "caller";
                 }
 
-                if let Some(predicate) =
-                    crate::moveir::preprocessor::utils::generate_caller_protections_predicate(
+                if let Some(predicate) = generate_caller_protections_predicate(
                         &caller_protections,
                         caller_id,
                         &contract_ctx.identifier,
