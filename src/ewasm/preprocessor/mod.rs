@@ -474,7 +474,7 @@ impl Visitor for LLVMPreProcessor {
                                 }
                             };
 
-                            let declaration_statement = Statement::Expression(Expression::VariableDeclaration(new_declaration.clone()));
+                            let declaration_statement = Statement::Expression(Expression::VariableDeclaration(new_declaration));
 
                             ctx.pre_statements.push(declaration_statement);
     
