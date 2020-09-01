@@ -391,7 +391,7 @@ mod test {
                 })),
             )),
             rhs_expression: Box::new(Identifier(Identifier {
-                token: "temp__3".to_string(),
+                token: "_temp__3".to_string(),
                 enclosing_type: None,
                 line_info: LineInfo {
                     line: 18,
