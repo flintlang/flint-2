@@ -53,6 +53,14 @@ impl<'a> LLVMReturnStatement<'a> {
                 expression: return_expression,
             };
             let expr = expr.generate(codegen, function_context).unwrap();
+            let expr = if expr.is_pointer_value() && !function_context.requires_pointer {
+                codegen
+                    .builder
+                    .build_load(expr.into_pointer_value(), "tmp_load")
+            } else {
+                expr
+            };
+
             codegen.builder.build_return(Some(&expr));
         } else {
             codegen.builder.build_return(None);
@@ -90,8 +98,6 @@ impl<'a> LLVMIfStatement<'a> {
         for statement in body {
             LLVMStatement { statement }.generate(codegen, function_context);
         }
-
-        codegen.module.print_to_stderr();
 
         if !function_context.is_last_statement {
             let continue_bb = codegen

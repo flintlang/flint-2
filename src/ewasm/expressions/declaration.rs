@@ -19,9 +19,12 @@ impl<'a> LLVMVariableDeclaration<'a> {
     ) -> Option<BasicValueEnum<'ctx>> {
         let name = self.declaration.identifier.token.as_str();
         let expression = if let Some(expr) = &self.declaration.expression {
-            LLVMExpression { expression: expr }
+            let value = LLVMExpression { expression: expr }
                 .generate(codegen, function_context)
-                .unwrap()
+                .unwrap();
+            let ptr = codegen.builder.build_alloca(value.get_type(), name);
+            codegen.builder.build_store(ptr, value);
+            ptr.as_basic_value_enum()
         } else {
             // creates dummy value for variable assignment to be overwritten
             let variable_type = LLVMType {
@@ -53,7 +56,12 @@ impl<'a> LLVMVariableDeclaration<'a> {
                     codegen.builder.build_store(ptr, value);
                     ptr.as_basic_value_enum()
                 }
-                PointerType(p) => BasicValueEnum::PointerValue(p.const_null()),
+                PointerType(p) => {
+                    let value = BasicValueEnum::PointerValue(p.const_null());
+                    let ptr = codegen.builder.build_alloca(p, name);
+                    codegen.builder.build_store(ptr, value);
+                    ptr.as_basic_value_enum()
+                },
                 StructType(s) => {
                     let value = BasicValueEnum::StructValue(s.const_zero());
                     let ptr = codegen.builder.build_alloca(s, name);

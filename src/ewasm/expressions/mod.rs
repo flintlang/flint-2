@@ -142,14 +142,7 @@ impl<'a> LLVMIdentifier<'a> {
                 .get_declaration(self.identifier.token.as_str())
                 .unwrap();
 
-            if function_context.requires_pointer || !variable.get_type().is_pointer_type() {
-                Some(*variable)
-            } else {
-                let variable = codegen
-                    .builder
-                    .build_load(variable.into_pointer_value(), "tmp_load");
-                Some(variable)
-            }
+            Some(*variable)
         } else {
             Some(
                 codegen
