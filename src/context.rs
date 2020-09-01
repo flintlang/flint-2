@@ -189,7 +189,7 @@ impl ScopeContext {
 
     pub fn type_for(&self, variable: &str) -> Option<Type> {
         self.first_local_or_parameter(|v| {
-            v.identifier.token == variable || mangle(variable) == v.identifier.token
+            v.identifier.token == variable
         })
         .map(|i| i.variable_type)
     }

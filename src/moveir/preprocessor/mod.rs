@@ -13,7 +13,9 @@ pub mod utils;
 
 pub(crate) struct MovePreProcessor {}
 
-impl MovePreProcessor {}
+impl MovePreProcessor {
+    pub(crate) const CALLER_PROTECTIONS_PARAM: &'static str = "_contract_caller";
+}
 
 impl Visitor for MovePreProcessor {
     fn start_contract_declaration(
@@ -256,7 +258,7 @@ impl Visitor for MovePreProcessor {
             let new_param_type =
                 Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
             payable_param.type_assignment = new_param_type;
-            payable_param.identifier.token = mangle(&payable_param_name);
+            payable_param.identifier.token = payable_param_name.clone();
 
             let parameters: Vec<Parameter> = declaration
                 .head
@@ -365,9 +367,9 @@ impl Visitor for MovePreProcessor {
 
             declaration.head.parameters.insert(0, parameter.clone());
 
-            if let Some(caller) = &contract.caller {
+            if contract.caller.is_some() {
                 declaration.head.parameters.push(Parameter {
-                    identifier: caller.clone(),
+                    identifier: Identifier::generated(MovePreProcessor::CALLER_PROTECTIONS_PARAM),
                     type_assignment: Type::UserDefinedType(Identifier {
                         token: "&signer".to_string(),
                         enclosing_type: None,
@@ -379,7 +381,7 @@ impl Visitor for MovePreProcessor {
             } else {
                 declaration.head.parameters.push(Parameter {
                     identifier: Identifier {
-                        token: "caller".to_string(),
+                        token: MovePreProcessor::CALLER_PROTECTIONS_PARAM.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     },
@@ -478,12 +480,15 @@ impl Visitor for MovePreProcessor {
             .map(|m| {
                 if let Statement::Expression(Expression::BinaryExpression(be)) = &m {
                     if let Expression::Identifier(id) = &*be.rhs_expression {
-                        if id.token == "caller" {
+                        if id.token == MovePreProcessor::CALLER_PROTECTIONS_PARAM {
                             return Statement::Expression(Expression::BinaryExpression(
                                 BinaryExpression {
                                     lhs_expression: be.lhs_expression.clone(),
                                     rhs_expression: Box::new(Expression::RawAssembly(
-                                        "Signer.address_of(copy(caller))".to_string(),
+                                        format!(
+                                            "Signer.address_of(copy({}))",
+                                            MovePreProcessor::CALLER_PROTECTIONS_PARAM
+                                        ),
                                         None,
                                     )),
                                     op: be.op.clone(),
@@ -512,7 +517,7 @@ impl Visitor for MovePreProcessor {
             if b_ctx.caller.is_some() {
                 declaration.head.parameters.push(Parameter {
                     identifier: Identifier {
-                        token: "caller".to_string(),
+                        token: MovePreProcessor::CALLER_PROTECTIONS_PARAM.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     },
@@ -561,7 +566,7 @@ impl Visitor for MovePreProcessor {
                 // Special declarations have no 'this' yet as it is being constructed
                 // TODO the mangling is a problem
                 Expression::Identifier(Identifier::generated(&format!(
-                    "_this_{}",
+                    "__this_{}",
                     Identifier::TYPESTATE_VAR_NAME,
                 )))
             } else {
@@ -682,17 +687,9 @@ impl Visitor for MovePreProcessor {
                     panic!("Dynamic checking of caller protections from a function with no caller protections is not currently implemented due to MoveIR constraints");
                 }
 
-                let caller_id: &str;
-
-                if let Some(caller) = &contract_ctx.caller {
-                    caller_id = &caller.token;
-                } else {
-                    caller_id = "caller";
-                }
-
                 if let Some(predicate) = generate_caller_protections_predicate(
                         &caller_protections,
-                        caller_id,
+                        MovePreProcessor::CALLER_PROTECTIONS_PARAM,
                         &contract_ctx.identifier,
                         &expr.function_call.identifier.token,
                         &_ctx,
