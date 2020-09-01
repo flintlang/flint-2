@@ -1,9 +1,4 @@
-use crate::ast::{
-    mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
-    ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
-    Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type,
-    VariableDeclaration,
-};
+use crate::ast::{mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection, ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration, Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type, VariableDeclaration, FixedSizedArrayType, ArrayType};
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::get_mutable_reference;
@@ -956,9 +951,15 @@ pub fn generate_caller_protections_predicate(
                     op: BinOp::DoubleEqual,
                     line_info: Default::default(),
                 })),
-                Type::ArrayType(array_type) => {
+                Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
+                    let array_type = match c_type {
+                        Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => *key_type,
+                        Type::ArrayType(ArrayType { key_type }) => *key_type,
+                        _ => panic!(),
+                    };
+
                     assert_eq!(
-                        *array_type.key_type,
+                        array_type,
                         Type::Address,
                         "Array values for caller protection must have type Address"
                     );
