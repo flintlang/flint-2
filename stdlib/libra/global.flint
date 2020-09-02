@@ -1,0 +1,12 @@
+
+struct Flint_Global {
+    func balanceOf(account: Address) -> Int {
+      // TODO call the move runtime function for getting the balance
+      return 0
+    }
+
+    func send(from: Address, to: Address, amount: Int) {
+      // TODO call the move runtime function for transfers
+      return
+    }
+}

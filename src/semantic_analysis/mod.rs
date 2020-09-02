@@ -195,7 +195,8 @@ impl Visitor for SemanticAnalysis {
                     // TODO check the length of the source and declaration match
                     if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
                         return if *lhs_type == *rhs_type {
-                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression {
+                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
+                            {
                                 if *size == elements.len() as u64 {
                                     Ok(())
                                 } else {

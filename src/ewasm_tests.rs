@@ -41,7 +41,7 @@ mod ewasm_tests {
             Some(caller_protections_counter),
             Some(arrays),
             Some(caller_protections_lottery),
-            Some(caller_protections_bank)
+            Some(caller_protections_bank),
         ];
         let test_info = input_file_names
             .zip(output_file_names)
@@ -643,7 +643,7 @@ mod ewasm_tests {
             // reset.call();
         }
     }
-    
+
     #[allow(unused_variables)]
     fn traffic_lights(module: &Module) {
         let engine = set_up_tests(module);

@@ -2,6 +2,7 @@ use super::currency::Currency;
 use super::Target;
 use crate::ewasm;
 use crate::ewasm::preprocessor::LLVMPreProcessor;
+use std::path::Path;
 
 pub(crate) fn currency() -> Currency {
     Currency {
@@ -16,5 +17,6 @@ pub(crate) fn target() -> Target {
         currency: currency(),
         processor: Box::new(LLVMPreProcessor {}),
         generate: ewasm::generate,
+        stdlib_path: Path::new("stdlib/libra/global.flint"),
     }
 }

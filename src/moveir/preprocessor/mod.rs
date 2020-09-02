@@ -174,6 +174,22 @@ impl Visitor for MovePreProcessor {
                 }
             })
             .collect();
+
+        if !declaration
+            .members
+            .iter()
+            .any(|member| matches!(member, StructMember::VariableDeclaration(_, _)))
+        {
+            declaration.members.push(StructMember::VariableDeclaration(
+                VariableDeclaration {
+                    declaration_token: None,
+                    identifier: Identifier::generated("__dummy_to_prevent_empty_struct__"),
+                    variable_type: Type::Bool,
+                    expression: Some(Box::from(Expression::Literal(BooleanLiteral(true)))),
+                },
+                None,
+            ));
+        }
         Ok(())
     }
 

@@ -31,6 +31,14 @@ fn main() {
     file.read_to_string(&mut program)
         .unwrap_or_else(|err| prompt::error::unable_to_read_file(&configuration.file, err));
 
+    let mut file = File::open(&configuration.target.stdlib_path).unwrap_or_else(|err| {
+        prompt::error::unable_to_open_file(&configuration.target.stdlib_path, err)
+    });
+
+    file.read_to_string(&mut program).unwrap_or_else(|err| {
+        prompt::error::unable_to_read_file(&configuration.target.stdlib_path, err)
+    });
+
     let (module, environment) =
         parser::parse_program(&program).unwrap_or_else(|err| prompt::error::parse_failed(&*err));
 
