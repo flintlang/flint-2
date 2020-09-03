@@ -801,7 +801,7 @@ pub fn mangle_function_call_name(
 
                 Some(mangle_function_move(
                     &declaration.head.identifier.token,
-                    &"Quartz_Global".to_string(),
+                    "Flint",
                     false,
                 ))
             }

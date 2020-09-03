@@ -175,6 +175,22 @@ impl Visitor for MovePreProcessor {
                 }
             })
             .collect();
+
+        if !declaration
+            .members
+            .iter()
+            .any(|member| matches!(member, StructMember::VariableDeclaration(_, _)))
+        {
+            declaration.members.push(StructMember::VariableDeclaration(
+                VariableDeclaration {
+                    declaration_token: None,
+                    identifier: Identifier::generated("__dummy_to_prevent_empty_struct__"),
+                    variable_type: Type::Bool,
+                    expression: Some(Box::from(Expression::Literal(BooleanLiteral(true)))),
+                },
+                None,
+            ));
+        }
         Ok(())
     }
 
@@ -307,7 +323,7 @@ impl Visitor for MovePreProcessor {
             );
         }
 
-        if ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global" {
+        if ctx.asset_context.is_some() && enclosing_identifier != "Flint_Global" {
             let asset_ctx = ctx.asset_context.clone();
             let asset_ctx = asset_ctx.unwrap();
             let asset_ctx_identifier = asset_ctx.identifier;
@@ -330,7 +346,7 @@ impl Visitor for MovePreProcessor {
             }
         }
 
-        if ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global" {
+        if ctx.struct_declaration_context.is_some() && enclosing_identifier != "Flint_Global" {
             let struct_ctx = ctx.struct_declaration_context.clone().unwrap();
             let struct_ctx_identifier = struct_ctx.identifier;
             let param_type = Type::UserDefinedType(struct_ctx_identifier);
@@ -862,6 +878,15 @@ impl Visitor for MovePreProcessor {
 
     fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(call) {
+            if "Flint_transfer" == call.identifier.token.as_str() {
+                // This simply changes the first argument of this function call to be the signer
+                // type rather than the address, since as of yet we are unable to access signer types apart
+                // from the caller
+                // TODO remove this once we are able to store and pass around signer types
+                call.arguments[0].expression = Expression::Identifier(Identifier::generated(
+                    MovePreProcessor::CALLER_PROTECTIONS_PARAM,
+                ));
+            }
             return Ok(());
         }
 
@@ -897,7 +922,7 @@ impl Visitor for MovePreProcessor {
             }
 
             let declared_enclosing = if is_global_function_call {
-                "Quartz_Global".to_string()
+                "Flint_Global".to_string()
             } else {
                 let receiver = receiver_trail.last().unwrap();
                 ctx.environment

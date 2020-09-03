@@ -104,7 +104,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != "Quartz_Global")
+            .filter(|s| s.identifier.token != "Flint_Global")
             .map(|s| MoveStruct {
                 struct_declaration: s,
                 environment: self.environment.clone(),

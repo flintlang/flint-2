@@ -1,8 +1,8 @@
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use crate::environment::Candidates;
 use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer};
+use crate::environment::{Candidates, Environment};
 use crate::type_checker::ExpressionChecker;
 use crate::utils::unique::Unique;
 use itertools::Itertools;
@@ -789,6 +789,11 @@ impl Visitor for SemanticAnalysis {
         call: &mut FunctionCall,
         context: &mut crate::context::Context,
     ) -> VResult {
+        // We assume runtime function calls are fine since they are only called by generated code
+        if Environment::is_runtime_function_call(call) {
+            return Ok(());
+        }
+
         let fail = |candidates: Candidates, type_id: &str| {
             if let Some(first) = candidates.candidates.first() {
                 Err(Box::from(format!(
@@ -905,6 +910,12 @@ impl Visitor for SemanticAnalysis {
     ) -> VResult {
         let function_context = context.function_declaration_context.as_ref().unwrap();
         let enclosing = context.enclosing_type_identifier().unwrap();
+
+        // This means we simply trust the standard library is written correctly TODO better way?
+        if enclosing.token.eq("Flint_Global") {
+            return Ok(());
+        }
+
         let scope = context.scope_context.as_ref().unwrap();
 
         if let Some(result) = function_context.declaration.get_result_type() {

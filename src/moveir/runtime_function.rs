@@ -65,24 +65,48 @@ impl MoveRuntimeFunction {
     }
 
     pub fn get_all_functions() -> Vec<String> {
-        vec![MoveRuntimeFunction::get_power()]
-        /* TURN OFF LIBRA
         vec![
-            MoveRuntimeFunction::get_revert_if_greater(),
-            MoveRuntimeFunction::get_array_funcs(),
+            MoveRuntimeFunction::get_power(),
             MoveRuntimeFunction::get_libra_internal(),
         ]
-        */
+    }
+
+    pub fn get_libra_internal() -> String {
+        "
+        public Flint_balanceOf(account: address): u64 {
+            return LibraAccount.balance<LBR.LBR>(move(account));
+        }
+
+        public Flint_transfer(from: &signer, other: address, amount: u64) {
+            let old_balance_sender: u64;
+            let new_balance_sender: u64;
+            let old_balance_recipient: u64;
+            let new_balance_recipient: u64;
+            let from_address: address;
+            let with_cap: LibraAccount.WithdrawCapability;
+
+            from_address = Signer.address_of(copy(from));
+
+            old_balance_sender = LibraAccount.balance<LBR.LBR>(copy(from_address));
+            old_balance_recipient = LibraAccount.balance<LBR.LBR>(copy(other));
+
+            with_cap = LibraAccount.extract_withdraw_capability(copy(from));
+            LibraAccount.pay_from<LBR.LBR>(&with_cap, copy(other), copy(amount), h\"\", h\"\");
+            LibraAccount.restore_withdraw_capability(move(with_cap));
+
+            new_balance_sender = LibraAccount.balance<LBR.LBR>(move(from_address));
+            new_balance_recipient = LibraAccount.balance<LBR.LBR>(move(other));
+
+            assert(copy(new_balance_sender) == copy(old_balance_sender) - copy(amount), 77);
+            assert(copy(new_balance_recipient) == copy(old_balance_recipient) + move(amount), 77);
+
+            return;
+        }
+        "
+        .to_string()
     }
 
     /* TURN OFF LIBRA
-      pub fn get_revert_if_greater() -> String {
-          "Quartz_RevertIfGreater(a: u64, b: u64): u64 {  \n \
-               assert(copy(a) <= move(b), 1); \n \
-               return move(a); \n }"
-              .to_string()
-      }
-
       #[allow(dead_code)]
       pub fn get_deposit() -> String {
           "Quartz_send(money: &mut Libra.Libra<LBR.LBR>, addr: address) { \n \
@@ -130,92 +154,14 @@ impl MoveRuntimeFunction {
           .to_string()
       }
 
-      pub fn get_libra_internal() -> String {
-          "Quartz_Self_Create_Libra(input: Libra.Libra<LBR.LBR>) : Self.Libra {
-              return Self.Libra_produce(move(input));
-          }
-
-          public Libra_Coin_init(zero: address): Self.Libra_Coin {
-          if (move(zero) != 0x0) {
-            assert(false, 9001);
-          }
-          return Libra_Coin {
-            coin: Libra.zero<LBR.LBR>()
-          };
-        }
-
-        public Libra_Coin_getValue(this: &mut Self.Libra_Coin): u64 {
-          let coin: &Libra.Libra<LBR.LBR>;
-          coin = &move(this).coin;
-          return Libra.value<LBR.LBR>(move(coin));
-        }
-
-        public Libra_Coin_withdraw(this: &mut Self.Libra_Coin, \
-        amount: u64): Self.Libra_Coin {
-          let coin: &mut Libra.Libra<LBR.LBR>;
-          coin = &mut move(this).coin;
-          return Libra_Coin {
-            coin: Libra.withdraw<LBR.LBR>(move(coin), move(amount))
-          };
-        }
-
-        public Libra_Coin_transfer(this: &mut Self.Libra_Coin, \
-        other: &mut Self.Libra_Coin, amount: u64) {
-          let coin: &mut Libra.Libra<LBR.LBR>;
-          let other_coin: &mut Libra.Libra<LBR.LBR>;
-          let temporary: Libra.Libra<LBR.LBR>;
-          coin = &mut move(this).coin;
-          temporary = Libra.withdraw<LBR.LBR>(move(coin), move(amount));
-          other_coin = &mut move(other).coin;
-          Libra.deposit<LBR.LBR>(move(other_coin), move(temporary));
-          return;
-        }
-        public Libra_Coin_transfer_value(this: &mut Self.Libra_Coin, other: Self.Libra) {
-          let coin: &mut Libra.Libra<LBR.LBR>;
-          let temp: Self.Libra_Coin;
-          let temporary: Libra.Libra<LBR.LBR>;
-          coin = &mut move(this).coin;
-          Libra {temp} = move(other);
-          Libra_Coin {temporary} = move(temp);
-          Libra.deposit<LBR.LBR>(move(coin), move(temporary));
-          return;
+      pub fn get_revert_if_greater() -> String {
+          "Flint$RevertIfGreater(a: u64, b: u64): u64 {  \n \
+               assert(copy(a) <= move(b), 1); \n \
+               return move(a); \n \
+           }"
+              .to_string()
       }
 
-      public Libra_Coin_send(coin: &mut Self.Libra_Coin, payee: address, amount: u64) {
-      let temporary: Libra.Libra<LBR.LBR>;
-      let coin_ref: &mut Libra.Libra<LBR.LBR>;
-      coin_ref = &mut move(coin).coin;
-      temporary = Libra.withdraw<LBR.LBR>(move(coin_ref), move(amount));
-      LibraAccount.deposit<LBR.LBR>(copy(payee), move(temporary));
-      return;
-    }
-
-      Libra_Coin_produce (input: Libra.Libra<LBR.LBR>): Self.Libra_Coin {
-          return Libra_Coin {
-              coin: move(input)
-          };
-      }
-
-      Libra_produce (input: Libra.Libra<LBR.LBR>): Self.Libra {
-      return Libra {
-        libra: Self.Libra_Coin_produce(move(input))
-      };
-    }
-
-    init (): Self.Libra {
-      return Self.Libra_init();
-    }
-
-    Quartz_Libra_send (this: &mut Self.Libra, _payee: address, _amount: u64)  {
-      let _temp__5: &mut Self.Libra_Coin;
-      _temp__5 = &mut copy(this).libra;
-      Self.Libra_Coin_send(copy(_temp__5), copy(_payee), copy(_amount));
-      _ = move(_temp__5);
-      _ = move(this);
-      return;
-    }"
-          .to_string()
-      }
       */
 }
 

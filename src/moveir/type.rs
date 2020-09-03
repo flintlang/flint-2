@@ -178,12 +178,6 @@ pub(crate) mod move_runtime_types {
             name: "Signer".to_string(),
             address: "0x1".to_string(),
         });
-        let vector = MoveIRStatement::Import(MoveIRModuleImport {
-            name: "Vector".to_string(),
-            address: "0x1".to_string(),
-        });
-        vec![signer, vector]
-        /* TURN OFF LIBRA
         let lbr = MoveIRStatement::Import(MoveIRModuleImport {
             name: "LBR".to_string(),
             address: "0x1".to_string(),
@@ -196,11 +190,6 @@ pub(crate) mod move_runtime_types {
             name: "Vector".to_string(),
             address: "0x1".to_string(),
         });
-        let libra = MoveIRStatement::Import(MoveIRModuleImport {
-            name: "Libra".to_string(),
-            address: "0x1".to_string(),
-        });
-        vec![lbr, libra_account, vector, libra]
-        */
+        vec![signer, vector, lbr, libra_account]
     }
 }
