@@ -737,7 +737,6 @@ mod ewasm_tests {
         }
     }
 
-    #[allow(unused_variables)]
     fn caller_protections_lottery(module: &Module) {
         let engine = set_up_tests(module);
 
@@ -749,14 +748,18 @@ mod ewasm_tests {
             let get_winnings: JitFunction<unsafe extern "C" fn() -> i64> = engine
                 .get_function("getWinnings")
                 .expect("Could not find getWinnings");
+            
+            let get_first: JitFunction<unsafe extern "C" fn() -> i128> = engine
+                .get_function("getFirstPerson")
+                .expect("Could not find getFirstPerson");
+
+            let get_last: JitFunction<unsafe extern "C" fn() -> i128> = engine
+                .get_function("getLastPerson")
+                .expect("Could not find getLastPerson");
 
             let first_address_is_winner: JitFunction<unsafe extern "C" fn() -> bool> = engine
                 .get_function("firstAddressIsWinner")
                 .expect("Could not find firstAddressIsWinner");
-
-            let add_person: JitFunction<VoidToVoid> = engine
-                .get_function("addPerson")
-                .expect("Could not find addPerson");
 
             let is_winner: JitFunction<unsafe extern "C" fn() -> bool> = engine
                 .get_function("isWinner")
@@ -765,7 +768,9 @@ mod ewasm_tests {
             init.call();
 
             assert_eq!(1000, get_winnings.call());
-            assert!(first_address_is_winner.call());
+            assert_eq!(0, get_first.call());
+            //assert_eq!(2, get_last.call());
+            //assert!(!first_address_is_winner.call());
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
             // so we cannot test it here TODO

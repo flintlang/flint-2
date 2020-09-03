@@ -45,6 +45,7 @@ impl<'a> LLVMAssignment<'a> {
             } else if let Expression::VariableDeclaration(dec) = self.lhs {
                 function_context.add_local(&dec.identifier.token, rhs);
             } else {
+                codegen.module.print_to_stderr();
                 panic!("variable not in scope")
             }
         } else {

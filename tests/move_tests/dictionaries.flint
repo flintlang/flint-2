@@ -1,0 +1,19 @@
+contract Dictionary {
+    var people: [Address: Address] = [0x0: 0x0, 0x1: 0x1, 0x2: 0x2]
+}
+
+Lottery :: (any) {
+    public init() {}
+
+    public func getFirstPerson() -> Address {
+        return people[0x0]
+    }
+
+    public func getSecondPerson() -> Address {
+        return people[0x1]
+    }
+
+    public func getLastPerson() -> Address {
+        return people[0x2]
+    }
+}

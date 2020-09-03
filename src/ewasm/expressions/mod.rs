@@ -6,7 +6,7 @@ mod declaration;
 mod literal;
 mod struct_access;
 
-use super::inkwell::types::{AnyType, BasicType};
+use super::inkwell::types::{AnyType, BasicType, BasicTypeEnum};
 use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
 use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
@@ -22,9 +22,10 @@ use crate::ewasm::expressions::literal::LLVMLiteral;
 use crate::ewasm::expressions::struct_access::LLVMStructAccess;
 use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMAssertion;
-use crate::ewasm::types::LLVMType;
+use crate::ewasm::types::{get_type_as_string, LLVMType};
 use crate::ewasm::utils::*;
 use inkwell::values::PointerValue;
+use inkwell::AddressSpace;
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,
@@ -102,7 +103,73 @@ impl<'a> LLVMExpression<'a> {
 
                 Some(codegen.builder.build_load(arr_ptr, "loaded_arr"))
             }
-            Expression::DictionaryLiteral(_) => unimplemented!(),
+            Expression::DictionaryLiteral(d) => {
+                let elements = d
+                    .elements
+                    .iter()
+                    .map(|(k, v)| {
+                        let key = LLVMExpression { expression: k }
+                            .generate(codegen, function_context)
+                            .unwrap();
+
+                        let value = LLVMExpression { expression: v }
+                            .generate(codegen, function_context)
+                            .unwrap();
+
+                        (key, value)
+                    })
+                    .collect::<Vec<(BasicValueEnum, BasicValueEnum)>>();
+
+                // If we have an empty dictionary we default to a empty i32, i32 dictionary
+                let (key_type, value_type) = if let Some(element) = elements.first() {
+                    (element.0.get_type(), element.1.get_type())
+                } else {
+                    (
+                        codegen.context.i32_type().as_basic_type_enum(),
+                        codegen.context.i32_type().as_basic_type_enum(),
+                    )
+                };
+
+                let struct_type = if let Some(struct_type) =
+                    codegen.module.get_struct_type(&format!(
+                        "dictionary_element_{}_{}",
+                        get_type_as_string(&key_type),
+                        get_type_as_string(&value_type)
+                    )) {
+                    struct_type
+                } else {
+                    // TODO: change to named opaque struct type and store pointer
+                    let int_type = codegen.context.i32_type().as_basic_type_enum();
+                    codegen.context.struct_type(&[int_type, int_type], false)
+                };
+
+               let arr_ptr = codegen.builder.build_alloca(
+                    struct_type
+                        .array_type(elements.len() as u32),
+                    "dict_ptr",
+                );
+
+                unsafe {
+                    let zero = codegen.context.i32_type().const_int(0, false);
+                    for (index, elem) in elements.into_iter().enumerate() {
+                        //let elem_ptr = codegen.builder.build_alloca(struct_type, "tmp_alloca");
+                        let struct_def = struct_type.const_named_struct(&[elem.0, elem.1]);
+
+                        //codegen.builder.build_store(elem_ptr, struct_def);
+
+                        let index = codegen.context.i32_type().const_int(index as u64, false);
+                        let position_ptr = codegen.builder.build_in_bounds_gep(
+                            arr_ptr,
+                            &[zero, index],
+                            "index_ptr",
+                        );
+
+                        codegen.builder.build_store(position_ptr, struct_def);
+                    }
+                }
+
+                Some(codegen.builder.build_load(arr_ptr, "loaded_arr"))
+            }
             Expression::SelfExpression => LLVMSelfExpression {}.generate(codegen, function_context),
             Expression::SubscriptExpression(s) => {
                 LLVMSubscriptExpression { expression: s }.generate(codegen, function_context)
@@ -895,16 +962,17 @@ impl<'a> LLVMSubscriptExpression<'a> {
     ) -> Option<BasicValueEnum<'ctx>> {
         let previous_requires_ptr = function_context.requires_pointer;
         function_context.requires_pointer = true;
+
         let arr_ptr = LLVMIdentifier {
             identifier: &self.expression.base_expression,
         }
         .generate(codegen, function_context)
         .unwrap();
+
         function_context.requires_pointer = previous_requires_ptr;
 
         assert!(arr_ptr.is_pointer_value());
         let arr_ptr = arr_ptr.into_pointer_value();
-        self.build_bounds_check(&arr_ptr, codegen, function_context);
 
         let index = LLVMExpression {
             expression: &*self.expression.index_expression,
@@ -912,20 +980,49 @@ impl<'a> LLVMSubscriptExpression<'a> {
         .generate(codegen, function_context)
         .unwrap();
 
-        assert!(index.is_int_value());
-        let index = index.into_int_value();
-        let zero = codegen.context.i32_type().const_int(0, false);
+        if is_dictionary(&arr_ptr, codegen) {
+            let param_type = arr_ptr.get_type();
 
-        let access = unsafe {
-            codegen
-                .builder
-                .build_in_bounds_gep(arr_ptr, &[zero, index], "accessed")
-        };
+            let field_types = param_type
+                .get_element_type()
+                .into_array_type()
+                .get_element_type()
+                .into_struct_type()
+                .get_field_types();
+        
+            let key_type = field_types.get(0).unwrap();
+            let value_type = field_types.get(1).unwrap();
 
-        if function_context.requires_pointer {
-            Some(access.as_basic_value_enum())
+            let get_func = if let Some(func) = codegen.module.get_function(&format!("_get_{}_{}", get_type_as_string(key_type), get_type_as_string(value_type))) {
+                func
+            } else {
+                add_get_runtime_function(&arr_ptr, &index, codegen, function_context, key_type, value_type);
+                let get_func = function_context.get_current_func();
+                let block = get_func.get_last_basic_block().unwrap();
+                codegen.builder.position_at_end(block);
+                codegen.module.get_function(&format!("_get_{}_{}", get_type_as_string(key_type), get_type_as_string(value_type))).unwrap()
+            };
+            
+            let value = codegen.builder.build_call(get_func, &[arr_ptr.as_basic_value_enum(), index.as_basic_value_enum()], "call").try_as_basic_value().left().unwrap();
+            Some(value)
         } else {
-            Some(codegen.builder.build_load(access, "loaded"))
+            self.build_bounds_check(&arr_ptr, codegen, function_context);
+
+            assert!(index.is_int_value());
+            let index = index.into_int_value();
+            let zero = codegen.context.i32_type().const_int(0, false);
+
+            let access = unsafe {
+                codegen
+                    .builder
+                    .build_in_bounds_gep(arr_ptr, &[zero, index], "accessed")
+            };
+
+            if function_context.requires_pointer {
+                Some(access.as_basic_value_enum())
+            } else {
+                Some(codegen.builder.build_load(access, "loaded"))
+            }
         }
     }
 
@@ -975,6 +1072,147 @@ impl<'a> LLVMSubscriptExpression<'a> {
         }
         .generate(codegen, function_context);
     }
+}
+
+fn is_dictionary(arr_ptr: &PointerValue, codegen: &Codegen) -> bool {
+    let element_type = arr_ptr
+        .get_type()
+        .get_element_type()
+        .into_array_type()
+        .get_element_type();
+
+    if element_type.is_struct_type() {
+        let element_type = element_type.into_struct_type();
+        return element_type
+            .print_to_string()
+            .to_string()
+            .contains("dictionary_element");
+    }
+
+    false
+}
+
+fn add_get_runtime_function<'ctx>(
+    arr_ptr: &PointerValue<'ctx>,
+    index: &BasicValueEnum<'ctx>,
+    codegen: &Codegen<'_, 'ctx>,
+    function_context: &FunctionContext,
+    key_type: &BasicTypeEnum<'ctx>,
+    value_type: &BasicTypeEnum<'ctx>
+) {
+    arr_ptr.set_name("dictionary");
+    index.set_name("index");
+    let first_param_type = arr_ptr.get_type();
+    let second_param_type = index.get_type();
+    let func_type = value_type.fn_type(&[first_param_type.as_basic_type_enum(), second_param_type.as_basic_type_enum()], false);
+    let get_func = codegen.module.add_function(&format!("_get_{}_{}", get_type_as_string(key_type), get_type_as_string(value_type)), func_type, None);
+    
+    let params = get_func.get_params();
+    let index_param = params.get(1).unwrap();
+    params.get(0).unwrap().set_name("dictionary");
+    params.get(1).unwrap().set_name("index");
+
+    let bb = codegen.context.append_basic_block(get_func, "entry");
+    
+    codegen.builder.position_at_end(bb);
+
+    let array_len = arr_ptr
+        .get_type()
+        .get_element_type()
+        .into_array_type()
+        .len();
+
+    // TODO: make array len into pointer
+    let array_len = codegen.context.i64_type().const_int(array_len.into(), false);
+    let i_ptr = codegen
+        .builder
+        .build_alloca(codegen.context.i64_type().as_basic_type_enum(), "i_ptr");
+
+    codegen.builder
+        .build_store(i_ptr, codegen.context.i64_type().const_int(0, false));
+
+    let dict_ptr = get_func.get_params()[0].into_pointer_value();
+    let loop_bb = codegen.context.append_basic_block(get_func, "loop");
+    let then_bb = codegen.context.append_basic_block(get_func, "then");
+    let else_bb = codegen.context.append_basic_block(get_func, "else");
+    let check_cond_bb = codegen.context.append_basic_block(get_func, "check_cond");
+    let end_bb = codegen.context.append_basic_block(get_func, "end");
+    
+    codegen.builder.build_unconditional_branch(check_cond_bb);
+    codegen.builder.position_at_end(loop_bb);
+
+    let zero = codegen.context.i32_type().const_int(0, false);
+    let i = codegen.builder.build_load(i_ptr, "i").into_int_value();
+    let access = unsafe {
+        codegen
+            .builder
+            .build_in_bounds_gep(*arr_ptr, &[zero, i], "accessed")
+    };
+
+    assert!(access.get_type().get_element_type().is_struct_type());
+    let element = codegen.builder.build_load(access, "accessed_element");
+    let element_ptr = codegen.builder.build_alloca(element.get_type(), "elem_ptr");
+    let key = codegen.builder.build_struct_gep(element_ptr, 0, "key_ptr").unwrap();
+    let key = codegen.builder.build_load(key, "key");
+
+    if !index.is_int_value() {
+        // TODO: is this true?
+        panic!("Dictionaries can only be implemented for int values due to LLVM constraints");
+    }
+
+    let is_equal = codegen.builder.build_int_compare(
+        IntPredicate::EQ,
+        key.into_int_value(),
+        index_param.into_int_value(),
+        "tmpeq",
+    );
+    codegen
+        .builder
+        .build_conditional_branch(is_equal, then_bb, else_bb);
+    codegen.builder.position_at_end(then_bb);
+    
+    let value = codegen.builder.build_struct_gep(element_ptr, 1, "value_ptr").unwrap();
+    let value = codegen.builder.build_load(value, "result");
+    codegen.builder.build_return(Some(&value));
+    codegen.builder.position_at_end(else_bb);
+
+    let add = codegen.builder.build_int_add(
+        i,
+        codegen.context.i64_type().const_int(1, false),
+        "new_count",
+    );
+
+    codegen.builder.build_store(i_ptr, add.as_basic_value_enum());
+    codegen.builder.build_unconditional_branch(check_cond_bb);
+    codegen.builder.position_at_end(check_cond_bb);
+
+    let i_loaded = codegen.builder.build_load(i_ptr, "count_load");
+    let cond = codegen.builder.build_int_compare(
+        IntPredicate::ULT,
+        i_loaded.into_int_value(),
+        array_len,
+        "cond",
+    );
+
+    codegen.builder.build_conditional_branch(cond, loop_bb, end_bb);
+    codegen.builder.position_at_end(end_bb);
+    // TODO: change to revert
+    let revert_function = codegen
+            .module
+            .get_function("revert")
+            .expect("Could not find revert function");
+
+    // TODO fill program return info with something meaningful
+    let zero = codegen.context.i32_type().const_int(0, false);
+    let ptr = codegen.builder.build_alloca(zero.get_type(), "mem_ptr");
+    codegen.builder.build_store(ptr, zero);
+
+    codegen.builder.build_call(
+        revert_function,
+        &[ptr.as_basic_value_enum(), zero.as_basic_value_enum()],
+        "halt",
+    );
+    codegen.builder.build_unreachable();
 }
 
 struct LLVMCastExpression<'a> {

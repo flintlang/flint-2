@@ -2,6 +2,7 @@ use super::inkwell::types::BasicTypeEnum;
 use super::inkwell::values::BasicValue;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::Identifier;
+use crate::ast::types::{DictionaryType, Type};
 use crate::ast::{
     AssetDeclaration, CallerProtection, ContractBehaviourDeclaration, ContractBehaviourMember,
     ContractDeclaration, ContractMember, SpecialDeclaration, StructDeclaration, StructMember,
@@ -40,9 +41,10 @@ impl<'a> LLVMContract<'a> {
             .iter()
             .filter_map(|m| {
                 if let ContractMember::VariableDeclaration(v, _) = m {
-                    if !v.variable_type.is_dictionary_type() {
-                        return Some(v);
+                    if let Type::DictionaryType(t) = &v.variable_type {
+                        self.generate_dictionary_code(&t, codegen);
                     }
+                    return Some(v);
                 }
                 None
             })
@@ -197,4 +199,6 @@ impl<'a> LLVMContract<'a> {
             });
         // TODO Asset declarations?
     }
+
+    fn generate_dictionary_code(&self, dict_type: &DictionaryType, codegen: &Codegen) {}
 }

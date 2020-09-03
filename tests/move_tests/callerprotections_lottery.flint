@@ -1,12 +1,20 @@
 contract Lottery {
     var winnings: Int = 1000
-    var players: Address[3] = [0x0, 0x1, 0x2]
-    //var people: [Address: Address] = [0x0: 0x0, 0x1: 0x1, 0x2: 0x2] Remove until dictionaries implemented
+    var players: Address[3] = [0x3, 0x4, 0x5]
+    var people: [Address: Address] = [0x0: 0x0, 0x1: 0x1, 0x2: 0x2]
     var manager: Address = 0x1
 }
 
 Lottery :: (any) {
     public init() {}
+
+    public func getFirstPerson() -> Address {
+        return people[0x0]
+    }
+
+    public func getLastPerson() -> Address {
+        return people[0x2]
+    }
 }
 
 Lottery :: (winner, manager) {
@@ -19,13 +27,9 @@ Lottery :: (winner, manager) {
     }
 }
 
-Lottery :: (players) { //, people) {
+Lottery :: (players, people) {
     public func firstAddressIsWinner() -> Bool{
-        return true //people[0x0] == 0x2
-    }
-
-    public func addPerson() { //mutates (people) {
-        //people[0x3] = 0x3
+        return people[0x1] == 0x2
     }
 }
 
