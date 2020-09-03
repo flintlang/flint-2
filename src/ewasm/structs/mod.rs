@@ -1,12 +1,15 @@
 pub mod utils;
 
 use crate::ast::declarations::FunctionDeclaration;
+use crate::ast::expressions::Expression::DictionaryLiteral;
+use crate::ast::types::Type;
 use crate::ast::{SpecialDeclaration, StructDeclaration, StructMember, VariableDeclaration};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::{generate_function_type, LLVMFunction};
 use crate::ewasm::inkwell::types::BasicTypeEnum;
 use crate::ewasm::structs::utils::generate_initialiser;
-use crate::ewasm::types::LLVMType;
+use crate::ewasm::types::{llvm_dictionary, LLVMType};
+use std::convert::TryInto;
 
 pub struct LLVMStruct<'a> {
     pub struct_declaration: &'a StructDeclaration,
@@ -85,6 +88,15 @@ pub fn create_type(struct_declaration: &StructDeclaration, codegen: &mut Codegen
     let field_types = &fields
         .iter()
         .map(|dec| {
+            if let Type::DictionaryType(dict_type) = &dec.variable_type {
+                if dec.expression.is_some() {
+                    if let DictionaryLiteral(dict) = &**dec.expression.as_ref().unwrap() {
+                        let dict_size = dict.elements.len().try_into().unwrap();
+                        return llvm_dictionary(&dict_type, dict_size, codegen);
+                    }
+                }
+            }
+
             LLVMType {
                 ast_type: &dec.variable_type,
             }

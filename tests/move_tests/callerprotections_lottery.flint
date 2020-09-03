@@ -40,6 +40,10 @@ Lottery :: (players, people) {
     public func firstAddressIsWinner() -> Bool{
         return people[0x1] == 0x2
     }
+
+    public func changeAddress() mutates (people) {
+        people[0x2] = 0x3
+    }
 }
 
 Lottery :: (lucky) {
