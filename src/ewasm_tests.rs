@@ -753,9 +753,17 @@ mod ewasm_tests {
                 .get_function("getFirstPerson")
                 .expect("Could not find getFirstPerson");
 
+            let get_second: JitFunction<unsafe extern "C" fn() -> i128> = engine
+                .get_function("getSecondPerson")
+                .expect("Could not find getSecondPerson");
+
             let get_last: JitFunction<unsafe extern "C" fn() -> i128> = engine
                 .get_function("getLastPerson")
                 .expect("Could not find getLastPerson");
+
+            let out_of_bounds: JitFunction<unsafe extern "C" fn() -> i128> = engine
+                .get_function("outOfBounds")
+                .expect("Could not find outOfBounds");
 
             let first_address_is_winner: JitFunction<unsafe extern "C" fn() -> bool> = engine
                 .get_function("firstAddressIsWinner")
@@ -769,8 +777,13 @@ mod ewasm_tests {
 
             assert_eq!(1000, get_winnings.call());
             assert_eq!(0, get_first.call());
-            //assert_eq!(2, get_last.call());
-            //assert!(!first_address_is_winner.call());
+            assert_eq!(1, get_second.call());
+            assert_eq!(2, get_last.call());
+            assert_eq!(1, get_second.call());
+            assert!(!first_address_is_winner.call());
+            // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
+            // so we cannot test it here TODO
+            // out_of_bounds.call();
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
             // so we cannot test it here TODO

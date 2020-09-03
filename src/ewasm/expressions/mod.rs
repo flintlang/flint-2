@@ -1152,6 +1152,7 @@ fn add_get_runtime_function<'ctx>(
     assert!(access.get_type().get_element_type().is_struct_type());
     let element = codegen.builder.build_load(access, "accessed_element");
     let element_ptr = codegen.builder.build_alloca(element.get_type(), "elem_ptr");
+    codegen.builder.build_store(element_ptr, element);
     let key = codegen.builder.build_struct_gep(element_ptr, 0, "key_ptr").unwrap();
     let key = codegen.builder.build_load(key, "key");
 
@@ -1179,7 +1180,7 @@ fn add_get_runtime_function<'ctx>(
     let add = codegen.builder.build_int_add(
         i,
         codegen.context.i64_type().const_int(1, false),
-        "new_count",
+        "new_i",
     );
 
     codegen.builder.build_store(i_ptr, add.as_basic_value_enum());

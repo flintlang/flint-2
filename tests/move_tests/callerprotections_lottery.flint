@@ -1,6 +1,6 @@
 contract Lottery {
     var winnings: Int = 1000
-    var players: Address[3] = [0x3, 0x4, 0x5]
+    var players: Address[3] = [0x1, 0x2, 0x3]
     var people: [Address: Address] = [0x0: 0x0, 0x1: 0x1, 0x2: 0x2]
     var manager: Address = 0x1
 }
@@ -12,8 +12,17 @@ Lottery :: (any) {
         return people[0x0]
     }
 
+    public func getSecondPerson() -> Address {
+        return people[0x1]
+    }
+
     public func getLastPerson() -> Address {
         return people[0x2]
+    }
+
+    // should revert
+    public func outOfBounds() -> Address {
+        return people[0x3]
     }
 }
 
