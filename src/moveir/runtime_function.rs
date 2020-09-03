@@ -71,7 +71,6 @@ impl MoveRuntimeFunction {
         ]
     }
 
-
     pub fn get_libra_internal() -> String {
         "
         public Flint_balanceOf(account: address): u64 {

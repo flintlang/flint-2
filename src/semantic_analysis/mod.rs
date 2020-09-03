@@ -1,8 +1,8 @@
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use crate::environment::{Candidates, Environment};
 use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer};
+use crate::environment::{Candidates, Environment};
 use crate::type_checker::ExpressionChecker;
 use crate::utils::unique::Unique;
 use itertools::Itertools;
@@ -909,7 +909,7 @@ impl Visitor for SemanticAnalysis {
 
         // This means we simply trust the standard library is written correctly TODO better way?
         if enclosing.token.eq("Flint_Global") {
-            return Ok(())
+            return Ok(());
         }
 
         let scope = context.scope_context.as_ref().unwrap();

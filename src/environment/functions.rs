@@ -234,7 +234,7 @@ impl Environment {
                         && self.compatible_caller_protections(
                         protections,
                         &function.caller_protections,
-                        )
+                    )
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
                     } else {
