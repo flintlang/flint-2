@@ -453,13 +453,11 @@ impl MoveBinaryExpression {
     }
 }
 
-pub fn is_signer_type(
-    expression: &Expression,
-    function_context: &FunctionContext,
-) -> bool {
+pub fn is_signer_type(expression: &Expression, function_context: &FunctionContext) -> bool {
     if let Expression::Identifier(id) = expression {
         if let Some(identifier_type) = function_context.scope_context.type_for(&id.token) {
-            return identifier_type == Type::UserDefinedType(Identifier {
+            return identifier_type
+                == Type::UserDefinedType(Identifier {
                 token: "&signer".to_string(),
                 enclosing_type: None,
                 line_info: Default::default(),

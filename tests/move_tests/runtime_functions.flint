@@ -1,0 +1,13 @@
+contract Money {}
+
+Money :: caller <- (any) {
+  public init() {}
+
+  public func balance() -> Int {
+    return Flint_balanceOf(caller)
+  }
+
+  public func payZero() {
+    Flint_transfer(caller, 0x0, 10)
+  }
+}

@@ -1,4 +1,9 @@
-use crate::ast::{mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection, ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration, Identifier, InoutExpression, InoutType, Parameter, ReturnStatement, Statement, Type, VariableDeclaration, FixedSizedArrayType, ArrayType};
+use crate::ast::{
+    mangle_function_move, ArrayType, Assertion, BinOp, BinaryExpression, CallerProtection,
+    ContractBehaviourDeclaration, Expression, FixedSizedArrayType, FunctionArgument, FunctionCall,
+    FunctionDeclaration, Identifier, InoutExpression, InoutType, Parameter, ReturnStatement,
+    Statement, Type, VariableDeclaration,
+};
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
 use crate::moveir::preprocessor::{get_mutable_reference, MovePreProcessor};
@@ -796,7 +801,7 @@ pub fn mangle_function_call_name(
 
                 Some(mangle_function_move(
                     &declaration.head.identifier.token,
-                    &"Quartz_Global".to_string(),
+                    "Flint",
                     false,
                 ))
             }
@@ -953,7 +958,9 @@ pub fn generate_caller_protections_predicate(
                 })),
                 Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
                     let array_type = match c_type {
-                        Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => *key_type,
+                        Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => {
+                            *key_type
+                        }
                         Type::ArrayType(ArrayType { key_type }) => *key_type,
                         _ => panic!(),
                     };

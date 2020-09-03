@@ -255,8 +255,7 @@ fn remove_move(statement: &Statement, expression: &MoveIRExpression) -> Option<M
                 MoveIRExpression::Transfer(transfer) => {
                     if let MoveIRTransfer::Copy(identifier) = transfer {
                         if let MoveIRExpression::Identifier(id) = &**identifier {
-                            if id == &variable.token
-                                || (variable.token == "self" && *id == "this")
+                            if id == &variable.token || (variable.token == "self" && *id == "this")
                             {
                                 return Some(MoveIRExpression::Transfer(MoveIRTransfer::Move(
                                     Box::new(MoveIRExpression::Identifier(id.to_string())),

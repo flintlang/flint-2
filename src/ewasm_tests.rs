@@ -644,7 +644,7 @@ mod ewasm_tests {
             // reset.call();
         }
     }
-    
+
     #[allow(unused_variables)]
     fn traffic_lights(module: &Module) {
         let engine = set_up_tests(module);
@@ -802,7 +802,7 @@ mod ewasm_tests {
             let try_bang: JitFunction<unsafe extern "C" fn(i64)> =
                 engine.get_function("tryBang").expect("Could not find tryBang");
 
-            
+
             let try_question: JitFunction<unsafe extern "C" fn(i64) -> bool> =
                 engine.get_function("tryQuestion").expect("Could not find tryQuestion");
 

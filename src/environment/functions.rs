@@ -223,7 +223,7 @@ impl Environment {
     ) -> FunctionCallMatchResult {
         let token = call.identifier.token.clone();
         let mut candidates = Vec::new();
-        if let Some(type_info) = self.types.get(&"Quartz_Global".to_string()) {
+        if let Some(type_info) = self.types.get("Flint_Global") {
             if let Some(functions) = type_info.functions.get(&call.identifier.token) {
                 for function in functions {
                     let parameter_types: Vec<_> = function.get_parameter_types().collect();
@@ -232,9 +232,9 @@ impl Environment {
                         .all(|argument_type| parameter_types.contains(&argument_type));
                     if equal_types
                         && self.compatible_caller_protections(
-                            protections,
-                            &function.caller_protections,
-                        )
+                        protections,
+                        &function.caller_protections,
+                    )
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
                     } else {
@@ -266,7 +266,7 @@ impl Environment {
     }
 
     pub fn is_runtime_function_call(function_call: &FunctionCall) -> bool {
-        function_call.identifier.token.starts_with("Quartz_")
+        function_call.identifier.token.starts_with("Flint_")
     }
 
     pub fn match_function_call(

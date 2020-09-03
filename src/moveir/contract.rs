@@ -13,7 +13,12 @@ use super::r#type::{move_runtime_types, MoveType};
 use super::runtime_function::MoveRuntimeFunction;
 use super::statement::MoveStatement;
 use super::MovePosition;
-use crate::ast::{mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration, ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type, VariableDeclaration, FixedSizedArrayType, ArrayType};
+use crate::ast::{
+    mangle_dictionary, ArrayType, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
+    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, FixedSizedArrayType,
+    Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type,
+    VariableDeclaration,
+};
 use crate::context::ScopeContext;
 use crate::environment::Environment;
 use crate::moveir::identifier::MoveSelf;
@@ -99,7 +104,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != "Quartz_Global")
+            .filter(|s| s.identifier.token != "Flint_Global")
             .map(|s| MoveStruct {
                 struct_declaration: s,
                 environment: self.environment.clone(),
@@ -296,7 +301,9 @@ impl MoveContract {
                         })
                         .collect();
 
-                    if let Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) | Type::ArrayType(ArrayType { key_type }) = &property.variable_type {
+                    if let Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. })
+                    | Type::ArrayType(ArrayType { key_type }) = &property.variable_type
+                    {
                         let array_type = MoveType::move_type(*key_type.clone(), None)
                             .generate(&function_context);
 
