@@ -52,19 +52,6 @@ pub struct ContractDeclaration {
 }
 
 impl ContractDeclaration {
-    #[allow(dead_code)]
-    pub fn contract_enum_prefix() -> String {
-        "QuartzStateEnum$".to_string()
-    }
-
-    #[allow(dead_code)]
-    pub fn get_variable_declarations(&self) -> impl Iterator<Item = &VariableDeclaration> {
-        self.contract_members.iter().filter_map(|c| match c {
-            ContractMember::VariableDeclaration(v, _) => Some(v),
-            ContractMember::EventDeclaration(_) => None,
-        })
-    }
-
     pub fn get_variable_declarations_without_dict(
         &self,
     ) -> impl Iterator<Item = &VariableDeclaration> {

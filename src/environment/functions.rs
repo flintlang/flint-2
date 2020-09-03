@@ -266,7 +266,7 @@ impl Environment {
     }
 
     pub fn is_runtime_function_call(function_call: &FunctionCall) -> bool {
-        function_call.identifier.token.starts_with("Quartz_")
+        function_call.identifier.token.starts_with("Flint_")
     }
 
     pub fn match_function_call(

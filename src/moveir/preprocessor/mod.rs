@@ -322,7 +322,7 @@ impl Visitor for MovePreProcessor {
             );
         }
 
-        if ctx.asset_context.is_some() && enclosing_identifier != "Quartz$Global" {
+        if ctx.asset_context.is_some() && enclosing_identifier != "Quartz_Global" {
             let asset_ctx = ctx.asset_context.clone();
             let asset_ctx = asset_ctx.unwrap();
             let asset_ctx_identifier = asset_ctx.identifier;
