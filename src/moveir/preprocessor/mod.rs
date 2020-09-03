@@ -322,7 +322,7 @@ impl Visitor for MovePreProcessor {
             );
         }
 
-        if ctx.asset_context.is_some() && enclosing_identifier != "Quartz_Global" {
+        if ctx.asset_context.is_some() && enclosing_identifier != "Flint_Global" {
             let asset_ctx = ctx.asset_context.clone();
             let asset_ctx = asset_ctx.unwrap();
             let asset_ctx_identifier = asset_ctx.identifier;
@@ -345,7 +345,7 @@ impl Visitor for MovePreProcessor {
             }
         }
 
-        if ctx.struct_declaration_context.is_some() && enclosing_identifier != "Quartz_Global" {
+        if ctx.struct_declaration_context.is_some() && enclosing_identifier != "Flint_Global" {
             let struct_ctx = ctx.struct_declaration_context.clone().unwrap();
             let struct_ctx_identifier = struct_ctx.identifier;
             let param_type = Type::UserDefinedType(struct_ctx_identifier);
@@ -914,7 +914,7 @@ impl Visitor for MovePreProcessor {
             }
 
             let declared_enclosing = if is_global_function_call {
-                "Quartz_Global".to_string()
+                "Flint_Global".to_string()
             } else {
                 let receiver = receiver_trail.last().unwrap();
                 ctx.environment

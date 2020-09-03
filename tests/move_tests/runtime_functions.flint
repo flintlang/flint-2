@@ -4,6 +4,6 @@ Money :: caller <- (any) {
   public init() {}
 
   public func balance() -> Int {
-    return balanceOf(caller)
+    return Flint_balanceOf(caller)
   }
 }
