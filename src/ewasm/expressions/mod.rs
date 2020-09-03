@@ -971,6 +971,11 @@ impl<'a> LLVMSubscriptExpression<'a> {
 
         assert!(arr_ptr.is_pointer_value());
         let arr_ptr = arr_ptr.into_pointer_value();
+        let array_len = arr_ptr
+            .get_type()
+            .get_element_type()
+            .into_array_type()
+            .len();
 
         let index = LLVMExpression {
             expression: &*self.expression.index_expression,
@@ -992,20 +997,23 @@ impl<'a> LLVMSubscriptExpression<'a> {
             let value_type = field_types.get(1).unwrap();
 
             let get_func = if let Some(func) = codegen.module.get_function(&format!(
-                "_get_{}_{}",
+                "_get_{}_{}_{}",
+                array_len,
                 get_type_as_string(key_type),
                 get_type_as_string(value_type)
             )) {
                 func
             } else {
                 add_get_runtime_function(&arr_ptr, &index, codegen, key_type, value_type);
+
                 let get_func = function_context.get_current_func();
                 let block = get_func.get_last_basic_block().unwrap();
                 codegen.builder.position_at_end(block);
                 codegen
                     .module
                     .get_function(&format!(
-                        "_get_{}_{}",
+                        "_get_{}_{}_{}",
+                        array_len,
                         get_type_as_string(key_type),
                         get_type_as_string(value_type)
                     ))
@@ -1125,6 +1133,12 @@ fn add_get_runtime_function<'ctx>(
     key_type: &BasicTypeEnum<'ctx>,
     value_type: &BasicTypeEnum<'ctx>,
 ) {
+    let array_len = arr_ptr
+        .get_type()
+        .get_element_type()
+        .into_array_type()
+        .len();
+
     arr_ptr.set_name("dictionary");
     index.set_name("index");
 
@@ -1139,7 +1153,8 @@ fn add_get_runtime_function<'ctx>(
     );
     let get_func = codegen.module.add_function(
         &format!(
-            "_get_{}_{}",
+            "_get_{}_{}_{}",
+            array_len,
             get_type_as_string(key_type),
             get_type_as_string(value_type)
         ),
@@ -1156,13 +1171,6 @@ fn add_get_runtime_function<'ctx>(
 
     codegen.builder.position_at_end(bb);
 
-    let array_len = arr_ptr
-        .get_type()
-        .get_element_type()
-        .into_array_type()
-        .len();
-
-    // TODO: find a way to generate the array len during runtime
     let array_len = codegen
         .context
         .i64_type()
