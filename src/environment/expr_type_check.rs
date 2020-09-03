@@ -325,6 +325,7 @@ impl Environment {
                 Type::Error
             }
             FunctionCallMatchResult::MatchedInitializer(_) => Type::UserDefinedType(identifier),
+            FunctionCallMatchResult::MatchedGlobalFunction(info) => info.get_result_type().unwrap_or(&Type::Error).clone(),
             _ => Type::Error,
         }
     }

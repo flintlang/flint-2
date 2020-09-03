@@ -1,0 +1,9 @@
+contract Money {}
+
+Money :: caller <- (any) {
+  public init() {}
+
+  public func balance() -> Int {
+    return balanceOf(caller)
+  }
+}
