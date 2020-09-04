@@ -1,0 +1,16 @@
+contract A {
+  //! compile fail line 3
+  visible var b: B = B()
+  public var b: B = B()
+  var b: B = B()
+  var c: Int = 0
+}
+
+A :: (any) {
+  public init() {}
+}
+
+struct B {
+  var x: Int = 0
+  var y: Int = 1
+}

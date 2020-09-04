@@ -42,6 +42,37 @@ impl Visitor for SemanticAnalysis {
         {
             return Err(Box::from("Conflicting traits".to_owned()));
         }
+
+        let non_private_dynamic_fields = declaration
+            .contract_members
+            .iter()
+            .filter_map(|dec| {
+                if let ContractMember::VariableDeclaration(dec, Some(_)) = dec {
+                    if dec.variable_type.is_dynamic_type() {
+                        return Some(dec);
+                    }
+                }
+                None
+            })
+            .collect::<Vec<&VariableDeclaration>>();
+
+        if !non_private_dynamic_fields.is_empty() {
+            let error_msg = non_private_dynamic_fields
+                .iter()
+                .map(|field| {
+                    format!(
+                        "Dynamic typed variable must be private: variable {} of type {} on {}\n",
+                        field.identifier.token.as_str(),
+                        field.variable_type,
+                        field.identifier.line_info
+                    )
+                })
+                .collect::<Vec<String>>()
+                .concat();
+
+            return Err(Box::from(error_msg));
+        }
+
         Ok(())
     }
 
