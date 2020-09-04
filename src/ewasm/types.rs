@@ -1,5 +1,6 @@
 use super::inkwell::types::{BasicType, BasicTypeEnum};
 use super::inkwell::AddressSpace;
+use crate::ast::types::DictionaryType;
 use crate::ast::{FixedSizedArrayType, InoutType, Type};
 use crate::ewasm::Codegen;
 
@@ -16,7 +17,7 @@ impl<'a> LLVMType<'a> {
             Type::ArrayType(_) => unimplemented!(), // TODO implement dynamic arrays, perhaps with a pointer to an array, which is dynamically adjusted with runtime functions
             Type::RangeType(_) => unimplemented!(),
             Type::FixedSizedArrayType(fixed_arr_type) => self.llvm_array(fixed_arr_type, codegen),
-            Type::DictionaryType(_) => unimplemented!(),
+            Type::DictionaryType(dict_type) => llvm_dictionary(dict_type, 0, codegen),
             Type::UserDefinedType(definition) => {
                 self.extract_defined_type(definition.token.as_str(), codegen)
             }
@@ -70,4 +71,44 @@ impl<'a> LLVMType<'a> {
             .insert(type_name.to_string(), (vec![], struct_value));
         struct_value.as_basic_type_enum()
     }
+}
+
+// TODO: move to utils?
+pub fn get_type_as_string(element_type: &BasicTypeEnum) -> String {
+    match element_type {
+        BasicTypeEnum::ArrayType(_) => unimplemented!(),
+        BasicTypeEnum::FloatType(_) => panic!("Flint does not support float types"),
+        BasicTypeEnum::IntType(i) => i.print_to_string().to_string(),
+        BasicTypeEnum::PointerType(_) => unimplemented!(),
+        BasicTypeEnum::StructType(_) => unimplemented!(),
+        BasicTypeEnum::VectorType(_) => unimplemented!(),
+    }
+}
+
+pub fn llvm_dictionary<'ctx>(
+    dict_type: &DictionaryType,
+    dict_size: u32,
+    codegen: &mut Codegen<'_, 'ctx>,
+) -> BasicTypeEnum<'ctx> {
+    let key_type = LLVMType {
+        ast_type: &dict_type.key_type,
+    }
+    .generate(codegen);
+    let value_type = LLVMType {
+        ast_type: &dict_type.value_type,
+    }
+    .generate(codegen);
+    let struct_name = format!(
+        "dictionary_element_{}_{}",
+        get_type_as_string(&key_type),
+        get_type_as_string(&value_type)
+    );
+    let struct_type = codegen.context.opaque_struct_type(&struct_name);
+    struct_type.set_body(&[key_type, value_type], false);
+
+    let struct_info = (vec!["key".to_string(), "value".to_string()], struct_type);
+    codegen.types.insert(struct_name.to_string(), struct_info);
+
+    // TODO: find a way of getting the dictionary literal length
+    BasicTypeEnum::ArrayType(struct_type.array_type(dict_size))
 }

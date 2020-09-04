@@ -1,7 +1,8 @@
 use super::inkwell::types::BasicTypeEnum;
 use super::inkwell::values::BasicValue;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
-use crate::ast::expressions::Identifier;
+use crate::ast::expressions::{Expression::DictionaryLiteral, Identifier};
+use crate::ast::types::Type;
 use crate::ast::{
     AssetDeclaration, CallerProtection, ContractBehaviourDeclaration, ContractBehaviourMember,
     ContractDeclaration, ContractMember, SpecialDeclaration, StructDeclaration, StructMember,
@@ -12,7 +13,9 @@ use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::{generate_function_type, LLVMFunction};
 use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generate_initialiser};
 use crate::ewasm::structs::{create_type, LLVMStruct};
+use crate::ewasm::types::llvm_dictionary;
 use crate::ewasm::types::LLVMType;
+use std::convert::TryInto;
 
 pub struct LLVMContract<'a> {
     pub contract_declaration: &'a ContractDeclaration,
@@ -40,9 +43,7 @@ impl<'a> LLVMContract<'a> {
             .iter()
             .filter_map(|m| {
                 if let ContractMember::VariableDeclaration(v, _) = m {
-                    if !v.variable_type.is_dictionary_type() {
-                        return Some(v);
-                    }
+                    return Some(v);
                 }
                 None
             })
@@ -56,6 +57,15 @@ impl<'a> LLVMContract<'a> {
         let member_types = &members
             .iter()
             .map(|member| {
+                // TODO: where else do we need this check?
+                if let Type::DictionaryType(dict_type) = &member.variable_type {
+                    if member.expression.is_some() {
+                        if let DictionaryLiteral(dict) = &**member.expression.as_ref().unwrap() {
+                            let dict_size = dict.elements.len().try_into().unwrap();
+                            return llvm_dictionary(&dict_type, dict_size, codegen);
+                        }
+                    }
+                }
                 LLVMType {
                     ast_type: &member.variable_type,
                 }

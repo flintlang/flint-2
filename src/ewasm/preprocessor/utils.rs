@@ -249,7 +249,47 @@ pub fn generate_caller_protections_predicate(
                         panic!("Could not find declaration for caller protection {:?}", c)
                     }
                 }
-                Type::DictionaryType(_) => None,
+                Type::DictionaryType(dict_type) => {
+                    assert_eq!(
+                        *dict_type.value_type,
+                        Type::Address,
+                        "Dictionary values for caller protection must have type Address"
+                    );
+                    if let Some(property) = ctx.environment.get_caller_protection(&c) {
+                        if let Some(Expression::DictionaryLiteral(dict)) =
+                            property.property.get_value()
+                        {
+                            let predicate = dict
+                                .elements
+                                .iter()
+                                .cloned()
+                                .map(|(_, v)| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(v),
+                                        rhs_expression: Box::new(Expression::Identifier(
+                                            Identifier::generated(caller_id),
+                                        )),
+                                        op: BinOp::DoubleEqual,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .fold1(|left, right| {
+                                    Expression::BinaryExpression(BinaryExpression {
+                                        lhs_expression: Box::new(left),
+                                        rhs_expression: Box::new(right),
+                                        op: BinOp::Or,
+                                        line_info: Default::default(),
+                                    })
+                                })
+                                .unwrap();
+                            Some(predicate)
+                        } else {
+                            panic!("Mismatching types for {:?}", c)
+                        }
+                    } else {
+                        panic!("{:?} not found in caller protections", c)
+                    }
+                }
                 _ => {
                     let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&contract_id);
                     if let Some(types) = ctx.environment.types.get(enclosing_type) {
