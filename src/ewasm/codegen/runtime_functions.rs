@@ -3,12 +3,14 @@ use super::super::inkwell::{AddressSpace, IntPredicate};
 use crate::ewasm::codegen::Codegen;
 use inkwell::types::BasicType;
 use inkwell::values::BasicValueEnum;
+use inkwell::values::InstructionOpcode;
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn runtime_functions(&self) {
         self.get_caller();
         self.get_caller_wrapper();
         self.power();
+        self.get_ethereum_internal();
     }
 
     fn get_caller_wrapper(&self) {
@@ -126,6 +128,45 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.build_return(Some(&loaded_acc));
 
         self.verify_and_optimise(&exp);
+    }
+
+    fn get_ethereum_internal(&self) {
+        self.get_balance();
+    }
+
+    fn get_balance(&self) {
+        // wrapper for the eWASM getExternalBalance function
+        let address_type = self
+            .context
+            .custom_width_int_type(160)
+            .as_basic_type_enum();
+
+        let func_type = self.context.i64_type().fn_type(&[address_type], false);
+        let func_val = self.module.add_function("Flint_balanceOf_Inner", func_type, None);
+        let bb = self.context.append_basic_block(func_val, "entry");
+        
+        self.builder.position_at_end(bb);
+        
+        let address = func_val.get_params()[0];
+        let memory_offset = self.builder.build_alloca(address_type, "memory_offset");
+        
+        self.builder.build_store(memory_offset, address);
+
+        let int_type = self.context.i128_type();
+        let result_offset = self.builder.build_alloca(int_type, "result_offset");
+        let get_balance = self.module.get_function("getExternalBalance").unwrap();
+
+        self.builder.build_call(get_balance, &[memory_offset.as_basic_value_enum(), result_offset.as_basic_value_enum()], "get_balance");
+        
+        let balance = self.builder.build_load(result_offset, "balance");
+        let balance = self.builder.build_cast(
+            InstructionOpcode::Trunc,
+            balance,
+            self.context.i64_type(),
+            "tmpcast",
+        );
+
+        self.builder.build_return(Some(&balance));
     }
 }
 

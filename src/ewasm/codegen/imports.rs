@@ -14,6 +14,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn ether_imports(&self) {
         // self.import_get_caller(); // Using a dummy getCaller while we are testing TODO remove for release
         self.import_revert();
+        self.import_get_external_balance();
     }
 
     #[allow(dead_code)]
@@ -29,6 +30,26 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let func_type = self.context.void_type().fn_type(&[param_type], false);
         self.generate_import_and_extern("getCaller", func_type, Some(vec!["resultOffset"]));
+    }
+
+    fn import_get_external_balance(&self) {
+        // Takes an i32 input param pointing to where in memory to get the address of the caller, and an i32 input param pointing to where in memory to store the balance
+        // Returns nothing
+        let address_ptr = self
+            .context
+            .custom_width_int_type(160)
+            .as_basic_type_enum()
+            .ptr_type(AddressSpace::Generic)
+            .as_basic_type_enum();
+
+        let int_ptr = self
+            .context
+            .i128_type()
+            .ptr_type(AddressSpace::Generic)
+            .as_basic_type_enum();
+
+        let func_type = self.context.void_type().fn_type(&[address_ptr, int_ptr], false);
+        self.generate_import_and_extern("getExternalBalance", func_type, Some(vec!["addressOffset", "resultOffset"]));
     }
 
     fn import_revert(&self) {

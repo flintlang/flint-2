@@ -17,6 +17,6 @@ pub(crate) fn target() -> Target {
         currency: currency(),
         processor: Box::new(LLVMPreProcessor {}),
         generate: ewasm::generate,
-        stdlib_path: Path::new("stdlib/libra/global.flint"),
+        stdlib_path: Path::new("stdlib/ether/global.flint"),
     }
 }

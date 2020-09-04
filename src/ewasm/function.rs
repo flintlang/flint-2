@@ -56,11 +56,9 @@ impl<'a> LLVMFunction<'a> {
                 function_context.add_local("this", contract_global);
             }
 
-            if !self.caller_protections.iter().any(|c| c.is_any())
+            if (!self.caller_protections.iter().any(|c| c.is_any())
                 && !self.caller_protections.is_empty()
-                && (self.function_declaration.is_external
-                    || self.caller_binding.is_some()
-                    || contains_function(self.caller_protections, codegen, enclosing))
+                && (self.function_declaration.is_external || contains_function(self.caller_protections, codegen, enclosing))) || self.caller_binding.is_some()
             {
                 generate_caller_variable(
                     codegen,

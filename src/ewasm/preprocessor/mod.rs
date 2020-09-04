@@ -1,5 +1,6 @@
 mod utils;
 
+use crate::environment::Environment;
 use crate::ast::calls::{FunctionArgument, FunctionCall};
 use crate::ast::declarations::{
     ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, Parameter,
@@ -203,6 +204,12 @@ impl Visitor for LLVMPreProcessor {
         );
 
         declaration.mangled_identifier = Some(mangled_name);
+
+        if let Some(enclosing_type) = &declaration.head.identifier.enclosing_type {
+            if enclosing_type.eq("Flint_Global") {
+                return Ok(())
+            }
+        }
 
         // construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
@@ -556,41 +563,47 @@ impl Visitor for LLVMPreProcessor {
             } else {
                 ctx.enclosing_type_identifier().unwrap().token.as_str()
             };
+        
+            if !Environment::is_runtime_function_call(call) {
+                // mangles name
+                call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
 
-            // mangles name
-            call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
-
-            // Pass in the parameter for the function to operate on. If it is a struct function,
-            // it should be an instance of that struct. Otherwise it will be the contract variable
-            let contract_argument = if ctx.function_call_receiver_trail.is_empty() {
-                FunctionArgument {
-                    identifier: None,
-                    expression: Expression::Identifier(Identifier::generated("this")),
-                }
-            } else {
-                FunctionArgument {
-                    identifier: None,
-                    expression: Expression::InoutExpression(InoutExpression {
-                        ampersand_token: "&".to_string(),
-                        expression: Box::from(
-                            ctx.function_call_receiver_trail
-                                .clone()
-                                .into_iter()
-                                .fold1(|lhs, next| {
-                                    Expression::BinaryExpression(BinaryExpression {
-                                        lhs_expression: Box::new(lhs),
-                                        rhs_expression: Box::new(next),
-                                        op: BinOp::Dot,
-                                        line_info: Default::default(),
+                
+                // Pass in the parameter for the function to operate on. If it is a struct function,
+                // it should be an instance of that struct. Otherwise it will be the contract variable
+                let contract_argument = if ctx.function_call_receiver_trail.is_empty() {
+                    FunctionArgument {
+                        identifier: None,
+                        expression: Expression::Identifier(Identifier::generated("this")),
+                    }
+                } else {
+                    FunctionArgument {
+                        identifier: None,
+                        expression: Expression::InoutExpression(InoutExpression {
+                            ampersand_token: "&".to_string(),
+                            expression: Box::from(
+                                ctx.function_call_receiver_trail
+                                    .clone()
+                                    .into_iter()
+                                    .fold1(|lhs, next| {
+                                        Expression::BinaryExpression(BinaryExpression {
+                                            lhs_expression: Box::new(lhs),
+                                            rhs_expression: Box::new(next),
+                                            op: BinOp::Dot,
+                                            line_info: Default::default(),
+                                        })
                                     })
-                                })
-                                .unwrap(),
-                        ),
-                    }),
-                }
-            };
+                                    .unwrap(),
+                            ),
+                        }),
+                    }
+                };
 
-            call.arguments.push(contract_argument);
+                call.arguments.push(contract_argument);
+            } else if !enclosing_type.eq("Flint_Global") {
+                // mangles name
+                call.identifier.token = mangle_ewasm_function(&function_name, "Flint_Global");
+            }
         }
 
         Ok(())

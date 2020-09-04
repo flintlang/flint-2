@@ -1,6 +1,6 @@
 mod conflicts;
 mod declarations;
-mod functions;
+pub mod functions;
 mod properties;
 
 use crate::ast::*;

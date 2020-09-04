@@ -1,20 +1,9 @@
-
 struct Flint_Global {
-  // Send Wei to an Ethereum address
-  func send(address: Address, value: inout Wei) {
-    let w: Wei = Wei(&value)
-    Flint$Send(w.getRawValue(), address)
-  }
-
-  // Aborts the Ethereum transaction with an error.
-  func fatalError() {
-    Flint$FatalError()
-  }
-
-  // Ensure the given condition holds, otherwise crash.
-  func assert(condition: Bool) {
-    if condition == false {
-      Flint$FatalError()
+    public func Flint_balanceOf(account: Address) -> Int {
+      return Flint_balanceOf_Inner(account)
     }
-  }
+
+    //public func Flint_transfer(from: Address, to: Address, amount: Int) {
+    //  Flint_transfer_Inner(from, to, amount)
+    //}
 }

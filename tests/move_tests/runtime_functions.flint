@@ -7,7 +7,7 @@ Money :: caller <- (any) {
     return Flint_balanceOf(caller)
   }
 
-  public func payZero() {
-    Flint_transfer(caller, 0x0, 10)
-  }
+  //public func payZero() {
+  //  Flint_transfer(caller, 0x0, 10)
+  //}
 }

@@ -1000,7 +1000,7 @@ impl<'a> LLVMCastExpression<'a> {
 
         // TODO: which opcode should we pick here? We need tests for this
         Some(codegen.builder.build_cast(
-            InstructionOpcode::Load,
+            InstructionOpcode::Trunc,
             cast_from_val,
             cast_to_type,
             "tmpcast",

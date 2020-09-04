@@ -52,7 +52,7 @@ impl<'a> LLVMFunctionCall<'a> {
             // add local variable to function call arguments
             function_context.add_local("tmp_var", BasicValueEnum::StructValue(struct_var));
         }
-
+        
         let params = codegen
             .module
             .get_function(self.function_call.identifier.token.as_str())
