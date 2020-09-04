@@ -17,13 +17,14 @@ mod ewasm_tests {
     use std::fs;
     use std::io::Read;
     use std::path::Path;
+    use crate::io::*;
 
     #[test]
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
         // TODO refactor this process not to rely on move test folder
-        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank dynamic_check".split(' ');
-        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank DynamicCheck".split(' ');
+        let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank dynamic_check runtime_functions".split(' ');
+        let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank DynamicCheck Money".split(' ');
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -43,7 +44,9 @@ mod ewasm_tests {
             Some(caller_protections_lottery),
             Some(caller_protections_bank),
             Some(dynamic_check),
+            None
         ];
+
         let test_info = input_file_names
             .zip(output_file_names)
             .collect::<Vec<(&str, &str)>>();
@@ -59,6 +62,15 @@ mod ewasm_tests {
             let mut program = String::new();
             file.read_to_string(&mut program)
                 .expect("Unable to read the file");
+            
+            let mut file = fs::File::open("stdlib/ether/global.flint").unwrap_or_else(|err| {
+                prompt::error::unable_to_open_file(Path::new("stdlib/ether/global.flint"), err)
+            });
+            
+            file.read_to_string(&mut program).unwrap_or_else(|err| {
+                prompt::error::unable_to_read_file(Path::new("stdlib/ether/global.flint"), err)
+            });
+        
 
             let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
                 println!("Could not parse file: {}", err);

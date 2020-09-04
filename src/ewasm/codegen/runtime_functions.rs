@@ -132,6 +132,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     fn get_ethereum_internal(&self) {
         self.get_balance();
+        self.transfer();
     }
 
     fn get_balance(&self) {
@@ -167,6 +168,68 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         );
 
         self.builder.build_return(Some(&balance));
+    }
+
+    fn transfer(&self) {
+        // wrapper for the eWASM call function
+        let address_type = self
+            .context
+            .custom_width_int_type(160)
+            .as_basic_type_enum();
+
+        let value_type = self.context.i64_type().as_basic_type_enum();
+
+        let func_type = self.context.void_type().fn_type(&[address_type, address_type, value_type], false);
+        let func_val = self.module.add_function("Flint_transfer_Inner", func_type, None);
+        let bb = self.context.append_basic_block(func_val, "entry");
+        
+        self.builder.position_at_end(bb);
+        
+        let to = func_val.get_params()[1];
+        let value = func_val.get_params()[2];
+        let value_type = self.context.i128_type();
+        let value = self.builder.build_cast(InstructionOpcode::SExt, value, value_type, "cast");
+
+        let get_gas = self.module.get_function("getGasLeft").unwrap();
+        let gas = self.builder.build_call(get_gas, &[], "get_gas").try_as_basic_value().left().unwrap();
+        let memory_offset = self.builder.build_alloca(address_type, "memory_offset");
+        let value_offset = self.builder.build_alloca(value_type, "value_offset");
+        let data_offset = self.builder.build_alloca(self.context.i64_type(), "data_offset");
+        let data_length = self.context.i32_type().const_int(0, false).as_basic_value_enum();
+        
+        self.builder.build_store(memory_offset, to);
+        self.builder.build_store(value_offset, value);
+        self.builder.build_store(data_offset, self.context.i64_type().const_int(0, false));
+
+        let call = self.module.get_function("call").unwrap();
+
+        let result = self.builder.build_call(call, &[gas, memory_offset.as_basic_value_enum(), value_offset.as_basic_value_enum(), data_offset.as_basic_value_enum(), data_length], "call").try_as_basic_value().left().unwrap();
+        let is_equal = self.builder.build_int_compare(IntPredicate::EQ, result.into_int_value(), self.context.i32_type().const_int(0, false), "is_zero");
+        let then_bb = self.context.append_basic_block(func_val, "then");
+        let else_bb = self.context.append_basic_block(func_val, "else");
+        
+        self.builder.build_conditional_branch(is_equal, then_bb, else_bb);
+        self.builder.position_at_end(then_bb);
+        self.builder.build_return(None);
+        self.builder.position_at_end(else_bb);
+        
+        let revert_function = self
+            .module
+            .get_function("revert")
+            .expect("Could not find revert function");
+
+        // TODO fill program return info with something meaningful
+        let zero = self.context.i32_type().const_int(0, false);
+        let ptr = self.builder.build_alloca(zero.get_type(), "mem_ptr");
+        self.builder.build_store(ptr, zero);
+
+        self.builder.build_call(
+            revert_function,
+            &[ptr.as_basic_value_enum(), zero.as_basic_value_enum()],
+            "halt",
+        );
+
+        self.builder.build_unreachable();
     }
 }
 
