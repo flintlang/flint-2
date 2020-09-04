@@ -3,7 +3,7 @@ struct Flint_Global {
       return Flint_balanceOf_Inner(account)
     }
 
-    //public func Flint_transfer(from: Address, to: Address, amount: Int) {
-    //  Flint_transfer_Inner(from, to, amount)
-    //}
+    public func Flint_transfer(from: Address, to: Address, amount: Int) {
+      Flint_transfer_Inner(from, to, amount)
+    }
 }
