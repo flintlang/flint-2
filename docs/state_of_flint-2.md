@@ -5,7 +5,6 @@ _by Jessica Lally and George Stacey_
 This report covers the state of the Flint programming language─what has been implemented, how things are done, the current known issues, and any likely problems that might arise and have not been thoroughly investigated. It has been written in the hope that future developers may start with a better understanding of the project, and not waste as much time worrying about things that are broken.
 
 ### Contents
-// TODO: contents
 - Configuration
   - Installation
     - Dependencies
@@ -15,8 +14,26 @@ This report covers the state of the Flint programming language─what has been i
   - Development
     - IDEs
 - Implementation
-  - MoveIR Translation
+  - Move Translation
+    - Reference Handling
   - eWASM Translation
+    - LLVM Translation
+      - Data Layout
+      - ABI
+      - Imports and Runtime Functions
+      - Money
+    - WASM to eWASM
+- Known Issues
+  - For-loops
+  - Compiler Checks
+  - Move
+    - Dictionaries
+    - Variable Mangling
+  - eWASM
+    - Arrays and Dictionaries
+    - Unimplemented Expressions and Statements
+- Likely Problems
+  - Libra Updates
 
 ## Configuration
 ### Installation
@@ -32,15 +49,15 @@ _Note that we're going to cover the necessary dependencies for someone working o
 #### Dependencies 
 
 - **rustc**: We were working with version 1.44.1, however any newer installation is likely to work.
-- **Libra**: Libra is known to update often without documentation, so there are likely to have been changes since writing this document that break parts of the MoveIR target. The MoveIR compiler currently works with the Libra version installed September 3rd 2020.
+- **Libra**: Libra is known to update often without documentation, so there are likely to have been changes since writing this document that break parts of the Move target. The Move compiler currently works with the Libra version installed September 3rd 2020.
 - **LLVM**: The rust Inkwell crate currently supports up to LLVM 10.0, and some earlier versions of LLVM do not support the WASM target, hence this compiler is only tested with LLVM 10.0. You will also need to install wasm-ld and llc.
 - **python3**: In order to run the python script, you will need a python version >= 3.6.
 
 ### Testing
-There are currently unit tests for the parser, some runtime function tests for LLVM and a semantic test of MoveIR. These can be run using ```cargo test```. However, almost all of our testing is integration testing, split between compilation tests and runtime tests, as detailed below.
+There are currently unit tests for the parser, some runtime function tests for LLVM and a semantic test of Move. These can be run using ```cargo test```. However, almost all of our testing is integration testing, split between compilation tests and runtime tests, as detailed below.
 
 #### Libra
-Travis tests the compilation of all Flint files to MoveIR, however verification and behaviour testing of the MoveIR files should be done locally, as Libra is too large a dependency to compile on Travis. To test the Libra target, run the python script with the command: ```python3 <path_to_python_file> <all | behaviour | compilation> Optional[<flint-filename-without-extension>]```.
+Travis tests the compilation of all Flint files to Move, however verification and behaviour testing of the Move files should be done locally, as Libra is too large a dependency to compile on Travis. To test the Libra target, run the python script with the command: ```python3 <path_to_python_file> <all | behaviour | compilation> Optional[<flint-filename-without-extension>]```.
 
 _Note that the python file will take a long time to run the first time as the script will need to compile Libra. Subsequent testing should be much faster._
 
@@ -52,11 +69,11 @@ We were not able to get the eWASM testnet working, so we haven't been able to te
 Where possible, we would recommend using IntelliJ with the Rust plugin: Toml, Rust and Native debugging support (_Note at the time of writing Native debugging support is not supported for Windows_). Of course, it is possible to develop using any IDE of your choice which supports Rust.
 
 ## Implementation
-### MoveIR Translation
-The initial MoveIR compiler was built by Ali Chaudhry as part of his MEng thesis. However, due to Libra updates much of the compiler was out of date, and some features were not implemented, notably assertions, types states and caller protections. We also heavily refactored the code base to comply with rustc clippy standards, and restructured modules into individual units. For the majority of the changes to the MoveIR compiler, see [PR#13 Move stability] (https://github.com/flintlang/flint-2/pull/13).
+### Move Translation
+The initial Move compiler was built by Ali Chaudhry as part of his MEng thesis. However, due to Libra updates much of the compiler was out of date, and some features were not implemented, notably assertions, types states and caller protections. We also heavily refactored the code base to comply with rustc clippy standards, and restructured modules into individual units. For the majority of the changes to the Move compiler, see [PR#13 Move stability] (https://github.com/flintlang/flint-2/pull/13).
 
 #### Reference Handling
-// TODO: Jess
+Unlike Flint, which provides straight-up types and only requires references for passing structs as arguments, Move relies on strict reference control. The compiler references, copies and release objects in as controlled a way as possible, however the implementation was sometimes unreliable. This referencing system has been stabilised, and improved by eliminating double accesses (i.e. removing multiple temporary variables that reference the same data) and always converting the final copy of a variable to a move. There are still potential improvements to the reference handling system, such as only generating a mutable borrow when the reference is used mutably (i.e. it is used for another mutable borrow, or it is mutated).
 
 ### eWASM Translation
 The actual code generation is for LLVM, and we rely on the LLVM to WASM-32 compiler to translate this correctly to WASM. From there we make some simple post-processing changes to the WASM in order to convert it to valid eWASM. 
@@ -72,29 +89,35 @@ We represent the contract data in a stack-allocated global variable which is a p
 ##### Imports and Runtime Functions
 
 ##### Money
-// TODO: Jess
+// TODO: assets
+Currently, two runtime functions for handling money, ```Flint_balanceOf``` and ```Flint_transfer```, are implemented. These are wrappers for the functions which handle calls to runtime eWASM functions. Although we are fairly confident that the ```Flint_balanceOf_Inner``` function, which calls the eWASM function ```getExternalBalance```, has been implemented correctly, we have found very little documentation describing how money should be transferred in eWASM. The current implementation of ```Flint_transfer_Inner``` has been based mainly on the Flint-1 implementation, using the ```call``` function to transfer money, however since we were unable to test the generated eWASM on the testnet, we cannot be sure that our implementation of this function is correct, only that it is validated as correct eWASM.
 
 #### WASM to eWASM
 // TODO: George
 
 ## Known Issues
-In addition to the open issues in the github repository, there are a number of other known issues outlined below.
+In addition to the open issues in the Github repository, there are a number of other known issues outlined below.
 
 ### For-loops 
-For-loops are currently unimplemented in both the MoveIR and eWASM compiler. 
+For-loops are currently unimplemented in both the Move and eWASM compiler. 
 
 ### Compiler Checks
 // TODO: George
 
-### MoveIR
+### Move
 #### Dictionaries
+Due to their current implementation, dictionaries are restricted to only having an Address key type. In addition to this, the dictionary runtime functions are out of date, as the Move function ```move_to_sender``` is deprecated.
 
 #### Variable Mangling
-// TOD: George
+// TODO: George
 
 ### eWASM
 #### Arrays and Dictionaries
+The current implementations of both arrays and dictionaries in the eWASM compiler are fairly limited. Arrays (//TODO: explain how arrays are implemented?) are only stack-allocated, and currently only fixed-sized arrays are implemented. Dictionaries are represented as a stack-allocated array of structs containing key-value pairs, and are even more limited. The key type is currently restricted to only Int, Address and Bool (as the key and index are compared using ```build_int_compare```, and these types are converted to int in LLVM). Also, only fixed-sized dictionaries are implemented, and you cannot currently replace a key-value pair in the dictionary, only replace the value corresponding to the key. We would suggest a Hashmap as a better implementation of a dictionary in LLVM.
+
+#### Unimplemented Expressions and Statements
+Currently, not all expression and statement types in the AST are implemented in eWASM, for example range expressions, sequences and do-catch statements.
 
 ## Likely Problems
 ### Libra Updates
-
+Libra is (at the time of writing) still in early development, hence is known to update often (and often without documentation), hence changes to Libra are likely to break the Move compiler, resulting in the Flint Move tests no longer passing. We would recommend looking at Libra's functional tests for the language, as these will show what they've had to change to keep their own tests passing, which should be a rough guide for fixing any issues.
