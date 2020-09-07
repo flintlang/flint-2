@@ -25,7 +25,6 @@ This report covers the state of the Flint programming language─what has been i
     - WASM to eWASM
 - Known Issues
   - For-loops
-  - Compiler Checks
   - Move
     - Dictionaries
     - Variable Mangling
@@ -84,7 +83,7 @@ The actual code generation is for LLVM, and we rely on the LLVM to WASM-32 compi
 We represent the contract data in a stack-allocated global variable which is a pointer to a struct which corresponds to the Flint contract declaration. 
 
 ##### ABI
-// TODO: George
+Ethereum contracts require the generation of an Application Binary Interface alongside the contract itself. This is simply a JSON string representing all publicly accessible functions and constructors. It includes information about them such as whether they are payable, the names and types of input parameters, return parameters etc. The ABI generation has mostly been implemented, certainly to the point where it should be usable for many projects. However, at the time of writing there are several things that are unimplemented, most notably implementations of all the different ethereum types (uint128, uint256, marking as payable etc.). This will need to be expanded for more complicated contracts.
 
 ##### Imports and Runtime Functions
 
@@ -93,7 +92,11 @@ We represent the contract data in a stack-allocated global variable which is a p
 Currently, two runtime functions for handling money, ```Flint_balanceOf``` and ```Flint_transfer```, are implemented. These are wrappers for the functions which handle calls to runtime eWASM functions. Although we are fairly confident that the ```Flint_balanceOf_Inner``` function, which calls the eWASM function ```getExternalBalance```, has been implemented correctly, we have found very little documentation describing how money should be transferred in eWASM. The current implementation of ```Flint_transfer_Inner``` has been based mainly on the Flint-1 implementation, using the ```call``` function to transfer money, however since we were unable to test the generated eWASM on the testnet, we cannot be sure that our implementation of this function is correct, only that it is validated as correct eWASM.
 
 #### WASM to eWASM
-// TODO: George
+Once we have compiled to WASM, we need to make a few alterations to ensure we have generated valid eWASM. The specification for what constitues valid eWASM can be found [here](https://ewasm.readthedocs.io/en/mkdocs/contract_interface/). The main points are: 
+- Imports: Only imports from the ethereum namespace are allowed, where one may import [EEI](https://ewasm.readthedocs.io/en/mkdocs/eth_interface/) functions. This is taken care of throughout code generation, as if we use external functionality, we tell LLVM to link it according to these rules.
+- Main function: There must exist a function that takes no parameters, and returns no values, exported under the name `main`. To satisfy this, we simply define such a function, which immediately returns. 
+- No start function: There cannot be a function marked as a WASM entry function.
+- Exports: There must be exactly two exports: `main` and `memory`. LLVM exports the memory when we generate the WASM, and it also exports all functions that we create. Since we created a dummy `main`, this is included and so we have both of these as exports. All that remains is to remove all the other exports which are not allowed. This is done by using a rust crate wrapper around [WABT](https://github.com/WebAssembly/wabt) to translate the generated WASM file to the human readable WAT file. We can then use regular expressions to remove all exports apart from the main and memory exports. We then convert it back to WASM, and at this point we should have valid eWASM. 
 
 ## Known Issues
 In addition to the open issues in the Github repository, there are a number of other known issues outlined below.
@@ -101,23 +104,20 @@ In addition to the open issues in the Github repository, there are a number of o
 ### For-loops 
 For-loops are currently unimplemented in both the Move and eWASM compiler. 
 
-### Compiler Checks
-// TODO: George
-
 ### Move
 #### Dictionaries
 Due to their current implementation, dictionaries are restricted to only having an Address key type. In addition to this, the dictionary runtime functions are out of date, as the Move function ```move_to_sender``` is deprecated.
 
 #### Variable Mangling
-// TODO: George
+Currently variable mangling is not implemented. Consider any contract that has typestates. Since it is a stateful contract, when it is compiled to MoveIR or LLVM, the contract has an implicit field called `_contract_state`. This means that if a contract is written that has a variable called `_contract_state` in it, there may be variable conflicts. A mangling system whereby variable names are changed at compile time to avoid this should be implemented. 
 
 ### eWASM
 #### Arrays and Dictionaries
-The current implementations of both arrays and dictionaries in the eWASM compiler are fairly limited. Arrays (//TODO: explain how arrays are implemented?) are only stack-allocated, and currently only fixed-sized arrays are implemented. Dictionaries are represented as a stack-allocated array of structs containing key-value pairs, and are even more limited. The key type is currently restricted to only Int, Address and Bool (as the key and index are compared using ```build_int_compare```, and these types are converted to int in LLVM). Also, only fixed-sized dictionaries are implemented, and you cannot currently replace a key-value pair in the dictionary, only replace the value corresponding to the key. We would suggest a Hashmap as a better implementation of a dictionary in LLVM.
+The current implementations of both arrays and dictionaries in the eWASM compiler are fairly limited. Arrays are only stack-allocated, and currently only fixed-sized arrays are implemented. However, there is bounds checking for array accesses which will revert the execution of the contract in the event of an attempted out of bounds access. Dictionaries are represented as a stack-allocated array of structs containing key-value pairs, and are even more limited. The key type is currently restricted to only Int, Address and Bool (as the key and index are compared using ```build_int_compare```, and these types are converted to int in LLVM). Also, only fixed-sized dictionaries are implemented, and you cannot currently replace a key-value pair in the dictionary, only replace the value corresponding to the key. We would suggest a Hashmap as a better implementation of a dictionary in LLVM.
 
 #### Unimplemented Expressions and Statements
 Currently, not all expression and statement types in the AST are implemented in eWASM, for example range expressions, sequences and do-catch statements.
 
 ## Likely Problems
 ### Libra Updates
-Libra is (at the time of writing) still in early development, hence is known to update often (and often without documentation), hence changes to Libra are likely to break the Move compiler, resulting in the Flint Move tests no longer passing. We would recommend looking at Libra's functional tests for the language, as these will show what they've had to change to keep their own tests passing, which should be a rough guide for fixing any issues.
+Libra is (at the time of writing) still in early development, hence is known to update often (and often without documentation). This means that changes to Libra are likely to break the MoveIR compiler, resulting in the Flint Move tests no longer passing. We would recommend looking at Libra's functional tests for the language, as these will show what they've had to change to keep their own tests passing, which should be a rough guide for fixing any issues.
