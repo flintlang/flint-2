@@ -1,6 +1,5 @@
 mod utils;
 
-use crate::environment::Environment;
 use crate::ast::calls::{FunctionArgument, FunctionCall};
 use crate::ast::declarations::{
     ContractBehaviourDeclaration, ContractBehaviourMember, FunctionDeclaration, Parameter,
@@ -17,6 +16,7 @@ use crate::ast::{
     SpecialSignatureDeclaration, StructDeclaration, StructMember, VResult,
 };
 use crate::context::Context;
+use crate::environment::Environment;
 use crate::ewasm::preprocessor::utils::*;
 use crate::utils::getters_and_setters::*;
 use crate::utils::is_init_declaration;
@@ -207,7 +207,7 @@ impl Visitor for LLVMPreProcessor {
 
         if let Some(enclosing_type) = &declaration.head.identifier.enclosing_type {
             if enclosing_type.eq("Flint_Global") {
-                return Ok(())
+                return Ok(());
             }
         }
 
@@ -356,51 +356,6 @@ impl Visitor for LLVMPreProcessor {
         Ok(())
     }
 
-    fn start_binary_expression(
-        &mut self,
-        expr: &mut BinaryExpression,
-        ctx: &mut Context,
-    ) -> VResult {
-        // Removes assignment shorthand expressions, e.g. += and *=
-        if expr.op.is_assignment_shorthand() {
-            let op = expr.op.get_assignment_shorthand();
-            expr.op = BinOp::Equal;
-
-            let rhs = BinaryExpression {
-                lhs_expression: expr.lhs_expression.clone(),
-                rhs_expression: expr.rhs_expression.clone(),
-                op,
-                line_info: expr.line_info.clone(),
-            };
-
-            expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
-        } else if expr.op == BinOp::Dot {
-            if let Some(scope_ctx) = &mut ctx.scope_context {
-                if let Expression::Identifier(id) = *expr.lhs_expression.clone() {
-                    if !scope_ctx.is_declared(&id.token) {
-                        let rhs = BinaryExpression {
-                            lhs_expression: expr.lhs_expression.clone(),
-                            rhs_expression: expr.rhs_expression.clone(),
-                            op: BinOp::Dot,
-                            line_info: expr.line_info.clone(),
-                        };
-
-                        expr.lhs_expression = Box::from(Expression::SelfExpression);
-                        expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
-                        scope_ctx.local_variables.push(VariableDeclaration {
-                            declaration_token: None,
-                            identifier: id,
-                            variable_type: Type::Int,
-                            expression: None,
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     fn start_expression(&mut self, expr: &mut Expression, ctx: &mut Context) -> VResult {
         if let Expression::AttemptExpression(attempt_expr) = expr {
             if let Some(contract_ctx) = &ctx.contract_behaviour_declaration_context {
@@ -544,6 +499,51 @@ impl Visitor for LLVMPreProcessor {
         Ok(())
     }
 
+    fn start_binary_expression(
+        &mut self,
+        expr: &mut BinaryExpression,
+        ctx: &mut Context,
+    ) -> VResult {
+        // Removes assignment shorthand expressions, e.g. += and *=
+        if expr.op.is_assignment_shorthand() {
+            let op = expr.op.get_assignment_shorthand();
+            expr.op = BinOp::Equal;
+
+            let rhs = BinaryExpression {
+                lhs_expression: expr.lhs_expression.clone(),
+                rhs_expression: expr.rhs_expression.clone(),
+                op,
+                line_info: expr.line_info.clone(),
+            };
+
+            expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
+        } else if expr.op == BinOp::Dot {
+            if let Some(scope_ctx) = &mut ctx.scope_context {
+                if let Expression::Identifier(id) = *expr.lhs_expression.clone() {
+                    if !scope_ctx.is_declared(&id.token) {
+                        let rhs = BinaryExpression {
+                            lhs_expression: expr.lhs_expression.clone(),
+                            rhs_expression: expr.rhs_expression.clone(),
+                            op: BinOp::Dot,
+                            line_info: expr.line_info.clone(),
+                        };
+
+                        expr.lhs_expression = Box::from(Expression::SelfExpression);
+                        expr.rhs_expression = Box::from(Expression::BinaryExpression(rhs));
+                        scope_ctx.local_variables.push(VariableDeclaration {
+                            declaration_token: None,
+                            identifier: id,
+                            variable_type: Type::Int,
+                            expression: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         let function_name = &call.identifier.token;
         if ctx.environment.types.get(function_name).is_some() {
@@ -563,12 +563,11 @@ impl Visitor for LLVMPreProcessor {
             } else {
                 ctx.enclosing_type_identifier().unwrap().token.as_str()
             };
-        
+
             if !Environment::is_runtime_function_call(call) {
                 // mangles name
                 call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
 
-                
                 // Pass in the parameter for the function to operate on. If it is a struct function,
                 // it should be an instance of that struct. Otherwise it will be the contract variable
                 let contract_argument = if ctx.function_call_receiver_trail.is_empty() {

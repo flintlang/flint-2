@@ -8,7 +8,9 @@ Although blockchain platforms, such as [Ethereum](https://www.ethereum.org/) and
   
 Flint changes that, as a new programming language built for easily writing safe smart contracts. Flint is approachable to both experienced and new blockchain developers, and presents a variety of security features. Much of the language syntax is inspired by [the Swift language](https://swift.org/), making it more approachable than Solidity.  
  
-For a quick start, please have a look at the [Installation](#installation) section first, followed by the [Example](#example) section.  
+For a quick start, please have a look at the [Installation](#installation) section first, followed by the [Example](#example) section.
+
+_Note: throughout the document, the tag `unimplemented` will be used to indicate that this particular feature of the language is either unimplemented or only partially implemented_  
   
 # Table of Contents  
   
@@ -257,18 +259,18 @@ Flint is a statically-typed language with a simple type system, with basic suppo
   
 | Type | Description |  
 | --- | --- |  
-| `Int` | 256-bit integer. |  
+| `Int` | 64-bit integer. |  
 | `Address` | 160-bit Ethereum address. |  
 | `Bool` | Boolean value. |  
-| `String` | String value. Currently limited to 256 bits, i.e. 32 bytes. |  
+| `String` | String value. Currently limited to 256 bits, i.e. 32 bytes. `unimplemented` |  
 | `Void` | Non-value. Note that the `Void` type is never directly used. It is implicit when a function has no return type. |  
   
 ### Dynamic types  
   
 | Name | Type (in code) | Description |  
 | --- | --- | --- |  
-| Dynamic-size list | `[T]` | A list of elements of type `T`. Elements can be added to it or removed from it. |  
-| Fixed-size list | `T[n]` | A list containing `n` elements of type `T`. It cannot have a different number of elements than its declared capacity `n`. |  
+| Dynamic-size list | `[T]` | A list of elements of type `T`. Elements can be added to it or removed from it. `unimplemented (eWASM)`|  
+| Fixed-size list | `T[n]` | A list containing `n` elements of type `T`. It cannot have a different number of elements than its declared capacity `n`. `unimplemented (move)` |  
 | Dictionary | `[K: V]` | Dynamic-size mappings from one key type `K` to a value type `V`. Each stored key of type `K` is associated with one value of type `V`. |  
 | Polymorphic self | `Self` | See [polymorphic self](#polymorphic-self). |  
 | Structs | | Structs (structures), including [user-defined structs](#structs). |  
@@ -311,7 +313,7 @@ See [casting](#casting-to-and-from-solidity-types) for more information.  -->
   
 ## Constants and variables  
   
-Constants and variables associate a name with a value of a particular [type](#types). The value of a constant cannot be changed once it is set, whereas a variable can be set to a different value with assignment statements.  
+Constants and variables associate a name with a value of a particular [type](#types). The value of a constant cannot be changed once it is set `unimplemented`, whereas a variable can be set to a different value with assignment statements.  
   
 Constants and variables of a contract are its state properties. They are data stored in the EVM storage, and even though they are not directly modifiable, they are publicly visible, so they should never hold private or sensitive data.  
   
@@ -333,7 +335,7 @@ let digitsOfPi: [Int] = [3, 1, 4, 1, 5, 9, 2, 6]
 let structExample: Rectangle = Rectangle(width: 30, height: 40)  
 ```  
   
-If a constant is a state property of a contract, it may be given no initial value, but in that case it must be set in each initialiser of that contract:  
+If a constant is a state property of a contract, it may be given no initial value, but in that case it must be set `unimplemented` in each initialiser of that contract:  
   
 ```swift  
 let <name>: <type>  
@@ -433,7 +435,7 @@ Each parameter has the syntax:
 <modifiers> <name>: <type modifiers> <type>  
 ```  
   
-Currently the only possible (optional) `<modifier>` is `implicit`. See [payable](#payable) for more information. The only possible (optional) `<type modifier>` is `inout`. See [inout](#structs-as-function-arguments) for more information.  
+Currently the only possible (optional) `<modifier>` is `implicit` `unimplemented`.  See [payable](#payable) for more information. The only possible (optional) `<type modifier>` is `inout`. See [inout](#structs-as-function-arguments) for more information.  
   
 Below is a function that [mutates](#function-modifiers) the dictionary of peoples' names to add the key/value pair of the caller's address and the given name. If the parameter `name` is not provided to the function call, then the default value of `"John Doe"` will be used. For more information about callers, see [caller bindings](#caller-group-variable).  
   
@@ -561,7 +563,7 @@ bigRectangle.area() // evaluates to 4000000 by calling the `area` function
 
 ### Structs as function arguments  
   
-Structs can be passed by reference using the `inout` type modifier. The struct is then treated as an implicit reference to the value in the caller. Any modifications made to the struct will still be visible after the function is called.  
+Structs can be passed by reference using the `inout` type modifier. The struct is then treated as an implicit reference to the value in the caller. Any modifications made to the struct will still be visible after the function is called `unimplemented (move)`.  
   
 When calling a function with an `inout` parameter, the given struct instance must be prefixed with `&` to indicate it is being passed by reference.  
   
@@ -665,7 +667,7 @@ The protection block can optionally also check that the contract is in a given [
 }  
 ```  
   
-Alternatively, protection blocks can be declared within the contract declaration part with the same syntax but using `self` instead of the contract name:  
+Alternatively, protection blocks can be declared within the contract declaration part with the same syntax but using `self` instead of the contract name `unimplemented`:  
   
 ```swift  
 contract <contract-name> {  
@@ -856,7 +858,7 @@ Bank :: (manager, any) {
   
 ### Visibility Modifiers  
   
-Variables declared in the contract can have modifiers in front of their declaration which control the automatic synthesis of variable accessors and mutators. By the nature of smart contracts all storage is visible already, but providing accessors makes that process easier.  
+Variables declared in the contract can have modifiers in front of their declaration which control the automatic synthesis of variable accessors and mutators. By the nature of smart contracts all storage is visible already, but providing accessors makes that process easier. Note that this automated synthesis can only occur for fields of non-dyanmic types. 
   
  - `public` access synthesises an accessor and a mutator so that the storage variable can be viewed and changed by anyone.  
  - `visible` access synthesises an accessor to the storage variable which allows it to be viewed by anyone.  
@@ -888,7 +890,7 @@ Flint has the concept of 'traits', based in part on [traits in the Rust language
   
 Contracts or structs can conform to multiple traits. The Flint compiler enforces the implementation of function signatures in the trait and allows usage of the functions declared in them. Traits allow a level of abstraction and code reuse for contracts and structs.  
    
-### Struct traits  
+### Struct traits  `unimplemented`
   
 Traits can be declared for structs using the syntax:  
   
@@ -948,7 +950,7 @@ struct Person: Animal {
 }  
 ```  
   
-### Contract traits  
+### Contract traits  `unimplemented`
   
 Traits can be declared for contracts using the syntax:  
   
@@ -969,8 +971,8 @@ contract <contract-name>: <trait-1>, <trait-2>, ... {
 Contract traits can contain anonymous contract behaviour declarations containing functions, function signatures, and events.  
 
   
-### External traits  
-  
+### External traits  `unimplemented`
+
 External traits allow interfacing with contracts (and resources) from the target language. Traits can be declared for external contracts using the syntax:  
   
 ```swift  
@@ -1032,20 +1034,19 @@ The expressions available in Flint are:
 | Name | Syntax | Description |  
 | --- | --- | --- |  
 | Literal | `1`, `"hello"`, `false`, etc. | Constant value; see [literals](#literals). |  
-| Range | `<expr-1>..<<expr-2>`, `<expr-1>...<expr-2>` | See [ranges](#range-types). |  
+| Range `unimplemented` | `<expr-1>..<<expr-2>`, `<expr-1>...<expr-2>` | See [ranges](#range-types). |  
 | Binary expression | `<expr-1> <op> <expr-2>` | A binary operation `<op>` applied to the expressions `<expr-1>` and `<expr-2>`; see [operators](#operators). |  
 | Struct reference | `&<expr>` | See [structs as function arguments](#structs-as-function-arguments). |  
 | Function call | `<function-name>(<param-1>: <expr-1>, <param-2>: <expr-2>, ...)` | Call to the function `<function-name>` with the results of the given expressions `<expr-1,2,...>` as parameters. See [function calls](#function-calls). |  
 | Dot access | `<expr-1>.<field>` | Access to the `<field>` field (variable, constant, function) or the result of `<expr-1>`. |  
 | Index / key access | `<expr-1>[<expr-2>]` | Access to the given key of a list or dictionary. _(Only on Solidity)_ |  
-| External call | `call <external-contract>.<function-name>(<param-1>: <expr-1>, <param-2>: <expr-2>, ...)` | Call to the function of an external contract; see [external calls](#external-calls). |  
-| Type cast | `<expr> as! <type>` | Forced cast of the result of `<expr>` to `<type>`; see [casting to and from Solidity types](#casting-to-and-from-solidity-types). |  
+| External call `unimplemented (eWASM)` | `call <external-contract>.<function-name>(<param-1>: <expr-1>, <param-2>: <expr-2>, ...)` | Call to the function of an external contract; see [external calls](#external-calls). |  
+| Type cast | `cast <expr> to <type>` | Forced cast of the result of `<expr>` to `<type>`; see [casting to and from Solidity types](#casting-to-and-from-solidity-types). |  
 | Attempt | `try? <call>`, `try! <call>` | Attempt to call a function in a different protection block, see [dynamic checking](#dynamic-checking). |  
   
 ### Function calls  
   
-Functions can then be called from within a contract protection block with the same identifier. The call arguments must be provided in the same order as the one they are declared in (in the function signature), and they must be labeled accordingly (the exception for this is [struct initialisers](#instances)). If any of the optional parameters are not provided, then their default values are used automatically.  
-  
+Functions can then be called from within a contract protection block with the same identifier. The call arguments must be provided in the same order as the one they are declared in (in the function signature), and they must be labeled accordingly (the exception for this is [struct initialisers](#instances)). If any of the optional parameters are not provided, then their default values are used automatically `unimplemented`.
   
 ````swift  
 public func apply(name: String) mutates (balances) {  
@@ -1064,15 +1065,15 @@ Literals represent fixed values in the source code that can be assigned to const
   
 ### Integer literals  
   
-Integer literals (Flint type `Int`) can be written as decimal numbers. The size of the `Int` type in Flint is 256 bits (32 bytes), so the highest allowed integer is quite large (`2^256 - 1`, more than 76 decimal degits). Underscores can be used to separate digits of integer literals.  
+Integer literals (Flint type `Int`) can be written as decimal numbers. The size of the `Int` type in Flint is 64 bits (8 bytes). Underscores can be used to separate digits of integer literals.  
   
 Examples:  
   
 ```swift  
 42  
-2019  
+2020  
 1_22_333  
-1_000_000_000_000_000_000_000_000  
+10_000_000_000_000_000_000 
 ```  
   
 ### Address literals  
@@ -1105,11 +1106,23 @@ Examples:
 
 ### List literals 
   
-List literals (Flint type `[T]` or `T[n]` for some Flint type `T`) currently only include the empty list `[]`.  
+List literals (Flint type `[T]` or `T[n]` for some Flint type `T`).
+
+Examples:
+```swift
+[]
+[1, 2, 3]
+``` 
 
 ### Dictionary literals 
   
-Dictionary literals (Flint type `[T: U]` for some Flint types `T` and `U`) currently only include the empty dictionary `[:]`.  
+Dictionary literals (Flint type `[T: U]` for some Flint types `T` and `U`).
+
+Examples:
+```swift
+[:]
+[2 : 8, 3 : 9] 
+```
 
 ### Self  
   
@@ -1139,10 +1152,10 @@ Examples:
 2 ** 3 // equals 8  
 ```  
   
-Flint has unique safe arithmetic. The `+`, `-`, `*` and `**` operators throw an exception and abort execution of the smart contract when an overflow occurs. The `/` operator implements integer division. No underflows can occur as floating-point numbers are not supported yet. The performance overhead of the safe operators is low.  
+Flint has unique safe arithmetic. The `+`, `-`, `*` and `**` operators throw an exception and abort execution of the smart contract when an overflow occurs `unimplemented`. The `/` operator implements integer division. No underflows can occur as floating-point numbers are not supported yet. The performance overhead of the safe operators is low.  
   
 In rare cases, allowing overflows is the intended behaviour. Flint also supports  
-overflowing operators, which will not crash on overflow:  
+overflowing operators, which will not crash on overflow: `unimplemented` 
   
  - `&+` - Unsafe addition  
  - `&-` - Unsafe subtraction  
@@ -1323,7 +1336,8 @@ do {
 ```  -->
   
 ## External calls  
-  
+ 
+`unimplemented eWASM`
 External calls refer to a Flint contract calling the functions of other contracts deployed on the Ethereum network. They also allow money to be transferred from Flint contracts to other accounts and contracts, enabling full participation in the Ethereum network.  
   
 However, external contracts include their own set of possible risks and security considerations. When writing code that interacts with external contracts, it is important to keep in mind that:  
@@ -1396,6 +1410,7 @@ enum CompassPoint: Int {
 ```
 
 The values defined in an enumeration (such as `north`, `south`, `east` and `west`) are its enumeration cases. Each enumeration defines a new user-defined type. To access a given case, dot syntax is used:
+`unimplemented`
 
 ```swift
 <enum-name>.<case-name>
