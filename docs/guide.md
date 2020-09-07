@@ -271,7 +271,7 @@ Flint is a statically-typed language with a simple type system, with basic suppo
 | --- | --- | --- |  
 | Dynamic-size list | `[T]` | A list of elements of type `T`. Elements can be added to it or removed from it. `unimplemented (eWASM)`|  
 | Fixed-size list | `T[n]` | A list containing `n` elements of type `T`. It cannot have a different number of elements than its declared capacity `n`. `unimplemented (move)` |  
-| Dictionary | `[K: V]` | Dynamic-size mappings from one key type `K` to a value type `V`. Each stored key of type `K` is associated with one value of type `V`. |  
+| Dictionary | `[K: V]` | Dynamic-size mappings from one key type `K` to a value type `V`. Each stored key of type `K` is associated with one value of type `V`. `unimplemented(eWASM)`|  
 | Polymorphic self | `Self` | See [polymorphic self](#polymorphic-self). |  
 | Structs | | Structs (structures), including [user-defined structs](#structs). |  
   
@@ -435,7 +435,7 @@ Each parameter has the syntax:
 <modifiers> <name>: <type modifiers> <type>  
 ```  
   
-Currently the only possible (optional) `<modifier>` is `implicit` `unimplemented`.  See [payable](#payable) for more information. The only possible (optional) `<type modifier>` is `inout`. See [inout](#structs-as-function-arguments) for more information.  
+Currently the only possible (optional) `<modifier>` is `implicit` `unimplemented`.  See [payable](#payable) for more information. The only possible (optional) `<type modifier>` is `inout`. See [inout](#structs-as-function-arguments) for more information `unimplemented (move)`.  
   
 Below is a function that [mutates](#function-modifiers) the dictionary of peoples' names to add the key/value pair of the caller's address and the given name. If the parameter `name` is not provided to the function call, then the default value of `"John Doe"` will be used. For more information about callers, see [caller bindings](#caller-group-variable).  
   
@@ -497,7 +497,8 @@ The syntax of a struct declaration is:
   
 ```swift  
 struct <name> {  
- // variables, constants, methods}  
+ // variables, constants, methods
+}
 ```  
   
 Example:  
@@ -1039,7 +1040,7 @@ The expressions available in Flint are:
 | Struct reference | `&<expr>` | See [structs as function arguments](#structs-as-function-arguments). |  
 | Function call | `<function-name>(<param-1>: <expr-1>, <param-2>: <expr-2>, ...)` | Call to the function `<function-name>` with the results of the given expressions `<expr-1,2,...>` as parameters. See [function calls](#function-calls). |  
 | Dot access | `<expr-1>.<field>` | Access to the `<field>` field (variable, constant, function) or the result of `<expr-1>`. |  
-| Index / key access | `<expr-1>[<expr-2>]` | Access to the given key of a list or dictionary. _(Only on Solidity)_ |  
+| Index / key access | `<expr-1>[<expr-2>]` | Access to the given key of a list or dictionary. |  
 | External call `unimplemented (eWASM)` | `call <external-contract>.<function-name>(<param-1>: <expr-1>, <param-2>: <expr-2>, ...)` | Call to the function of an external contract; see [external calls](#external-calls). |  
 | Type cast | `cast <expr> to <type>` | Forced cast of the result of `<expr>` to `<type>`; see [casting to and from Solidity types](#casting-to-and-from-solidity-types). |  
 | Attempt | `try? <call>`, `try! <call>` | Attempt to call a function in a different protection block, see [dynamic checking](#dynamic-checking). |  
@@ -1141,6 +1142,7 @@ Flint supports the following arithmetic operators for `Int` expressions:
  - `*` - Multiplication  
  - `/` - Division  
  - `**` - Exponentiation  
+ - `%` - Modulus
   
 Examples:  
   

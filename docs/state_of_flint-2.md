@@ -78,7 +78,6 @@ Unlike Flint, which provides straight-up types and only requires references for 
 The actual code generation is for LLVM, and we rely on the LLVM to WASM-32 compiler to translate this correctly to WASM. From there we make some simple post-processing changes to the WASM in order to convert it to valid eWASM. 
 
 #### LLVM Translation
-// TODO
 ##### Data Layout
 We represent the contract data in a stack-allocated global variable which is a pointer to a struct which corresponds to the Flint contract declaration. 
 
@@ -88,7 +87,6 @@ Ethereum contracts require the generation of an Application Binary Interface alo
 ##### Imports and Runtime Functions
 
 ##### Money
-// TODO: assets
 Currently, two runtime functions for handling money, ```Flint_balanceOf``` and ```Flint_transfer```, are implemented. These are wrappers for the functions which handle calls to runtime eWASM functions. Although we are fairly confident that the ```Flint_balanceOf_Inner``` function, which calls the eWASM function ```getExternalBalance```, has been implemented correctly, we have found very little documentation describing how money should be transferred in eWASM. The current implementation of ```Flint_transfer_Inner``` has been based mainly on the Flint-1 implementation, using the ```call``` function to transfer money, however since we were unable to test the generated eWASM on the testnet, we cannot be sure that our implementation of this function is correct, only that it is validated as correct eWASM.
 
 #### WASM to eWASM
