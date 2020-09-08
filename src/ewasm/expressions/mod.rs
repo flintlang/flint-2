@@ -1209,8 +1209,7 @@ fn add_get_runtime_function<'ctx>(
     let key = codegen.builder.build_load(key, "key");
 
     if !index.is_int_value() {
-        // TODO: check this is true
-        panic!("Dictionaries can only be implemented for int, address or bool values due to LLVM constraints");
+        panic!("Dictionaries can only be implemented for int, address or bool values until notions of equality on structs and pointers exist");
     }
 
     let is_equal = codegen.builder.build_int_compare(
@@ -1295,7 +1294,6 @@ impl<'a> LLVMCastExpression<'a> {
         }
         .generate(codegen);
 
-        // TODO: which opcode should we pick here? We need tests for this
         Some(codegen.builder.build_cast(
             InstructionOpcode::Trunc,
             cast_from_val,

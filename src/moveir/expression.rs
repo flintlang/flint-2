@@ -8,6 +8,7 @@ use super::ir::{
 };
 use super::literal::MoveLiteralToken;
 use super::property_access::MovePropertyAccess;
+use super::r#type::MoveType;
 use super::runtime_function::MoveRuntimeFunction;
 use super::*;
 use crate::ast::{
@@ -64,24 +65,35 @@ impl MoveExpression {
             Expression::Literal(l) => {
                 MoveIRExpression::Literal(MoveLiteralToken { token: l }.generate())
             }
-            //TODO: fix vector type
             Expression::ArrayLiteral(a) => {
                 let elements = a
                     .elements
+                    .clone()
                     .into_iter()
                     .map(|e| {
                         MoveExpression {
                             expression: e,
                             position: Default::default(),
                         }
-                        .generate(function_context)
+                            .generate(function_context)
                     })
                     .collect();
 
-                MoveIRExpression::Vector(MoveIRVector {
-                    elements,
-                    vec_type: None,
-                })
+                let vec_type = a.elements.first().map(|elem| {
+                    MoveType::move_type(
+                        function_context.environment.get_expression_type(
+                            elem,
+                            elem.enclosing_type().as_ref().unwrap_or(&"".to_string()),
+                            &[], // TODO these may not be empty
+                            &[],
+                            &function_context.scope_context,
+                        ),
+                        Some(function_context.environment.clone()),
+                    )
+                        .generate(function_context)
+                });
+
+                MoveIRExpression::Vector(MoveIRVector { elements, vec_type })
             }
             Expression::DictionaryLiteral(_) => unimplemented!(),
             Expression::SelfExpression => MoveSelf {

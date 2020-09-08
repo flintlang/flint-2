@@ -8,8 +8,6 @@ use inkwell::values::BasicValue;
 use inkwell::AddressSpace;
 
 // For now this will just set up what will often likely need, i.e. getCaller and revert
-// TODO have other std library methods linked as they are used
-// alternatively, we could link everything, and unused things will be optimised out?
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn ether_imports(&self) {
         // self.import_get_caller(); // Using a dummy getCaller while we are testing TODO remove for release
@@ -50,8 +48,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .ptr_type(AddressSpace::Generic)
             .as_basic_type_enum();
 
-        let func_type = self.context.void_type().fn_type(&[address_ptr, result_ptr], false);
-        self.generate_import_and_extern("getExternalBalance", func_type, Some(vec!["addressOffset", "resultOffset"]));
+        let func_type = self
+            .context
+            .void_type()
+            .fn_type(&[address_ptr, result_ptr], false);
+        self.generate_import_and_extern(
+            "getExternalBalance",
+            func_type,
+            Some(vec!["addressOffset", "resultOffset"]),
+        );
     }
 
     fn import_call(&self) {
@@ -85,8 +90,21 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let data_len = self.context.i32_type().as_basic_type_enum();
 
-        let func_type = self.context.i32_type().fn_type(&[gas_param, address_ptr, value_ptr, data_offset, data_len], false);
-        self.generate_import_and_extern("call", func_type, Some(vec!["gas", "addressOffset", "valueOffset", "dataOffset", "dataLength"]));
+        let func_type = self.context.i32_type().fn_type(
+            &[gas_param, address_ptr, value_ptr, data_offset, data_len],
+            false,
+        );
+        self.generate_import_and_extern(
+            "call",
+            func_type,
+            Some(vec![
+                "gas",
+                "addressOffset",
+                "valueOffset",
+                "dataOffset",
+                "dataLength",
+            ]),
+        );
     }
 
     fn import_get_gas(&self) {

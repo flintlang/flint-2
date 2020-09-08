@@ -1,0 +1,14 @@
+contract A {}
+
+A :: (any) {
+  public init() {}
+
+  public func shouldNotCompile() -> Int {
+    //! compile fail line 8
+    if 7 + 8 {
+      return 0
+    } else {
+      return 1
+    }
+  }
+}

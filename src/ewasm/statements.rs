@@ -159,7 +159,6 @@ impl<'a> LLVMAssertion<'a> {
             .get_function("revert")
             .expect("Could not find revert function");
 
-        // TODO fill program return info with something meaningful
         let zero = codegen.context.i32_type().const_int(0, false);
         let ptr = codegen.builder.build_alloca(zero.get_type(), "mem_ptr");
         codegen.builder.build_store(ptr, zero);

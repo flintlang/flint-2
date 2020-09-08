@@ -203,8 +203,9 @@ impl<'a> LLVMContract<'a> {
                     caller_binding: protections.get(index).unwrap().0,
                     caller_protections: protections.get(index).unwrap().1,
                 }
-                .generate(codegen);
+                    .generate(codegen);
             });
-        // TODO Asset declarations?
+
+        // TODO Asset declarations
     }
 }

@@ -124,7 +124,6 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        //TODO Update the context to be contractBehaviourContext
         Ok(())
     }
 
@@ -223,7 +222,6 @@ impl Visitor for SemanticAnalysis {
                     size,
                 }) = &declaration.variable_type
                 {
-                    // TODO check the length of the source and declaration match
                     if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
                         return if *lhs_type == *rhs_type {
                             if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
@@ -550,8 +548,7 @@ impl Visitor for SemanticAnalysis {
 
                 if let Some(property) = ctx.environment.property(token, enclosing_type) {
                     // Check: Do not allow reassignment to constants: This does not work since we never know
-                    // if something is assigned to yet TODO add RHS expression when something is not yet defined
-                    // So we know when something has been assigned to
+                    // if something is assigned to it yet
                     if property.is_constant()
                         && ctx.is_lvalue
                         && property.property.get_value().is_some()
@@ -905,7 +902,7 @@ impl Visitor for SemanticAnalysis {
     fn finish_if_statement(
         &mut self,
         if_statement: &mut IfStatement,
-        _context: &mut Context,
+        context: &mut Context,
     ) -> VResult {
         match &if_statement.condition {
             Expression::BinaryExpression(ref b) => {
@@ -921,10 +918,15 @@ impl Visitor for SemanticAnalysis {
             _ => {}
         }
 
-        let expression_type = Type::Int;
-        //TODO expression type
+        let expression_type = context.environment.get_expression_type(
+            &if_statement.condition,
+            "",
+            &[],
+            &[],
+            context.scope_context.as_ref().unwrap_or_default(),
+        );
 
-        if expression_type.is_bool_type() {
+        if !expression_type.is_bool_type() {
             return Err(Box::from(format!(
                 "Invalid condition type in `if` statement on {}",
                 if_statement.condition.get_line_info()
@@ -942,7 +944,7 @@ impl Visitor for SemanticAnalysis {
         let function_context = context.function_declaration_context.as_ref().unwrap();
         let enclosing = context.enclosing_type_identifier().unwrap();
 
-        // This means we simply trust the standard library is written correctly TODO better way?
+        // This means we simply trust the standard library is written correctly
         if enclosing.token.eq("Flint_Global") {
             return Ok(());
         }

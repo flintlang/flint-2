@@ -7,6 +7,7 @@ use crate::ewasm::inkwell::types::BasicTypeEnum;
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
+use crate::ewasm::utils::generate_caller_variable;
 use std::collections::HashMap;
 
 pub fn generate_initialiser(
@@ -46,14 +47,8 @@ pub fn generate_initialiser(
                 .as_pointer_value();
             function_context.add_local("this", global.as_basic_value_enum());
 
-            // TODO: there may be more cases where a caller variable is needed in the initialisation function
             if caller_binding.is_some() {
-                // TODO: move generate_caller_variable to utils
-                crate::ewasm::function::generate_caller_variable(
-                    codegen,
-                    &mut function_context,
-                    caller_binding,
-                );
+                generate_caller_variable(codegen, &mut function_context, caller_binding);
             }
         }
     }
