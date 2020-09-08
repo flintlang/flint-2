@@ -678,7 +678,7 @@ impl MoveContract {
        new_value = {r_name} {{
       value: move(v)
     }};
-    move_to_sender<{r_name}>(move(new_value));
+    move_to<{r_name}>(move(new_value));
     }}
     return;
   }}",

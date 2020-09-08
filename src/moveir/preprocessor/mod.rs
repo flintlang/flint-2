@@ -872,6 +872,19 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
+    fn start_subscript_expression(&mut self, expr: &mut SubscriptExpression, ctx: &mut Context) -> VResult {
+        if let Some(function_context) = &mut ctx.function_declaration_context {
+            dbg!(function_context.declaration.head.identifier.clone());
+    
+            let base_type = ctx.environment.get_expression_type(&Expression::Identifier(expr.base_expression.clone()), &expr.base_expression.enclosing_type.as_ref().unwrap(), &[], &[], &ctx.scope_context.as_ref().unwrap_or_default());
+            if let Type::DictionaryType(_) = base_type {
+                function_context.declaration.tags.push(format!("acquires _dictionary_{}", expr.base_expression.token));
+            }
+        }
+
+        Ok(())
+    }
+
     fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(call) {
             if "Flint_transfer" == call.identifier.token.as_str() {

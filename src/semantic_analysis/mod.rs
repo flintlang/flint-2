@@ -2,7 +2,8 @@ use super::ast::*;
 use super::context::*;
 use super::visitor::*;
 use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer, MatchedFunctionWithoutCaller};
-use crate::environment::{Candidates, Environment};
+use crate::environment::{Candidates, Environment, CallableInformation};
+use crate::environment::functions::compatible_caller_protections;
 use crate::type_checker::ExpressionChecker;
 use crate::utils::unique::Unique;
 use itertools::Itertools;
@@ -824,6 +825,14 @@ impl Visitor for SemanticAnalysis {
 
         let fail = |candidates: Candidates, type_id: &str| {
             if let Some(first) = candidates.candidates.first() {
+                if let Some(ref behaviour_context) = context.contract_behaviour_declaration_context {
+                    if let CallableInformation::FunctionInformation(info) = first {
+                        if !compatible_caller_protections(&behaviour_context.caller_protections, &info.caller_protections) {
+                            return Err(Box::from(format!("Insufficient caller protections to call {} from function {} on {}.", call.identifier.token, first.name(), call.identifier.line_info)));
+                        }
+                    }
+                }
+
                 Err(Box::from(format!(
                     "Could not call `{}` with ({}) on {}, did you mean to call `{}` with ({}){}",
                     &call.identifier.token,
@@ -879,8 +888,6 @@ impl Visitor for SemanticAnalysis {
                     &info.type_states,
                     &call.identifier,
                 ),
-                MatchedFunctionWithoutCaller(_) => Err(Box::from(format!("Insufficient caller protections to call function {}",
-                    &call.identifier.token))),
                 Failure(candidates) => fail(candidates, contract_name),
                 _ => Ok(()),
             }
