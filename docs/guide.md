@@ -275,7 +275,7 @@ Flint is a statically-typed language with a simple type system, with basic suppo
 | Polymorphic self | `Self` | See [polymorphic self](#polymorphic-self). |  
 | Structs | | Structs (structures), including [user-defined structs](#structs). |  
   
-<!-- TODO for loops/range types may not be implemented ### Range types  
+### Range types `unimplemented`
   
 Flint includes two range types, which are shortcuts for expressing ranges of values. These can only be used with `for-in` loops.  
   
@@ -295,8 +295,9 @@ for let i: Int in (0...5) {
   
 At the moment, both `a` and `b` must be integer literals, not variables!  
   
- > **Planned feature** > > In the future, it will be possible to iterate up to an arbitrary value. See https://github.com/flintlang/flint/issues/397.  -->
-<!-- ### External types  
+ > **Planned feature** > > In the future, it will be possible to iterate up to an arbitrary value. See https://github.com/flintlang/flint/issues/397.
+
+### External types `unimplemented`
   
 When specifying an [external interface](#external-calls), External types must be used. The types usable in Flint are:  
   
@@ -309,7 +310,7 @@ When specifying an [external interface](#external-calls), External types must be
   
 > Note that only `bool`, `uint64`, `address` are available in MoveIR due to target restrictions  
   
-See [casting](#casting-to-and-from-solidity-types) for more information.  -->
+See [casting](#casting-to-and-from-solidity-types) for more information.
   
 ## Constants and variables  
   
@@ -1151,7 +1152,8 @@ Examples:
 5 - 3 // equals 2  
 2 * 3 // equals 6  
 10 / 2 // equals 5  
-2 ** 3 // equals 8  
+2 ** 3 // equals 8
+5 % 2 // equals 1
 ```  
   
 Flint has unique safe arithmetic. The `+`, `-`, `*` and `**` operators throw an exception and abort execution of the smart contract when an overflow occurs `unimplemented`. The `/` operator implements integer division. No underflows can occur as floating-point numbers are not supported yet. The performance overhead of the safe operators is low.  
@@ -1223,7 +1225,7 @@ x += 5
 x = x + 5  
 ```  
   
-<!-- TODO not implemented ### Loops  
+### Loops `unimplemented`
   
 `for-in` loops can be used to iterate over sequence. Currently this supports lists, dictionary values and [ranges](#range-types). Syntax:  
   
@@ -1246,7 +1248,7 @@ Assuming a variable-length list `names` (of type `[String]`), it can be iterated
 ```swift  
 for let name: String in names {  
  // do something with `name`}  
-``` --> 
+``` 
   
 ### Conditionals  
   
@@ -1327,7 +1329,7 @@ Semaphore @(Red) :: (any) {
 }  
 ```  
   
-<!-- TODO ### Do-catch blocks  
+### Do-catch blocks `unimplemented`
   
 `do-catch` blocks can be used to handle errors in execution in a controlled manner. Currently, the only supported error is an external call error (see [external calls](#external-calls)). Syntax:  
   
@@ -1335,11 +1337,11 @@ Semaphore @(Red) :: (any) {
 do {  
  // ...} catch is ExternalCallError {  
  // ...}  
-```  -->
+```
   
 ## External calls  
  
-`unimplemented eWASM`
+`unimplemented (eWASM)`
 External calls refer to a Flint contract calling the functions of other contracts deployed on the Ethereum network. They also allow money to be transferred from Flint contracts to other accounts and contracts, enabling full participation in the Ethereum network.  
   
 However, external contracts include their own set of possible risks and security considerations. When writing code that interacts with external contracts, it is important to keep in mind that:  
