@@ -146,10 +146,10 @@ impl<'a> LLVMExpression<'a> {
 
                     let struct_type = codegen.context.opaque_struct_type(&struct_name);
                     struct_type.set_body(&[key_type, value_type], false);
-                
+
                     let struct_info = (vec!["key".to_string(), "value".to_string()], struct_type);
                     codegen.types.insert(struct_name.to_string(), struct_info);
-                    
+
                     struct_type
                 };
 

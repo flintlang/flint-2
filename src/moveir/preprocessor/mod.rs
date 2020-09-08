@@ -59,6 +59,26 @@ impl Visitor for MovePreProcessor {
         declaration: &mut ContractBehaviourDeclaration,
         ctx: &mut Context,
     ) -> VResult {
+        // Set expression of the caller binding
+        if let Some(ref binding) = declaration.caller_binding {
+            ctx.scope_context.as_mut().map(|scp_ctx| {
+                scp_ctx.local_variables.iter_mut().find_map(|dec| {
+                    if dec.identifier.eq(binding) {
+                        dec.expression = Some(Box::new(Expression::RawAssembly(
+                            format!(
+                                "Signer.address_of(copy({}))",
+                                MovePreProcessor::CALLER_PROTECTIONS_PARAM
+                            ),
+                            None,
+                        )));
+                        Some(dec)
+                    } else {
+                        None
+                    }
+                })
+            });
+        }
+
         // If we are in the declaration that contains the initialiser, then that is where we will insert the
         // getters and setters since there are no caller protections or type state restrictions
         if declaration
