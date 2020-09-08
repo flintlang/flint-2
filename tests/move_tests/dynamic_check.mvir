@@ -1,6 +1,0 @@
-import {{default}}.DynamicCheck;
-
-main(account: &signer) {
-    DynamicCheck.publish(copy(account));
-    return;
-}

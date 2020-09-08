@@ -22,9 +22,10 @@ mod ewasm_tests {
     #[test]
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
-        // TODO refactor this process not to rely on move test folder
         let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank dynamic_check runtime_functions".split(' ');
+        // List the name of the contract file that gets generated
         let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank DynamicCheck Money".split(' ');
+        // List the function that tests the generated LLVM (or None if there is no runtime test for it)
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -52,7 +53,7 @@ mod ewasm_tests {
             .collect::<Vec<(&str, &str)>>();
 
         for (test_no, (flint_file_name, output_file_name)) in test_info.iter().enumerate() {
-            let file_path = format!("tests/move_tests/{}.flint", flint_file_name);
+            let file_path = format!("tests/behaviour_tests/{}.flint", flint_file_name);
             let file_path = Path::new(file_path.as_str());
             let mut file = fs::File::open(file_path).expect(&*format!(
                 "Unable to open file at path `{}`",

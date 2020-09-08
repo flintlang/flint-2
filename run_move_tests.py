@@ -85,9 +85,9 @@ class MoveIRProgramme(Programme):
 
   def with_testsuite(self, testsuite):
     assert isinstance(testsuite, MoveIRProgramme)
-    new = TestRunner.default_behaviour_path / "temp" / self.path.name
+    new = TestRunner.default_move_interaction_path / "temp" / self.path.name
     try:
-      os.makedirs(TestRunner.default_behaviour_path / "temp")
+      os.makedirs(TestRunner.default_move_interaction_path / "temp")
     except FileExistsError:
       pass
     with open(new, "w") as file:
@@ -158,7 +158,7 @@ class BehaviourTest(NamedTuple):
         protections) has been attempted. Also note, only one fail is allowed per test.
         """
 
-    move_path = TestRunner.default_behaviour_path / (name + ".mvir")
+    move_path = TestRunner.default_move_interaction_path / (name + ".mvir")
     move_programme = None
     expected_fail_line = None
     if move_path.exists():
@@ -259,8 +259,9 @@ To run them please set "libraPath" in ~/.flint/flint_config.json to the root of 
 class TestRunner(NamedTuple):
   behaviour_tests: List[BehaviourTest]
   compilation_tests: List[FlintProgramme]
-  default_behaviour_path = Path("tests/move_tests")
-  default_compilation_test_path = Path("tests/compilation_tests")
+  default_behaviour_path = Path("tests/behaviour_tests")
+  default_move_interaction_path = Path("tests/behaviour_tests/move_tests")
+  compilation_only_path = Path("tests/compilation_tests")
 
   @classmethod
   def from_all(cls, names=[], config=None):
@@ -270,7 +271,7 @@ class TestRunner(NamedTuple):
                        if not names or file.stem in names]
 
     all_files = behaviour_files + [file for file in
-                                   cls.default_compilation_test_path.iterdir()
+                                   cls.compilation_only_path.iterdir()
                                    if file.suffix.endswith("flint")
                                    if not names or file.stem in names]
 
@@ -292,7 +293,7 @@ class TestRunner(NamedTuple):
     try:
       shutil.rmtree(
           MoveIRProgramme.config.libra_path / MoveIRProgramme.temporary_test_path)
-      shutil.rmtree(self.default_behaviour_path / "temp")
+      shutil.rmtree(self.default_move_interaction_path / "temp")
     except:
       print(f"Could not remove temporary files")
 
