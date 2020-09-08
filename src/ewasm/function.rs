@@ -109,6 +109,8 @@ pub fn generate_function_type(function_declaration: &FunctionDeclaration, codege
         .map(|param| param.identifier.token.clone())
         .collect();
 
+    // TODO: If one of our parameters is of dictionary type, we have to give the length of the array representing a dictionary, which is a problem
+    // because we cannot tell the length of a dictionary just from its AST type.
     let func_type = if let Some(result_type) = function_declaration.get_result_type() {
         LLVMType {
             ast_type: &result_type,

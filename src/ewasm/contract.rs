@@ -57,7 +57,6 @@ impl<'a> LLVMContract<'a> {
         let member_types = &members
             .iter()
             .map(|member| {
-                // TODO: where else do we need this check?
                 if let Type::DictionaryType(dict_type) = &member.variable_type {
                     if member.expression.is_some() {
                         if let DictionaryLiteral(dict) = &**member.expression.as_ref().unwrap() {

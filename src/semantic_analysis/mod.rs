@@ -1,7 +1,7 @@
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer};
+use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer, MatchedFunctionWithoutCaller};
 use crate::environment::{Candidates, Environment};
 use crate::type_checker::ExpressionChecker;
 use crate::utils::unique::Unique;
@@ -882,6 +882,8 @@ impl Visitor for SemanticAnalysis {
                     &info.type_states,
                     &call.identifier,
                 ),
+                MatchedFunctionWithoutCaller(_) => Err(Box::from(format!("Insufficient caller protections to call function {}",
+                    &call.identifier.token))),
                 Failure(candidates) => fail(candidates, contract_name),
                 _ => Ok(()),
             }

@@ -138,9 +138,19 @@ impl<'a> LLVMExpression<'a> {
                     )) {
                     struct_type
                 } else {
-                    // TODO: change to named opaque struct type and store pointer
-                    let int_type = codegen.context.i32_type().as_basic_type_enum();
-                    codegen.context.struct_type(&[int_type, int_type], false)
+                    let struct_name = format!(
+                        "dictionary_element_{}_{}",
+                        get_type_as_string(&key_type),
+                        get_type_as_string(&value_type)
+                    );
+
+                    let struct_type = codegen.context.opaque_struct_type(&struct_name);
+                    struct_type.set_body(&[key_type, value_type], false);
+                
+                    let struct_info = (vec!["key".to_string(), "value".to_string()], struct_type);
+                    codegen.types.insert(struct_name.to_string(), struct_info);
+                    
+                    struct_type
                 };
 
                 let arr_ptr = codegen

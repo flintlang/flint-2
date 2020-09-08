@@ -121,11 +121,6 @@ impl Environment {
                             &function.caller_protections,
                         ) {
                             return FunctionCallMatchResult::MatchedFunction(function.clone());
-                        } else {
-                            panic!(
-                                "Insufficient caller protections to call function {}",
-                                call.identifier.token
-                            );
                         }
                     }
 
