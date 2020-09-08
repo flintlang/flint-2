@@ -73,7 +73,6 @@ impl<'a> LLVMType<'a> {
     }
 }
 
-// TODO: move to utils?
 pub fn get_type_as_string(element_type: &BasicTypeEnum) -> String {
     match element_type {
         BasicTypeEnum::ArrayType(_) => unimplemented!(),
@@ -109,6 +108,5 @@ pub fn llvm_dictionary<'ctx>(
     let struct_info = (vec!["key".to_string(), "value".to_string()], struct_type);
     codegen.types.insert(struct_name.to_string(), struct_info);
 
-    // TODO: find a way of getting the dictionary literal length
     BasicTypeEnum::ArrayType(struct_type.array_type(dict_size))
 }

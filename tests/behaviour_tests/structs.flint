@@ -124,8 +124,6 @@ C :: (any) {
     return c.getXx()
   }
 
-  // TODO this is where this test fails. It does not alter the same copy of b
-  // b.setXx works correctly on its b, but it does not affect the b passed in.
   func setB(b: inout B, x: Int) mutates (b) {
     b.setXx(y: x)
   }

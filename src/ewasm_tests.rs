@@ -11,20 +11,21 @@ mod ewasm_tests {
     use self::inkwell::module::Module;
     use self::inkwell::OptimizationLevel;
     use crate::io::target::target;
+    use crate::io::*;
     use crate::{ast_processor, parser};
     use libchisel::{checkstartfunc::*, verifyexports::*, verifyimports::*};
     use libchisel::{ModulePreset, ModuleValidator};
     use std::fs;
     use std::io::Read;
     use std::path::Path;
-    use crate::io::*;
 
     #[test]
     fn test_ewasm_validity() {
         // List the filenames we want to test separated by a space
-        // TODO refactor this process not to rely on move test folder
         let input_file_names = "counter factorial shapes assert traffic_lights operators memory inits rockpaperscissors public_and_visible typestates_counter property_modification structs callerprotections_counter arrays callerprotections_lottery callerprotections_bank dynamic_check runtime_functions".split(' ');
+        // List the name of the contract file that gets generated
         let output_file_names = "Counter Factorial Shapes Assert TrafficLights Operators Memory Inits RockPaperScissors MyContract Counter PropertyModification C Counter2 Arrays Lottery Bank DynamicCheck Money".split(' ');
+        // List the function that tests the generated LLVM (or None if there is no runtime test for it)
         let runtime_tests: Vec<Option<fn(&Module)>> = vec![
             Some(counter),
             Some(factorial),
@@ -44,7 +45,7 @@ mod ewasm_tests {
             Some(caller_protections_lottery),
             Some(caller_protections_bank),
             Some(dynamic_check),
-            None
+            None,
         ];
 
         let test_info = input_file_names
@@ -52,7 +53,7 @@ mod ewasm_tests {
             .collect::<Vec<(&str, &str)>>();
 
         for (test_no, (flint_file_name, output_file_name)) in test_info.iter().enumerate() {
-            let file_path = format!("tests/move_tests/{}.flint", flint_file_name);
+            let file_path = format!("tests/behaviour_tests/{}.flint", flint_file_name);
             let file_path = Path::new(file_path.as_str());
             let mut file = fs::File::open(file_path).expect(&*format!(
                 "Unable to open file at path `{}`",
@@ -62,15 +63,14 @@ mod ewasm_tests {
             let mut program = String::new();
             file.read_to_string(&mut program)
                 .expect("Unable to read the file");
-            
+
             let mut file = fs::File::open("stdlib/ether/global.flint").unwrap_or_else(|err| {
                 prompt::error::unable_to_open_file(Path::new("stdlib/ether/global.flint"), err)
             });
-            
+
             file.read_to_string(&mut program).unwrap_or_else(|err| {
                 prompt::error::unable_to_read_file(Path::new("stdlib/ether/global.flint"), err)
             });
-        
 
             let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
                 println!("Could not parse file: {}", err);
@@ -652,7 +652,7 @@ mod ewasm_tests {
             println!("Typestates counter test passed, up until where it should fail, which cannot be tested");
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
-            // so we cannot test it here TODO
+            // so we cannot test it here
             // reset.call();
         }
     }
@@ -693,7 +693,7 @@ mod ewasm_tests {
             );
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
-            // so we cannot test it here TODO
+            // so we cannot test it here
             // move_to_red.call();
         }
     }
@@ -743,7 +743,7 @@ mod ewasm_tests {
             switch.call();
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
-            // so we cannot test it here TODO
+            // so we cannot test it here
             // increment.call();
             println!("Caller protections counter test passed");
         }
@@ -802,11 +802,11 @@ mod ewasm_tests {
             assert_eq!(3, get_last.call());
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
-            // so we cannot test it here TODO
+            // so we cannot test it here
             // out_of_bounds.call();
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
-            // so we cannot test it here TODO
+            // so we cannot test it here
             // is_winner.call();
 
             println!("Caller protections lottery test passed");
@@ -881,7 +881,7 @@ mod ewasm_tests {
             assert_eq!(get.call(2), 7);
 
             // NOTE this should cause a SEGFAULT as we call revert, which is defined by ewasm, not us
-            // so we cannot test it here TODO
+            // so we cannot test it here
             // get.call(3); // Goes out of variable bounds
 
             println!("Arrays test passed");

@@ -1,4 +1,7 @@
 use super::inkwell::types::AnyTypeEnum;
+use crate::ast::Identifier;
+use crate::ewasm::codegen::Codegen;
+use crate::ewasm::function_context::FunctionContext;
 
 pub fn get_num_pointer_layers(val_type: AnyTypeEnum) -> u8 {
     let mut num_pointers = 0;
@@ -8,4 +11,27 @@ pub fn get_num_pointer_layers(val_type: AnyTypeEnum) -> u8 {
         val_type = val_type.into_pointer_type().get_element_type();
     }
     num_pointers
+}
+
+pub fn generate_caller_variable<'ctx>(
+    codegen: &mut Codegen<'_, 'ctx>,
+    function_context: &mut FunctionContext<'ctx>,
+    caller_binding: Option<Identifier>,
+) {
+    let caller_address = codegen
+        .builder
+        .build_call(
+            codegen.module.get_function("_getCaller").unwrap(),
+            &[],
+            "tmp_call",
+        )
+        .try_as_basic_value()
+        .left()
+        .unwrap();
+
+    if let Some(caller) = caller_binding {
+        function_context.add_local(&caller.token, caller_address);
+    } else {
+        function_context.add_local("caller", caller_address);
+    }
 }

@@ -94,7 +94,6 @@ impl Environment {
             }
         } else {
             self.types.insert(type_id.to_string(), TypeInfo::new());
-            // TODO consider using a map literal crate
             self.types
                 .get_mut(type_id)
                 .unwrap()

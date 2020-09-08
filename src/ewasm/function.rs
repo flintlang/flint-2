@@ -5,6 +5,7 @@ use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
 use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
+use crate::ewasm::utils::generate_caller_variable;
 use crate::ewasm::Codegen;
 use std::collections::HashMap;
 
@@ -58,7 +59,9 @@ impl<'a> LLVMFunction<'a> {
 
             if (!self.caller_protections.iter().any(|c| c.is_any())
                 && !self.caller_protections.is_empty()
-                && (self.function_declaration.is_external || contains_function(self.caller_protections, codegen, enclosing))) || self.caller_binding.is_some()
+                && (self.function_declaration.is_external
+                || contains_function(self.caller_protections, codegen, enclosing)))
+                || self.caller_binding.is_some()
             {
                 generate_caller_variable(
                     codegen,
@@ -127,29 +130,6 @@ pub fn generate_function_type(function_declaration: &FunctionDeclaration, codege
     // set argument names
     for (i, arg) in func_val.get_param_iter().enumerate() {
         arg.set_name(parameter_names[i].as_str())
-    }
-}
-
-pub fn generate_caller_variable<'ctx>(
-    codegen: &mut Codegen<'_, 'ctx>,
-    function_context: &mut FunctionContext<'ctx>,
-    caller_binding: Option<Identifier>,
-) {
-    let caller_address = codegen
-        .builder
-        .build_call(
-            codegen.module.get_function("_getCaller").unwrap(),
-            &[],
-            "tmp_call",
-        )
-        .try_as_basic_value()
-        .left()
-        .unwrap();
-
-    if let Some(caller) = caller_binding {
-        function_context.add_local(&caller.token, caller_address);
-    } else {
-        function_context.add_local("caller", caller_address);
     }
 }
 

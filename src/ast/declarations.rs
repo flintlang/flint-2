@@ -130,6 +130,7 @@ impl Visitable for ContractBehaviourDeclaration {
 
         let local_variables: Vec<VariableDeclaration> =
             if let Some(ref caller_binding) = self.caller_binding {
+                // TODO remove this
                 let mut caller_declaration = VariableDeclaration {
                     declaration_token: None,
                     identifier: caller_binding.clone(),
