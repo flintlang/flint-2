@@ -114,13 +114,13 @@ impl Environment {
         if let Some(type_info) = self.types.get(type_id) {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
-                    if self.function_call_arguments_compatible(function, call, type_id, scope) {
-                        if self.compatible_caller_protections(
-                            protections,
-                            &function.caller_protections,
-                        ) {
-                            return FunctionCallMatchResult::MatchedFunction(function.clone());
-                        }
+                    if self.function_call_arguments_compatible(function, call, type_id, scope)
+                        && self.compatible_caller_protections(
+                        protections,
+                        &function.caller_protections,
+                    )
+                    {
+                        return FunctionCallMatchResult::MatchedFunction(function.clone());
                     }
 
                     candidates.push(function.clone());
