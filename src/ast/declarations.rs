@@ -594,8 +594,9 @@ impl Visitable for FunctionDeclaration {
         if let Some(ref mut scope_context) = ctx.scope_context {
             scope_context.local_variables = declarations;
         }
-        ctx.function_declaration_context = None;
         v.finish_function_declaration(self, ctx)?;
+        ctx.function_declaration_context = None;
+
 
         ctx.pre_statements = vec![];
         ctx.post_statements = vec![];

@@ -98,13 +98,17 @@ impl MoveFunction {
             }
             _ => "".to_string(),
         };
-        let mut tags = self.function_declaration.tags.join("");
+        let mut tags = self.function_declaration.tags.join(", ");
+        
+        if !tags.is_empty() {
+            tags = format!("acquires {}", tags);
+        }
 
-        let function_name = &self.function_declaration.head.identifier.token;
+        ///let function_name = &self.function_declaration.head.identifier.token;
 
         // adds dictionaries which are caller protections of the function to the function's tags
 
-        if let Some(contract_name) = &self.function_declaration.head.identifier.enclosing_type {
+        /*if let Some(contract_name) = &self.function_declaration.head.identifier.enclosing_type {
             if let Some(type_info) = self.environment.types.get(contract_name) {
                 if let Some(function_info) = type_info.functions.get(function_name) {
                     let caller_protections = &function_info.get(0).unwrap().caller_protections;
@@ -142,7 +146,7 @@ impl MoveFunction {
                     }
                 }
             }
-        }
+        }*/
 
         let mut scope = self
             .function_declaration
@@ -188,6 +192,7 @@ impl MoveFunction {
             in_struct_function: !self.is_contract_function,
             is_constructor: false,
         };
+
         let statements = self.function_declaration.body.clone();
         let mut statements: Vec<MoveStatement> = statements
             .into_iter()

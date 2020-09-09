@@ -211,7 +211,7 @@ pub fn generate_contract_wrapper(
     ));
 
     wrapper.body = vec![];
-    wrapper.tags.push("acquires T".to_string());
+    wrapper.tags.push("T".to_string());
 
     if !function.is_void() && !function.body.is_empty() {
         let mut func = function.clone();
