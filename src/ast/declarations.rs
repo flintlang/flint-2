@@ -597,7 +597,6 @@ impl Visitable for FunctionDeclaration {
         v.finish_function_declaration(self, ctx)?;
         ctx.function_declaration_context = None;
 
-
         ctx.pre_statements = vec![];
         ctx.post_statements = vec![];
 

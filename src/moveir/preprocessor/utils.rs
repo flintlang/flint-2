@@ -748,7 +748,6 @@ pub fn mangle_function_call_name(
             scope,
         );
 
-
         match match_result {
             FunctionCallMatchResult::MatchedFunction(fi) => {
                 let declaration = fi.declaration;
@@ -778,7 +777,8 @@ pub fn mangle_function_call_name(
                     false,
                 ))
             }
-            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) | FunctionCallMatchResult::Failure(c) => {
+            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c)
+            | FunctionCallMatchResult::Failure(c) => {
                 if c.candidates.len() > 1 {
                     panic!(
                         "Found too many function declarations! ({} found)",

@@ -67,7 +67,7 @@ pub fn add_initialiser_function_declaration(
     let params = &initialiser.head.parameters;
     let param_types = params
         .iter()
-        .map(|param| {  
+        .map(|param| {
             // TODO: If one of our parameters is of dictionary type, we have to give the length of the array representing a dictionary, which is a problem
             // because we cannot tell the length of a dictionary just from its AST type.
             LLVMType {

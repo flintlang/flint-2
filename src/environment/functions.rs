@@ -115,10 +115,8 @@ impl Environment {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
                     if self.function_call_arguments_compatible(function, call, type_id, scope) {
-                        if compatible_caller_protections(
-                            protections,
-                            &function.caller_protections,
-                        ) {
+                        if compatible_caller_protections(protections, &function.caller_protections)
+                        {
                             return FunctionCallMatchResult::MatchedFunction(function.clone());
                         }
                     }
@@ -134,9 +132,10 @@ impl Environment {
         let matched_candidates: Vec<FunctionInformation> = candidates
             .clone()
             .into_iter()
-            .filter(|c| c.get_parameter_types().eq(argument_types.iter()) && compatible_caller_protections(
-                protections,
-                &c.caller_protections))
+            .filter(|c| {
+                c.get_parameter_types().eq(argument_types.iter())
+                    && compatible_caller_protections(protections, &c.caller_protections)
+            })
             .collect();
 
         let matched_candidates: Vec<CallableInformation> = matched_candidates
@@ -226,10 +225,7 @@ impl Environment {
                         .iter()
                         .all(|argument_type| parameter_types.contains(&argument_type));
                     if equal_types
-                        && compatible_caller_protections(
-                            protections,
-                            &function.caller_protections,
-                        )
+                        && compatible_caller_protections(protections, &function.caller_protections)
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
                     } else {

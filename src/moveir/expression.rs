@@ -75,7 +75,7 @@ impl MoveExpression {
                             expression: e,
                             position: Default::default(),
                         }
-                            .generate(function_context)
+                        .generate(function_context)
                     })
                     .collect();
 
@@ -90,7 +90,7 @@ impl MoveExpression {
                         ),
                         Some(function_context.environment.clone()),
                     )
-                        .generate(function_context)
+                    .generate(function_context)
                 });
 
                 MoveIRExpression::Vector(MoveIRVector { elements, vec_type })
@@ -186,7 +186,6 @@ pub(crate) struct MoveSubscriptExpression {
 
 impl MoveSubscriptExpression {
     pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
-        dbg!(function_context.scope_context.parameters.clone());
         let rhs = self.rhs.clone();
         let rhs =
             rhs.unwrap_or_else(|| MoveIRExpression::Literal(MoveIRLiteral::Hex("0x0".to_string())));
@@ -223,7 +222,12 @@ impl MoveSubscriptExpression {
                         "Self._insert_{}",
                         mangle_dictionary(&self.expression.base_expression.token)
                     );
-                    let caller_argument = &function_context.scope_context.parameters.last().unwrap().identifier;
+                    let caller_argument = &function_context
+                        .scope_context
+                        .parameters
+                        .last()
+                        .unwrap()
+                        .identifier;
                     let caller_argument = MoveIdentifier {
                         identifier: caller_argument.clone(),
                         position: Default::default(),

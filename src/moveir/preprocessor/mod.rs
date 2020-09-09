@@ -233,7 +233,7 @@ impl Visitor for MovePreProcessor {
                     .local_variables
                     .push(declaration.clone());
             } else if let Some(ref mut special_declaration_context) =
-            ctx.special_declaration_context
+                ctx.special_declaration_context
             {
                 special_declaration_context
                     .local_variables
@@ -434,8 +434,15 @@ impl Visitor for MovePreProcessor {
     ) -> VResult {
         let mut statements = get_declaration(_ctx);
 
-        _t.tags.append(&mut _ctx.function_declaration_context.clone().unwrap().declaration.tags);
-        
+        _t.tags.append(
+            &mut _ctx
+                .function_declaration_context
+                .clone()
+                .unwrap()
+                .declaration
+                .tags,
+        );
+
         let function_declaration = _t;
 
         let mut deletions = delete_declarations(function_declaration.body.clone());
@@ -489,7 +496,6 @@ impl Visitor for MovePreProcessor {
         declaration: &mut SpecialDeclaration,
         ctx: &mut Context,
     ) -> VResult {
-        dbg!(declaration.clone());
         let members = declaration.body.clone();
 
         let members: Vec<Statement> = members
@@ -876,11 +882,24 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
-    fn start_subscript_expression(&mut self, expr: &mut SubscriptExpression, ctx: &mut Context) -> VResult {
-        if let Some(function_context) = &mut ctx.function_declaration_context {    
-            let base_type = ctx.environment.get_expression_type(&Expression::Identifier(expr.base_expression.clone()), &expr.base_expression.enclosing_type.as_ref().unwrap(), &[], &[], &ctx.scope_context.as_ref().unwrap_or_default());
+    fn start_subscript_expression(
+        &mut self,
+        expr: &mut SubscriptExpression,
+        ctx: &mut Context,
+    ) -> VResult {
+        if let Some(function_context) = &mut ctx.function_declaration_context {
+            let base_type = ctx.environment.get_expression_type(
+                &Expression::Identifier(expr.base_expression.clone()),
+                &expr.base_expression.enclosing_type.as_ref().unwrap(),
+                &[],
+                &[],
+                &ctx.scope_context.as_ref().unwrap_or_default(),
+            );
             if let Type::DictionaryType(_) = base_type {
-                function_context.declaration.tags.push(format!("_dictionary_{}", expr.base_expression.token));
+                function_context
+                    .declaration
+                    .tags
+                    .push(format!("_dictionary_{}", expr.base_expression.token));
             }
         }
 
@@ -900,7 +919,7 @@ impl Visitor for MovePreProcessor {
             }
             return Ok(());
         }
-        
+
         if let Some(mangled) = mangle_function_call_name(call, ctx) {
             call.mangled_identifier = Option::from(Identifier {
                 token: mangled,
@@ -908,7 +927,6 @@ impl Visitor for MovePreProcessor {
                 line_info: Default::default(),
             });
         }
-    
 
         if !ctx.environment.is_initialise_call(&call)
             && !ctx.environment.is_trait_declared(&call.identifier.token)

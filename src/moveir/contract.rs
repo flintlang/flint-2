@@ -4,9 +4,9 @@ use super::expression::MoveExpression;
 use super::function::{FunctionContext, MoveFunction};
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRModuleImport, MoveIROperation,
-    MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
-    MoveIRVariableDeclaration, MoveIRFunctionCall
+    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRFunctionCall, MoveIRModuleImport,
+    MoveIROperation, MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
+    MoveIRVariableDeclaration,
 };
 use super::r#struct::MoveStruct;
 use super::r#type::{move_runtime_types, MoveType};

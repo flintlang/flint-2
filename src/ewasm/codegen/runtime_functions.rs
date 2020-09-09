@@ -177,7 +177,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     // TODO: Due to a lack of eWASM documentation, we aren't sure how money should be transferred in eWASM (see our question posted in ewasm/design here: https://github.com/ewasm/design/pull/113).
-    // The below implementation is based on the Flint 1 send function, however because we were unable to use the eWASM testnet (it is currently down), we were unable to validate 
+    // The below implementation is based on the Flint 1 send function, however because we were unable to use the eWASM testnet (it is currently down), we were unable to validate
     // if this function was correct.
 
     fn transfer(&self) {
