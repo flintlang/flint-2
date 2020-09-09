@@ -536,7 +536,7 @@ impl MoveContract {
             );
 
             params_values = if !params_values.is_empty() {
-                format!(", copy(account)")
+                format!("{}, copy(account)", params_values)
             } else {
                 "copy(account)".to_string()
             };
