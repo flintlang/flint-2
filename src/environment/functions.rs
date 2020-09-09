@@ -115,7 +115,7 @@ impl Environment {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
                     if self.function_call_arguments_compatible(function, call, type_id, scope)
-                        && self.compatible_caller_protections(
+                        && compatible_caller_protections(
                         protections,
                         &function.caller_protections,
                     )
@@ -134,7 +134,10 @@ impl Environment {
         let matched_candidates: Vec<FunctionInformation> = candidates
             .clone()
             .into_iter()
-            .filter(|c| c.get_parameter_types().eq(argument_types.iter()))
+            .filter(|c| {
+                c.get_parameter_types().eq(argument_types.iter())
+                    && compatible_caller_protections(protections, &c.caller_protections)
+            })
             .collect();
 
         let matched_candidates: Vec<CallableInformation> = matched_candidates
@@ -165,7 +168,7 @@ impl Environment {
         if let Some(type_info) = self.types.get(&call.identifier.token) {
             let fallbacks = &type_info.fallbacks;
             for fallback in fallbacks {
-                if self.compatible_caller_protections(protections, &fallback.caller_protections) {
+                if compatible_caller_protections(protections, &fallback.caller_protections) {
                     // TODO Return MatchedFallBackFunction
                 } else {
                     candidates.push(fallback);
@@ -190,8 +193,7 @@ impl Environment {
                 let equal_types = parameter_types == argument_types;
 
                 if equal_types
-                    && self
-                        .compatible_caller_protections(protections, &initialiser.caller_protections)
+                    && compatible_caller_protections(protections, &initialiser.caller_protections)
                 {
                     return FunctionCallMatchResult::MatchedInitializer(initialiser.clone());
                 } else {
@@ -225,10 +227,7 @@ impl Environment {
                         .iter()
                         .all(|argument_type| parameter_types.contains(&argument_type));
                     if equal_types
-                        && self.compatible_caller_protections(
-                            protections,
-                            &function.caller_protections,
-                        )
+                        && compatible_caller_protections(protections, &function.caller_protections)
                     {
                         return FunctionCallMatchResult::MatchedGlobalFunction(function.clone());
                     } else {
@@ -290,28 +289,6 @@ impl Environment {
             .merge(regular_match)
             .merge(initialiser_match)
             .merge(global_match)
-    }
-
-    fn compatible_caller_protections(
-        &self,
-        source: &[CallerProtection],
-        target: &[CallerProtection],
-    ) -> bool {
-        // each caller protection in the source must match at least one caller protection in the target
-
-        for caller_protection in source {
-            let mut matched_any_parent = target.is_empty();
-
-            for parent in target {
-                matched_any_parent |= caller_protection.is_sub_protection(parent);
-            }
-
-            if !matched_any_parent {
-                return false;
-            }
-        }
-
-        true
     }
 
     fn function_call_arguments_compatible(
@@ -386,4 +363,25 @@ impl Environment {
     ) -> impl Iterator<Item = Type> + 'a {
         iterator.map(move |t| t.replacing_self(enclosing))
     }
+}
+
+pub fn compatible_caller_protections(
+    source: &[CallerProtection],
+    target: &[CallerProtection],
+) -> bool {
+    // each caller protection in the source must match at least one caller protection in the target
+
+    for caller_protection in source {
+        let mut matched_any_parent = target.is_empty();
+
+        for parent in target {
+            matched_any_parent |= caller_protection.is_sub_protection(parent);
+        }
+
+        if !matched_any_parent {
+            return false;
+        }
+    }
+
+    true
 }

@@ -211,7 +211,7 @@ pub fn generate_contract_wrapper(
     ));
 
     wrapper.body = vec![];
-    wrapper.tags.push("acquires T".to_string());
+    wrapper.tags.push("T".to_string());
 
     if !function.is_void() && !function.body.is_empty() {
         let mut func = function.clone();
@@ -760,7 +760,25 @@ pub fn mangle_function_call_name(
                     false,
                 ))
             }
-            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) => {
+
+            FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
+                "init",
+                &function_call.identifier.token,
+                false,
+            )),
+
+            FunctionCallMatchResult::MatchedFallback(_) => unimplemented!(),
+            FunctionCallMatchResult::MatchedGlobalFunction(fi) => {
+                let declaration = fi.declaration;
+
+                Some(mangle_function_move(
+                    &declaration.head.identifier.token,
+                    "Flint",
+                    false,
+                ))
+            }
+            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c)
+            | FunctionCallMatchResult::Failure(c) => {
                 if c.candidates.len() > 1 {
                     panic!(
                         "Found too many function declarations! ({} found)",
@@ -788,24 +806,6 @@ pub fn mangle_function_call_name(
                     panic!("Non-function CallableInformation where function expected")
                 }
             }
-
-            FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
-                "init",
-                &function_call.identifier.token,
-                false,
-            )),
-
-            FunctionCallMatchResult::MatchedFallback(_) => unimplemented!(),
-            FunctionCallMatchResult::MatchedGlobalFunction(fi) => {
-                let declaration = fi.declaration;
-
-                Some(mangle_function_move(
-                    &declaration.head.identifier.token,
-                    "Flint",
-                    false,
-                ))
-            }
-            FunctionCallMatchResult::Failure(_) => None,
         }
     } else {
         let _lol = !Environment::is_runtime_function_call(function_call);

@@ -75,7 +75,7 @@ impl MoveExpression {
                             expression: e,
                             position: Default::default(),
                         }
-                            .generate(function_context)
+                        .generate(function_context)
                     })
                     .collect();
 
@@ -90,7 +90,7 @@ impl MoveExpression {
                         ),
                         Some(function_context.environment.clone()),
                     )
-                        .generate(function_context)
+                    .generate(function_context)
                 });
 
                 MoveIRExpression::Vector(MoveIRVector { elements, vec_type })
@@ -222,9 +222,21 @@ impl MoveSubscriptExpression {
                         "Self._insert_{}",
                         mangle_dictionary(&self.expression.base_expression.token)
                     );
+                    let caller_argument = &function_context
+                        .scope_context
+                        .parameters
+                        .last()
+                        .unwrap()
+                        .identifier;
+                    let caller_argument = MoveIdentifier {
+                        identifier: caller_argument.clone(),
+                        position: Default::default(),
+                    }
+                    .generate(function_context, false, true);
+
                     MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                         identifier: f_name,
-                        arguments: vec![index, rhs],
+                        arguments: vec![index, rhs, caller_argument],
                     })
                 }
                 _ => panic!("Invalid Type for Subscript Expression"),

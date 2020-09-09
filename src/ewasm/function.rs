@@ -60,7 +60,7 @@ impl<'a> LLVMFunction<'a> {
             if (!self.caller_protections.iter().any(|c| c.is_any())
                 && !self.caller_protections.is_empty()
                 && (self.function_declaration.is_external
-                || contains_function(self.caller_protections, codegen, enclosing)))
+                    || contains_function(self.caller_protections, codegen, enclosing)))
                 || self.caller_binding.is_some()
             {
                 generate_caller_variable(

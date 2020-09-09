@@ -98,50 +98,10 @@ impl MoveFunction {
             }
             _ => "".to_string(),
         };
-        let mut tags = self.function_declaration.tags.join("");
+        let mut tags = self.function_declaration.tags.join(", ");
 
-        let function_name = &self.function_declaration.head.identifier.token;
-
-        // adds dictionaries which are caller protections of the function to the function's tags
-
-        if let Some(contract_name) = &self.function_declaration.head.identifier.enclosing_type {
-            if let Some(type_info) = self.environment.types.get(contract_name) {
-                if let Some(function_info) = type_info.functions.get(function_name) {
-                    let caller_protections = &function_info.get(0).unwrap().caller_protections;
-
-                    for caller_protection in caller_protections {
-                        if let Some(property_info) = self
-                            .environment
-                            .types
-                            .get(contract_name)
-                            .unwrap()
-                            .properties
-                            .get(&caller_protection.identifier.token)
-                        {
-                            if let Property::VariableDeclaration(variable_declaration, _) =
-                                &property_info.property
-                            {
-                                let caller_protection_type = &variable_declaration.variable_type;
-
-                                if let Type::DictionaryType(_) = caller_protection_type {
-                                    if tags.is_empty() {
-                                        tags = format!(
-                                            "acquires {}",
-                                            mangle_dictionary(&caller_protection.identifier.token)
-                                        );
-                                    } else {
-                                        tags = format!(
-                                            "{}, {}",
-                                            tags,
-                                            mangle_dictionary(&caller_protection.identifier.token)
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if !tags.is_empty() {
+            tags = format!("acquires {}", tags);
         }
 
         let mut scope = self
@@ -188,6 +148,7 @@ impl MoveFunction {
             in_struct_function: !self.is_contract_function,
             is_constructor: false,
         };
+
         let statements = self.function_declaration.body.clone();
         let mut statements: Vec<MoveStatement> = statements
             .into_iter()

@@ -4,8 +4,8 @@ use super::expression::MoveExpression;
 use super::function::{FunctionContext, MoveFunction};
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRModuleImport, MoveIROperation,
-    MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
+    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRFunctionCall, MoveIRModuleImport,
+    MoveIROperation, MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
     MoveIRVariableDeclaration,
 };
 use super::r#struct::MoveStruct;
@@ -193,7 +193,7 @@ impl MoveContract {
             .collect();
 
         let params_values = initialiser_declaration.head.parameters.clone();
-        let params_values = params_values
+        let mut params_values = params_values
             .into_iter()
             .map(|p| {
                 MoveIdentifier {
@@ -530,10 +530,16 @@ impl MoveContract {
         if !dict_names.is_empty() {
             initialiser = format!(
                 "new({params}): Self.T acquires {dict_names} {{ \n{body}\n }} \n",
-                params = params_without_signer,
+                params = parameters,
                 dict_names = dict_names,
                 body = body,
             );
+
+            params_values = if !params_values.is_empty() {
+                format!("{}, copy(account)", params_values)
+            } else {
+                "copy(account)".to_string()
+            };
 
             publisher = format!("public publish({params}) acquires {dict_names} {{ \n let t: Self.T; \nt = Self.new({values});\n move_to<T>(move(account), move(t)); \nreturn; \n }}",
                                 params = parameters,
@@ -642,12 +648,18 @@ impl MoveContract {
                             .generate(&mut function_context);
 
                             let f_name = format!("Self._insert_{}", r_name);
+                            let caller_argument = Identifier::generated("account");
+                            let caller_argument = MoveIdentifier {
+                                identifier: caller_argument.clone(),
+                                position: Default::default(),
+                            }
+                            .generate(function_context, false, true);
 
                             dict_initialisation.push(MoveIRStatement::Expression(
                                 MoveIRExpression::FunctionCall(
-                                    crate::moveir::ir::MoveIRFunctionCall {
+                                    MoveIRFunctionCall {
                                         identifier: f_name,
-                                        arguments: vec![index, rhs],
+                                        arguments: vec![index, rhs, caller_argument],
                                     },
                                 ),
                             ));
@@ -666,7 +678,7 @@ impl MoveContract {
     return move(result);
   }}
 
-        _insert_{r_name}(_address_this: address, v: {r_type}) acquires {r_name} {{
+        _insert_{r_name}(_address_this: address, v: {r_type}, _contract_caller: &signer) acquires {r_name} {{
     let new_value: Self.{r_name};
     let cur: &mut Self.{r_name};
     let b: bool;
@@ -678,7 +690,7 @@ impl MoveContract {
        new_value = {r_name} {{
       value: move(v)
     }};
-    move_to_sender<{r_name}>(move(new_value));
+    move_to<{r_name}>(move(_contract_caller), move(new_value));
     }}
     return;
   }}",

@@ -452,8 +452,18 @@ impl Visitor for MovePreProcessor {
         _t: &mut FunctionDeclaration,
         _ctx: &mut Context,
     ) -> VResult {
-        let function_declaration = _t;
         let mut statements = get_declaration(_ctx);
+
+        _t.tags.append(
+            &mut _ctx
+                .function_declaration_context
+                .clone()
+                .unwrap()
+                .declaration
+                .tags,
+        );
+
+        let function_declaration = _t;
 
         let mut deletions = delete_declarations(function_declaration.body.clone());
 
@@ -886,6 +896,30 @@ impl Visitor for MovePreProcessor {
                 if let Some(id) = id {
                     be.rhs_expression = Box::new(Expression::Identifier(id));
                 }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn start_subscript_expression(
+        &mut self,
+        expr: &mut SubscriptExpression,
+        ctx: &mut Context,
+    ) -> VResult {
+        if let Some(function_context) = &mut ctx.function_declaration_context {
+            let base_type = ctx.environment.get_expression_type(
+                &Expression::Identifier(expr.base_expression.clone()),
+                &expr.base_expression.enclosing_type.as_ref().unwrap(),
+                &[],
+                &[],
+                &ctx.scope_context.as_ref().unwrap_or_default(),
+            );
+            if let Type::DictionaryType(_) = base_type {
+                function_context
+                    .declaration
+                    .tags
+                    .push(format!("_dictionary_{}", expr.base_expression.token));
             }
         }
 
