@@ -748,6 +748,7 @@ pub fn mangle_function_call_name(
             scope,
         );
 
+
         match match_result {
             FunctionCallMatchResult::MatchedFunction(fi) => {
                 let declaration = fi.declaration;
@@ -760,7 +761,24 @@ pub fn mangle_function_call_name(
                     false,
                 ))
             }
-            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) => {
+
+            FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
+                "init",
+                &function_call.identifier.token,
+                false,
+            )),
+
+            FunctionCallMatchResult::MatchedFallback(_) => unimplemented!(),
+            FunctionCallMatchResult::MatchedGlobalFunction(fi) => {
+                let declaration = fi.declaration;
+
+                Some(mangle_function_move(
+                    &declaration.head.identifier.token,
+                    "Flint",
+                    false,
+                ))
+            }
+            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) | FunctionCallMatchResult::Failure(c) => {
                 if c.candidates.len() > 1 {
                     panic!(
                         "Found too many function declarations! ({} found)",
@@ -788,24 +806,6 @@ pub fn mangle_function_call_name(
                     panic!("Non-function CallableInformation where function expected")
                 }
             }
-
-            FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
-                "init",
-                &function_call.identifier.token,
-                false,
-            )),
-
-            FunctionCallMatchResult::MatchedFallback(_) => unimplemented!(),
-            FunctionCallMatchResult::MatchedGlobalFunction(fi) => {
-                let declaration = fi.declaration;
-
-                Some(mangle_function_move(
-                    &declaration.head.identifier.token,
-                    "Flint",
-                    false,
-                ))
-            }
-            FunctionCallMatchResult::Failure(_) => None,
         }
     } else {
         let _lol = !Environment::is_runtime_function_call(function_call);

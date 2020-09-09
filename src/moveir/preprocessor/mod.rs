@@ -899,7 +899,7 @@ impl Visitor for MovePreProcessor {
             }
             return Ok(());
         }
-
+        
         if let Some(mangled) = mangle_function_call_name(call, ctx) {
             call.mangled_identifier = Option::from(Identifier {
                 token: mangled,
@@ -907,6 +907,7 @@ impl Visitor for MovePreProcessor {
                 line_info: Default::default(),
             });
         }
+    
 
         if !ctx.environment.is_initialise_call(&call)
             && !ctx.environment.is_trait_declared(&call.identifier.token)
