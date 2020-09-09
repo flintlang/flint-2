@@ -186,6 +186,7 @@ pub(crate) struct MoveSubscriptExpression {
 
 impl MoveSubscriptExpression {
     pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+        dbg!(function_context.scope_context.parameters.clone());
         let rhs = self.rhs.clone();
         let rhs =
             rhs.unwrap_or_else(|| MoveIRExpression::Literal(MoveIRLiteral::Hex("0x0".to_string())));
@@ -222,9 +223,16 @@ impl MoveSubscriptExpression {
                         "Self._insert_{}",
                         mangle_dictionary(&self.expression.base_expression.token)
                     );
+                    let caller_argument = &function_context.scope_context.parameters.last().unwrap().identifier;
+                    let caller_argument = MoveIdentifier {
+                        identifier: caller_argument.clone(),
+                        position: Default::default(),
+                    }
+                    .generate(function_context, false, true);
+
                     MoveIRExpression::FunctionCall(MoveIRFunctionCall {
                         identifier: f_name,
-                        arguments: vec![index, rhs],
+                        arguments: vec![index, rhs, caller_argument],
                     })
                 }
                 _ => panic!("Invalid Type for Subscript Expression"),

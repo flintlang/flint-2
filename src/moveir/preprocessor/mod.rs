@@ -489,6 +489,7 @@ impl Visitor for MovePreProcessor {
         declaration: &mut SpecialDeclaration,
         ctx: &mut Context,
     ) -> VResult {
+        dbg!(declaration.clone());
         let members = declaration.body.clone();
 
         let members: Vec<Statement> = members
