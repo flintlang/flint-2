@@ -34,6 +34,8 @@ pub struct MoveContract {
 }
 
 impl MoveContract {
+    const SHADOW: &'static str = "Flint_self";
+
     pub(crate) fn generate(&self) -> String {
         let import_code = self.generate_imports();
 
@@ -462,8 +464,6 @@ impl MoveContract {
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = "Flint$self";
-
             let self_type = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
@@ -477,7 +477,7 @@ impl MoveContract {
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: shadow.to_string(),
+                identifier: MoveContract::SHADOW.to_string(),
                 declaration_type: self_type,
             });
 
