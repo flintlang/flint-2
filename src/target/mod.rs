@@ -2,17 +2,14 @@ pub mod currency;
 pub mod ethereum;
 pub mod libra;
 
-/*
-   Integrating any future target should simply require updating this module by adding a new
-   impl of Target, and registering it in io target(&str)
-*/
-
 use crate::ast::Module;
 use crate::context::Context;
 use crate::target::currency::Currency;
 use crate::visitor::Visitor;
 use std::path::Path;
 
+/// Integrating any future target should simply require updating this module by adding a new
+/// impl of Target, and registering it in io target(&str)
 pub struct Target {
     pub(crate) name: &'static str,
     pub(crate) currency: Currency,

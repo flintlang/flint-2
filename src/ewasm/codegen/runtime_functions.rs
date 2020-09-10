@@ -61,9 +61,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.build_return(None);
     }
 
+    /// Integer exponent method. Naive implementation
+    /// PRE: a >= 0, b > 0 and a and b are integers
     fn power(&self) {
-        // Integer exponent method. Naive implementation
-        // PRE: a >= 0, b > 0 and a and b are integers
         let param_type = self.context.i64_type().as_basic_type_enum();
         let int_type = self
             .context

@@ -33,8 +33,7 @@ impl<'a> LLVMFunctionCall<'a> {
         let fn_name = &self.function_call.identifier.token;
 
         if self.is_init() {
-            // add local variable of struct field
-
+            // Add local variable of struct field
             let struct_type = codegen
                 .module
                 .get_function(self.function_call.identifier.token.as_str())
