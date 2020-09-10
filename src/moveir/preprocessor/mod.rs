@@ -1134,7 +1134,11 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
-    fn finish_return_statement(&mut self, statement: &mut ReturnStatement, ctx: &mut Context) -> VResult {
+    fn finish_return_statement(
+        &mut self,
+        statement: &mut ReturnStatement,
+        ctx: &mut Context,
+    ) -> VResult {
         statement.cleanup = ctx.post_statements.clone();
         ctx.post_statements = vec![];
         Ok(())

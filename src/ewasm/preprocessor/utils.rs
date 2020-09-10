@@ -11,6 +11,7 @@ use crate::ast::{
 };
 use crate::context::Context;
 use crate::context::ScopeContext;
+use crate::ewasm::preprocessor::LLVMPreProcessor;
 use crate::type_checker::ExpressionChecker;
 use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 use itertools::Itertools;
@@ -30,7 +31,9 @@ pub fn generate_contract_wrapper(
     // Add type state assertions
     if !contract_behaviour_declaration.type_states.is_empty() {
         let type_state_var = BinaryExpression {
-            lhs_expression: Box::new(Expression::Identifier(Identifier::generated(Identifier::SELF))),
+            lhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                Identifier::SELF,
+            ))),
             rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
                 Identifier::TYPESTATE_VAR_NAME,
             ))),
@@ -77,7 +80,7 @@ pub fn generate_contract_wrapper(
         if let Some(caller) = &contract_behaviour_declaration.caller_binding {
             caller_id = caller.clone();
         } else {
-            caller_id = Identifier::generated("caller");
+            caller_id = Identifier::generated(LLVMPreProcessor::CALLER_PROTECTIONS_PARAM);
         }
 
         if let Some(predicate) = generate_caller_protections_predicate(

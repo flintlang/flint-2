@@ -56,9 +56,11 @@ impl Visitor for TypeChecker {
                     .local_variables
                     .push(declaration.clone());
             } else if let Some(ref mut special_declaration_context) =
-            ctx.special_declaration_context
+                ctx.special_declaration_context
             {
-                special_declaration_context.local_variables.push(declaration.clone());
+                special_declaration_context
+                    .local_variables
+                    .push(declaration.clone());
             }
         }
         Ok(())
@@ -81,7 +83,9 @@ impl Visitor for TypeChecker {
             ctx.scope_or_default(),
         );
         match declaration.op {
-            BinOp::Dot => declaration.rhs_expression.assign_enclosing_type(&lhs_type.name()),
+            BinOp::Dot => declaration
+                .rhs_expression
+                .assign_enclosing_type(&lhs_type.name()),
             BinOp::Equal => {}
             _ => {}
         }

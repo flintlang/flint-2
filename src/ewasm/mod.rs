@@ -177,8 +177,10 @@ pub fn generate(module: &Module, context: &mut Context) {
 
         // The following only exists so that we can inspect LLVM output and wasm files as wat files
         // while developing, and should be removed. TODO
-        let wasm =
-            fs::read(Path::new(get_path(TEMPORARY_DIRECTORY_NAME, "wasm").as_str())).expect("Could not read wasm");
+        let wasm = fs::read(Path::new(
+            get_path(TEMPORARY_DIRECTORY_NAME, "wasm").as_str(),
+        ))
+            .expect("Could not read wasm");
         let mut as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
 
         // Shift final module closing curly brace onto its own line so it is not removed when trimming exports

@@ -1,4 +1,5 @@
 use crate::ewasm::codegen::Codegen;
+use crate::ewasm::preprocessor::LLVMPreProcessor;
 use inkwell::types::BasicType;
 use inkwell::values::BasicValue;
 use inkwell::values::BasicValueEnum;
@@ -35,7 +36,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             "tmp_call",
         );
 
-        let caller_address = self.builder.build_load(memory_offset, "caller");
+        let caller_address = self
+            .builder
+            .build_load(memory_offset, LLVMPreProcessor::CALLER_PROTECTIONS_PARAM);
 
         self.builder.build_return(Some(&caller_address));
     }
@@ -282,11 +285,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
 #[cfg(test)]
 mod runtime_tests {
+    use crate::ewasm::codegen::Codegen;
     use inkwell::context::Context;
     use inkwell::execution_engine::JitFunction;
     use inkwell::passes::PassManager;
     use inkwell::OptimizationLevel;
-    use crate::ewasm::codegen::Codegen;
     use std::collections::HashMap;
 
     #[test]

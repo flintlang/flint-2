@@ -25,6 +25,10 @@ use itertools::Itertools;
 
 pub struct LLVMPreProcessor {}
 
+impl LLVMPreProcessor {
+    pub(crate) const CALLER_PROTECTIONS_PARAM: &'static str = "caller";
+}
+
 impl Visitor for LLVMPreProcessor {
     fn start_contract_declaration(
         &mut self,
@@ -371,7 +375,7 @@ impl Visitor for LLVMPreProcessor {
                 if let Some(caller) = &contract_ctx.caller {
                     caller_id = &caller.token;
                 } else {
-                    caller_id = "caller";
+                    caller_id = LLVMPreProcessor::CALLER_PROTECTIONS_PARAM;
                 }
 
                 let caller_declaration = {

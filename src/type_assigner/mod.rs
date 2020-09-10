@@ -21,9 +21,11 @@ impl Visitor for TypeAssigner {
                     .local_variables
                     .push(declaration.clone());
             } else if let Some(ref mut special_declaration_context) =
-            ctx.special_declaration_context
+                ctx.special_declaration_context
             {
-                special_declaration_context.local_variables.push(declaration.clone());
+                special_declaration_context
+                    .local_variables
+                    .push(declaration.clone());
             }
         }
         Ok(())

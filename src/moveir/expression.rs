@@ -12,8 +12,8 @@ use super::r#type::MoveType;
 use super::runtime_function::MoveRuntimeFunction;
 use super::*;
 use crate::ast::{
-    mangle_dictionary, BinOp, BinaryExpression, CastExpression, Expression,
-    Identifier, InoutExpression, SubscriptExpression, Type,
+    mangle_dictionary, BinOp, BinaryExpression, CastExpression, Expression, Identifier,
+    InoutExpression, SubscriptExpression, Type,
 };
 use crate::moveir::identifier::MoveSelf;
 use crate::moveir::preprocessor::MovePreProcessor;
@@ -35,7 +35,7 @@ impl MoveExpression {
                 expression: b,
                 position: self.position.clone(),
             }
-            .generate(function_context),
+                .generate(function_context),
             Expression::InoutExpression(i) => MoveInoutExpression {
                 expression: i,
                 position: self.position.clone(),

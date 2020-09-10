@@ -203,7 +203,9 @@ impl<'a> LLVMIdentifier<'a> {
         if self.identifier.enclosing_type.is_some() {
             LLVMStructAccess {
                 expr: &Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated(Identifier::SELF))),
+                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                        Identifier::SELF,
+                    ))),
                     rhs_expression: Box::new(Expression::Identifier(self.identifier.clone())),
                     op: BinOp::Dot,
                     line_info: Default::default(),
