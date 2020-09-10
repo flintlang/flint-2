@@ -167,10 +167,6 @@ pub(crate) mod move_runtime_types {
 
     pub fn get_all_declarations() -> Vec<String> {
         vec![]
-        /* TURN OFF LIBRA
-        let libra = "resource Libra_Coin { \n coin: Libra.Libra<LBR.LBR>  \n }".to_string();
-        vec![libra]
-        */
     }
 
     pub fn get_all_imports() -> Vec<MoveIRStatement> {
