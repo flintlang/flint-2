@@ -54,7 +54,7 @@ impl<'a> LLVMFunction<'a> {
                     .unwrap()
                     .as_pointer_value()
                     .as_basic_value_enum();
-                function_context.add_local("this", contract_global);
+                function_context.add_local(Identifier::SELF, contract_global);
             }
 
             if (!self.caller_protections.iter().any(|c| c.is_any())

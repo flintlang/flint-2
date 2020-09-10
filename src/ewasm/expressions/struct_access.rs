@@ -1,5 +1,5 @@
 use super::call::LLVMFunctionCall;
-use crate::ast::{BinOp, BinaryExpression, Expression, FunctionCall};
+use crate::ast::{BinOp, BinaryExpression, Expression, FunctionCall, Identifier};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
 use inkwell::types::StructType;
@@ -106,7 +106,7 @@ impl<'a> LLVMStructAccess<'a> {
 
     fn flatten_expr(&self, expr: &'a Expression) -> Vec<FieldOrFunction<'a>> {
         match expr {
-            Expression::SelfExpression => vec![FieldOrFunction::StructField("this")],
+            Expression::SelfExpression => vec![FieldOrFunction::StructField(Identifier::SELF)],
             Expression::Identifier(id) => vec![FieldOrFunction::StructField(id.token.as_str())],
             Expression::BinaryExpression(BinaryExpression {
                 lhs_expression,

@@ -203,7 +203,7 @@ impl<'a> LLVMIdentifier<'a> {
         if self.identifier.enclosing_type.is_some() {
             LLVMStructAccess {
                 expr: &Expression::BinaryExpression(BinaryExpression {
-                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+                    lhs_expression: Box::new(Expression::Identifier(Identifier::generated(Identifier::SELF))),
                     rhs_expression: Box::new(Expression::Identifier(self.identifier.clone())),
                     op: BinOp::Dot,
                     line_info: Default::default(),
@@ -946,13 +946,9 @@ impl<'a> LLVMSelfExpression {
         function_context: &mut FunctionContext<'ctx>,
     ) -> Option<BasicValueEnum<'ctx>> {
         LLVMIdentifier {
-            identifier: &Identifier::generated(self.name()),
+            identifier: &Identifier::generated(Identifier::SELF),
         }
         .generate(codegen, function_context)
-    }
-
-    fn name(&self) -> &'static str {
-        "this"
     }
 }
 

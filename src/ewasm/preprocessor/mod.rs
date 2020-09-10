@@ -82,7 +82,7 @@ impl Visitor for LLVMPreProcessor {
                         ]
                     } else {
                         let contract_parameter = Parameter {
-                            identifier: Identifier::generated("this"),
+                            identifier: Identifier::generated(Identifier::SELF),
                             type_assignment: Type::InoutType(InoutType {
                                 key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                                     declaration.identifier.token.as_str(),
@@ -142,7 +142,7 @@ impl Visitor for LLVMPreProcessor {
         for mut declaration in &mut dec.members {
             if let StructMember::SpecialDeclaration(sd) = &mut declaration {
                 sd.head.parameters.push(Parameter {
-                    identifier: Identifier::generated("this"),
+                    identifier: Identifier::generated(Identifier::SELF),
                     type_assignment: Type::InoutType(InoutType {
                         key_type: Box::new(Type::UserDefinedType(dec.identifier.clone())),
                     }),
@@ -167,7 +167,7 @@ impl Visitor for LLVMPreProcessor {
                     modifiers: vec![Modifier::Public],
                     mutates: vec![],
                     parameters: vec![Parameter {
-                        identifier: Identifier::generated("this"),
+                        identifier: Identifier::generated(Identifier::SELF),
                         type_assignment: Type::InoutType(InoutType {
                             key_type: Box::new(Type::UserDefinedType(dec.identifier.clone())),
                         }),
@@ -214,7 +214,7 @@ impl Visitor for LLVMPreProcessor {
         // construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
             let self_param = construct_parameter(
-                "this".to_string(),
+                Identifier::SELF.to_string(),
                 Type::InoutType(InoutType {
                     key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                         &struct_ctx.identifier.token,
@@ -573,7 +573,7 @@ impl Visitor for LLVMPreProcessor {
                 let contract_argument = if ctx.function_call_receiver_trail.is_empty() {
                     FunctionArgument {
                         identifier: None,
-                        expression: Expression::Identifier(Identifier::generated("this")),
+                        expression: Expression::Identifier(Identifier::generated(Identifier::SELF)),
                     }
                 } else {
                     FunctionArgument {

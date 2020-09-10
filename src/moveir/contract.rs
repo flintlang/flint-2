@@ -470,7 +470,7 @@ impl MoveContract {
             .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: "this".to_string(),
+                identifier: Identifier::SELF.to_string(),
                 declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
             });
             function_context.emit(MoveIRStatement::Expression(emit));

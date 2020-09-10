@@ -30,7 +30,7 @@ pub fn generate_contract_wrapper(
     // Add type state assertions
     if !contract_behaviour_declaration.type_states.is_empty() {
         let type_state_var = BinaryExpression {
-            lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+            lhs_expression: Box::new(Expression::Identifier(Identifier::generated(Identifier::SELF))),
             rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
                 Identifier::TYPESTATE_VAR_NAME,
             ))),
@@ -113,7 +113,7 @@ pub fn generate_contract_wrapper(
     });
 
     let contract_parameter = Parameter {
-        identifier: Identifier::generated("this"),
+        identifier: Identifier::generated(Identifier::SELF),
         type_assignment: Type::InoutType(InoutType {
             key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
         }),
@@ -317,7 +317,7 @@ pub fn generate_caller_protections_predicate(
                                                 FunctionArgument {
                                                     identifier: None,
                                                     expression: Expression::Identifier(
-                                                        Identifier::generated("this"),
+                                                        Identifier::generated(Identifier::SELF),
                                                     ),
                                                 },
                                             ],
@@ -342,7 +342,7 @@ pub fn generate_caller_protections_predicate(
                                                     arguments: vec![FunctionArgument {
                                                         identifier: None,
                                                         expression: Expression::Identifier(
-                                                            Identifier::generated("this"),
+                                                            Identifier::generated(Identifier::SELF),
                                                         ),
                                                     }],
                                                     mangled_identifier: None,
