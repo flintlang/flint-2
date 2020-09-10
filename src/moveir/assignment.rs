@@ -16,7 +16,7 @@ pub(crate) struct MoveAssignment {
 }
 
 impl MoveAssignment {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let lhs = self.lhs.clone();
         if let Expression::Identifier(i) = &lhs {
             if let Some(ref enclosing) = i.enclosing_type {

@@ -11,9 +11,9 @@ pub(crate) struct MoveExternalCall {
 }
 
 impl MoveExternalCall {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         if let Expression::FunctionCall(f) =
-            *self.external_call.function_call.rhs_expression.clone()
+        *self.external_call.function_call.rhs_expression.clone()
         {
             let mut lookup = f.clone();
             if !lookup.arguments.is_empty() {
@@ -95,7 +95,7 @@ pub(crate) struct MoveFunctionCall {
 }
 
 impl MoveFunctionCall {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let mut look_up = self.function_call.clone();
         if !self.function_call.arguments.is_empty() {
             let mut args = self.function_call.arguments.clone();

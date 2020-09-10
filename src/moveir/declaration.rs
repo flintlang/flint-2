@@ -36,12 +36,12 @@ pub(crate) struct MoveVariableDeclaration {
 }
 
 impl MoveVariableDeclaration {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let ir_type = MoveType::move_type(
             self.declaration.variable_type.clone(),
             Option::from(function_context.environment.clone()),
         )
-        .generate(function_context);
+            .generate(function_context);
 
         if self.declaration.identifier.is_self() {
             return MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {

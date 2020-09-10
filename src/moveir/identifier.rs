@@ -13,7 +13,7 @@ pub(crate) struct MoveIdentifier {
 impl MoveIdentifier {
     pub fn generate(
         &self,
-        function_context: &mut FunctionContext,
+        function_context: &FunctionContext,
         force: bool,
         f_call: bool,
     ) -> MoveIRExpression {

@@ -116,7 +116,7 @@ impl MoveReturnStatement {
             expression,
             position: Default::default(),
         }
-        .generate(&mut function_context);
+            .generate(&function_context);
 
         let (cleanup, expression) =
             remove_moves(self.statement.cleanup.iter().cloned(), expression);
@@ -127,7 +127,7 @@ impl MoveReturnStatement {
         function_context.emit(MoveIRStatement::Expression(assignment));
 
         for statement in cleanup.clone() {
-            let move_statement = MoveStatement { statement }.generate(function_context);
+            let move_statement = MoveStatement { statement }.generate(&mut function_context);
             function_context.emit(move_statement);
         }
 
@@ -144,7 +144,7 @@ struct MoveForStatement {
 }
 
 impl MoveForStatement {
-    pub fn generate(&self, _function_context: &mut FunctionContext) -> MoveIRStatement {
+    pub fn generate(&self, _function_context: &FunctionContext) -> MoveIRStatement {
         unimplemented!()
     }
 }
@@ -154,14 +154,14 @@ struct MoveEmitStatement {
 }
 
 impl MoveEmitStatement {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRStatement {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRStatement {
         MoveIRStatement::Inline(format!(
             "{}",
             MoveFunctionCall {
                 function_call: self.statement.function_call.clone(),
                 module_name: "Self".to_string(),
             }
-            .generate(function_context)
+                .generate(function_context)
         ))
     }
 }
