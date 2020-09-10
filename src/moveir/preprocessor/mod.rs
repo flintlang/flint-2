@@ -282,8 +282,8 @@ impl Visitor for MovePreProcessor {
         declaration.mangled_identifier = Some(mangled_name);
 
         if enclosing_identifier != crate::environment::FLINT_GLOBAL {
-            if let Some(asset_ctx) = ctx.asset_context.clone() {
-                let asset_ctx_identifier = asset_ctx.identifier;
+            if let Some(asset_ctx) = &ctx.asset_context {
+                let asset_ctx_identifier = asset_ctx.identifier.clone();
                 let param_type = Type::UserDefinedType(asset_ctx_identifier);
                 let param_type = Type::InoutType(InoutType {
                     key_type: Box::new(param_type),
@@ -301,8 +301,8 @@ impl Visitor for MovePreProcessor {
                 if let Some(ref mut scope) = ctx.scope_context {
                     scope.parameters.insert(0, parameter);
                 }
-            } else if let Some(struct_ctx) = ctx.struct_declaration_context.clone() {
-                let struct_ctx_identifier = struct_ctx.identifier;
+            } else if let Some(struct_ctx) = &ctx.struct_declaration_context {
+                let struct_ctx_identifier = struct_ctx.identifier.clone();
                 let param_type = Type::UserDefinedType(struct_ctx_identifier);
                 let param_type = Type::InoutType(InoutType {
                     key_type: Box::new(param_type),
