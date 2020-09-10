@@ -61,7 +61,7 @@ Travis tests the compilation of all Flint files to Move, however verification an
 _Note that the python file will take a very long time to run the first time as the script will need to compile Libra. Subsequent testing should be much faster._
 
 #### Ethereum
-The main impediment to our eWASM testing was that we were unable to set up an eWASM testnet. The official eWASM testnet is down at the time of writing, and we were not able to find a substitute. There are plenty of ethereum testnets out there for testing smart contracts, but very few of them support eWASM. This has meant that we simply have not been able to test the final eWASM. However, we have been able to test non-eWASM specific runtime functionality via LLVM testing. This is done simply by calling LLVM functions, and checking that they behave as expected. It allows us to test all aspects of generated code except that which relies on functions from the EEI. Furthermore, we have been able to verify that the WASM we produce is valid eWASM. This can all be done via ```cargo test``` and therefore is also tested by Travis upon every commit.
+The main impediment to our eWASM testing was that we were unable to set up an eWASM testnet. The official eWASM testnet is down at the time of writing, and we were not able to find a substitute. There are plenty of ethereum testnets out there for testing smart contracts, but very few of them support eWASM. This has meant that we simply have not been able to test the final generated eWASM. However, we have been able to test non-eWASM specific runtime functionality via LLVM testing. This is done simply by calling LLVM functions, and checking that they behave as expected. It allows us to test all aspects of generated code except that which relies on functions from the EEI (although we have added a dummy implementation for the eWASM getCaller function). Furthermore, we have been able to verify that the WASM we produce is valid eWASM. This can all be done via ```cargo test``` and therefore is also tested by Travis upon every commit.
 
 ### Development
 #### IDEs
@@ -69,10 +69,26 @@ Where possible, we would recommend using IntelliJ with the Rust plugins: Toml, R
 
 ## Implementation
 ### Move Translation
-The initial Move compiler was built by Ali Chaudhry as part of his MEng thesis. However, due to Libra updates much of the compiler was out of date, and some features were not implemented, notably assertions, types states and caller protections. We also heavily refactored the codebase to comply with rustc clippy standards, and restructured modules into individual units. For the majority of the changes to the Move compiler, see [PR#13 Move stability](https://github.com/flintlang/flint-2/pull/13).
+The initial Move compiler was built by Ali Chaudhry as part of his MEng thesis. However, due to Libra updates much of the compiler was out of date, and some features were not implemented, notably assertions, type states and caller protections. We also heavily refactored the codebase to comply with rustc clippy standards, and restructured modules into individual units. For the majority of the changes to the Move compiler, see [PR#13 Move stability](https://github.com/flintlang/flint-2/pull/13).
+
+_Note that we are compiling to MoveIR and not the Move language itself, however, you may find the Move documentation [here](https://move-book.com/index.html) useful._
 
 #### Reference Handling
 Unlike Flint, which provides straight-up types and only requires references for passing structs as arguments, Move relies on strict reference control. The compiler references, copies and release objects in as controlled a way as possible, however the implementation was sometimes unreliable. This referencing system has been stabilised, and improved by eliminating double accesses (i.e. removing multiple temporary variables that reference the same data) and always converting the final copy of a variable to a move. There are still potential improvements to the reference handling system, such as only generating a mutable borrow when the reference is used mutably (i.e. it is used for another mutable borrow, or it is mutated).
+
+#### &signer Type
+Libra has introduced a ```signer``` native type which stores the address of the caller of the contract. A ```signer``` type cannot be created directly in code, however, a reference to it can be received as a script argument, and the address can be accessd using the ```Signer::address_of(<signer-type>)``` method. Because it is always a reference, it cannot be stored. We explicitly pass the ```&signer``` caller variable to all of the non-runtime functions in the contract, however this could be improved upon, as it is only required by some functions, for example those that require runtime checking of caller protections, or have a caller binding. 
+
+It is also important to note that, at the time of writing, only one variable of type ```&signer``` can be passed into a function (i.e. the transaction sender), however Libra does have plans for multi-sender transaction scripts (see [Signer type and move_to](https://community.libra.org/t/signer-type-and-move-to/2894)). For now, the transaction sender is passed as an ```&signer``` type through the contract, and the address which the contract is published as is passed as an ```address``` to the public methods.
+
+TODO: George storing &signer types for transfers
+
+#### Wrapper Methods
+To allow calls into our Move contracts, we provide a wrapper method for each public function which takes in an address and borrows the resource published at that address, which is then passed into the inner function. In order to facilitate the minimum amount of runtime checking of type states and caller protections (which are only required for external calls), we also perform these checks inside the wrapper methods.
+
+#### Arrays and Dictionaries
+// TODO: George arrays
+In Move, each value in the dictionary is wrapped in a resource, and is stored at the address given by the key. This means that dictionaries are restricted to only having keys of type ```address```, but since dictionaries in Flint can have any key type, this should be implemented.
 
 ### eWASM Translation
 // TODO link pull request when it is written
@@ -124,7 +140,7 @@ Anything like this can be done in the preprocessor. As a general rule of thumb, 
 Now your AST should be in a state where it can almost exactly be translated into the target language. How you do this is up to you and will depend on the target language. 
 
 ## Known Issues
-In addition to the open issues in the Github repository, there are a number of other known issues outlined below. For a full list of currently unimplemented features, see the [guide](https://github.com/flintlang/flint-2/blob/eWASM/docs/guide.md).
+In addition to the open issues in the Github repository, there are a number of other known issues outlined below. For a comprehensive list of currently unimplemented features, see the Github open [issues page](https://github.com/flintlang/flint-2/issues).
 
 ### For-loops 
 For-loops are currently unimplemented in both the Move and eWASM compiler. 
