@@ -104,7 +104,7 @@ The actual code generation is for LLVM, and we rely on the LLVM to wasm32 compil
 - The difficulties of WASM memory management are also delegated to LLVM
 - It allows control over all imports and external linking, making it easy to ensure we only import from the ethereum namespace as required by the [ECI](https://ewasm.readthedocs.io/en/mkdocs/contract_interface/). This advantage was the main thing preventing us from compiling to a different intermediary such as C or AssemblyScript
 
-_Note: For more information on why we chose to translate via LLVM, please see the [compiling flint to ewasm document](https://github.com/flintlang/flint-2/tree/eWASM/docs/papers/compiling_flint_to_ewasm.pdf)_
+_Note: For more information on why we chose to translate via LLVM, please see the [compiling flint to ewasm document](https://github.com/flintlang/flint-2/blob/eWASM/docs/papers/Compiling%20flint%20to%20eWASM.pdf)_
 
 _Note: For more detail on how the flint is represented in LLVM, please see the [eWASM pull request](https://github.com/flintlang/flint-2/pull/28)_
 
