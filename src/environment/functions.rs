@@ -309,11 +309,6 @@ impl Environment {
         scope: &ScopeContext,
         declared_types: &[Type],
     ) -> bool {
-        let _required_parameters: Vec<&Parameter> = parameters
-            .iter()
-            .filter(|f| f.expression.is_none())
-            .collect();
-
         // Cannot use itertools::izip! as it's important to consume parameters, to ensure no required parameters are left hanging
         for element in parameters
             .iter()
