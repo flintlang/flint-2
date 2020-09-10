@@ -1,7 +1,7 @@
-use super::inkwell::types::AnyTypeEnum;
 use crate::ast::Identifier;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
+use inkwell::types::AnyTypeEnum;
 
 pub fn get_num_pointer_layers(val_type: AnyTypeEnum) -> u8 {
     let mut num_pointers = 0;

@@ -3,11 +3,11 @@ use crate::ast::types::Type;
 use crate::ast::SpecialDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::types::BasicTypeEnum;
-use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::generate_caller_variable;
+use inkwell::types::BasicTypeEnum;
+use inkwell::values::{BasicValue, BasicValueEnum};
 use std::collections::HashMap;
 
 pub fn generate_initialiser(

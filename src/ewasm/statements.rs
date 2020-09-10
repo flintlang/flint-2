@@ -1,8 +1,8 @@
-use super::inkwell::values::{BasicValue, IntValue};
 use crate::ast::{Assertion, Expression, IfStatement, ReturnStatement, Statement};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
+use inkwell::values::{BasicValue, IntValue};
 use std::convert::TryFrom;
 
 pub struct LLVMStatement<'a> {

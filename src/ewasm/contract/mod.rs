@@ -1,5 +1,3 @@
-use super::inkwell::types::BasicTypeEnum;
-use super::inkwell::values::BasicValue;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::{Expression::DictionaryLiteral, Identifier};
 use crate::ast::types::Type;
@@ -15,6 +13,8 @@ use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generat
 use crate::ewasm::structs::{create_type, LLVMStruct};
 use crate::ewasm::types::llvm_dictionary;
 use crate::ewasm::types::LLVMType;
+use inkwell::types::BasicTypeEnum;
+use inkwell::values::BasicValue;
 use std::convert::TryInto;
 
 pub struct LLVMContract<'a> {

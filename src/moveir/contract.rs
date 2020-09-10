@@ -104,7 +104,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != "Flint_Global")
+            .filter(|s| s.identifier.token != crate::environment::FLINT_GLOBAL)
             .map(|s| MoveStruct {
                 struct_declaration: s,
                 environment: self.environment.clone(),

@@ -1,10 +1,10 @@
-use super::inkwell::types::AnyType;
 use crate::ast::calls::{ExternalCall, FunctionCall};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::values::BasicValueEnum;
 use crate::ewasm::utils::get_num_pointer_layers;
+use inkwell::types::AnyType;
+use inkwell::values::BasicValueEnum;
 
 pub struct LLVMExternalCall<'a> {
     pub external_call: &'a ExternalCall,

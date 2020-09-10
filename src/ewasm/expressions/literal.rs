@@ -1,8 +1,8 @@
 use crate::ast::literals::Literal;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::types::StringRadix;
-use crate::ewasm::inkwell::values::BasicValueEnum;
+use inkwell::types::StringRadix;
+use inkwell::values::BasicValueEnum;
 
 pub struct LLVMLiteral<'a> {
     pub literal: &'a Literal,

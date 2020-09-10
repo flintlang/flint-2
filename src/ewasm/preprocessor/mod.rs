@@ -206,7 +206,7 @@ impl Visitor for LLVMPreProcessor {
         declaration.mangled_identifier = Some(mangled_name);
 
         if let Some(enclosing_type) = &declaration.head.identifier.enclosing_type {
-            if enclosing_type.eq("Flint_Global") {
+            if enclosing_type.eq(crate::environment::FLINT_GLOBAL) {
                 return Ok(());
             }
         }
@@ -599,9 +599,10 @@ impl Visitor for LLVMPreProcessor {
                 };
 
                 call.arguments.push(contract_argument);
-            } else if !enclosing_type.eq("Flint_Global") {
+            } else if !enclosing_type.eq(crate::environment::FLINT_GLOBAL) {
                 // mangles name
-                call.identifier.token = mangle_ewasm_function(&function_name, "Flint_Global");
+                call.identifier.token =
+                    mangle_ewasm_function(&function_name, crate::environment::FLINT_GLOBAL);
             }
         }
 

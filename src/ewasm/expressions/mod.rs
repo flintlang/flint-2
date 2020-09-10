@@ -1,14 +1,9 @@
-extern crate inkwell;
-
 mod assignment;
 mod call;
 mod declaration;
 mod literal;
 mod struct_access;
 
-use super::inkwell::types::{AnyType, BasicType, BasicTypeEnum};
-use super::inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
-use super::inkwell::{FloatPredicate, IntPredicate};
 use crate::ast::expressions::{
     BinaryExpression, CastExpression, InoutExpression, SubscriptExpression,
 };
@@ -24,8 +19,11 @@ use crate::ewasm::function_context::FunctionContext;
 use crate::ewasm::statements::LLVMAssertion;
 use crate::ewasm::types::{get_type_as_string, LLVMType};
 use crate::ewasm::utils::*;
+use inkwell::types::{AnyType, BasicType, BasicTypeEnum};
 use inkwell::values::PointerValue;
+use inkwell::values::{BasicValue, BasicValueEnum, InstructionOpcode};
 use inkwell::AddressSpace;
+use inkwell::{FloatPredicate, IntPredicate};
 
 pub struct LLVMExpression<'a> {
     pub expression: &'a Expression,

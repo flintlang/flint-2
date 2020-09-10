@@ -10,14 +10,9 @@ mod structs;
 mod types;
 mod utils;
 
-extern crate inkwell;
-extern crate regex;
-extern crate wabt;
+use inkwell::context::Context as LLVMContext;
+use inkwell::passes::PassManager;
 
-use self::inkwell::context::Context as LLVMContext;
-use self::inkwell::passes::PassManager;
-
-use self::wabt::wat2wasm;
 use crate::ast::{
     AssetDeclaration, ContractBehaviourDeclaration, Module, StructDeclaration, TopLevelDeclaration,
     TraitDeclaration,
@@ -34,6 +29,7 @@ use std::error::Error;
 use std::io::Write;
 use std::{fs, path::Path, process};
 use wabt::wasm2wat;
+use wabt::wat2wasm;
 
 pub fn generate(module: &Module, context: &mut Context) {
     let external_traits = module

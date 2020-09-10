@@ -115,10 +115,7 @@ impl Environment {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
                     if self.function_call_arguments_compatible(function, call, type_id, scope)
-                        && compatible_caller_protections(
-                        protections,
-                        &function.caller_protections,
-                    )
+                        && compatible_caller_protections(protections, &function.caller_protections)
                     {
                         return FunctionCallMatchResult::MatchedFunction(function.clone());
                     }
@@ -162,23 +159,6 @@ impl Environment {
         FunctionCallMatchResult::Failure(candidates)
     }
 
-    #[allow(dead_code)]
-    fn match_fallback_function(&self, call: &FunctionCall, protections: &[CallerProtection]) {
-        let mut candidates = Vec::new();
-        if let Some(type_info) = self.types.get(&call.identifier.token) {
-            let fallbacks = &type_info.fallbacks;
-            for fallback in fallbacks {
-                if compatible_caller_protections(protections, &fallback.caller_protections) {
-                    // TODO Return MatchedFallBackFunction
-                } else {
-                    candidates.push(fallback);
-                    continue;
-                }
-            }
-        }
-        // TODO return failure
-    }
-
     fn match_initialiser_function(
         &self,
         call: &FunctionCall,
@@ -219,7 +199,7 @@ impl Environment {
     ) -> FunctionCallMatchResult {
         let token = call.identifier.token.clone();
         let mut candidates = Vec::new();
-        if let Some(type_info) = self.types.get("Flint_Global") {
+        if let Some(type_info) = self.types.get(crate::environment::FLINT_GLOBAL) {
             if let Some(functions) = type_info.functions.get(&call.identifier.token) {
                 for function in functions {
                     let parameter_types: Vec<_> = function.get_parameter_types().collect();
@@ -259,7 +239,10 @@ impl Environment {
     }
 
     pub fn is_runtime_function_call(function_call: &FunctionCall) -> bool {
-        function_call.identifier.token.starts_with("Flint_")
+        function_call
+            .identifier
+            .token
+            .starts_with(FLINT_RUNTIME_PREFIX)
     }
 
     pub fn match_function_call(

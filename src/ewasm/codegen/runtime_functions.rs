@@ -1,9 +1,9 @@
-use super::super::inkwell::values::BasicValue;
-use super::super::inkwell::{AddressSpace, IntPredicate};
 use crate::ewasm::codegen::Codegen;
 use inkwell::types::BasicType;
+use inkwell::values::BasicValue;
 use inkwell::values::BasicValueEnum;
 use inkwell::values::InstructionOpcode;
+use inkwell::{AddressSpace, IntPredicate};
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn runtime_functions(&self) {
@@ -282,10 +282,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
 #[cfg(test)]
 mod runtime_tests {
-    use super::super::super::inkwell::context::Context;
-    use super::super::super::inkwell::execution_engine::JitFunction;
-    use super::super::super::inkwell::passes::PassManager;
-    use super::super::super::inkwell::OptimizationLevel;
+    use inkwell::context::Context;
+    use inkwell::execution_engine::JitFunction;
+    use inkwell::passes::PassManager;
+    use inkwell::OptimizationLevel;
     use crate::ewasm::codegen::Codegen;
     use std::collections::HashMap;
 

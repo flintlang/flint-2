@@ -8,6 +8,9 @@ use std::collections::HashMap;
 
 mod expr_type_check;
 
+pub(crate) const FLINT_GLOBAL: &str = "Flint_Global";
+const FLINT_RUNTIME_PREFIX: &str = "Flint_";
+
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
     pub contract_declarations: Vec<Identifier>,

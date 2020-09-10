@@ -958,7 +958,7 @@ impl Visitor for SemanticAnalysis {
         let enclosing = context.enclosing_type_identifier().unwrap();
 
         // This means we simply trust the standard library is written correctly
-        if enclosing.token.eq("Flint_Global") {
+        if enclosing.token.eq(crate::environment::FLINT_GLOBAL) {
             return Ok(());
         }
 

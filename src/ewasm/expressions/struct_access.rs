@@ -1,9 +1,9 @@
 use super::call::LLVMFunctionCall;
-use super::inkwell::types::StructType;
-use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
 use crate::ast::{BinOp, BinaryExpression, Expression, FunctionCall};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
+use inkwell::types::StructType;
+use inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
 
 pub struct LLVMStructAccess<'a> {
     pub expr: &'a Expression,

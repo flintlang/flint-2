@@ -1,8 +1,6 @@
-extern crate json;
-
-use self::json::JsonValue;
 use crate::ast::{ContractBehaviourDeclaration, FunctionDeclaration, Parameter};
 use crate::ast::{ContractBehaviourMember, Type};
+use json::JsonValue;
 
 pub fn generate_abi(behaviour_declarations: &[&ContractBehaviourDeclaration]) -> String {
     let functions_and_specials = behaviour_declarations

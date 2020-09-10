@@ -1,12 +1,12 @@
 use crate::ast::expressions::Identifier;
 use crate::ast::{CallerProtection, FunctionDeclaration};
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
-use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::generate_caller_variable;
 use crate::ewasm::Codegen;
+use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::values::{BasicValue, BasicValueEnum};
 use std::collections::HashMap;
 
 pub struct LLVMFunction<'a> {
