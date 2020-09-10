@@ -27,6 +27,7 @@ pub struct LLVMPreProcessor {}
 
 impl LLVMPreProcessor {
     pub(crate) const CALLER_PROTECTIONS_PARAM: &'static str = "caller";
+    pub(crate) const CALLER_WRAPPER_NAME: &'static str = "_getCaller";
 }
 
 impl Visitor for LLVMPreProcessor {
@@ -398,7 +399,7 @@ impl Visitor for LLVMPreProcessor {
                     ))),
                     rhs_expression: Box::new(Expression::FunctionCall(FunctionCall {
                         arguments: vec![],
-                        identifier: Identifier::generated("_getCaller"),
+                        identifier: Identifier::generated(LLVMPreProcessor::CALLER_WRAPPER_NAME),
                         mangled_identifier: None,
                     })),
                     op: BinOp::Equal,
