@@ -115,10 +115,7 @@ impl Environment {
             if let Some(functions) = type_info.all_functions().get(&call.identifier.token) {
                 for function in functions {
                     if self.function_call_arguments_compatible(function, call, type_id, scope)
-                        && compatible_caller_protections(
-                        protections,
-                        &function.caller_protections,
-                    )
+                        && compatible_caller_protections(protections, &function.caller_protections)
                     {
                         return FunctionCallMatchResult::MatchedFunction(function.clone());
                     }

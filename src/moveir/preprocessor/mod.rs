@@ -920,6 +920,25 @@ impl Visitor for MovePreProcessor {
                     .declaration
                     .tags
                     .push(format!("_dictionary_{}", expr.base_expression.token));
+            } else if !ctx.is_lvalue {
+                let array_id = Identifier::generated(&expr.base_expression.token);
+                let array_dec = VariableDeclaration {
+                    declaration_token: Some("let".to_string()),
+                    identifier: array_id.clone(),
+                    variable_type: base_type,
+                    expression: Some(Box::from(Expression::Identifier(expr.base_expression.clone())))
+                };
+
+                if let Some(function_ctx) = &mut ctx.function_declaration_context {
+                    function_ctx.local_variables.push(array_dec.clone());
+                }
+
+                ctx.pre_statements.push(Statement::Expression(Expression::VariableDeclaration(array_dec)));
+
+                *expr = SubscriptExpression {
+                    base_expression: array_id,
+                    index_expression: expr.index_expression.clone()
+                }
             }
         }
 

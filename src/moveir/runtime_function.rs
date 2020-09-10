@@ -21,20 +21,6 @@ impl MoveRuntimeFunction {
         })
     }
 
-    pub fn append_to_array_int(vec: MoveIRExpression, value: MoveIRExpression) -> MoveIRExpression {
-        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
-            identifier: MoveRuntimeFunction::AppendToArrayInt.mangle_runtime(),
-            arguments: vec![vec, value],
-        })
-    }
-
-    pub fn get_from_array_int(vec: MoveIRExpression, value: MoveIRExpression) -> MoveIRExpression {
-        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
-            identifier: MoveRuntimeFunction::GetFromArrayInt.mangle_runtime(),
-            arguments: vec![vec, value],
-        })
-    }
-
     pub fn power(first: MoveIRExpression, second: MoveIRExpression) -> MoveIRExpression {
         MoveIRExpression::FunctionCall(MoveIRFunctionCall {
             identifier: MoveRuntimeFunction::Power.mangle_runtime(),

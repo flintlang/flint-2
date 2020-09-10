@@ -4,7 +4,7 @@ use super::declaration::MoveVariableDeclaration;
 use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRExpression, MoveIRFunctionCall, MoveIRLiteral, MoveIROperation, MoveIRVector,
+    MoveIRExpression, MoveIRFunctionCall, MoveIRLiteral, MoveIROperation, MoveIRVector, MoveIRAssignment
 };
 use super::literal::MoveLiteralToken;
 use super::property_access::MovePropertyAccess;
@@ -201,9 +201,10 @@ impl MoveSubscriptExpression {
 
         let identifier_code = MoveIdentifier {
             identifier,
-            position: self.position.clone(),
+            position: MovePosition::Left,
         }
-        .generate(function_context, false, false);
+        .generate(function_context, false, true);
+
         let base_type = function_context.environment.get_expression_type(
             &Expression::Identifier(self.expression.base_expression.clone()),
             &function_context.enclosing_type.clone(),
@@ -214,8 +215,21 @@ impl MoveSubscriptExpression {
 
         if let MovePosition::Left = self.position.clone() {
             return match base_type {
-                Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
-                    MoveRuntimeFunction::append_to_array_int(identifier_code, rhs)
+                Type::FixedSizedArrayType(a) => { 
+                    let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+
+                    MoveIRExpression::Assignment(MoveIRAssignment{
+                        identifier: format!("*Vector.borrow_mut<{}>({}, {})", elem_type, identifier_code, index),
+                        expression: Box::from(rhs)
+                    })
+                }
+                Type::ArrayType(a) => {
+                    let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+
+                    MoveIRExpression::Assignment(MoveIRAssignment{
+                        identifier: format!("*Vector.borrow_mut<{}>({}, {})", elem_type, identifier_code, index),
+                        expression: Box::from(rhs)
+                    })
                 }
                 Type::DictionaryType(_) => {
                     let f_name = format!(
@@ -244,15 +258,17 @@ impl MoveSubscriptExpression {
         }
 
         match base_type {
-            Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
-                let identifier = self.expression.base_expression.clone();
+            Type::FixedSizedArrayType(a) => {
+                let identifier_code = MoveIRExpression::Operation(MoveIROperation::Reference(Box::from(identifier_code)));
+                let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
 
-                let identifier_code = MoveIdentifier {
-                    identifier,
-                    position: self.position.clone(),
-                }
-                .generate(function_context, false, true);
-                MoveRuntimeFunction::get_from_array_int(identifier_code, index)
+                MoveIRExpression::Inline(format!("*Vector.borrow<{}>({}, {})", elem_type, identifier_code, index))
+            }
+            Type::ArrayType(a) => {
+                let identifier_code = MoveIRExpression::Operation(MoveIROperation::Reference(Box::from(identifier_code)));
+                let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+
+                MoveIRExpression::Inline(format!("*Vector.borrow<{}>({}, {})", elem_type, identifier_code, index))
             }
             Type::DictionaryType(_) => {
                 let f_name = format!(
