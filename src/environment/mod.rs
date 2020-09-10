@@ -282,14 +282,6 @@ impl Environment {
             .as_mut()
     }
 
-    pub fn has_public_initialiser(&self, type_id: &str) -> bool {
-        self.types
-            .get(type_id)
-            .unwrap()
-            .public_initializer
-            .is_some()
-    }
-
     pub fn is_contract_declared(&self, type_id: &str) -> bool {
         let contract = &self
             .contract_declarations

@@ -16,9 +16,10 @@ impl Visitor for SemanticAnalysis {
         declaration: &mut ContractDeclaration,
         context: &mut Context,
     ) -> VResult {
-        if !context
+        if context
             .environment
-            .has_public_initialiser(&declaration.identifier.token)
+            .get_public_initialiser(&declaration.identifier.token)
+            .is_none()
         {
             return Err(Box::from(format!(
                 "No public Initialiser for contract {}",
@@ -77,6 +78,62 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
+    fn finish_contract_member(
+        &mut self,
+        member: &mut ContractMember,
+        context: &mut Context,
+    ) -> VResult {
+        let enclosing = context.enclosing_type_identifier().unwrap();
+        if let ContractMember::VariableDeclaration(declaration, _) = member {
+            if let Some(expression) = declaration.expression.as_deref() {
+                let source_type = context.environment.get_expression_type(
+                    expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    Default::default(),
+                );
+
+                if let Type::FixedSizedArrayType(FixedSizedArrayType {
+                                                     key_type: lhs_type,
+                                                     size,
+                                                 }) = &declaration.variable_type
+                {
+                    if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
+                        return if *lhs_type == *rhs_type {
+                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
+                            {
+                                if *size == elements.len() as u64 {
+                                    Ok(())
+                                } else {
+                                    Err(Box::from(format!(
+                                        "LHS array has fixed size of {} but RHS literal has size {} on line {}",
+                                        size, elements.len(), declaration.identifier.line_info.line
+                                    )))
+                                }
+                            } else {
+                                Ok(())
+                            }
+                        } else {
+                            Err(Box::from(format!(
+                                "Cannot assign array of type `{}` to an array of type `{}` on {}",
+                                rhs_type, lhs_type, &declaration.identifier.line_info
+                            )))
+                        };
+                    }
+                }
+
+                if declaration.variable_type != source_type {
+                    return Err(Box::from(format!(
+                        "Cannot initialise contract property of type `{}` with type `{}` on {}",
+                        declaration.variable_type, source_type, &declaration.identifier.line_info
+                    )));
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn start_contract_behaviour_declaration(
         &mut self,
         declaration: &mut ContractBehaviourDeclaration,
@@ -105,7 +162,7 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                .as_str(),
+                    .as_str(),
             ));
         }
 
@@ -199,62 +256,6 @@ impl Visitor for SemanticAnalysis {
             )));
         }
 
-        Ok(())
-    }
-
-    fn finish_contract_member(
-        &mut self,
-        member: &mut ContractMember,
-        context: &mut Context,
-    ) -> VResult {
-        let enclosing = context.enclosing_type_identifier().unwrap();
-        if let ContractMember::VariableDeclaration(declaration, _) = member {
-            if let Some(expression) = declaration.expression.as_deref() {
-                let source_type = context.environment.get_expression_type(
-                    expression,
-                    &enclosing.token,
-                    context.type_states(),
-                    context.caller_protections(),
-                    Default::default(),
-                );
-
-                if let Type::FixedSizedArrayType(FixedSizedArrayType {
-                    key_type: lhs_type,
-                    size,
-                }) = &declaration.variable_type
-                {
-                    if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
-                        return if *lhs_type == *rhs_type {
-                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
-                            {
-                                if *size == elements.len() as u64 {
-                                    Ok(())
-                                } else {
-                                    Err(Box::from(format!(
-                                        "LHS array has fixed size of {} but RHS literal has size {} on line {}",
-                                        size, elements.len(), declaration.identifier.line_info.line
-                                    )))
-                                }
-                            } else {
-                                Ok(())
-                            }
-                        } else {
-                            Err(Box::from(format!(
-                                "Cannot assign array of type `{}` to an array of type `{}` on {}",
-                                rhs_type, lhs_type, &declaration.identifier.line_info
-                            )))
-                        };
-                    }
-                }
-
-                if declaration.variable_type != source_type {
-                    return Err(Box::from(format!(
-                        "Cannot initialise contract property of type `{}` with type `{}` on {}",
-                        declaration.variable_type, source_type, &declaration.identifier.line_info
-                    )));
-                }
-            }
-        }
         Ok(())
     }
 
@@ -496,6 +497,44 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
+    #[allow(clippy::single_match)]
+    fn finish_if_statement(
+        &mut self,
+        if_statement: &mut IfStatement,
+        context: &mut Context,
+    ) -> VResult {
+        match &if_statement.condition {
+            Expression::BinaryExpression(ref b) => {
+                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
+                    if !v.is_constant() {
+                        return Err(Box::from(format!(
+                            "Invalid condition type in `if` statement on {}",
+                            if_statement.condition.get_line_info()
+                        )));
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        let expression_type = context.environment.get_expression_type(
+            &if_statement.condition,
+            "",
+            &[],
+            &[],
+            context.scope_context.as_ref().unwrap_or_default(),
+        );
+
+        if !expression_type.is_bool_type() {
+            return Err(Box::from(format!(
+                "Invalid condition type in `if` statement on {}",
+                if_statement.condition.get_line_info()
+            )));
+        }
+
+        Ok(())
+    }
+
     fn start_identifier(&mut self, identifier: &mut Identifier, ctx: &mut Context) -> VResult {
         let token = &identifier.token;
         let line_number = identifier.line_info.line;
@@ -624,7 +663,7 @@ impl Visitor for SemanticAnalysis {
                             return if scope.is_declared(token) {
                                 Ok(())
                             } else if let Some(contract) =
-                                &ctx.contract_behaviour_declaration_context
+                            &ctx.contract_behaviour_declaration_context
                             {
                                 if let Some(caller) = &contract.caller {
                                     if *token == caller.token {
@@ -665,8 +704,7 @@ impl Visitor for SemanticAnalysis {
         let start = range_expression.start_expression.clone();
         let end = range_expression.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
-        } else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
             return Err(Box::from(format!(
                 "Invalid Range Declaration: {:?}",
                 range_expression
@@ -684,9 +722,9 @@ impl Visitor for SemanticAnalysis {
         if context.enclosing_type_identifier().is_some()
             && !protection.is_any()
             && !context.environment.contains_caller_protection(
-                protection,
-                &context.enclosing_type_identifier().unwrap().token,
-            )
+            protection,
+            &context.enclosing_type_identifier().unwrap().token,
+        )
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -755,9 +793,9 @@ impl Visitor for SemanticAnalysis {
                             *key_type
                         }
                         Type::DictionaryType(DictionaryType {
-                            key_type: _,
-                            value_type,
-                        }) => *value_type,
+                                                 key_type: _,
+                                                 value_type,
+                                             }) => *value_type,
                         _ => {
                             return Err(Box::from(format!(
                                 "Subscript expression on non-array type: {:?}",
@@ -909,44 +947,6 @@ impl Visitor for SemanticAnalysis {
                 _ => Ok(()),
             }
         }
-    }
-
-    #[allow(clippy::single_match)]
-    fn finish_if_statement(
-        &mut self,
-        if_statement: &mut IfStatement,
-        context: &mut Context,
-    ) -> VResult {
-        match &if_statement.condition {
-            Expression::BinaryExpression(ref b) => {
-                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
-                    if !v.is_constant() {
-                        return Err(Box::from(format!(
-                            "Invalid condition type in `if` statement on {}",
-                            if_statement.condition.get_line_info()
-                        )));
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        let expression_type = context.environment.get_expression_type(
-            &if_statement.condition,
-            "",
-            &[],
-            &[],
-            context.scope_context.as_ref().unwrap_or_default(),
-        );
-
-        if !expression_type.is_bool_type() {
-            return Err(Box::from(format!(
-                "Invalid condition type in `if` statement on {}",
-                if_statement.condition.get_line_info()
-            )));
-        }
-
-        Ok(())
     }
 
     fn finish_return_statement(
