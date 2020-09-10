@@ -81,17 +81,22 @@ Libra has introduced a ```signer``` native type which stores the address of the 
 
 It is also important to note that, at the time of writing, only one variable of type ```&signer``` can be passed into a function (i.e. the transaction sender), however Libra does have plans for multi-sender transaction scripts (see [here](https://community.libra.org/t/signer-type-and-move-to/2894)). For now, the transaction sender is passed as an ```&signer``` type through the contract, and the address which the contract is published as is passed as an ```address``` to the public methods.
 
-TODO: George storing &signer types for transfers
+At the time of writing, it is our opinion that it is impossible to store signers in libra due to the following:
+- You cannot store a reference in a struct (so you cannot store an ```&signer``` in a struct)
+- You cannot dereference a signer
+- You cannot create a signer from an address
+
+The result of this is that at the moment, it is not clear if it is possible to do money transfers from anyone's account except the caller's, since we are given the caller's signer when the contract executes anything. 
 
 #### Wrapper Methods
 To allow calls into our Move contracts, we provide a wrapper method for each public function which takes in an address and borrows the resource published at that address, which is then passed into the inner function. In order to facilitate the minimum amount of runtime checking of type states and caller protections (which are only required for external calls), we also perform these checks inside the wrapper methods.
 
 #### Arrays and Dictionaries
-// TODO: George arrays
-In Move, each value in the dictionary is wrapped in a resource, and is stored at the address given by the key. This means that dictionaries are restricted to only having keys of type ```address```, but since dictionaries in Flint can have any key type, this should be implemented.
+- As explained in the [github issue](https://github.com/flintlang/flint-2/issues/20), accessing arrays is currently unsupported in move. This was due to a libra update which introduced more sophisticated build in data structures, which left the previous implementation broken. We do not invisage that this will be a particularly difficult fix, as arrays are already stored and constructed correctly, and so it seems that it is only move subscript expressions that will need to be altered. At the moment, due to the previous implementation, a subscript results in a runtime function being called on the array. This should be removed and replaced with a more simple subscript (in move) as demonstrated in the libra link in the aforementioned issue. 
+
+- In Move, each value in the dictionary is wrapped in a resource, and is stored at the address given by the key. This means that dictionaries are restricted to only having keys of type ```address```, but since dictionaries in Flint can have any key type, this should be implemented.
 
 ### eWASM Translation
-// TODO link pull request when it is written
 
 The actual code generation is for LLVM, and we rely on the LLVM to wasm32 compiler to translate this correctly to WASM. From there we make some simple post-processing changes to the WASM in order to convert it to valid eWASM. We chose to compile to LLVM for the following reasons:
 - It is a well-established framework for creating a backend for programming languages and there exists a rust crate arounds the underlying C API, as well as many optimisations
@@ -99,7 +104,9 @@ The actual code generation is for LLVM, and we rely on the LLVM to wasm32 compil
 - The difficulties of WASM memory management are also delegated to LLVM
 - It allows control over all imports and external linking, making it easy to ensure we only import from the ethereum namespace as required by the [ECI](https://ewasm.readthedocs.io/en/mkdocs/contract_interface/). This advantage was the main thing preventing us from compiling to a different intermediary such as C or AssemblyScript
 
-_Note: For more information on why we chose to translate via LLVM, please see the [compiling flint to ewasm document](https://github.com/flintlang/flint-2/tree/eWASM/docs/papers/compiling_flint_to_ewasm.pdf)_
+_Note: For more information on why we chose to translate via LLVM, please see the [compiling flint to ewasm document](https://github.com/flintlang/flint-2/blob/eWASM/docs/papers/Compiling%20flint%20to%20eWASM.pdf)_
+
+_Note: For more detail on how the flint is represented in LLVM, please see the [eWASM pull request](https://github.com/flintlang/flint-2/pull/28)_
 
 #### LLVM Translation
 ##### Data Layout

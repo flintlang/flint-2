@@ -114,6 +114,14 @@ To install prerequisites on Fedora, run:
 ```bash
 sudo dnf install llvm-devel llvm-static libstdc++-devel
 ```
+
+#### macOS
+
+LLVM is the default compiler on macOS, so if you have xcode command line tools, you likely already have LLVM. To make sure though, you can install LLVM with homebrew
+
+```bash
+brew install llvm
+```
   
 ##### For testing  
 Additionally, to run the testing libraries, install:  
