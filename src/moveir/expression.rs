@@ -12,7 +12,7 @@ use super::r#type::MoveType;
 use super::runtime_function::MoveRuntimeFunction;
 use super::*;
 use crate::ast::{
-    mangle_dictionary, AttemptExpression, BinOp, BinaryExpression, CastExpression, Expression,
+    mangle_dictionary, BinOp, BinaryExpression, CastExpression, Expression,
     Identifier, InoutExpression, SubscriptExpression, Type,
 };
 use crate::moveir::identifier::MoveSelf;
@@ -58,10 +58,8 @@ impl MoveExpression {
                 expression: *b.expression,
                 position: Default::default(),
             }
-            .generate(function_context),
-            Expression::AttemptExpression(a) => {
-                MoveAttemptExpression { expression: a }.generate(function_context)
-            }
+                .generate(function_context),
+            Expression::AttemptExpression(_) => panic!("Should have been removed in preprocessor"),
             Expression::Literal(l) => {
                 MoveIRExpression::Literal(MoveLiteralToken { token: l }.generate())
             }
@@ -266,36 +264,6 @@ impl MoveSubscriptExpression {
             }
             _ => panic!("Invalid Type for Subscript Expression"),
         }
-    }
-}
-
-struct MoveAttemptExpression {
-    pub expression: AttemptExpression,
-}
-
-impl MoveAttemptExpression {
-    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
-        let _function_call = self.expression.function_call.clone();
-        let identifier =
-            "QuartzWrapper".to_owned() + &self.expression.function_call.identifier.token.clone();
-        let arguments: Vec<MoveIRExpression> = self
-            .expression
-            .function_call
-            .arguments
-            .clone()
-            .into_iter()
-            .map(|a| {
-                MoveExpression {
-                    expression: a.expression,
-                    position: Default::default(),
-                }
-                .generate(function_context)
-            })
-            .collect();
-        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
-            identifier,
-            arguments,
-        })
     }
 }
 

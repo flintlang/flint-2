@@ -280,110 +280,45 @@ impl Visitor for MovePreProcessor {
         );
         declaration.mangled_identifier = Some(mangled_name);
 
-        if declaration.is_payable() {
-            let payable_param = declaration.first_payable_param(&ctx);
+        if enclosing_identifier != crate::environment::FLINT_GLOBAL {
+            if let Some(asset_ctx) = ctx.asset_context.clone() {
+                let asset_ctx_identifier = asset_ctx.identifier;
+                let param_type = Type::UserDefinedType(asset_ctx_identifier);
+                let param_type = Type::InoutType(InoutType {
+                    key_type: Box::new(param_type),
+                });
+                let param_self_identifier = Identifier::generated(Identifier::SELF);
 
-            if payable_param.is_none() {
-                panic!("lol")
-            }
-            let mut payable_param = payable_param.unwrap();
-            let payable_param_name = payable_param.identifier.token.clone();
-            let new_param_type =
-                Type::UserDefinedType(Identifier::generated("Libra.Libra<LBR.LBR>"));
-            payable_param.type_assignment = new_param_type;
-            payable_param.identifier.token = payable_param_name.clone();
+                let parameter = Parameter {
+                    identifier: param_self_identifier,
+                    type_assignment: param_type,
+                    expression: None,
+                    line_info: Default::default(),
+                };
 
-            let parameters: Vec<Parameter> = declaration
-                .head
-                .parameters
-                .clone()
-                .into_iter()
-                .map(|p| {
-                    if p.identifier.token == payable_param_name {
-                        payable_param.clone()
-                    } else {
-                        p
-                    }
-                })
-                .collect();
+                declaration.head.parameters.insert(0, parameter.clone());
+                if let Some(ref mut scope) = ctx.scope_context {
+                    scope.parameters.insert(0, parameter);
+                }
+            } else if let Some(struct_ctx) = ctx.struct_declaration_context.clone() {
+                let struct_ctx_identifier = struct_ctx.identifier;
+                let param_type = Type::UserDefinedType(struct_ctx_identifier);
+                let param_type = Type::InoutType(InoutType {
+                    key_type: Box::new(param_type),
+                });
+                let param_self_identifier = Identifier::generated(Identifier::SELF);
 
-            declaration.head.parameters = parameters;
+                let parameter = Parameter {
+                    identifier: param_self_identifier,
+                    type_assignment: param_type,
+                    expression: None,
+                    line_info: Default::default(),
+                };
 
-            let lhs = VariableDeclaration {
-                declaration_token: None,
-                identifier: Identifier::generated("amount"),
-                variable_type: Type::UserDefinedType(Identifier::generated("Libra")),
-                expression: None,
-            };
-
-            let lhs_expression = Expression::VariableDeclaration(lhs);
-
-            let _lhs = Expression::Identifier(Identifier::generated("amount"));
-
-            let rhs = Expression::FunctionCall(FunctionCall {
-                identifier: Identifier::generated("Quartz_Self_Create_Libra"),
-                arguments: vec![FunctionArgument {
-                    identifier: None,
-                    expression: Expression::Identifier(payable_param.identifier),
-                }],
-                mangled_identifier: None,
-            });
-            let assignment = BinaryExpression {
-                lhs_expression: Box::new(lhs_expression),
-                rhs_expression: Box::new(rhs),
-                op: BinOp::Equal,
-                line_info: Default::default(),
-            };
-            declaration.body.insert(
-                0,
-                Statement::Expression(Expression::BinaryExpression(assignment)),
-            );
-        }
-
-        if ctx.asset_context.is_some() && enclosing_identifier != crate::environment::FLINT_GLOBAL {
-            let asset_ctx = ctx.asset_context.clone();
-            let asset_ctx = asset_ctx.unwrap();
-            let asset_ctx_identifier = asset_ctx.identifier;
-            let param_type = Type::UserDefinedType(asset_ctx_identifier);
-            let param_type = Type::InoutType(InoutType {
-                key_type: Box::new(param_type),
-            });
-            let param_self_identifier = Identifier::generated(Identifier::SELF);
-
-            let parameter = Parameter {
-                identifier: param_self_identifier,
-                type_assignment: param_type,
-                expression: None,
-                line_info: Default::default(),
-            };
-
-            declaration.head.parameters.insert(0, parameter.clone());
-            if let Some(ref mut scope) = ctx.scope_context {
-                scope.parameters.insert(0, parameter);
-            }
-        }
-
-        if ctx.struct_declaration_context.is_some()
-            && enclosing_identifier != crate::environment::FLINT_GLOBAL
-        {
-            let struct_ctx = ctx.struct_declaration_context.clone().unwrap();
-            let struct_ctx_identifier = struct_ctx.identifier;
-            let param_type = Type::UserDefinedType(struct_ctx_identifier);
-            let param_type = Type::InoutType(InoutType {
-                key_type: Box::new(param_type),
-            });
-            let param_self_identifier = Identifier::generated(Identifier::SELF);
-
-            let parameter = Parameter {
-                identifier: param_self_identifier,
-                type_assignment: param_type,
-                expression: None,
-                line_info: Default::default(),
-            };
-
-            declaration.head.parameters.insert(0, parameter.clone());
-            if let Some(ref mut scope) = ctx.scope_context {
-                scope.parameters.insert(0, parameter);
+                declaration.head.parameters.insert(0, parameter.clone());
+                if let Some(ref mut scope) = ctx.scope_context {
+                    scope.parameters.insert(0, parameter);
+                }
             }
         }
 

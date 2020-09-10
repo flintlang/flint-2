@@ -461,7 +461,7 @@ impl MoveContract {
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = "Quartz$self";
+            let shadow = "Flint$self";
 
             let self_type = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
