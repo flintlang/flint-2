@@ -216,7 +216,7 @@ impl Visitor for LLVMPreProcessor {
             }
         }
 
-        // construct self parameter for struct
+        // Construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
             let self_param = construct_parameter(
                 Identifier::SELF.to_string(),
@@ -570,7 +570,7 @@ impl Visitor for LLVMPreProcessor {
             };
 
             if !Environment::is_runtime_function_call(call) {
-                // mangles name
+                // Mangles name
                 call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
 
                 // Pass in the parameter for the function to operate on. If it is a struct function,
@@ -605,7 +605,7 @@ impl Visitor for LLVMPreProcessor {
 
                 call.arguments.push(contract_argument);
             } else if !enclosing_type.eq(crate::environment::FLINT_GLOBAL) {
-                // mangles name
+                // Mangles name
                 call.identifier.token =
                     mangle_ewasm_function(&function_name, crate::environment::FLINT_GLOBAL);
             }

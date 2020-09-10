@@ -142,8 +142,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.transfer();
     }
 
+    /// Wrapper for the eWASM getExternalBalance function
     fn get_balance(&self) {
-        // wrapper for the eWASM getExternalBalance function
         let address_type = self.context.custom_width_int_type(160).as_basic_type_enum();
 
         let func_type = self.context.i64_type().fn_type(&[address_type], false);
@@ -186,8 +186,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     /// TODO: Due to a lack of eWASM documentation, we aren't sure how money should be transferred in eWASM (see our question posted in ewasm/design here: https://github.com/ewasm/design/pull/113).
     /// The below implementation is based on the Flint 1 send function, however because we were unable to use the eWASM testnet (it is currently down), we were unable to validate
     /// if this function was correct.
+    /// Wrapper for the eWASM call function
     fn transfer(&self) {
-        // wrapper for the eWASM call function
         let address_type = self.context.custom_width_int_type(160).as_basic_type_enum();
 
         let value_type = self.context.i64_type().as_basic_type_enum();

@@ -48,7 +48,7 @@ impl<'a> LLVMFunctionCall<'a> {
 
             let struct_var = struct_type.const_zero();
 
-            // add local variable to function call arguments
+            // Add local variable to function call arguments
             function_context.add_local("tmp_var", BasicValueEnum::StructValue(struct_var));
         }
 

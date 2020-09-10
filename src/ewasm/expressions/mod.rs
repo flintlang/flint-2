@@ -30,8 +30,8 @@ pub struct LLVMExpression<'a> {
 }
 
 impl<'a> LLVMExpression<'a> {
-    // We want to take an expression, create any of the intermediary steps to evaluate it,
-    // and then return the variable that stores the evaluated result
+    /// Expressions may or may not return a BasicValueEnum. For example, an assignment would not return
+    /// something, but an addition would
     pub fn generate<'ctx>(
         &self,
         codegen: &mut Codegen<'_, 'ctx>,

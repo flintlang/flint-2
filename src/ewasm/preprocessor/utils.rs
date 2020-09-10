@@ -300,9 +300,9 @@ pub fn generate_caller_protections_predicate(
                             if let Some(function) = function_info.get(0) {
                                 let function_signature = &function.declaration.head;
                                 if function_signature.is_predicate() {
-                                    // caller protection is a predicate function
+                                    // Caller protection is a predicate function
                                     return if ident.token != function_name {
-                                        // prevents predicate being added to the predicate function itself
+                                        // Prevents predicate being added to the predicate function itself
                                         Some(Expression::FunctionCall(FunctionCall {
                                             identifier: Identifier::generated(
                                                 &mangle_ewasm_function(
@@ -330,9 +330,9 @@ pub fn generate_caller_protections_predicate(
                                         None
                                     };
                                 } else if function_signature.is_0_ary_function() {
-                                    // caller protection is a 0-ary function
+                                    // Caller protection is a 0-ary function
                                     return if ident.token != function_name {
-                                        // prevents 0-ary function being added to the 0-ary function itself
+                                        // Prevents 0-ary function being added to the 0-ary function itself
                                         Some(Expression::BinaryExpression(BinaryExpression {
                                             lhs_expression: Box::new(Expression::FunctionCall(
                                                 FunctionCall {

@@ -36,7 +36,7 @@ pub fn parse_top_level_declaration(i: Span) -> nom::IResult<Span, TopLevelDeclar
     Ok((i, top))
 }
 
-// event declaration
+// Event declaration
 
 fn parse_event_declaration(i: Span) -> nom::IResult<Span, EventDeclaration> {
     let (i, _event_token) = tag("event")(i)?;
