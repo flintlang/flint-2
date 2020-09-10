@@ -1,9 +1,10 @@
 use crate::ast::*;
-use crate::environment::*;
+use crate::target;
+use crate::target::currency::Currency;
 
 #[derive(Debug, Default)]
 pub struct Context {
-    pub environment: Environment,
+    pub environment: crate::environment::Environment,
     pub contract_declaration_context: Option<ContractDeclarationContext>,
     pub contract_behaviour_declaration_context: Option<ContractBehaviourDeclarationContext>,
     pub struct_declaration_context: Option<StructDeclarationContext>,
@@ -29,6 +30,7 @@ pub struct Context {
     pub in_emit: bool,
     pub pre_statements: Vec<Statement>,
     pub post_statements: Vec<Statement>,
+    pub target: Target,
 }
 
 impl Context {
@@ -59,6 +61,51 @@ impl Context {
 
     pub fn scope_context(&self) -> Option<&ScopeContext> {
         self.scope_context.as_ref()
+    }
+
+    pub fn type_states(&self) -> &[TypeState] {
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &*c.type_states)
+            .unwrap_or(&[])
+    }
+
+    pub fn caller_protections(&self) -> &[CallerProtection] {
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &*c.caller_protections)
+            .unwrap_or(&[])
+    }
+
+    pub fn scope_or_default(&self) -> &ScopeContext {
+        self.scope_context.as_ref().unwrap_or_default()
+    }
+
+    pub fn declaration_context_type_id(&self) -> Option<&str> {
+        self.contract_behaviour_declaration_context
+            .as_ref()
+            .map(|c| &*c.identifier.token)
+            .or_else(|| {
+                self.struct_declaration_context
+                    .as_ref()
+                    .map(|c| &*c.identifier.token)
+                    .or_else(|| self.asset_context.as_ref().map(|c| &*c.identifier.token))
+            })
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Target {
+    pub name: &'static str,
+    pub currency: Currency,
+}
+
+impl From<&target::Target> for Target {
+    fn from(target: &target::Target) -> Self {
+        Target {
+            name: target.name,
+            currency: target.currency.clone(),
+        }
     }
 }
 
@@ -141,10 +188,8 @@ impl ScopeContext {
     }
 
     pub fn type_for(&self, variable: &str) -> Option<Type> {
-        self.first_local_or_parameter(|v| {
-            v.identifier.token == variable || mangle(variable) == v.identifier.token
-        })
-        .map(|i| i.variable_type)
+        self.first_local_or_parameter(|v| v.identifier.token == variable)
+            .map(|i| i.variable_type)
     }
 
     pub fn contains_variable_declaration(&self, name: &str) -> bool {

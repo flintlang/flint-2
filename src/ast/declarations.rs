@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::context::*;
 use crate::visitor::Visitor;
 use hex::encode;
-use nom::lib::std::fmt::Formatter;
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TopLevelDeclaration {
@@ -51,19 +51,6 @@ pub struct ContractDeclaration {
 }
 
 impl ContractDeclaration {
-    #[allow(dead_code)]
-    pub fn contract_enum_prefix() -> String {
-        "QuartzStateEnum$".to_string()
-    }
-
-    #[allow(dead_code)]
-    pub fn get_variable_declarations(&self) -> impl Iterator<Item = &VariableDeclaration> {
-        self.contract_members.iter().filter_map(|c| match c {
-            ContractMember::VariableDeclaration(v, _) => Some(v),
-            ContractMember::EventDeclaration(_) => None,
-        })
-    }
-
     pub fn get_variable_declarations_without_dict(
         &self,
     ) -> impl Iterator<Item = &VariableDeclaration> {
@@ -140,36 +127,20 @@ impl Visitable for ContractBehaviourDeclaration {
             caller_protections: self.caller_protections.clone(),
         });
 
-        let local_variables: Vec<VariableDeclaration> = vec![];
-        let mut parameters: Vec<Parameter> = vec![];
-        
-        if let Some(caller) = &self.caller_binding {
-            parameters.push(Parameter {
-                identifier: caller.clone(),
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
-        } else {
-            parameters.push(Parameter {
-                identifier: Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            })
-        }
+        let local_variables: Vec<VariableDeclaration> =
+            if let Some(ref caller_binding) = self.caller_binding {
+                let mut caller_declaration = VariableDeclaration {
+                    declaration_token: None,
+                    identifier: caller_binding.clone(),
+                    variable_type: Type::Address,
+                    expression: None,
+                };
+                caller_declaration.visit(v, ctx)?;
+                vec![caller_declaration]
+            } else {
+                vec![]
+            };
+        let parameters: Vec<Parameter> = vec![];
 
         let scope = ScopeContext {
             parameters,
@@ -512,7 +483,7 @@ impl FunctionDeclaration {
         self.head.is_payable()
     }
 
-    pub fn first_payable_param(&self) -> Option<Parameter> {
+    pub fn first_payable_param(&self, ctx: &Context) -> Option<Parameter> {
         if !self.is_payable() {
             return None;
         }
@@ -520,7 +491,7 @@ impl FunctionDeclaration {
         let parameters = self.head.parameters.clone();
         let mut parameters: Vec<Parameter> = parameters
             .into_iter()
-            .filter(|p| p.type_assignment.is_currency_type())
+            .filter(|p| p.type_assignment.is_currency_type(&ctx.target.currency))
             .collect();
 
         if !parameters.is_empty() {
@@ -532,8 +503,8 @@ impl FunctionDeclaration {
         self.head.is_public()
     }
 
-    pub fn get_result_type(&self) -> Option<Type> {
-        self.head.result_type.clone()
+    pub fn get_result_type(&self) -> Option<&Type> {
+        self.head.result_type.as_ref()
     }
 
     pub fn is_void(&self) -> bool {
@@ -615,8 +586,8 @@ impl Visitable for FunctionDeclaration {
         if let Some(ref mut scope_context) = ctx.scope_context {
             scope_context.local_variables = declarations;
         }
-        ctx.function_declaration_context = None;
         v.finish_function_declaration(self, ctx)?;
+        ctx.function_declaration_context = None;
 
         ctx.pre_statements = vec![];
         ctx.post_statements = vec![];
@@ -658,30 +629,24 @@ impl FunctionSignatureDeclaration {
         self.modifiers.contains(&Modifier::Public)
     }
 
-    pub fn parameter_identifiers(&self) -> Vec<Identifier> {
-        self.parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.identifier)
-            .collect()
+    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a Identifier> + 'a {
+        self.parameters.iter().map(|p| &p.identifier)
     }
 
-    pub fn parameter_types(&self) -> Vec<Type> {
-        self.parameters
-            .clone()
-            .into_iter()
-            .map(|p| p.type_assignment)
-            .collect()
+    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
+        self.parameters.iter().map(|p| &p.type_assignment)
     }
 
     pub fn is_equal(&self, against: FunctionSignatureDeclaration) -> bool {
         let modifiers_match = self.modifiers == against.modifiers;
-        let attibutes_match = self.attributes == against.attributes;
-        let parameter_names_match = self.parameter_identifiers() == against.parameter_identifiers();
-        let parameter_types = self.parameter_types() == against.parameter_types();
+        let attributes_match = self.attributes == against.attributes;
+        let parameter_names_match = self
+            .parameter_identifiers()
+            .eq(against.parameter_identifiers());
+        let parameter_types = self.parameter_types().eq(against.parameter_types());
         if self.identifier.token == against.identifier.token
             && modifiers_match
-            && attibutes_match
+            && attributes_match
             && parameter_names_match
             && parameter_types
         {
@@ -780,21 +745,6 @@ impl Visitable for SpecialDeclaration {
             scope_context
                 .parameters
                 .extend(self.head.parameters.iter().cloned());
-
-            scope_context.parameters.push(Parameter {
-                identifier: Identifier {
-                    token: "caller".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                },
-                type_assignment: Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                }),
-                expression: None,
-                line_info: Default::default(),
-            });
         }
 
         let mut statements: Vec<Vec<Statement>> = vec![];
@@ -802,16 +752,6 @@ impl Visitable for SpecialDeclaration {
             ctx.pre_statements = vec![];
             ctx.post_statements = vec![];
             statement.visit(v, ctx)?;
-            if let Statement::Expression(Expression::BinaryExpression(be)) = statement {
-                if let Expression::Identifier(id) = &*be.rhs_expression {
-                    if id.token == "caller" {
-                        be.rhs_expression = Box::new(Expression::RawAssembly(
-                            "Signer.address_of(copy(caller))".to_string(),
-                            None,
-                        ));
-                    }
-                }
-            }
             statements.push(ctx.pre_statements.clone());
             statements.push(ctx.post_statements.clone());
         }
@@ -852,6 +792,10 @@ impl SpecialSignatureDeclaration {
     pub fn has_parameters(&self) -> bool {
         !self.parameters.is_empty()
     }
+
+    pub fn parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
+        self.parameters.iter().map(|p| &p.type_assignment)
+    }
 }
 
 impl Visitable for SpecialSignatureDeclaration {
@@ -886,19 +830,20 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    pub fn is_payable(&self) -> bool {
-        self.type_assignment.is_currency_type()
+    pub fn is_payable(&self, target: &Target) -> bool {
+        self.type_assignment.is_currency_type(&target.currency)
     }
 
     pub fn is_dynamic(&self) -> bool {
         self.type_assignment.is_dynamic_type()
     }
+
     pub fn as_variable_declaration(&self) -> VariableDeclaration {
         VariableDeclaration {
             declaration_token: None,
             identifier: self.identifier.clone(),
             variable_type: self.type_assignment.clone(),
-            expression: None,
+            expression: self.expression.as_ref().map(|e| Box::new(e.clone())),
         }
     }
 
@@ -982,6 +927,10 @@ impl Visitable for VariableDeclaration {
             ctx.is_property_default_assignment = false;
 
             ctx.scope_context = previous_scope;
+        }
+
+        if let Some(scope_ctx) = &mut ctx.scope_context {
+            scope_ctx.local_variables.push(self.clone());
         }
 
         v.finish_variable_declaration(self, ctx)?;

@@ -1,0 +1,33 @@
+contract Counter {
+    var count: Count
+}
+
+Counter :: (any) {
+    public init() {
+        count = Count(1)
+    }
+
+    public func record() mutates (count) {
+        count.increment(0)
+    }
+
+    public func cancel() mutates (count) {
+        count.decrement()
+    }
+}
+
+struct Count {
+    visible var value: Int
+
+    public func increment(by: Int = 1) mutates (value) {
+        value += by
+    }
+
+    public func decrement(by: Int = 1) mutates (value) {
+        if (by > value) {
+            value = 0
+        } else {
+            value -= by
+        }
+    }
+}

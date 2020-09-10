@@ -4,8 +4,9 @@ use super::identifier::MoveIdentifier;
 use super::ir::{MoveIRAssignment, MoveIRExpression};
 use super::r#type::MoveType;
 use super::MovePosition;
-use crate::ast::{mangle, Expression, Type};
+use crate::ast::{Expression, Type};
 use crate::moveir::expression::is_signer_type;
+use crate::moveir::preprocessor::MovePreProcessor;
 use crate::type_checker::ExpressionChecker;
 
 #[derive(Debug)]
@@ -62,10 +63,13 @@ impl MoveAssignment {
 
         let rhs_ir: MoveIRExpression;
 
-        let (is_signer, id) = is_signer_type(&self.rhs, function_context);
+        let is_signer = is_signer_type(&self.rhs, function_context);
 
         if is_signer {
-            rhs_ir = MoveIRExpression::Inline(format!("Signer.address_of(copy({}))", id));
+            rhs_ir = MoveIRExpression::Inline(format!(
+                "Signer.address_of(copy({}))",
+                MovePreProcessor::CALLER_PROTECTIONS_PARAM
+            ));
         } else {
             rhs_ir = MoveExpression {
                 expression: self.rhs.clone(),
@@ -81,7 +85,7 @@ impl MoveAssignment {
         if let Expression::Identifier(ref i) = lhs {
             if i.enclosing_type.is_none() {
                 return MoveIRExpression::Assignment(MoveIRAssignment {
-                    identifier: mangle(&i.token),
+                    identifier: i.token.clone(),
                     expression: Box::new(rhs_ir),
                 });
             }

@@ -40,7 +40,6 @@ impl Visitable for ArrayLiteral {
 pub enum Literal {
     BooleanLiteral(bool),
     AddressLiteral(String),
-    // TODO make this a defined vec of size 32 to avoid bad addresses?
     StringLiteral(String),
     U8Literal(u8),
     IntLiteral(u64),

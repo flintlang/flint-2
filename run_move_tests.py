@@ -1,15 +1,20 @@
+import json
+import os
 import re
+import shutil
+import subprocess
+import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple, Optional, List, Iterable
-import subprocess, os, sys, shutil
-from contextlib import contextmanager
-import json
 
 
-class CompilationError(Exception): ...
+class CompilationError(Exception):
+    ...
 
 
-class FlintCompilationError(CompilationError): ...
+class FlintCompilationError(CompilationError):
+    ...
 
 
 class MoveRuntimeError(RuntimeError):
@@ -19,7 +24,7 @@ class MoveRuntimeError(RuntimeError):
 
     @classmethod
     def from_output(cls, output):
-        line = re.search(r"sub_status: Some\((\d+)\)", output)
+        line = re.search(r"ABORTED { code: (\d+)", output)
         if line:
             line = int(line.group(1))
         return cls(output, line)
@@ -51,7 +56,7 @@ class Configuration(NamedTuple):
 
 class Programme:
     path: Path
-    config: Optional[Configuration]
+    flint_config: Optional[Configuration]
 
     def __init__(self, path: Path, config: Optional[Configuration] = None):
         self.path = path
@@ -72,23 +77,27 @@ class MoveIRProgramme(Programme):
     def run(self):
         with run_at_path(self.config.libra_path):
             process = subprocess.Popen(
-                ["cargo", "test", "-p", "ir-testsuite", "/".join(list(self.path.parts)[-2:])],
+                ["cargo", "test", "-p", "ir-testsuite",
+                 "/".join(list(self.path.parts)[-2:])],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        output = process.stdout.read().decode("utf8") + process.stderr.read().decode("utf8")
-        if re.search(r"[^0\s]\s+failed", output) or not re.search(r"[1-9]\s+passed", output):
+        output = process.stdout.read().decode(
+            "utf8") + process.stderr.read().decode("utf8")
+        if re.search(r"[^0\s]\s+failed", output) \
+            or not re.search(r"[1-9]\s+passed", output):
             raise MoveRuntimeError.from_output(output)
 
     def with_testsuite(self, testsuite):
         assert isinstance(testsuite, MoveIRProgramme)
-        new = TestRunner.default_behaviour_path / "temp" / self.path.name
+        new = TestRunner.default_move_interaction_path / "temp" / self.path.name
         try:
-            os.makedirs(TestRunner.default_behaviour_path / "temp")
+            os.makedirs(TestRunner.default_move_interaction_path / "temp")
         except FileExistsError:
             pass
         with open(new, "w") as file:
-            testsuite_contents = testsuite.contents().split("//! provide module")
+            testsuite_contents = testsuite.contents().split(
+                "//! provide module")
             for module in testsuite_contents[1:]:
                 file.write(f"""
 {module !s}
@@ -102,15 +111,16 @@ class MoveIRProgramme(Programme):
         self.path = new
 
     def move_to_libra(self):
-        testpath = self.config.libra_path / self.temporary_test_path / self.path.parts[-1]
+        test_path = self.config.libra_path / self.temporary_test_path / \
+                    self.path.parts[-1]
         try:
             os.makedirs(self.config.libra_path / self.temporary_test_path)
         except FileExistsError:
             pass
         else:
-            print(f"Created new folder {testpath} for testfile")
-        self.path.rename(testpath)
-        self.path = testpath
+            print(f"Created new folder {test_path} for testfile")
+        self.path.rename(test_path)
+        self.path = test_path
 
 
 class FlintProgramme(Programme):
@@ -127,7 +137,8 @@ class FlintProgramme(Programme):
         if b"successfully wrote" not in output:
             raise FlintCompilationError(output.decode("utf8"))
 
-        output_name = re.search(r"successfully wrote to (.+\.mvir)", str(output))
+        output_name = re.search(r"successfully wrote to (.+\.mvir)",
+                                str(output))
         if output_name:
             output_name = str(output_name.group(1))
         else:
@@ -144,22 +155,25 @@ class BehaviourTest(NamedTuple):
     @classmethod
     def from_name(cls, name: str, *, config: Configuration):
         """
-        Creates a behaviour test from a test name, searching for .flint and .mvir files
-        The .flint file must exist, however the .mvir file is optional (it will just
-        check compilation in such case).
-        If you want your test to fail on an assertion on line x in Flint, you can write
-        `//! expect fail x`, however, this expects the assertion to have that line number
-        which may not be the case if the assertion is generated through fatalErrors or
-        similar functions. It will work if a disallowed operation (type states, caller
-        protections) has been attempted. Also note, only one fail is allowed per test.
+        Creates a behaviour test from a test name, searching for .flint and
+        .mvir files. The .flint file must exist, however the .mvir file is
+        optional (it will just check compilation in such case). If you want your
+        test to fail on an assertion on line x in Flint, you can write
+        `//! expect fail x`, however, this expects the assertion to have that
+        line number which may not be the case if the assertion is generated
+        through fatalErrors or similar functions. It will work if a disallowed
+        operation (type states, caller protections) has been attempted. Also
+        note, only one fail is allowed per test.
         """
 
-        move_path = TestRunner.default_behaviour_path / (name + ".mvir")
+        move_path = TestRunner.default_move_interaction_path / (name + ".mvir")
         move_programme = None
         expected_fail_line = None
         if move_path.exists():
             move_programme = MoveIRProgramme(move_path, config=config)
-            expect_fail = re.search(r"//! expect fail (\d+)", move_programme.contents(), flags=re.IGNORECASE)
+            expect_fail = re.search(r"//! expect fail (\d+)",
+                                    move_programme.contents(),
+                                    flags=re.IGNORECASE)
             if expect_fail:
                 expected_fail_line = int(expect_fail.group(1))
 
@@ -191,10 +205,11 @@ class BehaviourTest(NamedTuple):
         else:
             line = message = None
         if self.expected_fail_line != line:
-            TestFormatter.behaviour_failed(self.programme.name,
-                                           message or f"Move Missing Error: "
-                                                      f"No error raised in {self.programme.path.name} line {self.expected_fail_line}"
-                                           )
+            TestFormatter.behaviour_failed(
+                self.programme.name,
+                message or f"Move Missing Error: "
+                           f"No error raised in {self.programme.path.name} line {self.expected_fail_line}"
+            )
             return False
 
         TestFormatter.behaviour_passed(self.programme.name)
@@ -254,21 +269,27 @@ To run them please set "libraPath" in ~/.flint/flint_config.json to the root of 
 class TestRunner(NamedTuple):
     behaviour_tests: List[BehaviourTest]
     compilation_tests: List[FlintProgramme]
-    default_behaviour_path = Path("tests/move_tests")
-    default_compilation_test_path = Path("tests/compilation_tests")
+    default_behaviour_path = Path("tests/behaviour_tests")
+    default_move_interaction_path = Path("tests/behaviour_tests/move_tests")
+    compilation_only_path = Path("tests/compilation_tests")
 
     @classmethod
     def from_all(cls, names=[], config=None):
-        return TestRunner([BehaviourTest.from_name(file.stem, config=config)
-                           for file in cls.default_behaviour_path.iterdir()
+        behaviour_files = [file for file in
+                           cls.default_behaviour_path.iterdir()
                            if file.suffix.endswith("flint")
-                           if not names or file.stem in names],
+                           if not names or file.stem in names]
+
+        all_files = behaviour_files + [file for file in
+                                       cls.compilation_only_path.iterdir()
+                                       if file.suffix.endswith("flint")
+                                       if not names or file.stem in names]
+
+        return TestRunner([BehaviourTest.from_name(file.stem, config=config)
+                           for file in behaviour_files],
 
                           [FlintProgramme(file, config=config)
-                           for file in
-                           cls.default_compilation_test_path.iterdir()
-                           if file.suffix.endswith("flint")
-                           if not names or file.stem in names])
+                           for file in all_files])
 
     def run_behaviour_tests(self):
         passed = set()
@@ -280,11 +301,9 @@ class TestRunner(NamedTuple):
                 print(f"Unexpected error `{e}`. Assuming failure")
 
         try:
-            shutil.rmtree(
-                MoveIRProgramme.config.libra_path / MoveIRProgramme.temporary_test_path)
-            shutil.rmtree(self.default_behaviour_path / "temp")
-        except:
-            print(f"Could not remove temporary files")
+            shutil.rmtree(self.default_move_interaction_path / "temp")
+        except Exception as e:
+            print(f"Could not remove temporary files: ", str(e))
 
         failed = set(self.behaviour_tests) - passed
         if failed:
@@ -297,16 +316,15 @@ class TestRunner(NamedTuple):
 
     def run_compilation_tests(self):
         """
-        Attempts to compile all tests in the compilation test folder. If you want
-        a test to fail compilation, write somewhere in that file
-        //! Fail compile <msg>
-        where <msg> is a snippet of the error message that is expected does not
-        have to be the whole thing
-        """
+            Attempts to compile all tests in the compilation test folder. If you
+            want a test to fail compilation, write somewhere in that file
+            //! Fail compile <msg> where <msg> is a snippet of the error message
+            that is expected does not have to be the whole thing
+            """
         passed = set()
         for programme in self.compilation_tests:
             should_fail = False
-            error_msg = re.search("//! compile fail ([\w ]+)",
+            error_msg = re.search(r"//! compile fail ([\w `]+)",
                                   programme.contents())
             if error_msg:
                 print("Should fail", programme.name, error_msg)
@@ -344,15 +362,15 @@ class TestRunner(NamedTuple):
 
 if __name__ == '__main__':
     os.path.dirname(os.path.realpath(__file__))
-    config = Configuration.from_flint_config()
+    flint_config = Configuration.from_flint_config()
 
     assert sys.argv[1] in ["all", "compilation", "behaviour"]
 
-    if not config and sys.argv[1] != "compilation":
+    if not flint_config and sys.argv[1] != "compilation":
         TestFormatter.not_configured()
         sys.exit(0)
 
-    test_runner = TestRunner.from_all(sys.argv[2:], config=config)
+    test_runner = TestRunner.from_all(sys.argv[2:], config=flint_config)
 
     # Run all, or run the given arguments (empty list is false)
     if sys.argv[1] == "all":

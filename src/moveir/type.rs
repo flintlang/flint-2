@@ -2,6 +2,8 @@ use super::function::FunctionContext;
 use super::ir::MoveIRType;
 use crate::ast::{FunctionCall, Identifier, Type};
 use crate::environment::Environment;
+use crate::target::libra;
+use crate::moveir::preprocessor::MovePreProcessor;
 
 #[derive(Debug, Clone)]
 pub(crate) enum MoveType {
@@ -29,8 +31,6 @@ impl MoveType {
             MoveType::ByteArray => MoveIRType::ByteArray,
             MoveType::Signer => MoveIRType::Signer,
             MoveType::Resource(s) => {
-                let wei = "Wei".to_string();
-                let libra = "Libra".to_string();
                 let comp = s.clone();
 
                 let resource_type = Type::UserDefinedType(Identifier {
@@ -38,7 +38,8 @@ impl MoveType {
                     enclosing_type: None,
                     line_info: Default::default(),
                 });
-                if comp == wei || comp == libra {
+
+                if comp == "Libra" {
                     let string = format!("Self.{}", s);
                     return MoveIRType::Resource(string);
                 }
@@ -46,7 +47,7 @@ impl MoveType {
                     let string = "Self.T".to_string();
                     return MoveIRType::Resource(string);
                 }
-                if resource_type.is_currency_type() {
+                if resource_type.is_currency_type(&libra::currency()) {
                     return MoveIRType::Resource(s.to_string());
                 }
                 let string = format!("{}.T", s);
@@ -94,7 +95,7 @@ impl MoveType {
             Type::DictionaryType(d) => MoveType::move_type(*d.value_type, None),
             Type::UserDefinedType(i) => {
                 if let Some(environment) = environment {
-                    if i.token == "&signer" {
+                    if i.token == MovePreProcessor::SIGNER_TYPE {
                         return MoveType::Reference(Box::new(MoveType::Signer));
                     } else if i.token == "signer" {
                         return MoveType::Signer;
@@ -145,7 +146,7 @@ impl MoveType {
     }
 
     pub fn is_resource_type(original: Type, type_id: &str, environment: &Environment) -> bool {
-        environment.is_contract_declared(type_id) || original.is_currency_type()
+        environment.is_contract_declared(type_id) || original.is_currency_type(&libra::currency())
     }
 
     pub fn is_resource(&self) -> bool {
@@ -167,10 +168,6 @@ pub(crate) mod move_runtime_types {
 
     pub fn get_all_declarations() -> Vec<String> {
         vec![]
-        /* TURN OFF LIBRA
-        let libra = "resource Libra_Coin { \n coin: Libra.Libra<LBR.LBR>  \n }".to_string();
-        vec![libra]
-        */
     }
 
     pub fn get_all_imports() -> Vec<MoveIRStatement> {
@@ -178,12 +175,6 @@ pub(crate) mod move_runtime_types {
             name: "Signer".to_string(),
             address: "0x1".to_string(),
         });
-        let vector = MoveIRStatement::Import(MoveIRModuleImport {
-            name: "Vector".to_string(),
-            address: "0x1".to_string(),
-        });
-        vec![signer, vector]
-        /* TURN OFF LIBRA
         let lbr = MoveIRStatement::Import(MoveIRModuleImport {
             name: "LBR".to_string(),
             address: "0x1".to_string(),
@@ -196,11 +187,6 @@ pub(crate) mod move_runtime_types {
             name: "Vector".to_string(),
             address: "0x1".to_string(),
         });
-        let libra = MoveIRStatement::Import(MoveIRModuleImport {
-            name: "Libra".to_string(),
-            address: "0x1".to_string(),
-        });
-        vec![lbr, libra_account, vector, libra]
-        */
+        vec![signer, vector, lbr, libra_account]
     }
 }

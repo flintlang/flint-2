@@ -5,21 +5,13 @@ before_script:
   - rustup component add clippy
   - sudo apt-get update
   - sudo apt-get install python3
+  - sudo apt-get install llvm-10 llvm-10-dev
+  - sudo apt-get install lld-10
 
 script:
+  - LLVM_SYS_100_PREFIX=/usr/lib/llvm-10 cargo build
   - cargo clippy -- -D warnings
   - mkdir output
-  - cargo run libra tests/move_tests/counter.flint
-  - cargo run libra tests/move_tests/rectangle.flint
-  - cargo run libra tests/move_tests/shapes.flint
-  - cargo run libra tests/move_tests/traffic_lights.flint
-  - cargo run libra tests/move_tests/assert.flint
-  - cargo run libra tests/move_tests/callerprotections_counter.flint
-  - cargo run libra tests/move_tests/factorial.flint
-  - cargo run libra tests/move_tests/inits.flint
-  - cargo run libra tests/move_tests/operators.flint
-  - cargo run libra tests/move_tests/public_and_visible.flint
-  - cargo run libra tests/move_tests/typestates_counter.flint
-  - python3 run_move_tests.py compilation
   - cargo test --verbose
+  - python3 run_move_tests.py compilation
 cache: cargo

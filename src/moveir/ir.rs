@@ -71,7 +71,6 @@ impl fmt::Display for MoveIRIdentifier {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum MoveIRExpression {
     FunctionCall(MoveIRFunctionCall),
@@ -79,6 +78,7 @@ pub enum MoveIRExpression {
     Identifier(String),
     Transfer(MoveIRTransfer),
     Literal(MoveIRLiteral),
+    #[allow(dead_code)]
     Catchable,
     Inline(String),
     Assignment(MoveIRAssignment),
@@ -86,6 +86,7 @@ pub enum MoveIRExpression {
     FieldDeclaration(MoveIRFieldDeclaration),
     Operation(MoveIROperation),
     Vector(MoveIRVector),
+    #[allow(dead_code)]
     Noop,
 }
 

@@ -1,95 +1,47 @@
+mod ewasm;
+mod ewasm_tests;
+
 mod ast;
 mod ast_processor;
 mod context;
 mod environment;
+mod io;
 mod moveir;
 mod parser;
 mod semantic_analysis;
+mod target;
 mod type_assigner;
 mod type_checker;
 mod utils;
 mod visitor;
 
-#[allow(clippy::all)] // Solidity is deprecated, no need to lint
-mod solidity;
-
-use crate::ast_processor::Target;
+use self::io::*;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
+use std::process::exit;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    println!("{:?}", args);
+    let configuration = prompt::process(&mut env::args()).unwrap_or_else(|| exit(1));
 
-    if args.len() < 3 {
-        panic!("Incorrect number of Arguments supplied, Expecting 2 arguments");
-    }
-
-    let target = &args[1];
-    let target = if target == "libra" {
-        Target::Move
-    } else if target == "ether" {
-        Target::Ether
-    } else {
-        panic!("Incorrect Target Argument specified, expecting \"ether\" or \"libra\"");
-    };
-
-    let filename = &args[2];
-
-    let mut file =
-        File::open(filename).expect(&*format!("Unable to open file at path {} ", filename));
+    let mut file = File::open(&configuration.file)
+        .unwrap_or_else(|err| prompt::error::unable_to_open_file(&configuration.file, err));
 
     let mut program = String::new();
     file.read_to_string(&mut program)
-        .expect("Unable to read the file");
-    if let Target::Move = target {
-        /* TURN OFF LIBRA
-        let mut file =
-            File::open("src/stdlib/libra/libra.quartz").expect("Unable to open libra stdlib file ");
-        let mut libra = String::new();
-        file.read_to_string(&mut libra)
-            .expect("Unable to read the stdlib Libra file");
+        .unwrap_or_else(|err| prompt::error::unable_to_read_file(&configuration.file, err));
 
-        let mut file = File::open("src/stdlib/libra/global.quartz")
-            .expect("Unable to open libra stdlib file ");
-        let mut global = String::new();
-        file.read_to_string(&mut global)
-            .expect("Unable to read the stdlib global file");
-        program = format!(
-            "{libra} \n {global} \n {program}",
-            libra = libra,
-            global = global,
-            program = program
-        )
-        */
-    } else {
-        let mut file =
-            File::open("src/stdlib/ether/wei.quartz").expect("Unable to open libra stdlib file ");
-        let mut ether = String::new();
-        file.read_to_string(&mut ether)
-            .expect("Unable to read the stdlib Libra file");
-
-        let mut file = File::open("src/stdlib/ether/global.quartz")
-            .expect("Unable to open quartz stdlib file ");
-        let mut global = String::new();
-        file.read_to_string(&mut global)
-            .expect("Unable to read the stdlib global file");
-
-        program = format!(
-            "{ether} \n {global} \n {program}",
-            ether = ether,
-            global = global,
-            program = program
-        )
-    }
-    let (module, environment) = parser::parse_program(&program).unwrap_or_else(|err| {
-        println!("Could not parse file: {}", err);
-        std::process::exit(1);
+    let mut file = File::open(&configuration.target.stdlib_path).unwrap_or_else(|err| {
+        prompt::error::unable_to_open_file(&configuration.target.stdlib_path, err)
     });
 
-    ast_processor::process_ast(module, environment, target).unwrap_or_else(|err| {
-        println!("Could not parse invalid flint file: {}", err);
-        std::process::exit(1);
+    file.read_to_string(&mut program).unwrap_or_else(|err| {
+        prompt::error::unable_to_read_file(&configuration.target.stdlib_path, err)
     });
+
+    let (module, environment) =
+        parser::parse_program(&program).unwrap_or_else(|err| prompt::error::parse_failed(&*err));
+
+    ast_processor::process_ast(module, environment, configuration.target)
+        .unwrap_or_else(|err| prompt::error::semantic_check_failed(&*err));
 }

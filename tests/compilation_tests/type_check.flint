@@ -1,0 +1,13 @@
+contract Test {
+    var prop: Int = 1
+}
+
+Test :: (any) {
+    public init() {
+        //! compile fail to assign type
+        var x: [Address] = 1
+        var y: Bool = true
+        prop = true + 1
+        y = prop
+    }
+}

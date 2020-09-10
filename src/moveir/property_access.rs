@@ -29,7 +29,7 @@ impl MovePropertyAccess {
                             expression: property.property.get_value().unwrap(),
                             position: self.position.clone(),
                         }
-                        .generate(&function_context);
+                            .generate(function_context);
                     }
                 }
             }
@@ -52,7 +52,7 @@ impl MovePropertyAccess {
                 expression: self.left.clone(),
                 position,
             }
-            .generate(&function_context);
+                .generate(&function_context);
             if f_call {
                 if let MoveIRExpression::Operation(ref operation) = lhs {
                     if let MoveIROperation::Dereference(ref deref) = operation {

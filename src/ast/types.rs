@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::context::Context;
 use crate::environment::Environment;
+use crate::target::currency::Currency;
 use crate::visitor::Visitor;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,11 +45,11 @@ impl Type {
         }
     }
 
-    pub fn is_currency_type(&self) -> bool {
+    pub fn is_currency_type(&self, currency: &Currency) -> bool {
         return matches!(
             self,
             Type::UserDefinedType(ref i)
-                if i.token == "Wei" || i.token == "Libra" || i.token == "LibraCoin.T"
+                if currency.currency_types.contains(&&*i.token)
         );
     }
 
@@ -135,7 +136,7 @@ impl Type {
             Type::Int => "Int".to_string(),
             Type::String => "String".to_string(),
             Type::Address => "Address".to_string(),
-            Type::Error => "Quartz$ErrorType".to_string(),
+            Type::Error => "Flint_ErrorType".to_string(),
             Type::SelfType => "Self".to_string(),
             Type::Solidity(s) => format!("{:?}", s),
             Type::TypeState => unimplemented!(),
@@ -243,6 +244,46 @@ impl Visitable for Type {
         v.finish_type(self, ctx)?;
 
         Ok(())
+    }
+}
+
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Bool => write!(f, "Bool"),
+            Type::Int => write!(f, "Int"),
+            Type::Address => write!(f, "Address"),
+            Type::InoutType(inout) => {
+                write!(f, "&")?;
+                inout.key_type.fmt(f)
+            }
+            Type::ArrayType(array) => {
+                write!(f, "[")?;
+                array.key_type.fmt(f)?;
+                write!(f, "]")
+            }
+            Type::RangeType(range) => {
+                write!(f, "Range ")?;
+                range.key_type.fmt(f)
+            }
+            Type::FixedSizedArrayType(array) => {
+                array.key_type.fmt(f)?;
+                write!(f, "[{}]", array.size)
+            }
+            Type::DictionaryType(dictionary) => {
+                write!(f, "[")?;
+                dictionary.key_type.fmt(f)?;
+                write!(f, ": ")?;
+                dictionary.value_type.fmt(f)?;
+                write!(f, "]")
+            }
+            Type::UserDefinedType(user) => write!(f, "{}", user.token),
+            Type::Solidity(_) => write!(f, "{:#?}", self),
+            Type::SelfType => write!(f, "Self"),
+            Type::String => write!(f, "String"),
+            Type::Error => write!(f, "Error!"),
+            Type::TypeState => write!(f, "TypeState"),
+        }
     }
 }
 

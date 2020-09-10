@@ -1,62 +1,158 @@
 use super::ast::*;
 use super::context::*;
 use super::visitor::*;
-use crate::environment::FunctionCallMatchResult::{MatchedFunction, MatchedInitializer};
+use crate::environment::functions::compatible_caller_protections;
+use crate::environment::FunctionCallMatchResult::{Failure, MatchedFunction, MatchedInitializer};
+use crate::environment::{CallableInformation, Candidates, Environment};
 use crate::type_checker::ExpressionChecker;
 use crate::utils::unique::Unique;
+use itertools::Itertools;
 
 pub struct SemanticAnalysis {}
 
 impl Visitor for SemanticAnalysis {
     fn start_contract_declaration(
         &mut self,
-        _t: &mut ContractDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut ContractDeclaration,
+        context: &mut Context,
     ) -> VResult {
-        if !_ctx
+        if context
             .environment
-            .has_public_initialiser(&_t.identifier.token)
+            .get_public_initialiser(&declaration.identifier.token)
+            .is_none()
         {
             return Err(Box::from(format!(
                 "No public Initialiser for contract {}",
-                _t.identifier.token
+                declaration.identifier.token
             )));
         }
 
-        if _ctx.environment.is_conflicting(&_t.identifier) {
+        if context.environment.is_conflicting(&declaration.identifier) {
             return Err(Box::from(format!(
                 "Conflicting Declarations for {}",
-                _t.identifier.token
+                declaration.identifier.token
             )));
         }
 
-        if is_conformance_repeated(&_t.conformances) {
+        if is_conformance_repeated(&declaration.conformances) {
             return Err(Box::from("Conformances are repeated".to_owned()));
         }
 
-        if _ctx
+        if context
             .environment
-            .conflicting_trait_signatures(&_t.identifier.token)
+            .conflicting_trait_signatures(&declaration.identifier.token)
         {
             return Err(Box::from("Conflicting traits".to_owned()));
+        }
+
+        let non_private_dynamic_fields = declaration
+            .contract_members
+            .iter()
+            .filter_map(|dec| {
+                if let ContractMember::VariableDeclaration(dec, Some(_)) = dec {
+                    if dec.variable_type.is_dynamic_type() {
+                        return Some(dec);
+                    }
+                }
+                None
+            })
+            .collect::<Vec<&VariableDeclaration>>();
+
+        if !non_private_dynamic_fields.is_empty() {
+            let error_msg = non_private_dynamic_fields
+                .iter()
+                .map(|field| {
+                    format!(
+                        "Dynamic typed variable must be private: variable {} of type {} on {}\n",
+                        field.identifier.token.as_str(),
+                        field.variable_type,
+                        field.identifier.line_info
+                    )
+                })
+                .collect::<Vec<String>>()
+                .concat();
+
+            return Err(Box::from(error_msg));
+        }
+
+        Ok(())
+    }
+
+    fn finish_contract_member(
+        &mut self,
+        member: &mut ContractMember,
+        context: &mut Context,
+    ) -> VResult {
+        let enclosing = context.enclosing_type_identifier().unwrap();
+        if let ContractMember::VariableDeclaration(declaration, _) = member {
+            if let Some(expression) = declaration.expression.as_deref() {
+                let source_type = context.environment.get_expression_type(
+                    expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    Default::default(),
+                );
+
+                if let Type::FixedSizedArrayType(FixedSizedArrayType {
+                                                     key_type: lhs_type,
+                                                     size,
+                                                 }) = &declaration.variable_type
+                {
+                    if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
+                        return if *lhs_type == *rhs_type {
+                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
+                            {
+                                if *size == elements.len() as u64 {
+                                    Ok(())
+                                } else {
+                                    Err(Box::from(format!(
+                                        "LHS array has fixed size of {} but RHS literal has size {} on line {}",
+                                        size, elements.len(), declaration.identifier.line_info.line
+                                    )))
+                                }
+                            } else {
+                                Ok(())
+                            }
+                        } else {
+                            Err(Box::from(format!(
+                                "Cannot assign array of type `{}` to an array of type `{}` on {}",
+                                rhs_type, lhs_type, &declaration.identifier.line_info
+                            )))
+                        };
+                    }
+                }
+
+                if declaration.variable_type != source_type {
+                    return Err(Box::from(format!(
+                        "Cannot initialise contract property of type `{}` with type `{}` on {}",
+                        declaration.variable_type, source_type, &declaration.identifier.line_info
+                    )));
+                }
+            }
         }
         Ok(())
     }
 
     fn start_contract_behaviour_declaration(
         &mut self,
-        _t: &mut ContractBehaviourDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut ContractBehaviourDeclaration,
+        context: &mut Context,
     ) -> VResult {
-        if !_ctx.environment.is_contract_declared(&_t.identifier.token) {
+        if !context
+            .environment
+            .is_contract_declared(&declaration.identifier.token)
+        {
             return Err(Box::from(format!(
                 "Undeclared contract {}",
-                _t.identifier.token
+                declaration.identifier.token
             )));
         }
 
-        let stateful = _ctx.environment.is_contract_stateful(&_t.identifier.token);
-        let states = _t.type_states.clone();
+        let stateful = context
+            .environment
+            .is_contract_stateful(&declaration.identifier.token);
+        let states = declaration.type_states.clone();
         if !stateful && !states.is_empty() {
             return Err(Box::from(
                 format!(
@@ -66,19 +162,19 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                .as_str(),
+                    .as_str(),
             ));
         }
 
-        if !_ctx.is_trait_declaration_context() {
-            let members = _t.members.clone();
+        if !context.is_trait_declaration_context() {
+            let members = declaration.members.clone();
             for member in members {
                 match member {
                     ContractBehaviourMember::SpecialSignatureDeclaration(_)
                     | ContractBehaviourMember::FunctionSignatureDeclaration(_) => {
                         return Err(Box::from(format!(
                             "Signature Declaration in Contract {}",
-                            _t.identifier.token
+                            declaration.identifier.token
                         )));
                     }
                     _ => continue,
@@ -86,49 +182,77 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        //TODO Update the context to be contractBehaviourContext
         Ok(())
     }
 
     fn start_struct_declaration(
         &mut self,
-        _t: &mut StructDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut StructDeclaration,
+        context: &mut Context,
     ) -> VResult {
-        if _ctx.environment.is_conflicting(&_t.identifier) {
-            let i = _t.identifier.token.clone();
-            return Err(Box::from(format!("Conflicting Declarations for {}", i)));
+        if context.environment.is_conflicting(&declaration.identifier) {
+            let i = declaration.identifier.token.clone();
+            return Err(Box::from(format!("Conflicting declarations for {}", i)));
         }
 
-        if _ctx.environment.is_recursive_struct(&_t.identifier.token) {
+        if context
+            .environment
+            .is_recursive_struct(&declaration.identifier.token)
+        {
             return Err(Box::from(format!(
-                "Recusive Struct Definition for {}",
-                _t.identifier.token
+                "Recusive struct definition for {} on {}",
+                declaration.identifier.token, declaration.identifier.line_info
             )));
         }
 
-        if is_conformance_repeated(&_t.conformances) {
+        if is_conformance_repeated(&declaration.conformances) {
             return Err(Box::from("Conformances are repeated".to_owned()));
         }
 
-        if _ctx
+        if context
             .environment
-            .conflicting_trait_signatures(&_t.identifier.token)
+            .conflicting_trait_signatures(&declaration.identifier.token)
         {
-            return Err(Box::from("Conflicting Traits".to_owned()));
+            return Err(Box::from("Conflicting traits".to_owned()));
+        }
+        Ok(())
+    }
+
+    fn finish_struct_member(
+        &mut self,
+        member: &mut StructMember,
+        context: &mut Context,
+    ) -> VResult {
+        let enclosing = context.enclosing_type_identifier().unwrap();
+        if let StructMember::VariableDeclaration(ref declaration, _) = member {
+            if let Some(expression) = declaration.expression.as_deref() {
+                let source_type = context.environment.get_expression_type(
+                    expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    Default::default(),
+                );
+                if declaration.variable_type != source_type {
+                    return Err(Box::from(format!(
+                        "Cannot initialise struct field of type `{}` with type `{}` on {}",
+                        declaration.variable_type, source_type, declaration.identifier.line_info
+                    )));
+                }
+            }
         }
         Ok(())
     }
 
     fn start_asset_declaration(
         &mut self,
-        _t: &mut AssetDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut AssetDeclaration,
+        context: &mut Context,
     ) -> VResult {
-        if _ctx.environment.is_conflicting(&_t.identifier) {
+        if context.environment.is_conflicting(&declaration.identifier) {
             return Err(Box::from(format!(
-                "Conflicting Declarations for {}",
-                _t.identifier.token.clone()
+                "Conflicting declarations for {} on line {}",
+                &declaration.identifier.token, &declaration.identifier.line_info
             )));
         }
 
@@ -137,8 +261,8 @@ impl Visitor for SemanticAnalysis {
 
     fn start_trait_declaration(
         &mut self,
-        _t: &mut TraitDeclaration,
-        _ctx: &mut Context,
+        _declaration: &mut TraitDeclaration,
+        _context: &mut Context,
     ) -> VResult {
         Ok(())
     }
@@ -155,7 +279,7 @@ impl Visitor for SemanticAnalysis {
 
         if !type_declared {
             return Err(Box::from(format!(
-                "Type {:?} is not declared",
+                "Type `{}` is not declared",
                 declaration.variable_type
             )));
         }
@@ -165,8 +289,8 @@ impl Visitor for SemanticAnalysis {
                 let redeclaration = scope_context.declaration(&declaration.identifier.token);
                 if redeclaration.is_some() {
                     return Err(Box::from(format!(
-                        "Redeclaration of identifier {} on line {}",
-                        declaration.identifier.token, declaration.identifier.line_info.line,
+                        "Redeclaration of identifier `{}` on {}",
+                        declaration.identifier.token, declaration.identifier.line_info,
                     )));
                 }
                 scope_context.local_variables.push(declaration.clone());
@@ -199,7 +323,7 @@ impl Visitor for SemanticAnalysis {
                 )));
             }
 
-            if &identifier.token == "Libra" || &identifier.token == "Wei" {
+            if identifier.token == ctx.target.currency.identifier {
                 return Ok(());
             }
         }
@@ -209,10 +333,10 @@ impl Visitor for SemanticAnalysis {
             .parameters
             .iter()
             .map(|p| &p.identifier.token)
-            .unique()
+            .is_unique()
         {
             return Err(Box::from(format!(
-                "Fuction {} has duplicate parameters",
+                "Function {} has duplicate parameters",
                 declaration.head.identifier.token
             )));
         }
@@ -221,7 +345,7 @@ impl Visitor for SemanticAnalysis {
             .head
             .parameters
             .iter()
-            .filter(|p| p.is_payable())
+            .filter(|p| p.is_payable(&ctx.target))
             .count();
         if declaration.is_payable() {
             if remaining_parameters == 0 {
@@ -247,7 +371,7 @@ impl Visitor for SemanticAnalysis {
                 .head
                 .parameters
                 .iter()
-                .filter(|p| p.is_dynamic() && !p.is_payable())
+                .filter(|p| p.is_dynamic() && !p.is_payable(&ctx.target))
                 .count();
             if parameters > 0 {
                 return Err(Box::from(format!(
@@ -327,10 +451,10 @@ impl Visitor for SemanticAnalysis {
 
     fn finish_function_declaration(
         &mut self,
-        _t: &mut FunctionDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut FunctionDeclaration,
+        context: &mut Context,
     ) -> VResult {
-        _t.scope_context = _ctx.scope_context.clone();
+        declaration.scope_context = context.scope_context.clone();
         Ok(())
     }
 
@@ -370,6 +494,44 @@ impl Visitor for SemanticAnalysis {
                 ));
             }
         }
+        Ok(())
+    }
+
+    #[allow(clippy::single_match)]
+    fn finish_if_statement(
+        &mut self,
+        if_statement: &mut IfStatement,
+        context: &mut Context,
+    ) -> VResult {
+        match &if_statement.condition {
+            Expression::BinaryExpression(ref b) => {
+                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
+                    if !v.is_constant() {
+                        return Err(Box::from(format!(
+                            "Invalid condition type in `if` statement on {}",
+                            if_statement.condition.get_line_info()
+                        )));
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        let expression_type = context.environment.get_expression_type(
+            &if_statement.condition,
+            "",
+            &[],
+            &[],
+            context.scope_context.as_ref().unwrap_or_default(),
+        );
+
+        if !expression_type.is_bool_type() {
+            return Err(Box::from(format!(
+                "Invalid condition type in `if` statement on {}",
+                if_statement.condition.get_line_info()
+            )));
+        }
+
         Ok(())
     }
 
@@ -420,14 +582,13 @@ impl Visitor for SemanticAnalysis {
                 // but I cannot see why so I have removed it for simplicity
 
                 // Check
-                if enclosing_type == "Libra" || enclosing_type == "Wei" {
+                if *enclosing_type == ctx.target.currency.identifier {
                     return Ok(());
                 }
 
                 if let Some(property) = ctx.environment.property(token, enclosing_type) {
                     // Check: Do not allow reassignment to constants: This does not work since we never know
-                    // if something is assigned to yet TODO add RHS expression when something is not yet defined
-                    // So we know when something has been assigned to
+                    // if something is assigned to it yet
                     if property.is_constant()
                         && ctx.is_lvalue
                         && property.property.get_value().is_some()
@@ -439,10 +600,15 @@ impl Visitor for SemanticAnalysis {
                     }
 
                     let current_enclosing_type =
-                        if let Some(context) = &ctx.function_declaration_context {
-                            context.declaration.head.identifier.enclosing_type.clone()
-                        } else if let Some(context) = &ctx.special_declaration_context {
-                            context.declaration.head.enclosing_type.clone()
+                        if let Some(declaration_context) = &ctx.function_declaration_context {
+                            declaration_context
+                                .declaration
+                                .head
+                                .identifier
+                                .enclosing_type
+                                .clone()
+                        } else if let Some(declaration_context) = &ctx.special_declaration_context {
+                            declaration_context.declaration.head.enclosing_type.clone()
                         } else {
                             panic!("Should be in a special or function declaration")
                         };
@@ -496,6 +662,19 @@ impl Visitor for SemanticAnalysis {
                         } else if let Some(scope) = &ctx.scope_context {
                             return if scope.is_declared(token) {
                                 Ok(())
+                            } else if let Some(contract) =
+                            &ctx.contract_behaviour_declaration_context
+                            {
+                                if let Some(caller) = &contract.caller {
+                                    if *token == caller.token {
+                                        return Ok(());
+                                    }
+                                }
+
+                                Err(Box::from(format!(
+                                    "Use of undeclared identifier `{}` at line {}",
+                                    token, line_number
+                                )))
                             } else {
                                 Err(Box::from(format!(
                                     "Use of undeclared identifier `{}` at line {}",
@@ -517,13 +696,19 @@ impl Visitor for SemanticAnalysis {
         Ok(())
     }
 
-    fn start_range_expression(&mut self, _t: &mut RangeExpression, _ctx: &mut Context) -> VResult {
-        let start = _t.start_expression.clone();
-        let end = _t.end_expression.clone();
+    fn start_range_expression(
+        &mut self,
+        range_expression: &mut RangeExpression,
+        _context: &mut Context,
+    ) -> VResult {
+        let start = range_expression.start_expression.clone();
+        let end = range_expression.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
-        } else {
-            return Err(Box::from(format!("Invalid Range Declaration: {:?}", _t)));
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
+            return Err(Box::from(format!(
+                "Invalid Range Declaration: {:?}",
+                range_expression
+            )));
         }
 
         Ok(())
@@ -531,29 +716,34 @@ impl Visitor for SemanticAnalysis {
 
     fn start_caller_protection(
         &mut self,
-        _t: &mut CallerProtection,
-        _ctx: &mut Context,
+        protection: &mut CallerProtection,
+        context: &mut Context,
     ) -> VResult {
-        if _ctx.enclosing_type_identifier().is_some()
-            && !_t.is_any()
-            && !_ctx
-                .environment
-                .contains_caller_protection(_t, &_ctx.enclosing_type_identifier().unwrap().token)
+        if context.enclosing_type_identifier().is_some()
+            && !protection.is_any()
+            && !context.environment.contains_caller_protection(
+            protection,
+            &context.enclosing_type_identifier().unwrap().token,
+        )
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
-                _t.identifier.token
+                protection.identifier.token
             )));
         }
 
         Ok(())
     }
 
-    fn start_conformance(&mut self, _t: &mut Conformance, _ctx: &mut Context) -> VResult {
-        if !_ctx.environment.is_trait_declared(&_t.name()) {
+    fn start_conformance(
+        &mut self,
+        conformance: &mut Conformance,
+        context: &mut Context,
+    ) -> VResult {
+        if !context.environment.is_trait_declared(&conformance.name()) {
             return Err(Box::from(format!(
                 "Undeclared trait `{}` used",
-                _t.identifier.token
+                conformance.identifier.token
             )));
         }
         Ok(())
@@ -561,138 +751,298 @@ impl Visitor for SemanticAnalysis {
 
     fn start_attempt_expression(
         &mut self,
-        _t: &mut AttemptExpression,
-        _ctx: &mut Context,
+        attempt: &mut AttemptExpression,
+        _context: &mut Context,
     ) -> VResult {
-        if _t.is_soft() {}
+        if attempt.is_soft() {}
 
         Ok(())
     }
 
-    fn start_binary_expression(
+    fn finish_binary_expression(
         &mut self,
-        _t: &mut BinaryExpression,
-        _ctx: &mut Context,
+        expression: &mut BinaryExpression,
+        context: &mut crate::context::Context,
     ) -> VResult {
-        /* unused code: match _t.op {
-            BinOp::Dot => {}
-            BinOp::Equal => {
-                let rhs = _t.rhs_expression.clone();
-                match *rhs {
-                    Expression::ExternalCall(_) => {}
-                    _ => {}
+        let scope = context.scope_context.as_ref().unwrap();
+        let enclosing = context.enclosing_type_identifier().unwrap();
+        let left_type = if expression.op.is_assignment() {
+            match *expression.lhs_expression {
+                Expression::Identifier(_) => context.environment.get_expression_type(
+                    &*expression.lhs_expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    scope,
+                ),
+                Expression::VariableDeclaration(ref declaration) => {
+                    declaration.variable_type.clone()
                 }
-            }
-            _ => {}
-        }*/
-        Ok(())
-    }
+                Expression::SubscriptExpression(ref subscript) => {
+                    let arr_type = context.environment.get_expression_type(
+                        &Expression::Identifier(subscript.base_expression.clone()),
+                        &enclosing.token,
+                        context.type_states(),
+                        context.caller_protections(),
+                        scope,
+                    );
 
-    fn start_function_call(&mut self, t: &mut FunctionCall, ctx: &mut Context) -> VResult {
-        let contract_name = ctx.contract_behaviour_declaration_context.clone();
-        if let Some(context) = contract_name {
-            let contract_name = context.identifier.token.clone();
-
-            let function_info = ctx.environment.match_function_call(
-                &t,
-                &contract_name,
-                &context.caller_protections,
-                ctx.scope_context.as_ref().unwrap_or_default(),
-            );
-            return match function_info {
-                MatchedFunction(info) => check_if_correct_type_state_possible(
-                    context,
-                    ctx.environment.get_contract_state(&contract_name),
-                    info.type_states,
-                    t.identifier.clone(),
-                ),
-                MatchedInitializer(info) => check_if_correct_type_state_possible(
-                    context,
-                    ctx.environment.get_contract_state(&contract_name),
-                    info.type_states,
-                    t.identifier.clone(),
-                ),
-                // Otherwise we are not calling a contract method so type states do not apply
-                _ => Ok(()),
-            };
-        }
-
-        Ok(())
-    }
-
-    #[allow(clippy::single_match)]
-    fn finish_if_statement(&mut self, _t: &mut IfStatement, _ctx: &mut Context) -> VResult {
-        let condition = _t.condition.clone();
-
-        match condition {
-            Expression::BinaryExpression(b) => {
-                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
-                    if !v.is_constant() {
-                        return Err(Box::from(
-                            "Invalid condition type in `if` statement".to_owned(),
-                        ));
+                    match arr_type {
+                        Type::ArrayType(ArrayType { key_type }) => *key_type,
+                        Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => {
+                            *key_type
+                        }
+                        Type::DictionaryType(DictionaryType {
+                                                 key_type: _,
+                                                 value_type,
+                                             }) => *value_type,
+                        _ => {
+                            return Err(Box::from(format!(
+                                "Subscript expression on non-array type: {:?}",
+                                expression.lhs_expression
+                            )))
+                        }
                     }
                 }
+                Expression::BinaryExpression(ref binary) if matches!(binary.op, BinOp::Dot) => {
+                    context.environment.get_expression_type(
+                        &*expression.lhs_expression,
+                        &enclosing.token,
+                        context.type_states(),
+                        context.caller_protections(),
+                        scope,
+                    )
+                }
+                _ => {
+                    return Err(Box::from(format!(
+                        "Assignment to non-expression {:?}",
+                        expression.lhs_expression
+                    )));
+                }
             }
-            _ => {}
+        } else {
+            context.environment.get_expression_type(
+                &*expression.lhs_expression,
+                &enclosing.token,
+                context.type_states(),
+                context.caller_protections(),
+                scope,
+            )
+        };
+        let right_type = context.environment.get_expression_type(
+            &*expression.rhs_expression,
+            &enclosing.token,
+            context.type_states(),
+            context.caller_protections(),
+            scope,
+        );
+        if expression.op.accepts(&left_type, &right_type) {
+            Ok(())
+        } else if let BinOp::Equal = expression.op {
+            Err(Box::from(format!(
+                "Attempt to assign type `{}` to type `{}` on {}",
+                right_type, left_type, &expression.line_info
+            )))
+        } else {
+            Err(Box::from(format!(
+                "Invalid types `{}`, `{}` for operator `{}` on {}",
+                left_type, right_type, expression.op, &expression.line_info
+            )))
         }
-
-        let expression_type = Type::Int;
-        //TODO expression type
-
-        if expression_type.is_bool_type() {
-            return Err(Box::from(
-                "Invalid condition type in `if` statement".to_owned(),
-            ));
-        }
-
-        Ok(())
     }
 
-    fn finish_statement(&mut self, _t: &mut Statement, _ctx: &mut Context) -> VResult {
-        //TODO make receiver call trail empty
-        Ok(())
+    fn start_function_call(
+        &mut self,
+        call: &mut FunctionCall,
+        context: &mut crate::context::Context,
+    ) -> VResult {
+        // We assume runtime function calls are fine since they are only called by generated code
+        if Environment::is_runtime_function_call(call) {
+            return Ok(());
+        }
+
+        let fail = |candidates: Candidates, type_id: &str| {
+            if let Some(first) = candidates.candidates.first() {
+                if let Some(ref behaviour_context) = context.contract_behaviour_declaration_context
+                {
+                    if let CallableInformation::FunctionInformation(info) = first {
+                        if !compatible_caller_protections(
+                            &behaviour_context.caller_protections,
+                            &info.caller_protections,
+                        ) {
+                            return Err(Box::from(format!("Insufficient caller protections to call {} from function {} on {}.", call.identifier.token, first.name(), call.identifier.line_info)));
+                        }
+                    }
+                }
+
+                Err(Box::from(format!(
+                    "Could not call `{}` with ({}) on {}, did you mean to call `{}` with ({}){}",
+                    &call.identifier.token,
+                    &context
+                        .environment
+                        .argument_types(&call, type_id, context.scope_or_default())
+                        .join(", "),
+                    &call.identifier.line_info,
+                    first.name(),
+                    first.get_parameter_types().iter().join(", "),
+                    first
+                        .line_info()
+                        .map(|line| format!(" on {}", line))
+                        .as_deref()
+                        .unwrap_or("")
+                )))
+            } else {
+                Err(Box::from(format!(
+                    "Undefined function `{}` called on {}",
+                    &call.identifier.token, &call.identifier.line_info
+                )))
+            }
+        };
+
+        let called_on_type = call
+            .identifier
+            .enclosing_type
+            .as_deref()
+            .or_else(|| context.declaration_context_type_id())
+            .unwrap_or_default();
+
+        if let Some(ref behaviour_context) = context.contract_behaviour_declaration_context {
+            let contract_name = &*behaviour_context.identifier.token;
+            let contract_call = contract_name == called_on_type;
+
+            let function_info = context.environment.match_function_call(
+                &call,
+                called_on_type,
+                &behaviour_context.caller_protections,
+                context.scope_or_default(),
+            );
+
+            match function_info {
+                MatchedFunction(info) if contract_call => check_if_correct_type_state_possible(
+                    behaviour_context,
+                    context.environment.get_contract_state(contract_name),
+                    &info.type_states,
+                    &call.identifier,
+                ),
+                MatchedInitializer(info) if contract_call => check_if_correct_type_state_possible(
+                    behaviour_context,
+                    context.environment.get_contract_state(contract_name),
+                    &info.type_states,
+                    &call.identifier,
+                ),
+                Failure(candidates) => fail(candidates, contract_name),
+                _ => Ok(()),
+            }
+        } else {
+            match context.environment.match_function_call(
+                &call,
+                called_on_type,
+                &[],
+                context.scope_or_default(),
+            ) {
+                Failure(candidates) => fail(
+                    candidates,
+                    context.declaration_context_type_id().unwrap_or_default(),
+                ),
+                _ => Ok(()),
+            }
+        }
     }
 
-    fn start_assertion(&mut self, assertion: &mut Assertion, ctx: &mut Context) -> VResult {
-        let enclosing_type = ctx
+    fn finish_return_statement(
+        &mut self,
+        statement: &mut ReturnStatement,
+        context: &mut crate::context::Context,
+    ) -> VResult {
+        let function_context = context.function_declaration_context.as_ref().unwrap();
+        let enclosing = context.enclosing_type_identifier().unwrap();
+
+        // This means we simply trust the standard library is written correctly
+        if enclosing.token.eq(crate::environment::FLINT_GLOBAL) {
+            return Ok(());
+        }
+
+        let scope = context.scope_context.as_ref().unwrap();
+
+        if let Some(result) = function_context.declaration.get_result_type() {
+            if let Some(ref expression) = statement.expression {
+                let expression_type = context.environment.get_expression_type(
+                    expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    scope,
+                );
+                if expression_type != *result {
+                    Err(Box::from(format!(
+                        "Cannot return value of type `{}` when `{}` expected on {}",
+                        expression_type, result, statement.line_info
+                    )))
+                } else {
+                    Ok(())
+                }
+            } else {
+                Err(Box::from(format!(
+                    "Must return value when `{}` expected on {}",
+                    result, statement.line_info
+                )))
+            }
+        } else if let Some(ref expression) = statement.expression {
+            let expression_type = context.environment.get_expression_type(
+                expression,
+                &enclosing.token,
+                context.type_states(),
+                context.caller_protections(),
+                scope,
+            );
+            Err(Box::from(format!(
+                "No return value expected but `{}` found on {}",
+                expression_type, statement.line_info
+            )))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn start_assertion(&mut self, assertion: &mut Assertion, context: &mut Context) -> VResult {
+        let enclosing_type = context
             .enclosing_type_identifier()
             .map(|id| &*id.token)
             .unwrap_or_default();
         let (type_states, caller_protections) =
-            if let Some(info) = &ctx.contract_behaviour_declaration_context {
+            if let Some(info) = &context.contract_behaviour_declaration_context {
                 (info.type_states.clone(), info.caller_protections.clone())
             } else {
                 (vec![], vec![])
             };
 
-        if let Type::Bool = ctx.environment.get_expression_type(
+        if let Type::Bool = context.environment.get_expression_type(
             &assertion.expression,
             enclosing_type,
             &type_states,
             &caller_protections,
-            ctx.scope_context.as_ref().unwrap_or_default(),
+            context.scope_or_default(),
         ) {
             Ok(())
         } else {
             Err(Box::from(format!(
-                "Assertion expression at line {} must evaluate to boolean",
-                assertion.line_info.line
+                "Assertion expression must evaluate to boolean on {}",
+                assertion.line_info
             )))
         }
     }
 }
 
 fn check_if_correct_type_state_possible(
-    context: ContractBehaviourDeclarationContext,
+    declaration_context: &crate::context::ContractBehaviourDeclarationContext,
     current_state: Option<TypeState>,
-    allowed_states: Vec<TypeState>,
-    function_id: Identifier,
+    allowed_states: &[TypeState],
+    function_id: &Identifier,
 ) -> VResult {
     let current_possible_states = if let Some(state) = current_state {
         vec![state]
     } else {
-        context.type_states
+        declaration_context.type_states.clone()
     };
 
     // If any type state is allowed, or if we could be in any type state, then we must check at runtime instead
@@ -705,9 +1055,9 @@ fn check_if_correct_type_state_possible(
         Ok(())
     } else {
         let err = format!(
-            "Must definitely be in one of the following states to make function call {} on line {}: {:?}.",
+            "Must definitely be in one of the following states to make function call {} on {}: {:?}.",
             function_id.token,
-            function_id.line_info.line,
+            function_id.line_info,
             allowed_states
                 .iter()
                 .map(|state| state.identifier.token.clone())
@@ -721,7 +1071,7 @@ fn is_conformance_repeated<'a, T: IntoIterator<Item = &'a Conformance>>(conforma
     !conformances
         .into_iter()
         .map(|c| &c.identifier.token)
-        .unique()
+        .is_unique()
 }
 
 fn code_block_returns(block: &[Statement]) -> bool {

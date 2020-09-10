@@ -4,8 +4,8 @@ use super::expression::MoveExpression;
 use super::function::{FunctionContext, MoveFunction};
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRModuleImport, MoveIROperation,
-    MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
+    MoveIRAssignment, MoveIRBlock, MoveIRExpression, MoveIRFunctionCall, MoveIRModuleImport,
+    MoveIROperation, MoveIRStatement, MoveIRStructConstructor, MoveIRTransfer, MoveIRType,
     MoveIRVariableDeclaration,
 };
 use super::r#struct::MoveStruct;
@@ -14,13 +14,15 @@ use super::runtime_function::MoveRuntimeFunction;
 use super::statement::MoveStatement;
 use super::MovePosition;
 use crate::ast::{
-    mangle, mangle_dictionary, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
-    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, Identifier,
-    InoutType, Statement, StructDeclaration, TraitDeclaration, Type, VariableDeclaration,
+    mangle_dictionary, ArrayType, AssetDeclaration, BinOp, ContractBehaviourDeclaration,
+    ContractBehaviourMember, ContractDeclaration, ContractMember, Expression, FixedSizedArrayType,
+    Identifier, InoutType, Statement, StructDeclaration, TraitDeclaration, Type,
+    VariableDeclaration,
 };
 use crate::context::ScopeContext;
 use crate::environment::Environment;
 use crate::moveir::identifier::MoveSelf;
+use crate::moveir::preprocessor::MovePreProcessor;
 
 pub struct MoveContract {
     pub contract_declaration: ContractDeclaration,
@@ -32,11 +34,12 @@ pub struct MoveContract {
 }
 
 impl MoveContract {
+    const SHADOW: &'static str = "Flint_self";
+
     pub(crate) fn generate(&self) -> String {
         let import_code = self.generate_imports();
 
         let runtime_functions = MoveRuntimeFunction::get_all_functions().join("\n\n");
-
         let functions = self
             .contract_behaviour_declarations
             .clone()
@@ -104,7 +107,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != "Quartz_Global")
+            .filter(|s| s.identifier.token != crate::environment::FLINT_GLOBAL)
             .map(|s| MoveStruct {
                 struct_declaration: s,
                 environment: self.environment.clone(),
@@ -187,20 +190,20 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
                 .to_string()
             })
             .collect();
 
         let params_values = initialiser_declaration.head.parameters.clone();
-        let params_values = params_values
+        let mut params_values = params_values
             .into_iter()
             .map(|p| {
                 MoveIdentifier {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, true, false)
+                    .generate(&function_context, true, false)
                 .to_string()
             })
             .collect::<Vec<String>>()
@@ -297,12 +300,14 @@ impl MoveContract {
                                 expression: e,
                                 position: Default::default(),
                             }
-                            .generate(&function_context)
+                                .generate(&function_context)
                         })
                         .collect();
 
-                    if let crate::ast::types::Type::ArrayType(array) = &property.variable_type {
-                        let array_type = MoveType::move_type(*array.key_type.clone(), None)
+                    if let Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. })
+                    | Type::ArrayType(ArrayType { key_type }) = &property.variable_type
+                    {
+                        let array_type = MoveType::move_type(*key_type.clone(), None)
                             .generate(&function_context);
 
                         function_context.emit(MoveIRStatement::Expression(
@@ -332,18 +337,19 @@ impl MoveContract {
                         }
                     }
                 } else {
-                    function_context.emit(MoveIRStatement::Expression(
-                        MoveIRExpression::Assignment(MoveIRAssignment {
+                    let statement = MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                        MoveIRAssignment {
                             identifier,
                             expression: Box::from(
                                 MoveExpression {
                                     expression: (**expr).clone(),
                                     position: Default::default(),
                                 }
-                                .generate(&function_context),
+                                    .generate(&function_context),
                             ),
-                        }),
+                        },
                     ));
+                    function_context.emit(statement);
                 }
             }
         }
@@ -458,8 +464,6 @@ impl MoveContract {
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = "Quartz$self";
-
             let self_type = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
@@ -467,13 +471,13 @@ impl MoveContract {
             .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: "this".to_string(),
+                identifier: Identifier::SELF.to_string(),
                 declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
             });
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: mangle(shadow),
+                identifier: MoveContract::SHADOW.to_string(),
                 declaration_type: self_type,
             });
 
@@ -521,16 +525,22 @@ impl MoveContract {
 
         let initialiser: String;
         let publisher: String;
-        parameters.push("account: &signer".to_string());
+        parameters.push(format!("account: {}", MovePreProcessor::SIGNER_TYPE));
         let parameters = parameters.join(", ");
 
         if !dict_names.is_empty() {
             initialiser = format!(
                 "new({params}): Self.T acquires {dict_names} {{ \n{body}\n }} \n",
-                params = params_without_signer,
+                params = parameters,
                 dict_names = dict_names,
                 body = body,
             );
+
+            params_values = if !params_values.is_empty() {
+                format!("{}, copy(account)", params_values)
+            } else {
+                "copy(account)".to_string()
+            };
 
             publisher = format!("public publish({params}) acquires {dict_names} {{ \n let t: Self.T; \nt = Self.new({values});\n move_to<T>(move(account), move(t)); \nreturn; \n }}",
                                 params = parameters,
@@ -630,21 +640,27 @@ impl MoveContract {
                                 expression: elem.0.clone(),
                                 position: Default::default(),
                             }
-                            .generate(function_context);
+                                .generate(function_context);
 
                             let rhs = MoveExpression {
                                 expression: elem.1.clone(),
                                 position: Default::default(),
                             }
-                            .generate(function_context);
+                                .generate(&function_context);
 
                             let f_name = format!("Self._insert_{}", r_name);
+                            let caller_argument = Identifier::generated("account");
+                            let caller_argument = MoveIdentifier {
+                                identifier: caller_argument.clone(),
+                                position: Default::default(),
+                            }
+                            .generate(function_context, false, true);
 
                             dict_initialisation.push(MoveIRStatement::Expression(
                                 MoveIRExpression::FunctionCall(
-                                    crate::moveir::ir::MoveIRFunctionCall {
+                                    MoveIRFunctionCall {
                                         identifier: f_name,
-                                        arguments: vec![index, rhs],
+                                        arguments: vec![index, rhs, caller_argument],
                                     },
                                 ),
                             ));
@@ -663,7 +679,7 @@ impl MoveContract {
     return move(result);
   }}
 
-        _insert_{r_name}(_address_this: address, v: {r_type}) acquires {r_name} {{
+        _insert_{r_name}(_address_this: address, v: {r_type}, _contract_caller: &signer) acquires {r_name} {{
     let new_value: Self.{r_name};
     let cur: &mut Self.{r_name};
     let b: bool;
@@ -675,7 +691,7 @@ impl MoveContract {
        new_value = {r_name} {{
       value: move(v)
     }};
-    move_to_sender<{r_name}>(move(new_value));
+    move_to<{r_name}>(move(_contract_caller), move(new_value));
     }}
     return;
   }}",

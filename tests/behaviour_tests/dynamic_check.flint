@@ -1,0 +1,22 @@
+contract DynamicCheck {
+    var owner: Address = 0x1
+    var owners: Address[2] = [0x1, 0x2]
+}
+
+DynamicCheck :: (any) {
+    public init() {}
+}
+
+DynamicCheck :: (owners) {
+    public func tryBang(x: Int) {
+        try! bar(x)
+    }
+
+    public func tryQuestion(x: Int) -> Bool {
+        return try? bar(x)
+    }
+}
+
+DynamicCheck :: (owner) {
+    func bar(x: Int) {}
+}

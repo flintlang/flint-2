@@ -122,6 +122,12 @@ impl TypeInfo {
     }
 }
 
+impl std::fmt::Display for LineInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "line {}", self.line)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PropertyInformation {
     pub property: Property,
@@ -208,6 +214,52 @@ impl SpecialInformation {
             .map(|p| p.type_assignment)
             .collect()
     }
+
+    pub fn name(&self) -> &str {
+        &self.declaration.head.special_token
+    }
+
+    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
+        self.declaration.head.parameter_types()
+    }
+
+    /**
+    Generate a default initialiser for use when the struct doesn't already have one
+    Right now, this generates one where unassigned fields must be provided. After default arguments
+    are fixed, this should be able to be cleaned up. It would probably better to generate this in
+    the AST and make them actually exist in some pass, but right now this is still delegated to the
+    target generation
+    */
+    pub fn default_initialiser(
+        declaration: &declarations::StructDeclaration,
+    ) -> SpecialInformation {
+        SpecialInformation {
+            declaration: declarations::SpecialDeclaration {
+                head: declarations::SpecialSignatureDeclaration {
+                    special_token: "init".to_string(),
+                    enclosing_type: None,
+                    attributes: vec![],
+                    modifiers: vec![declarations::Modifier::Public],
+                    mutates: vec![],
+                    parameters: declaration
+                        .get_variable_declarations()
+                        .filter(|x| x.expression.is_none())
+                        .map(|d| declarations::Parameter {
+                            identifier: d.identifier.clone(),
+                            type_assignment: d.variable_type.clone(),
+                            expression: d.expression.as_ref().map(|e| (**e).clone()),
+                            line_info: Default::default(),
+                        })
+                        .collect(),
+                },
+                body: vec![],
+                scope_context: Default::default(),
+                generated: true,
+            },
+            type_states: vec![],
+            caller_protections: vec![CallerProtection::any()],
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -220,25 +272,33 @@ pub struct FunctionInformation {
 }
 
 impl FunctionInformation {
-    pub fn get_result_type(&self) -> Option<Type> {
+    pub fn get_result_type(&self) -> Option<&Type> {
         self.declaration.get_result_type()
     }
 
-    pub fn get_parameter_types(&self) -> Vec<Type> {
+    pub fn get_parameter_types<'a>(&'a self) -> impl Iterator<Item = &'a Type> + 'a {
         self.declaration.head.parameter_types()
     }
 
-    pub fn parameter_identifiers(&self) -> Vec<Identifier> {
+    pub fn parameter_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a Identifier> + 'a {
         self.declaration.head.parameter_identifiers()
     }
 
-    pub fn required_parameter_identifiers(&self) -> Vec<Identifier> {
-        let identifiers = self.declaration.head.parameters.clone();
-        identifiers
-            .into_iter()
+    pub fn required_parameter_identifiers(&self) -> impl Iterator<Item = &Identifier> {
+        self.declaration
+            .head
+            .parameters
+            .iter()
             .filter(|i| i.expression.is_none())
-            .map(|p| p.identifier)
-            .collect()
+            .map(|p| &p.identifier)
+    }
+
+    pub fn identifier(&self) -> &Identifier {
+        &self.declaration.head.identifier
+    }
+
+    pub fn line_info(&self) -> &LineInfo {
+        &self.declaration.head.identifier.line_info
     }
 }
 
@@ -309,8 +369,10 @@ pub struct CallerProtection {
 }
 
 impl CallerProtection {
+    const ANY: &'static str = "any";
+
     pub fn is_any(&self) -> bool {
-        self.identifier.token.eq("any")
+        self.identifier.token.eq(Self::ANY)
     }
 
     pub fn name(&self) -> String {
@@ -319,6 +381,12 @@ impl CallerProtection {
 
     pub fn is_sub_protection(&self, parent: &CallerProtection) -> bool {
         parent.is_any() || self.name() == parent.name()
+    }
+
+    pub fn any() -> CallerProtection {
+        CallerProtection {
+            identifier: Identifier::generated(Self::ANY),
+        }
     }
 }
 
@@ -358,8 +426,10 @@ pub fn is_literal(expression: &Expression) -> bool {
     }
 }
 
+#[allow(dead_code)]
+// TODO implement mangling
 pub fn mangle(string: &str) -> String {
-    format!("_{}", string)
+    string.to_string()
 }
 
 pub fn mangle_dictionary(string: &str) -> String {
@@ -383,10 +453,6 @@ pub fn mangle_function_move(string: &str, type_id: &str, is_contract: bool) -> S
         format!("{}_", type_id)
     };
     format!("{func_type}{name}", name = string, func_type = func_type)
-}
-
-pub fn mangle_mem(string: &str) -> String {
-    format!("{}$isMem", string)
 }
 
 pub struct CodeGen {

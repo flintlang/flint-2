@@ -1,20 +1,20 @@
 use crate::ast::{
-    mangle, mangle_function_move, Assertion, BinOp, BinaryExpression, CallerProtection,
-    ContractBehaviourDeclaration, Expression, FunctionArgument, FunctionCall, FunctionDeclaration,
-    Identifier, InoutExpression, InoutType, Literal::U8Literal, Parameter, ReturnStatement,
-    Statement, Type, TypeState, VariableDeclaration,
+    mangle_function_move, ArrayType, Assertion, BinOp, BinaryExpression, CallerProtection,
+    ContractBehaviourDeclaration, Expression, FixedSizedArrayType, FunctionArgument, FunctionCall,
+    FunctionDeclaration, Identifier, InoutExpression, InoutType, Parameter, ReturnStatement,
+    Statement, Type, VariableDeclaration,
 };
 use crate::context::{Context, ScopeContext};
 use crate::environment::{CallableInformation, Environment, FunctionCallMatchResult};
-use crate::moveir::preprocessor::get_mutable_reference;
-use crate::moveir::preprocessor::MovePreProcessor;
+use crate::moveir::preprocessor::{get_mutable_reference, MovePreProcessor};
 use crate::type_checker::ExpressionChecker;
+use crate::utils::type_states::*;
 use itertools::Itertools;
 
 pub fn convert_default_parameter_functions(
     base: FunctionDeclaration,
     type_id: &str,
-    _ctx: &mut Context,
+    ctx: &mut Context,
 ) -> Vec<FunctionDeclaration> {
     let default_parameters: Vec<Parameter> = base
         .clone()
@@ -55,7 +55,6 @@ pub fn convert_default_parameter_functions(
                 .collect();
 
             if assigned_function.scope_context.is_some() {
-                //REMOVEBEFOREFLIGHT
                 let scope = ScopeContext {
                     parameters: assigned_function.head.parameters.clone(),
                     local_variables: vec![],
@@ -64,10 +63,10 @@ pub fn convert_default_parameter_functions(
                 assigned_function.scope_context = Some(scope);
             }
 
-            _ctx.environment.remove_function(f, type_id);
+            ctx.environment.remove_function(f, type_id);
 
             let (protections, type_states) =
-                if let Some(ref context) = _ctx.contract_behaviour_declaration_context {
+                if let Some(ref context) = ctx.contract_behaviour_declaration_context {
                     (
                         context.caller_protections.clone(),
                         context.type_states.clone(),
@@ -75,7 +74,7 @@ pub fn convert_default_parameter_functions(
                 } else {
                     (vec![], vec![])
                 };
-            _ctx.environment.add_function(
+            ctx.environment.add_function(
                 removed.clone(),
                 type_id,
                 protections.clone(),
@@ -107,7 +106,6 @@ pub fn convert_default_parameter_functions(
                 .collect();
 
             if assigned_function.head.result_type.is_some() {
-                //REMOVEBEFOREFLIGHT
                 let function_call = FunctionCall {
                     identifier: f.head.identifier.clone(),
                     arguments,
@@ -130,7 +128,7 @@ pub fn convert_default_parameter_functions(
                 assigned_function.body = vec![function_call];
             }
 
-            _ctx.environment.add_function(
+            ctx.environment.add_function(
                 assigned_function.clone(),
                 type_id,
                 protections,
@@ -150,16 +148,35 @@ pub fn get_declaration(ctx: &mut Context) -> Vec<Statement> {
             .local_variables
             .clone()
             .into_iter()
-            .map(|v| {
-                let mut declaration = v;
+            .flat_map(|v| {
+                let mut declaration = v.clone();
                 if !declaration.identifier.is_self() {
                     declaration.identifier = Identifier {
-                        token: mangle(&declaration.identifier.token),
+                        token: declaration.identifier.token.clone(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     };
                 }
-                Statement::Expression(Expression::VariableDeclaration(declaration))
+                let dec =
+                    Statement::Expression(Expression::VariableDeclaration(declaration.clone()));
+
+                if let Some(expr) = &declaration.expression {
+                    let expr = Expression::BinaryExpression(BinaryExpression {
+                        lhs_expression: Box::new(Expression::Identifier(Identifier {
+                            token: v.identifier.token,
+                            enclosing_type: None,
+                            line_info: Default::default(),
+                        })),
+                        rhs_expression: expr.clone(),
+                        op: BinOp::Equal,
+                        line_info: Default::default(),
+                    });
+
+                    let expr = Statement::Expression(expr);
+                    vec![dec, expr]
+                } else {
+                    vec![dec]
+                }
             })
             .collect();
         return declarations;
@@ -186,7 +203,6 @@ pub fn generate_contract_wrapper(
     contract_behaviour_declaration: &ContractBehaviourDeclaration,
     context: &mut Context,
 ) -> FunctionDeclaration {
-    let is_stateful = !contract_behaviour_declaration.type_states.is_empty();
     let mut wrapper = function.clone();
     wrapper.mangled_identifier = Option::from(mangle_function_move(
         &function.head.identifier.token,
@@ -195,7 +211,7 @@ pub fn generate_contract_wrapper(
     ));
 
     wrapper.body = vec![];
-    wrapper.tags.push("acquires T".to_string());
+    wrapper.tags.push("T".to_string());
 
     if !function.is_void() && !function.body.is_empty() {
         let mut func = function.clone();
@@ -242,18 +258,10 @@ pub fn generate_contract_wrapper(
         && caller_protections.is_empty()
         && !protection_functions.is_empty()
     {
-        let caller_id: Identifier;
-
-        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
-            caller_id = caller.clone();
-        } else {
-            caller_id = Identifier::generated("caller");
-        }
-
-        if let Some(predicate) = generate_predicate(
+        if let Some(predicate) = generate_caller_protections_predicate(
             &protection_functions,
-            &caller_id,
-            &contract_behaviour_declaration,
+            MovePreProcessor::CALLER_PROTECTIONS_PARAM,
+            &contract_behaviour_declaration.identifier,
             &wrapper.head.identifier.token,
             &context,
         ) {
@@ -265,11 +273,11 @@ pub fn generate_contract_wrapper(
             wrapper.body.push(Statement::Assertion(assertion));
         }
     }
-
+    let is_stateful = !contract_behaviour_declaration.type_states.is_empty();
     if is_stateful {
         let type_state_declaration = VariableDeclaration {
             declaration_token: None,
-            identifier: Identifier::generated(MovePreProcessor::STATE_VAR_NAME),
+            identifier: Identifier::generated(Identifier::TYPESTATE_VAR_NAME),
             variable_type: Type::TypeState,
             expression: None,
         };
@@ -299,18 +307,10 @@ pub fn generate_contract_wrapper(
     if !contract_behaviour_declaration.caller_protections.is_empty()
         && caller_protections.is_empty()
     {
-        let caller_id: Identifier;
-
-        if let Some(caller) = &contract_behaviour_declaration.caller_binding {
-            caller_id = caller.clone();
-        } else {
-            caller_id = Identifier::generated("caller");
-        }
-
-        if let Some(predicate) = generate_predicate(
+        if let Some(predicate) = generate_caller_protections_predicate(
             &state_properties,
-            &caller_id,
-            &contract_behaviour_declaration,
+            MovePreProcessor::CALLER_PROTECTIONS_PARAM,
+            &contract_behaviour_declaration.identifier,
             &wrapper.head.identifier.token,
             &context,
         ) {
@@ -324,15 +324,13 @@ pub fn generate_contract_wrapper(
     }
 
     if is_stateful {
-        // TODO we need the slice [1..] because an extra _ is added to the front for some reason
-        // This should be fixed
-        let state_identifier = Identifier::generated(&MovePreProcessor::STATE_VAR_NAME[1..]);
+        let state_identifier = Identifier::generated(Identifier::TYPESTATE_VAR_NAME);
         let type_state_assignment = BinaryExpression {
             lhs_expression: Box::new(Expression::Identifier(state_identifier.clone())),
             rhs_expression: Box::new(Expression::BinaryExpression(BinaryExpression {
                 lhs_expression: Box::new(Expression::SelfExpression),
                 rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
-                    MovePreProcessor::STATE_VAR_NAME,
+                    Identifier::TYPESTATE_VAR_NAME,
                 ))),
                 op: BinOp::Dot,
                 line_info: Default::default(),
@@ -348,11 +346,11 @@ pub fn generate_contract_wrapper(
             )));
 
         let contract_name = &contract_behaviour_declaration.identifier.token;
-        let allowed_type_states_as_u8s: Vec<_> = extract_allowed_states(
+        let allowed_type_states_as_u8s = extract_allowed_states(
             &contract_behaviour_declaration.type_states,
             &context.environment.get_contract_type_states(contract_name),
         )
-        .collect();
+        .collect::<Vec<u8>>();
         let condition =
             generate_type_state_condition(state_identifier, &allowed_type_states_as_u8s);
         let assertion = Assertion {
@@ -655,9 +653,8 @@ pub fn pre_assign(
                     },
                 )));
         } else {
-            let mangled_identifier = Identifier::generated(&mangle(&temp_identifier.token));
             ctx.post_statements.push(release(
-                Expression::Identifier(mangled_identifier),
+                Expression::Identifier(Identifier::generated(&temp_identifier.token)),
                 Type::InoutType(InoutType {
                     key_type: Box::new(expression_type),
                 }),
@@ -724,24 +721,27 @@ pub fn release(expression: Expression, expression_type: Type) -> Statement {
     }))
 }
 
-pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) -> Option<String> {
-    if !Environment::is_runtime_function_call(function_call) && !ctx.is_external_function_call {
+pub fn mangle_function_call_name(
+    function_call: &FunctionCall,
+    context: &Context,
+) -> Option<String> {
+    if !Environment::is_runtime_function_call(function_call) && !context.is_external_function_call {
         let enclosing_type = if let Some(ref enclosing) = function_call.identifier.enclosing_type {
             enclosing.clone()
         } else {
-            ctx.enclosing_type_identifier().unwrap().token.clone()
+            context.enclosing_type_identifier().unwrap().token.clone()
         };
 
         let caller_protections: &[CallerProtection] =
-            if let Some(ref behaviour) = ctx.contract_behaviour_declaration_context {
+            if let Some(ref behaviour) = context.contract_behaviour_declaration_context {
                 &behaviour.caller_protections
             } else {
                 &[]
             };
 
-        let scope = &ctx.scope_context.as_ref().unwrap_or_default();
+        let scope = &context.scope_or_default();
 
-        let match_result = ctx.environment.match_function_call(
+        let match_result = context.environment.match_function_call(
             &function_call,
             &enclosing_type,
             caller_protections,
@@ -760,28 +760,6 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
                     false,
                 ))
             }
-            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c) => {
-                if c.candidates.len() != 1 {
-                    panic!("Unable to find function declaration")
-                }
-
-                let candidate = c.candidates[0].clone();
-
-                if let CallableInformation::FunctionInformation(fi) = candidate {
-                    let declaration = fi.declaration;
-                    let param_types = declaration.head.parameters;
-                    let _param_types: Vec<Type> =
-                        param_types.into_iter().map(|p| p.type_assignment).collect();
-
-                    Some(mangle_function_move(
-                        &declaration.head.identifier.token,
-                        &enclosing_type,
-                        false,
-                    ))
-                } else {
-                    panic!("Non-function CallableInformation where function expected")
-                }
-            }
 
             FunctionCallMatchResult::MatchedInitializer(_i) => Some(mangle_function_move(
                 "init",
@@ -795,15 +773,40 @@ pub fn mangle_function_call_name(function_call: &FunctionCall, ctx: &Context) ->
 
                 Some(mangle_function_move(
                     &declaration.head.identifier.token,
-                    &"Quartz_Global".to_string(),
+                    "Flint",
                     false,
                 ))
             }
-            FunctionCallMatchResult::Failure(_) => None,
+            FunctionCallMatchResult::MatchedFunctionWithoutCaller(c)
+            | FunctionCallMatchResult::Failure(c) => {
+                if c.candidates.len() > 1 {
+                    panic!(
+                        "Found too many function declarations! ({} found)",
+                        c.candidates.len()
+                    )
+                }
+
+                let candidate = c
+                    .candidates
+                    .first()
+                    .expect("Unable to find function declaration");
+
+                if let CallableInformation::FunctionInformation(fi) = candidate {
+                    let declaration = &fi.declaration;
+
+                    Some(mangle_function_move(
+                        &declaration.head.identifier.token,
+                        &enclosing_type,
+                        false,
+                    ))
+                } else {
+                    panic!("Non-function CallableInformation where function expected")
+                }
+            }
         }
     } else {
         let _lol = !Environment::is_runtime_function_call(function_call);
-        let _lol2 = !ctx.is_external_function_call;
+        let _lol2 = !context.is_external_function_call;
         Some(function_call.identifier.token.clone())
     }
 }
@@ -817,7 +820,7 @@ pub fn is_global_function_call(function_call: &FunctionCall, ctx: &Context) -> b
             &[]
         };
 
-    let scope = ctx.scope_context.as_ref().unwrap_or_default();
+    let scope = ctx.scope_or_default();
 
     let result =
         ctx.environment
@@ -841,39 +844,6 @@ pub fn construct_expression(expressions: &[Expression]) -> Expression {
         Some(first) => first.clone(),
         None => panic!("Cannot construct expression from no expressions"),
     }
-}
-
-fn extract_allowed_states<'a>(
-    permitted_states: &'a [TypeState],
-    declared_states: &'a [TypeState],
-) -> impl Iterator<Item = u8> + 'a {
-    assert!(declared_states.len() < 256);
-    permitted_states.iter().map(move |permitted_state| {
-        declared_states
-            .iter()
-            .position(|declared_state| declared_state == permitted_state)
-            .unwrap() as u8
-    })
-}
-
-fn generate_type_state_condition(id: Identifier, allowed: &[u8]) -> BinaryExpression {
-    assert!(!allowed.is_empty());
-
-    allowed
-        .iter()
-        .map(|state| BinaryExpression {
-            lhs_expression: Box::from(Expression::Identifier(id.clone())),
-            rhs_expression: Box::from(Expression::Literal(U8Literal(*state))),
-            op: BinOp::DoubleEqual,
-            line_info: Default::default(),
-        })
-        .fold1(|left, right| BinaryExpression {
-            lhs_expression: Box::from(Expression::BinaryExpression(left)),
-            rhs_expression: Box::from(Expression::BinaryExpression(right)),
-            op: BinOp::Or,
-            line_info: Default::default(),
-        })
-        .unwrap()
 }
 
 fn struct_is_mutable_reference(
@@ -947,10 +917,10 @@ fn split_caller_protections(
     (state_properties, functions)
 }
 
-fn generate_predicate(
+pub fn generate_caller_protections_predicate(
     caller_protections: &[CallerProtection],
-    caller_id: &Identifier,
-    contract_behaviour_declaration: &ContractBehaviourDeclaration,
+    caller_id: &str,
+    en_ident: &Identifier,
     function_name: &str,
     context: &Context,
 ) -> Option<Expression> {
@@ -959,12 +929,11 @@ fn generate_predicate(
         .cloned()
         .filter_map(|c| {
             let mut ident = c.clone().identifier;
-            ident.enclosing_type =
-                Option::from(contract_behaviour_declaration.identifier.token.clone());
-            let en_ident = contract_behaviour_declaration.identifier.clone();
+            ident.enclosing_type = Option::from(en_ident.token.clone());
+            let en_ident = en_ident.token.clone();
             let c_type = context.environment.get_expression_type(
                 &Expression::Identifier(ident.clone()),
-                &en_ident.token,
+                &en_ident,
                 &[],
                 &[],
                 &ScopeContext {
@@ -978,15 +947,24 @@ fn generate_predicate(
                 Type::Address => Some(Expression::BinaryExpression(BinaryExpression {
                     lhs_expression: Box::new(Expression::Identifier(ident)),
                     rhs_expression: Box::new(Expression::RawAssembly(
-                        format!("Signer.address_of(copy({}))", caller_id.token),
+                        format!("Signer.address_of(copy({}))", caller_id),
                         None,
                     )),
                     op: BinOp::DoubleEqual,
                     line_info: Default::default(),
                 })),
-                Type::ArrayType(array_type) => {
-                    assert!(
-                        *array_type.key_type == Type::Address,
+                Type::FixedSizedArrayType(_) | Type::ArrayType(_) => {
+                    let array_type = match c_type {
+                        Type::FixedSizedArrayType(FixedSizedArrayType { key_type, .. }) => {
+                            *key_type
+                        }
+                        Type::ArrayType(ArrayType { key_type }) => *key_type,
+                        _ => panic!(),
+                    };
+
+                    assert_eq!(
+                        array_type,
+                        Type::Address,
                         "Array values for caller protection must have type Address"
                     );
                     if let Some(property) = context.environment.get_caller_protection(&c) {
@@ -1000,7 +978,7 @@ fn generate_predicate(
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(c),
                                         rhs_expression: Box::new(Expression::RawAssembly(
-                                            format!("Signer.address_of(copy({}))", caller_id.token),
+                                            format!("Signer.address_of(copy({}))", caller_id),
                                             None,
                                         )),
                                         op: BinOp::DoubleEqual,
@@ -1025,8 +1003,9 @@ fn generate_predicate(
                     }
                 }
                 Type::DictionaryType(dict_type) => {
-                    assert!(
-                        *dict_type.value_type == Type::Address,
+                    assert_eq!(
+                        *dict_type.value_type,
+                        Type::Address,
                         "Dictionary values for caller protection must have type Address"
                     );
                     if let Some(property) = context.environment.get_caller_protection(&c) {
@@ -1041,7 +1020,7 @@ fn generate_predicate(
                                     Expression::BinaryExpression(BinaryExpression {
                                         lhs_expression: Box::new(v),
                                         rhs_expression: Box::new(Expression::RawAssembly(
-                                            format!("Signer.address_of(copy({}))", caller_id.token),
+                                            format!("Signer.address_of(copy({}))", caller_id),
                                             None,
                                         )),
                                         op: BinOp::DoubleEqual,
@@ -1066,16 +1045,16 @@ fn generate_predicate(
                     }
                 }
                 _ => {
-                    let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&en_ident.token);
+                    let enclosing_type = ident.enclosing_type.as_deref().unwrap_or(&en_ident);
                     if let Some(types) = context.environment.types.get(enclosing_type) {
                         if let Some(function_info) = types.functions.get(&ident.token) {
                             if let Some(function) = function_info.get(0) {
                                 let function_signature = &function.declaration.head;
                                 if function_signature.is_predicate() {
                                     // caller protection is a predicate function
-                                    if ident.token != function_name {
+                                    return if ident.token != function_name {
                                         // prevents predicate being added to the predicate function itself
-                                        return Some(Expression::FunctionCall(FunctionCall {
+                                        Some(Expression::FunctionCall(FunctionCall {
                                             identifier: ident,
                                             arguments: vec![
                                                 FunctionArgument {
@@ -1093,54 +1072,48 @@ fn generate_predicate(
                                                     expression: Expression::RawAssembly(
                                                         format!(
                                                             "Signer.address_of(copy({}))",
-                                                            caller_id.token
+                                                            caller_id
                                                         ),
                                                         None,
                                                     ),
                                                 },
                                             ],
                                             mangled_identifier: None,
-                                        }));
+                                        }))
                                     } else {
-                                        return None;
-                                    }
+                                        None
+                                    };
                                 } else if function_signature.is_0_ary_function() {
                                     // caller protection is a 0-ary function
-                                    if ident.token != function_name {
+                                    return if ident.token != function_name {
                                         // prevents 0-ary function being added to the 0-ary function itself
-                                        return Some(Expression::BinaryExpression(
-                                            BinaryExpression {
-                                                lhs_expression: Box::new(Expression::FunctionCall(
-                                                    FunctionCall {
-                                                        identifier: ident,
-                                                        arguments: vec![FunctionArgument {
-                                                            identifier: None,
-                                                            expression: Expression::Identifier(
-                                                                Identifier {
-                                                                    token: "address_this"
-                                                                        .to_string(),
-                                                                    enclosing_type: None,
-                                                                    line_info: Default::default(),
-                                                                },
-                                                            ),
-                                                        }],
-                                                        mangled_identifier: None,
-                                                    },
-                                                )),
-                                                rhs_expression: Box::new(Expression::RawAssembly(
-                                                    format!(
-                                                        "Signer.address_of(copy({}))",
-                                                        caller_id.token
-                                                    ),
-                                                    None,
-                                                )),
-                                                op: BinOp::DoubleEqual,
-                                                line_info: Default::default(),
-                                            },
-                                        ));
+                                        Some(Expression::BinaryExpression(BinaryExpression {
+                                            lhs_expression: Box::new(Expression::FunctionCall(
+                                                FunctionCall {
+                                                    identifier: ident,
+                                                    arguments: vec![FunctionArgument {
+                                                        identifier: None,
+                                                        expression: Expression::Identifier(
+                                                            Identifier {
+                                                                token: "address_this".to_string(),
+                                                                enclosing_type: None,
+                                                                line_info: Default::default(),
+                                                            },
+                                                        ),
+                                                    }],
+                                                    mangled_identifier: None,
+                                                },
+                                            )),
+                                            rhs_expression: Box::new(Expression::RawAssembly(
+                                                format!("Signer.address_of(copy({}))", caller_id),
+                                                None,
+                                            )),
+                                            op: BinOp::DoubleEqual,
+                                            line_info: Default::default(),
+                                        }))
                                     } else {
-                                        return None;
-                                    }
+                                        None
+                                    };
                                 }
                             }
                         }

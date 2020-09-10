@@ -1,12 +1,16 @@
 mod conflicts;
 mod declarations;
-mod functions;
+pub mod functions;
 mod properties;
 
 use crate::ast::*;
 use std::collections::HashMap;
 
 mod expr_type_check;
+
+pub(crate) const FLINT_GLOBAL: &str = "Flint_Global";
+pub(crate) const FLINT_GLOBAL_TRANSFER: &str = "Flint_transfer";
+const FLINT_RUNTIME_PREFIX: &str = "Flint_";
 
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
@@ -53,6 +57,29 @@ impl FunctionCallMatchResult {
 pub enum CallableInformation {
     FunctionInformation(FunctionInformation),
     SpecialInformation(SpecialInformation),
+}
+
+impl CallableInformation {
+    pub(crate) fn name(&self) -> &str {
+        match self {
+            CallableInformation::FunctionInformation(info) => &info.identifier().token,
+            CallableInformation::SpecialInformation(info) => info.name(),
+        }
+    }
+
+    pub(crate) fn line_info(&self) -> Option<&LineInfo> {
+        match self {
+            CallableInformation::FunctionInformation(info) => Some(info.line_info()),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn get_parameter_types(&self) -> Vec<&Type> {
+        match self {
+            CallableInformation::FunctionInformation(info) => info.get_parameter_types().collect(),
+            CallableInformation::SpecialInformation(info) => info.get_parameter_types().collect(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -198,22 +225,19 @@ impl Environment {
             _ => false,
         };
         let caller_protection_function = |f: &FunctionInformation| {
-            if f.declaration.get_result_type().is_some() {
-                if f.get_result_type().unwrap().is_address_type()
-                    && f.get_parameter_types().is_empty()
-                {
-                    return true;
+            if let Some(result_type) = f.declaration.get_result_type() {
+                let mut parameter_types = f.get_parameter_types();
+                if let Some(parameter_type) = parameter_types.next() {
+                    // There are no further parameter types
+                    parameter_types.all(|_| false)
+                        && parameter_type.is_address_type()
+                        && result_type.is_bool_type()
+                } else {
+                    result_type.is_address_type()
                 }
-                if f.get_result_type().unwrap().is_bool_type() && f.get_parameter_types().len() == 1
-                {
-                    let element = f.get_parameter_types().remove(0);
-                    if element.is_address_type() {
-                        return true;
-                    }
-                }
-                return false;
+            } else {
+                false
             }
-            false
         };
         self.types
             .get(type_id)
@@ -251,12 +275,12 @@ impl Environment {
         }
     }
 
-    pub fn has_public_initialiser(&mut self, type_id: &str) -> bool {
+    pub fn get_public_initialiser(&mut self, type_id: &str) -> Option<&mut SpecialDeclaration> {
         self.types
             .get_mut(type_id)
             .unwrap()
             .public_initializer
-            .is_some()
+            .as_mut()
     }
 
     pub fn is_contract_declared(&self, type_id: &str) -> bool {

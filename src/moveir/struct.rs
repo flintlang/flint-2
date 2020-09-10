@@ -195,7 +195,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&function_context, false, false)
+                    .generate(&function_context, false, false)
             })
             .collect();
 
@@ -313,18 +313,19 @@ impl MoveStructInitialiser {
             .map(|f| {
                 let name = format!("__this_{}", f.identifier.token);
                 if let Some(expr) = f.expression {
-                    function_context.emit(MoveIRStatement::Expression(
-                        MoveIRExpression::Assignment(crate::moveir::ir::MoveIRAssignment {
+                    let statement = MoveIRStatement::Expression(MoveIRExpression::Assignment(
+                        crate::moveir::ir::MoveIRAssignment {
                             identifier: name.clone(),
                             expression: Box::from(
                                 crate::moveir::expression::MoveExpression {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                .generate(&function_context),
+                                    .generate(&function_context),
                             ),
-                        }),
+                        },
                     ));
+                    function_context.emit(statement);
                 }
                 (
                     f.identifier.token,

@@ -41,30 +41,41 @@ impl Environment {
         }
     }
 
-    pub fn add_struct_declaration(&mut self, s: &StructDeclaration) {
-        let identifier = s.identifier.clone();
+    pub fn add_struct_declaration(&mut self, declaration: &StructDeclaration) {
+        let identifier = declaration.identifier.clone();
         self.struct_declarations.push(identifier);
 
-        self.types.insert(
-            s.identifier.token.clone(),
+        let type_info = if declaration
+            .members
+            .iter()
+            .any(|s| matches!(s, StructMember::SpecialDeclaration(d) if d.is_init()))
+        {
             TypeInfo {
                 ..Default::default()
-            },
-        );
+            }
+        } else {
+            TypeInfo {
+                initialisers: vec![SpecialInformation::default_initialiser(declaration)],
+                ..Default::default()
+            }
+        };
 
-        let members = &s.members;
+        self.types
+            .insert(declaration.identifier.token.clone(), type_info);
+
+        let members = &declaration.members;
         for member in members {
             match member {
                 StructMember::VariableDeclaration(v, modifier) => self.add_property(
                     Property::VariableDeclaration(v.clone(), modifier.clone()),
                     &v.identifier.token,
-                    &s.identifier.token,
+                    &declaration.identifier.token,
                 ),
                 StructMember::FunctionDeclaration(f) => {
-                    self.add_function(f.clone(), &s.identifier.token, vec![], vec![])
+                    self.add_function(f.clone(), &declaration.identifier.token, vec![], vec![])
                 }
                 StructMember::SpecialDeclaration(sd) => {
-                    self.add_special(sd.clone(), &s.identifier.token, vec![], vec![])
+                    self.add_special(sd.clone(), &declaration.identifier.token, vec![], vec![])
                 }
             }
         }

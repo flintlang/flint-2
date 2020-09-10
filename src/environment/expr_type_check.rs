@@ -80,8 +80,9 @@ impl ExpressionChecker for Environment {
             Expression::ArrayLiteral(a) => {
                 self.get_array_literal_type(a, type_id, type_states, caller_protections, scope)
             }
-            //TODO: implement dictionary literal here
-            Expression::DictionaryLiteral(_) => unimplemented!(),
+            Expression::DictionaryLiteral(d) => {
+                self.get_dictionary_literal_type(d, type_id, type_states, caller_protections, scope)
+            }
             Expression::SelfExpression => Type::UserDefinedType(Identifier {
                 token: type_id.to_string(),
                 enclosing_type: None,
@@ -299,6 +300,48 @@ impl Environment {
         })
     }
 
+    pub fn get_dictionary_literal_type(
+        &self,
+        dictionary: &DictionaryLiteral,
+        type_id: &str,
+        type_states: &[TypeState],
+        caller_protections: &[CallerProtection],
+        scope: &ScopeContext,
+    ) -> Type {
+        let mut keys_type: Option<Type> = None;
+        let mut values_type: Option<Type> = None;
+
+        for (key, value) in &dictionary.elements {
+            let key_type =
+                self.get_expression_type(&key, type_id, type_states, caller_protections, scope);
+            let value_type =
+                self.get_expression_type(&value, type_id, type_states, caller_protections, scope);
+
+            if let Some(ref comparison_type) = keys_type {
+                if comparison_type != &key_type {
+                    return Type::Error;
+                }
+            } else {
+                keys_type = Some(key_type)
+            }
+
+            if let Some(ref comparison_type) = values_type {
+                if comparison_type != &value_type {
+                    return Type::Error;
+                }
+            } else {
+                values_type = Some(value_type)
+            }
+        }
+
+        let result_key_type = keys_type.unwrap_or(Type::Error);
+        let result_value_type = values_type.unwrap_or(Type::Error);
+        Type::DictionaryType(DictionaryType {
+            key_type: Box::new(result_key_type),
+            value_type: Box::new(result_value_type),
+        })
+    }
+
     pub fn get_function_call_type(
         &self,
         call: &FunctionCall,
@@ -310,14 +353,14 @@ impl Environment {
         let function_call = self.match_function_call(call, type_id, caller_protections, scope);
         match function_call {
             FunctionCallMatchResult::MatchedFunction(m) => {
-                m.get_result_type().unwrap_or(Type::Error)
+                m.get_result_type().cloned().unwrap_or(Type::Error)
             }
             FunctionCallMatchResult::MatchedFunctionWithoutCaller(m) => {
                 if m.candidates.len() == 1 {
                     let first = m.candidates.first();
                     let first = first.unwrap();
                     return if let CallableInformation::FunctionInformation(fi) = first {
-                        fi.get_result_type().unwrap_or(Type::Error)
+                        fi.get_result_type().cloned().unwrap_or(Type::Error)
                     } else {
                         Type::Error
                     };
@@ -325,6 +368,9 @@ impl Environment {
                 Type::Error
             }
             FunctionCallMatchResult::MatchedInitializer(_) => Type::UserDefinedType(identifier),
+            FunctionCallMatchResult::MatchedGlobalFunction(info) => {
+                info.get_result_type().unwrap_or(&Type::Error).clone()
+            }
             _ => Type::Error,
         }
     }
