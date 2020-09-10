@@ -9,6 +9,7 @@ use std::collections::HashMap;
 mod expr_type_check;
 
 pub(crate) const FLINT_GLOBAL: &str = "Flint_Global";
+pub(crate) const FLINT_GLOBAL_TRANSFER: &str = "Flint_transfer";
 const FLINT_RUNTIME_PREFIX: &str = "Flint_";
 
 #[derive(Debug, Default, Clone)]

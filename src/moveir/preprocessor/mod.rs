@@ -865,7 +865,7 @@ impl Visitor for MovePreProcessor {
 
     fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(call) {
-            if "Flint_transfer" == call.identifier.token.as_str() {
+            if crate::environment::FLINT_GLOBAL_TRANSFER == call.identifier.token.as_str() {
                 // This simply changes the first argument of this function call to be the signer
                 // type rather than the address, since as of yet we are unable to access signer types apart
                 // from the caller
