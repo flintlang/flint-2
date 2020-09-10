@@ -450,10 +450,10 @@ pub fn is_signer_type(expression: &Expression, function_context: &FunctionContex
         if let Some(identifier_type) = function_context.scope_context.type_for(&id.token) {
             return identifier_type
                 == Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
-                    enclosing_type: None,
-                    line_info: Default::default(),
-                });
+                token: MovePreProcessor::SIGNER_TYPE.to_string(),
+                enclosing_type: None,
+                line_info: Default::default(),
+            });
         }
     }
     false

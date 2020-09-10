@@ -15,6 +15,7 @@ pub(crate) struct MovePreProcessor {}
 
 impl MovePreProcessor {
     pub(crate) const CALLER_PROTECTIONS_PARAM: &'static str = "_contract_caller";
+    pub(crate) const SIGNER_TYPE: &'static str = "&signer";
 }
 
 impl Visitor for MovePreProcessor {
@@ -341,7 +342,7 @@ impl Visitor for MovePreProcessor {
                 declaration.head.parameters.push(Parameter {
                     identifier: Identifier::generated(MovePreProcessor::CALLER_PROTECTIONS_PARAM),
                     type_assignment: Type::UserDefinedType(Identifier {
-                        token: "&signer".to_string(),
+                        token: MovePreProcessor::SIGNER_TYPE.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     }),
@@ -356,7 +357,7 @@ impl Visitor for MovePreProcessor {
                         line_info: Default::default(),
                     },
                     type_assignment: Type::UserDefinedType(Identifier {
-                        token: "&signer".to_string(),
+                        token: MovePreProcessor::SIGNER_TYPE.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     }),
@@ -502,7 +503,7 @@ impl Visitor for MovePreProcessor {
                         line_info: Default::default(),
                     },
                     type_assignment: Type::UserDefinedType(Identifier {
-                        token: "&signer".to_string(),
+                        token: MovePreProcessor::SIGNER_TYPE.to_string(),
                         enclosing_type: None,
                         line_info: Default::default(),
                     }),

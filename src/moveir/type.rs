@@ -3,6 +3,7 @@ use super::ir::MoveIRType;
 use crate::ast::{FunctionCall, Identifier, Type};
 use crate::environment::Environment;
 use crate::target::libra;
+use crate::moveir::preprocessor::MovePreProcessor;
 
 #[derive(Debug, Clone)]
 pub(crate) enum MoveType {
@@ -94,7 +95,7 @@ impl MoveType {
             Type::DictionaryType(d) => MoveType::move_type(*d.value_type, None),
             Type::UserDefinedType(i) => {
                 if let Some(environment) = environment {
-                    if i.token == "&signer" {
+                    if i.token == MovePreProcessor::SIGNER_TYPE {
                         return MoveType::Reference(Box::new(MoveType::Signer));
                     } else if i.token == "signer" {
                         return MoveType::Signer;

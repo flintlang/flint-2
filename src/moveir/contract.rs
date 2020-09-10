@@ -22,6 +22,7 @@ use crate::ast::{
 use crate::context::ScopeContext;
 use crate::environment::Environment;
 use crate::moveir::identifier::MoveSelf;
+use crate::moveir::preprocessor::MovePreProcessor;
 
 pub struct MoveContract {
     pub contract_declaration: ContractDeclaration,
@@ -524,7 +525,7 @@ impl MoveContract {
 
         let initialiser: String;
         let publisher: String;
-        parameters.push("account: &signer".to_string());
+        parameters.push(format!("account: {}", MovePreProcessor::SIGNER_TYPE));
         let parameters = parameters.join(", ");
 
         if !dict_names.is_empty() {
