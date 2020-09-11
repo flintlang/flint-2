@@ -956,6 +956,14 @@ impl Visitor for MovePreProcessor {
                     MovePreProcessor::CALLER_PROTECTIONS_PARAM,
                 ));
             }
+
+           if call.identifier.token.eq("Flint_array_remove") {
+                // TODO: change to element type
+                call.identifier.token = "Flint_array_remove<u64>".to_string();
+            } else if call.identifier.token.eq("Flint_array_insert") {
+                call.identifier.token = "Flint_array_insert<u64>".to_string();
+            }
+
             return Ok(());
         }
 
@@ -1229,7 +1237,7 @@ impl Visitor for MovePreProcessor {
     ) -> VResult {
         let mut borrow_local = false;
         let function_argument = _t.clone();
-        let mut expression;
+        let mut expression = function_argument.expression.clone();
         if let Expression::InoutExpression(i) = function_argument.expression.clone() {
             expression = *i.expression;
 
@@ -1249,6 +1257,11 @@ impl Visitor for MovePreProcessor {
                         caller_protections,
                         &scope,
                     );
+
+                    if let Type::ArrayType(_) = expression_type {
+                        _t.expression = expression;
+                        return Ok(());
+                    }
 
                     if !expression_type.is_currency_type(&_ctx.target.currency)
                         && !expression_type.is_external_resource(_ctx.environment.clone())
@@ -1284,6 +1297,7 @@ impl Visitor for MovePreProcessor {
         }
 
         _t.expression = expression;
+        dbg!(_t.clone());
         Ok(())
     }
 

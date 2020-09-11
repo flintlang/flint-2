@@ -1,0 +1,22 @@
+import {{default}}.DynamicArrays;
+import 0x1.Signer;
+
+main(account: &signer) {
+    DynamicArrays.publish(copy(account));
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 0, copy(account)) == 1, 1);
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 1, copy(account)) == 2, 2);
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 2, copy(account)) == 3, 3);
+
+    DynamicArrays.remove(Signer.address_of(copy(account)), 0, copy(account));
+
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 0, copy(account)) == 2, 4);
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 1, copy(account)) == 3, 5);
+
+    DynamicArrays.insert(Signer.address_of(copy(account)), 0, 5, copy(account));
+
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 0, copy(account)) == 5, 6);
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 1, copy(account)) == 2, 6);
+    assert(DynamicArrays.get(Signer.address_of(copy(account)), 2, copy(account)) == 3, 6);
+    
+    return;
+}

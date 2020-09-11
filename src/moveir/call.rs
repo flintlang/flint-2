@@ -5,6 +5,7 @@ use super::ir::{MoveIRExpression, MoveIRFunctionCall};
 use crate::ast::calls::FunctionArgument;
 use crate::ast::{Expression, ExternalCall, FunctionCall, Identifier};
 use crate::environment::{CallableInformation, FunctionCallMatchResult};
+use crate::moveir::MovePosition;
 
 pub(crate) struct MoveExternalCall {
     pub external_call: ExternalCall,

@@ -1,0 +1,23 @@
+contract DynamicArrays {
+  var nums: [Int] = [1, 2, 3]
+}
+
+DynamicArrays :: (any) {
+  public init() {}
+
+  public func get(x: Int) -> Int {
+    return nums[x]
+  }
+
+  public func set(i: Int, val: Int) mutates(nums) {
+    nums[i] = val
+  }
+
+  public func insert(i: Int, val: Int) mutates(nums) {
+      Flint_array_insert(&nums, i, val)
+  }
+
+  public func remove(i: Int) mutates(nums) {
+      Flint_array_remove(&nums, i)
+  }
+}

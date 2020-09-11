@@ -61,13 +61,14 @@ impl MoveIdentifier {
         if let Some(identifier_type) = function_context
             .scope_context
             .type_for(&self.identifier.token)
-        {
+        { 
             if identifier_type.is_currency_type(&libra::currency()) && f_call {
                 return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
             }
             if identifier_type.is_currency_type(&libra::currency()) {
                 return ir_identifier;
             }
+
             if identifier_type.is_inout_type() && identifier_type.is_user_defined_type() {
                 if f_call {
                     return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(

@@ -88,6 +88,34 @@ impl MoveRuntimeFunction {
 
             return;
         }
+
+        public Flint_array_remove<S: copyable>(nums: &mut vector<S>, i: u64) {
+            let result: S;
+            result = Vector.remove<S>(move(nums), move(i));
+            _ = move(result);
+            return;
+        }
+
+        public Flint_array_length<S: copyable>(nums: vector<S>): u64 {
+            let length: u64;
+            length = Vector.length<S>(&nums);
+            return move(length); 
+        }
+          
+        public Flint_array_insert<S: copyable>(nums: &mut vector<S>, i: u64, value: S) {
+            let length: u64;
+            let index: u64;
+            index = move(i);
+            Vector.push_back<S>(copy(nums), copy(value));
+            length = Self.Flint_array_length<S>(*copy(nums));
+            
+            while(copy(index) < copy(length) - 1) {
+                Vector.swap<S>(copy(nums), copy(index), copy(length) - 1);
+                index = copy(index) + 1;
+            }
+            
+            return;
+        }
         "
         .to_string()
     }
