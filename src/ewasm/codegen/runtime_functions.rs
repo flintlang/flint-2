@@ -1,11 +1,16 @@
-use super::super::inkwell::values::BasicValue;
-use super::super::inkwell::{AddressSpace, IntPredicate};
 use crate::ewasm::codegen::Codegen;
+use crate::ewasm::preprocessor::LLVMPreProcessor;
 use inkwell::types::BasicType;
+use inkwell::values::BasicValue;
 use inkwell::values::BasicValueEnum;
 use inkwell::values::InstructionOpcode;
+use inkwell::{AddressSpace, IntPredicate};
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
+    pub(crate) const EXPONENTIATION_NAME: &'ctx str = "_exp";
+    const INNER_BALANCE_OF_NAME: &'ctx str = "Flint_balanceOf_Inner";
+    const INNER_TRANSFER_NAME: &'ctx str = "Flint_transfer_Inner";
+
     pub fn runtime_functions(&self) {
         self.get_caller();
         self.get_caller_wrapper();
@@ -18,7 +23,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let func_type = address_type.fn_type(&[], false);
 
-        let func_val = self.module.add_function("_getCaller", func_type, None);
+        let func_val =
+            self.module
+                .add_function(LLVMPreProcessor::CALLER_WRAPPER_NAME, func_type, None);
 
         let bb = self.context.append_basic_block(func_val, "entry");
 
@@ -35,7 +42,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             "tmp_call",
         );
 
-        let caller_address = self.builder.build_load(memory_offset, "caller");
+        let caller_address = self
+            .builder
+            .build_load(memory_offset, LLVMPreProcessor::CALLER_PROTECTIONS_PARAM);
 
         self.builder.build_return(Some(&caller_address));
     }
@@ -61,15 +70,17 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.build_return(None);
     }
 
+    /// Integer exponent method. Naive implementation
+    /// PRE: a >= 0, b > 0 and a and b are integers
     fn power(&self) {
-        // Integer exponent method. Naive implementation
-        // PRE: a >= 0, b > 0 and a and b are integers
         let param_type = self.context.i64_type().as_basic_type_enum();
         let int_type = self
             .context
             .i64_type()
             .fn_type(&[param_type, param_type], false);
-        let exp = self.module.add_function("_exp", int_type, None);
+        let exp = self
+            .module
+            .add_function(Codegen::EXPONENTIATION_NAME, int_type, None);
         let bb = self.context.append_basic_block(exp, "entry");
         self.builder.position_at_end(bb);
 
@@ -135,14 +146,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.transfer();
     }
 
+    /// Wrapper for the eWASM getExternalBalance function
     fn get_balance(&self) {
-        // wrapper for the eWASM getExternalBalance function
         let address_type = self.context.custom_width_int_type(160).as_basic_type_enum();
 
         let func_type = self.context.i64_type().fn_type(&[address_type], false);
         let func_val = self
             .module
-            .add_function("Flint_balanceOf_Inner", func_type, None);
+            .add_function(Codegen::INNER_BALANCE_OF_NAME, func_type, None);
         let bb = self.context.append_basic_block(func_val, "entry");
 
         self.builder.position_at_end(bb);
@@ -176,12 +187,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.build_return(Some(&balance));
     }
 
-    // TODO: Due to a lack of eWASM documentation, we aren't sure how money should be transferred in eWASM (see our question posted in ewasm/design here: https://github.com/ewasm/design/pull/113).
-    // The below implementation is based on the Flint 1 send function, however because we were unable to use the eWASM testnet (it is currently down), we were unable to validate
-    // if this function was correct.
-
+    /// TODO: Due to a lack of eWASM documentation, we aren't sure how money should be transferred in eWASM (see our question posted in ewasm/design here: https://github.com/ewasm/design/pull/113).
+    /// The below implementation is based on the Flint 1 send function, however because we were unable to use the eWASM testnet (it is currently down), we were unable to validate
+    /// if this function was correct.
+    /// Wrapper for the eWASM call function
     fn transfer(&self) {
-        // wrapper for the eWASM call function
         let address_type = self.context.custom_width_int_type(160).as_basic_type_enum();
 
         let value_type = self.context.i64_type().as_basic_type_enum();
@@ -192,7 +202,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .fn_type(&[address_type, address_type, value_type], false);
         let func_val = self
             .module
-            .add_function("Flint_transfer_Inner", func_type, None);
+            .add_function(Codegen::INNER_TRANSFER_NAME, func_type, None);
         let bb = self.context.append_basic_block(func_val, "entry");
 
         self.builder.position_at_end(bb);
@@ -282,11 +292,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
 #[cfg(test)]
 mod runtime_tests {
-    use super::super::super::inkwell::context::Context;
-    use super::super::super::inkwell::execution_engine::JitFunction;
-    use super::super::super::inkwell::passes::PassManager;
-    use super::super::super::inkwell::OptimizationLevel;
     use crate::ewasm::codegen::Codegen;
+    use inkwell::context::Context;
+    use inkwell::execution_engine::JitFunction;
+    use inkwell::passes::PassManager;
+    use inkwell::OptimizationLevel;
     use std::collections::HashMap;
 
     #[test]
@@ -316,7 +326,7 @@ mod runtime_tests {
 
         unsafe {
             let power_func: JitFunction<unsafe extern "C" fn(i64, i64) -> i64> = engine
-                .get_function("_exp")
+                .get_function(Codegen::EXPONENTIATION_NAME)
                 .expect("Could not find function exp");
 
             assert_eq!(power_func.call(10, 0), 1);

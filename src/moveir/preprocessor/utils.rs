@@ -14,7 +14,7 @@ use itertools::Itertools;
 pub fn convert_default_parameter_functions(
     base: FunctionDeclaration,
     type_id: &str,
-    _ctx: &mut Context,
+    ctx: &mut Context,
 ) -> Vec<FunctionDeclaration> {
     let default_parameters: Vec<Parameter> = base
         .clone()
@@ -63,10 +63,10 @@ pub fn convert_default_parameter_functions(
                 assigned_function.scope_context = Some(scope);
             }
 
-            _ctx.environment.remove_function(f, type_id);
+            ctx.environment.remove_function(f, type_id);
 
             let (protections, type_states) =
-                if let Some(ref context) = _ctx.contract_behaviour_declaration_context {
+                if let Some(ref context) = ctx.contract_behaviour_declaration_context {
                     (
                         context.caller_protections.clone(),
                         context.type_states.clone(),
@@ -74,7 +74,7 @@ pub fn convert_default_parameter_functions(
                 } else {
                     (vec![], vec![])
                 };
-            _ctx.environment.add_function(
+            ctx.environment.add_function(
                 removed.clone(),
                 type_id,
                 protections.clone(),
@@ -128,7 +128,7 @@ pub fn convert_default_parameter_functions(
                 assigned_function.body = vec![function_call];
             }
 
-            _ctx.environment.add_function(
+            ctx.environment.add_function(
                 assigned_function.clone(),
                 type_id,
                 protections,
@@ -795,9 +795,6 @@ pub fn mangle_function_call_name(
 
                 if let CallableInformation::FunctionInformation(fi) = candidate {
                     let declaration = &fi.declaration;
-                    let param_types = &declaration.head.parameters;
-                    let _param_types: Vec<&Type> =
-                        param_types.iter().map(|p| &p.type_assignment).collect();
 
                     Some(mangle_function_move(
                         &declaration.head.identifier.token,

@@ -11,6 +11,7 @@ use crate::ast::{
 };
 use crate::context::Context;
 use crate::context::ScopeContext;
+use crate::ewasm::preprocessor::LLVMPreProcessor;
 use crate::type_checker::ExpressionChecker;
 use crate::utils::type_states::{extract_allowed_states, generate_type_state_condition};
 use itertools::Itertools;
@@ -30,7 +31,9 @@ pub fn generate_contract_wrapper(
     // Add type state assertions
     if !contract_behaviour_declaration.type_states.is_empty() {
         let type_state_var = BinaryExpression {
-            lhs_expression: Box::new(Expression::Identifier(Identifier::generated("this"))),
+            lhs_expression: Box::new(Expression::Identifier(Identifier::generated(
+                Identifier::SELF,
+            ))),
             rhs_expression: Box::new(Expression::Identifier(Identifier::generated(
                 Identifier::TYPESTATE_VAR_NAME,
             ))),
@@ -77,7 +80,7 @@ pub fn generate_contract_wrapper(
         if let Some(caller) = &contract_behaviour_declaration.caller_binding {
             caller_id = caller.clone();
         } else {
-            caller_id = Identifier::generated("caller");
+            caller_id = Identifier::generated(LLVMPreProcessor::CALLER_PROTECTIONS_PARAM);
         }
 
         if let Some(predicate) = generate_caller_protections_predicate(
@@ -113,7 +116,7 @@ pub fn generate_contract_wrapper(
     });
 
     let contract_parameter = Parameter {
-        identifier: Identifier::generated("this"),
+        identifier: Identifier::generated(Identifier::SELF),
         type_assignment: Type::InoutType(InoutType {
             key_type: Box::new(Type::UserDefinedType(Identifier::generated(contract_name))),
         }),
@@ -297,9 +300,9 @@ pub fn generate_caller_protections_predicate(
                             if let Some(function) = function_info.get(0) {
                                 let function_signature = &function.declaration.head;
                                 if function_signature.is_predicate() {
-                                    // caller protection is a predicate function
+                                    // Caller protection is a predicate function
                                     return if ident.token != function_name {
-                                        // prevents predicate being added to the predicate function itself
+                                        // Prevents predicate being added to the predicate function itself
                                         Some(Expression::FunctionCall(FunctionCall {
                                             identifier: Identifier::generated(
                                                 &mangle_ewasm_function(
@@ -317,7 +320,7 @@ pub fn generate_caller_protections_predicate(
                                                 FunctionArgument {
                                                     identifier: None,
                                                     expression: Expression::Identifier(
-                                                        Identifier::generated("this"),
+                                                        Identifier::generated(Identifier::SELF),
                                                     ),
                                                 },
                                             ],
@@ -327,9 +330,9 @@ pub fn generate_caller_protections_predicate(
                                         None
                                     };
                                 } else if function_signature.is_0_ary_function() {
-                                    // caller protection is a 0-ary function
+                                    // Caller protection is a 0-ary function
                                     return if ident.token != function_name {
-                                        // prevents 0-ary function being added to the 0-ary function itself
+                                        // Prevents 0-ary function being added to the 0-ary function itself
                                         Some(Expression::BinaryExpression(BinaryExpression {
                                             lhs_expression: Box::new(Expression::FunctionCall(
                                                 FunctionCall {
@@ -342,7 +345,7 @@ pub fn generate_caller_protections_predicate(
                                                     arguments: vec![FunctionArgument {
                                                         identifier: None,
                                                         expression: Expression::Identifier(
-                                                            Identifier::generated("this"),
+                                                            Identifier::generated(Identifier::SELF),
                                                         ),
                                                     }],
                                                     mangled_identifier: None,

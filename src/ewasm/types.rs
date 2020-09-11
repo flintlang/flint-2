@@ -1,8 +1,8 @@
-use super::inkwell::types::{BasicType, BasicTypeEnum};
-use super::inkwell::AddressSpace;
 use crate::ast::types::DictionaryType;
 use crate::ast::{FixedSizedArrayType, InoutType, Type};
 use crate::ewasm::Codegen;
+use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::AddressSpace;
 
 pub struct LLVMType<'a> {
     pub ast_type: &'a Type,

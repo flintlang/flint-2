@@ -1,5 +1,3 @@
-use super::inkwell::types::BasicTypeEnum;
-use super::inkwell::values::BasicValue;
 use crate::ast::declarations::{FunctionDeclaration, VariableDeclaration};
 use crate::ast::expressions::{Expression::DictionaryLiteral, Identifier};
 use crate::ast::types::Type;
@@ -15,6 +13,8 @@ use crate::ewasm::structs::utils::{add_initialiser_function_declaration, generat
 use crate::ewasm::structs::{create_type, LLVMStruct};
 use crate::ewasm::types::llvm_dictionary;
 use crate::ewasm::types::LLVMType;
+use inkwell::types::BasicTypeEnum;
+use inkwell::values::BasicValue;
 use std::convert::TryInto;
 
 pub struct LLVMContract<'a> {
@@ -36,7 +36,7 @@ impl<'a> LLVMContract<'a> {
             .iter()
             .for_each(|dec| create_type(dec, codegen));
 
-        // setting up a struct to contain the contract data
+        // Setting up a struct to contain the contract data
         let members = self
             .contract_declaration
             .contract_members
@@ -75,7 +75,7 @@ impl<'a> LLVMContract<'a> {
         let struct_type = codegen.context.opaque_struct_type(codegen.contract_name);
         struct_type.set_body(member_types, false);
 
-        // add contract initialiser declaration
+        // Add contract initialiser declaration
         codegen.types.insert(
             codegen.contract_name.to_string(),
             (member_names, struct_type),
@@ -92,7 +92,6 @@ impl<'a> LLVMContract<'a> {
         global.set_initializer(&struct_type.const_zero().as_basic_value_enum());
 
         // Set up struct definitions here
-
         self.struct_declarations.iter().for_each(|dec| {
             let initialiser = dec
                 .members

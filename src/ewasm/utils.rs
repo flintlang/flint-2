@@ -1,7 +1,8 @@
-use super::inkwell::types::AnyTypeEnum;
 use crate::ast::Identifier;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
+use crate::ewasm::preprocessor::LLVMPreProcessor;
+use inkwell::types::AnyTypeEnum;
 
 pub fn get_num_pointer_layers(val_type: AnyTypeEnum) -> u8 {
     let mut num_pointers = 0;
@@ -21,7 +22,10 @@ pub fn generate_caller_variable<'ctx>(
     let caller_address = codegen
         .builder
         .build_call(
-            codegen.module.get_function("_getCaller").unwrap(),
+            codegen
+                .module
+                .get_function(LLVMPreProcessor::CALLER_WRAPPER_NAME)
+                .unwrap(),
             &[],
             "tmp_call",
         )
@@ -32,6 +36,6 @@ pub fn generate_caller_variable<'ctx>(
     if let Some(caller) = caller_binding {
         function_context.add_local(&caller.token, caller_address);
     } else {
-        function_context.add_local("caller", caller_address);
+        function_context.add_local(LLVMPreProcessor::CALLER_PROTECTIONS_PARAM, caller_address);
     }
 }

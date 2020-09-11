@@ -3,11 +3,11 @@ use crate::ast::types::Type;
 use crate::ast::SpecialDeclaration;
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::types::BasicTypeEnum;
-use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::generate_caller_variable;
+use inkwell::types::BasicTypeEnum;
+use inkwell::values::{BasicValue, BasicValueEnum};
 use std::collections::HashMap;
 
 pub fn generate_initialiser(
@@ -45,7 +45,7 @@ pub fn generate_initialiser(
                 .get_global(codegen.contract_name)
                 .unwrap()
                 .as_pointer_value();
-            function_context.add_local("this", global.as_basic_value_enum());
+            function_context.add_local(Identifier::SELF, global.as_basic_value_enum());
 
             if caller_binding.is_some() {
                 generate_caller_variable(codegen, &mut function_context, caller_binding);
@@ -86,7 +86,7 @@ fn get_function_name(initialiser: &SpecialDeclaration) -> String {
     if let Some(contract_name) = initialiser.head.enclosing_type.as_ref() {
         return format!("{}Init", contract_name);
     } else if let Some(self_argument) = initialiser.head.parameters.last() {
-        if self_argument.identifier.token == "this" {
+        if self_argument.identifier.token == Identifier::SELF {
             if let Type::InoutType(t) = &self_argument.type_assignment {
                 if let Type::UserDefinedType(t) = &*t.key_type {
                     return format!("{}Init", t.token.clone());

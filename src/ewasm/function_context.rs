@@ -1,4 +1,4 @@
-use super::inkwell::values::{BasicValueEnum, FunctionValue};
+use inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::HashMap;
 
 #[derive(Debug)]

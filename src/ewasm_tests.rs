@@ -1,18 +1,12 @@
 #[cfg(test)]
 mod ewasm_tests {
-    extern crate ewasm_api;
-    extern crate inkwell;
-    extern crate libchisel;
-    extern crate parity_wasm;
-    extern crate pwasm_utils;
-
-    use self::inkwell::context::Context;
-    use self::inkwell::execution_engine::{ExecutionEngine, JitFunction};
-    use self::inkwell::module::Module;
-    use self::inkwell::OptimizationLevel;
     use crate::io::target::target;
     use crate::io::*;
     use crate::{ast_processor, parser};
+    use inkwell::context::Context;
+    use inkwell::execution_engine::{ExecutionEngine, JitFunction};
+    use inkwell::module::Module;
+    use inkwell::OptimizationLevel;
     use libchisel::{checkstartfunc::*, verifyexports::*, verifyimports::*};
     use libchisel::{ModulePreset, ModuleValidator};
     use std::fs;

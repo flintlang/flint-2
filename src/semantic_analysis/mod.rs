@@ -16,9 +16,10 @@ impl Visitor for SemanticAnalysis {
         declaration: &mut ContractDeclaration,
         context: &mut Context,
     ) -> VResult {
-        if !context
+        if context
             .environment
-            .has_public_initialiser(&declaration.identifier.token)
+            .get_public_initialiser(&declaration.identifier.token)
+            .is_none()
         {
             return Err(Box::from(format!(
                 "No public Initialiser for contract {}",
@@ -74,6 +75,62 @@ impl Visitor for SemanticAnalysis {
             return Err(Box::from(error_msg));
         }
 
+        Ok(())
+    }
+
+    fn finish_contract_member(
+        &mut self,
+        member: &mut ContractMember,
+        context: &mut Context,
+    ) -> VResult {
+        let enclosing = context.enclosing_type_identifier().unwrap();
+        if let ContractMember::VariableDeclaration(declaration, _) = member {
+            if let Some(expression) = declaration.expression.as_deref() {
+                let source_type = context.environment.get_expression_type(
+                    expression,
+                    &enclosing.token,
+                    context.type_states(),
+                    context.caller_protections(),
+                    Default::default(),
+                );
+
+                if let Type::FixedSizedArrayType(FixedSizedArrayType {
+                    key_type: lhs_type,
+                    size,
+                }) = &declaration.variable_type
+                {
+                    if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
+                        return if *lhs_type == *rhs_type {
+                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
+                            {
+                                if *size == elements.len() as u64 {
+                                    Ok(())
+                                } else {
+                                    Err(Box::from(format!(
+                                        "LHS array has fixed size of {} but RHS literal has size {} on line {}",
+                                        size, elements.len(), declaration.identifier.line_info.line
+                                    )))
+                                }
+                            } else {
+                                Ok(())
+                            }
+                        } else {
+                            Err(Box::from(format!(
+                                "Cannot assign array of type `{}` to an array of type `{}` on {}",
+                                rhs_type, lhs_type, &declaration.identifier.line_info
+                            )))
+                        };
+                    }
+                }
+
+                if declaration.variable_type != source_type {
+                    return Err(Box::from(format!(
+                        "Cannot initialise contract property of type `{}` with type `{}` on {}",
+                        declaration.variable_type, source_type, &declaration.identifier.line_info
+                    )));
+                }
+            }
+        }
         Ok(())
     }
 
@@ -199,62 +256,6 @@ impl Visitor for SemanticAnalysis {
             )));
         }
 
-        Ok(())
-    }
-
-    fn finish_contract_member(
-        &mut self,
-        member: &mut ContractMember,
-        context: &mut Context,
-    ) -> VResult {
-        let enclosing = context.enclosing_type_identifier().unwrap();
-        if let ContractMember::VariableDeclaration(declaration, _) = member {
-            if let Some(expression) = declaration.expression.as_deref() {
-                let source_type = context.environment.get_expression_type(
-                    expression,
-                    &enclosing.token,
-                    context.type_states(),
-                    context.caller_protections(),
-                    Default::default(),
-                );
-
-                if let Type::FixedSizedArrayType(FixedSizedArrayType {
-                    key_type: lhs_type,
-                    size,
-                }) = &declaration.variable_type
-                {
-                    if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
-                        return if *lhs_type == *rhs_type {
-                            if let Expression::ArrayLiteral(ArrayLiteral { elements }) = expression
-                            {
-                                if *size == elements.len() as u64 {
-                                    Ok(())
-                                } else {
-                                    Err(Box::from(format!(
-                                        "LHS array has fixed size of {} but RHS literal has size {} on line {}",
-                                        size, elements.len(), declaration.identifier.line_info.line
-                                    )))
-                                }
-                            } else {
-                                Ok(())
-                            }
-                        } else {
-                            Err(Box::from(format!(
-                                "Cannot assign array of type `{}` to an array of type `{}` on {}",
-                                rhs_type, lhs_type, &declaration.identifier.line_info
-                            )))
-                        };
-                    }
-                }
-
-                if declaration.variable_type != source_type {
-                    return Err(Box::from(format!(
-                        "Cannot initialise contract property of type `{}` with type `{}` on {}",
-                        declaration.variable_type, source_type, &declaration.identifier.line_info
-                    )));
-                }
-            }
-        }
         Ok(())
     }
 
@@ -493,6 +494,44 @@ impl Visitor for SemanticAnalysis {
                 ));
             }
         }
+        Ok(())
+    }
+
+    #[allow(clippy::single_match)]
+    fn finish_if_statement(
+        &mut self,
+        if_statement: &mut IfStatement,
+        context: &mut Context,
+    ) -> VResult {
+        match &if_statement.condition {
+            Expression::BinaryExpression(ref b) => {
+                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
+                    if !v.is_constant() {
+                        return Err(Box::from(format!(
+                            "Invalid condition type in `if` statement on {}",
+                            if_statement.condition.get_line_info()
+                        )));
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        let expression_type = context.environment.get_expression_type(
+            &if_statement.condition,
+            "",
+            &[],
+            &[],
+            context.scope_context.as_ref().unwrap_or_default(),
+        );
+
+        if !expression_type.is_bool_type() {
+            return Err(Box::from(format!(
+                "Invalid condition type in `if` statement on {}",
+                if_statement.condition.get_line_info()
+            )));
+        }
+
         Ok(())
     }
 
@@ -911,44 +950,6 @@ impl Visitor for SemanticAnalysis {
         }
     }
 
-    #[allow(clippy::single_match)]
-    fn finish_if_statement(
-        &mut self,
-        if_statement: &mut IfStatement,
-        context: &mut Context,
-    ) -> VResult {
-        match &if_statement.condition {
-            Expression::BinaryExpression(ref b) => {
-                if let Expression::VariableDeclaration(ref v) = *b.lhs_expression {
-                    if !v.is_constant() {
-                        return Err(Box::from(format!(
-                            "Invalid condition type in `if` statement on {}",
-                            if_statement.condition.get_line_info()
-                        )));
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        let expression_type = context.environment.get_expression_type(
-            &if_statement.condition,
-            "",
-            &[],
-            &[],
-            context.scope_context.as_ref().unwrap_or_default(),
-        );
-
-        if !expression_type.is_bool_type() {
-            return Err(Box::from(format!(
-                "Invalid condition type in `if` statement on {}",
-                if_statement.condition.get_line_info()
-            )));
-        }
-
-        Ok(())
-    }
-
     fn finish_return_statement(
         &mut self,
         statement: &mut ReturnStatement,
@@ -958,7 +959,7 @@ impl Visitor for SemanticAnalysis {
         let enclosing = context.enclosing_type_identifier().unwrap();
 
         // This means we simply trust the standard library is written correctly
-        if enclosing.token.eq("Flint_Global") {
+        if enclosing.token.eq(crate::environment::FLINT_GLOBAL) {
             return Ok(());
         }
 

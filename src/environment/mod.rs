@@ -8,6 +8,13 @@ use std::collections::HashMap;
 
 mod expr_type_check;
 
+pub(crate) const FLINT_GLOBAL: &str = "Flint_Global";
+pub(crate) const FLINT_GLOBAL_TRANSFER: &str = "Flint_transfer";
+pub(crate) const FLINT_GLOBAL_ARRAY_REMOVE: &str = "Flint_array_remove";
+pub(crate) const FLINT_GLOBAL_ARRAY_INSERT: &str = "Flint_array_insert";
+pub(crate) const FLINT_GLOBAL_ARRAY_LENGTH: &str = "Flint_array_length";
+const FLINT_RUNTIME_PREFIX: &str = "Flint_";
+
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
     pub contract_declarations: Vec<Identifier>,
@@ -277,14 +284,6 @@ impl Environment {
             .unwrap()
             .public_initializer
             .as_mut()
-    }
-
-    pub fn has_public_initialiser(&self, type_id: &str) -> bool {
-        self.types
-            .get(type_id)
-            .unwrap()
-            .public_initializer
-            .is_some()
     }
 
     pub fn is_contract_declared(&self, type_id: &str) -> bool {

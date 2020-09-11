@@ -166,7 +166,7 @@ impl MoveStructInitialiser {
             counter: 0,
         };
 
-        let mut function_context = FunctionContext {
+        let function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
             enclosing_type: self.identifier.token.clone(),
@@ -195,7 +195,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&mut function_context, false, false)
+                .generate(&function_context, false, false)
             })
             .collect();
 
@@ -321,7 +321,7 @@ impl MoveStructInitialiser {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                .generate(&mut function_context),
+                                .generate(&function_context),
                             ),
                         },
                     ));

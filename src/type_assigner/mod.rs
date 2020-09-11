@@ -8,22 +8,24 @@ pub struct TypeAssigner {}
 impl Visitor for TypeAssigner {
     fn start_variable_declaration(
         &mut self,
-        _t: &mut VariableDeclaration,
-        _ctx: &mut Context,
+        declaration: &mut VariableDeclaration,
+        ctx: &mut Context,
     ) -> VResult {
-        if _ctx.in_function_or_special() {
-            if let Some(ref mut context) = _ctx.scope_context {
-                context.local_variables.push(_t.clone());
+        if ctx.in_function_or_special() {
+            if let Some(ref mut context) = ctx.scope_context {
+                context.local_variables.push(declaration.clone());
             }
 
-            if let Some(ref mut function_declaration_context) = _ctx.function_declaration_context {
+            if let Some(ref mut function_declaration_context) = ctx.function_declaration_context {
                 function_declaration_context
                     .local_variables
-                    .push(_t.clone());
+                    .push(declaration.clone());
             } else if let Some(ref mut special_declaration_context) =
-                _ctx.special_declaration_context
+                ctx.special_declaration_context
             {
-                special_declaration_context.local_variables.push(_t.clone());
+                special_declaration_context
+                    .local_variables
+                    .push(declaration.clone());
             }
         }
         Ok(())

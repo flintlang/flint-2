@@ -119,64 +119,6 @@ impl MoveRuntimeFunction {
         "
         .to_string()
     }
-
-    /* TURN OFF LIBRA
-      #[allow(dead_code)]
-      pub fn get_deposit() -> String {
-          "Quartz_send(money: &mut Libra.Libra<LBR.LBR>, addr: address) { \n \
-               LibraAccount.deposit(move(addr), Quartz_withdrawAll(move(money))); \n \
-               return; \n }"
-              .to_string()
-      }
-
-      pub fn get_array_funcs() -> String {
-          "
-
-          _GetFromArrayInt(vec: &mut vector<u64>, index: u64):u64 {
-              return  *Vector.borrow<u64>(freeze(move(vec)), move(index));
-          }
-
-
-          _insert_array_index_u64(vec: &mut vector<u64>, index: u64, value: u64) {
-      let length: u64;
-      let temp: u64;
-      length = Vector.length<u64>(freeze(copy(vec)));
-      Vector.push_back<u64>(copy(vec), move(value));
-      if (copy(length) == copy(index)) {
-        Vector.swap<u64>(copy(vec), copy(index), copy(length));
-        temp = Vector.pop_back<u64>(copy(vec));
-        _ = move(temp);
-      };
-      _ = move(vec);
-      return;
-    }
-
-
-    _insert_array_index_bool(vec: &mut vector<bool>, index: u64, value: bool) {
-      let length: u64;
-      let temp: bool;
-      length = Vector.length<bool>(freeze(copy(vec)));
-      Vector.push_back<bool>(copy(vec), move(value));
-      if (copy(length) == copy(index)) {
-        Vector.swap<bool>(copy(vec), copy(index), copy(length));
-        temp = Vector.pop_back<bool>(copy(vec));
-        _ = move(temp);
-      };
-      _ = move(vec);
-      return;
-    }"
-          .to_string()
-      }
-
-      pub fn get_revert_if_greater() -> String {
-          "Flint$RevertIfGreater(a: u64, b: u64): u64 {  \n \
-               assert(copy(a) <= move(b), 1); \n \
-               return move(a); \n \
-           }"
-              .to_string()
-      }
-
-      */
 }
 
 impl fmt::Display for MoveRuntimeFunction {

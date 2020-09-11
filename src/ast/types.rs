@@ -136,7 +136,7 @@ impl Type {
             Type::Int => "Int".to_string(),
             Type::String => "String".to_string(),
             Type::Address => "Address".to_string(),
-            Type::Error => "Quartz$ErrorType".to_string(),
+            Type::Error => "Flint_ErrorType".to_string(),
             Type::SelfType => "Self".to_string(),
             Type::Solidity(s) => format!("{:?}", s),
             Type::TypeState => unimplemented!(),

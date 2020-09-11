@@ -5,14 +5,13 @@ use super::ir::{MoveIRExpression, MoveIRFunctionCall};
 use crate::ast::calls::FunctionArgument;
 use crate::ast::{Expression, ExternalCall, FunctionCall, Identifier};
 use crate::environment::{CallableInformation, FunctionCallMatchResult};
-use crate::moveir::MovePosition;
 
 pub(crate) struct MoveExternalCall {
     pub external_call: ExternalCall,
 }
 
 impl MoveExternalCall {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         if let Expression::FunctionCall(f) =
             *self.external_call.function_call.rhs_expression.clone()
         {
@@ -96,7 +95,7 @@ pub(crate) struct MoveFunctionCall {
 }
 
 impl MoveFunctionCall {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let mut look_up = self.function_call.clone();
         if !self.function_call.arguments.is_empty() {
             let mut args = self.function_call.arguments.clone();

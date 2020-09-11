@@ -6,9 +6,9 @@ use crate::ast::types::Type;
 use crate::ast::{SpecialDeclaration, StructDeclaration, StructMember, VariableDeclaration};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function::{generate_function_type, LLVMFunction};
-use crate::ewasm::inkwell::types::BasicTypeEnum;
 use crate::ewasm::structs::utils::generate_initialiser;
 use crate::ewasm::types::{llvm_dictionary, LLVMType};
+use inkwell::types::BasicTypeEnum;
 use std::convert::TryInto;
 
 pub struct LLVMStruct<'a> {

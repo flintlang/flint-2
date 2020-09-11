@@ -13,7 +13,7 @@ pub(crate) struct MoveIdentifier {
 impl MoveIdentifier {
     pub fn generate(
         &self,
-        function_context: &mut FunctionContext,
+        function_context: &FunctionContext,
         force: bool,
         f_call: bool,
     ) -> MoveIRExpression {
@@ -61,7 +61,7 @@ impl MoveIdentifier {
         if let Some(identifier_type) = function_context
             .scope_context
             .type_for(&self.identifier.token)
-        { 
+        {
             if identifier_type.is_currency_type(&libra::currency()) && f_call {
                 return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(ir_identifier)));
             }

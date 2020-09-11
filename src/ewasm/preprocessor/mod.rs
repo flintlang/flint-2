@@ -25,6 +25,11 @@ use itertools::Itertools;
 
 pub struct LLVMPreProcessor {}
 
+impl LLVMPreProcessor {
+    pub(crate) const CALLER_PROTECTIONS_PARAM: &'static str = "caller";
+    pub(crate) const CALLER_WRAPPER_NAME: &'static str = "_getCaller";
+}
+
 impl Visitor for LLVMPreProcessor {
     fn start_contract_declaration(
         &mut self,
@@ -82,7 +87,7 @@ impl Visitor for LLVMPreProcessor {
                         ]
                     } else {
                         let contract_parameter = Parameter {
-                            identifier: Identifier::generated("this"),
+                            identifier: Identifier::generated(Identifier::SELF),
                             type_assignment: Type::InoutType(InoutType {
                                 key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                                     declaration.identifier.token.as_str(),
@@ -142,7 +147,7 @@ impl Visitor for LLVMPreProcessor {
         for mut declaration in &mut dec.members {
             if let StructMember::SpecialDeclaration(sd) = &mut declaration {
                 sd.head.parameters.push(Parameter {
-                    identifier: Identifier::generated("this"),
+                    identifier: Identifier::generated(Identifier::SELF),
                     type_assignment: Type::InoutType(InoutType {
                         key_type: Box::new(Type::UserDefinedType(dec.identifier.clone())),
                     }),
@@ -167,7 +172,7 @@ impl Visitor for LLVMPreProcessor {
                     modifiers: vec![Modifier::Public],
                     mutates: vec![],
                     parameters: vec![Parameter {
-                        identifier: Identifier::generated("this"),
+                        identifier: Identifier::generated(Identifier::SELF),
                         type_assignment: Type::InoutType(InoutType {
                             key_type: Box::new(Type::UserDefinedType(dec.identifier.clone())),
                         }),
@@ -206,15 +211,15 @@ impl Visitor for LLVMPreProcessor {
         declaration.mangled_identifier = Some(mangled_name);
 
         if let Some(enclosing_type) = &declaration.head.identifier.enclosing_type {
-            if enclosing_type.eq("Flint_Global") {
+            if enclosing_type.eq(crate::environment::FLINT_GLOBAL) {
                 return Ok(());
             }
         }
 
-        // construct self parameter for struct
+        // Construct self parameter for struct
         if let Some(ref struct_ctx) = ctx.struct_declaration_context {
             let self_param = construct_parameter(
-                "this".to_string(),
+                Identifier::SELF.to_string(),
                 Type::InoutType(InoutType {
                     key_type: Box::new(Type::UserDefinedType(Identifier::generated(
                         &struct_ctx.identifier.token,
@@ -371,7 +376,7 @@ impl Visitor for LLVMPreProcessor {
                 if let Some(caller) = &contract_ctx.caller {
                     caller_id = &caller.token;
                 } else {
-                    caller_id = "caller";
+                    caller_id = LLVMPreProcessor::CALLER_PROTECTIONS_PARAM;
                 }
 
                 let caller_declaration = {
@@ -394,7 +399,7 @@ impl Visitor for LLVMPreProcessor {
                     ))),
                     rhs_expression: Box::new(Expression::FunctionCall(FunctionCall {
                         arguments: vec![],
-                        identifier: Identifier::generated("_getCaller"),
+                        identifier: Identifier::generated(LLVMPreProcessor::CALLER_WRAPPER_NAME),
                         mangled_identifier: None,
                     })),
                     op: BinOp::Equal,
@@ -565,7 +570,7 @@ impl Visitor for LLVMPreProcessor {
             };
 
             if !Environment::is_runtime_function_call(call) {
-                // mangles name
+                // Mangles name
                 call.identifier.token = mangle_ewasm_function(&function_name, enclosing_type);
 
                 // Pass in the parameter for the function to operate on. If it is a struct function,
@@ -573,7 +578,7 @@ impl Visitor for LLVMPreProcessor {
                 let contract_argument = if ctx.function_call_receiver_trail.is_empty() {
                     FunctionArgument {
                         identifier: None,
-                        expression: Expression::Identifier(Identifier::generated("this")),
+                        expression: Expression::Identifier(Identifier::generated(Identifier::SELF)),
                     }
                 } else {
                     FunctionArgument {
@@ -599,9 +604,10 @@ impl Visitor for LLVMPreProcessor {
                 };
 
                 call.arguments.push(contract_argument);
-            } else if !enclosing_type.eq("Flint_Global") {
-                // mangles name
-                call.identifier.token = mangle_ewasm_function(&function_name, "Flint_Global");
+            } else if !enclosing_type.eq(crate::environment::FLINT_GLOBAL) {
+                // Mangles name
+                call.identifier.token =
+                    mangle_ewasm_function(&function_name, crate::environment::FLINT_GLOBAL);
             }
         }
 

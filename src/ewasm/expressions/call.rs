@@ -1,10 +1,10 @@
-use super::inkwell::types::AnyType;
 use crate::ast::calls::{ExternalCall, FunctionCall};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::expressions::LLVMExpression;
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::values::BasicValueEnum;
 use crate::ewasm::utils::get_num_pointer_layers;
+use inkwell::types::AnyType;
+use inkwell::values::BasicValueEnum;
 
 pub struct LLVMExternalCall<'a> {
     pub external_call: &'a ExternalCall,
@@ -33,8 +33,7 @@ impl<'a> LLVMFunctionCall<'a> {
         let fn_name = &self.function_call.identifier.token;
 
         if self.is_init() {
-            // add local variable of struct field
-
+            // Add local variable of struct field
             let struct_type = codegen
                 .module
                 .get_function(self.function_call.identifier.token.as_str())
@@ -49,7 +48,7 @@ impl<'a> LLVMFunctionCall<'a> {
 
             let struct_var = struct_type.const_zero();
 
-            // add local variable to function call arguments
+            // Add local variable to function call arguments
             function_context.add_local("tmp_var", BasicValueEnum::StructValue(struct_var));
         }
 

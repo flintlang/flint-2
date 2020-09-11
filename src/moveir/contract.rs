@@ -22,6 +22,7 @@ use crate::ast::{
 use crate::context::ScopeContext;
 use crate::environment::Environment;
 use crate::moveir::identifier::MoveSelf;
+use crate::moveir::preprocessor::MovePreProcessor;
 
 pub struct MoveContract {
     pub contract_declaration: ContractDeclaration,
@@ -33,6 +34,8 @@ pub struct MoveContract {
 }
 
 impl MoveContract {
+    const SHADOW: &'static str = "Flint_self";
+
     pub(crate) fn generate(&self) -> String {
         let import_code = self.generate_imports();
 
@@ -59,7 +62,7 @@ impl MoveContract {
             .collect::<Vec<String>>()
             .join("\n\n");
 
-        let mut function_context = FunctionContext {
+        let function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: Default::default(),
             enclosing_type: "".to_string(),
@@ -96,7 +99,7 @@ impl MoveContract {
             .join(",\n");
 
         let (dict_names, dict_resources, dict_runtime, dict_initialisation) =
-            self.get_dict_code(&mut function_context, &*variable_declarations);
+            self.get_dict_code(&function_context, &*variable_declarations);
 
         let dict_names: String = dict_names.into_iter().collect::<Vec<String>>().join(", ");
 
@@ -104,7 +107,7 @@ impl MoveContract {
             .struct_declarations
             .clone()
             .into_iter()
-            .filter(|s| s.identifier.token != "Flint_Global")
+            .filter(|s| s.identifier.token != crate::environment::FLINT_GLOBAL)
             .map(|s| MoveStruct {
                 struct_declaration: s,
                 environment: self.environment.clone(),
@@ -170,7 +173,7 @@ impl MoveContract {
             counter: 0,
         };
 
-        let mut function_context = FunctionContext {
+        let function_context = FunctionContext {
             environment: self.environment.clone(),
             scope_context: scope,
             enclosing_type: self.contract_declaration.identifier.token.clone(),
@@ -187,7 +190,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&mut function_context, false, false)
+                .generate(&function_context, false, false)
                 .to_string()
             })
             .collect();
@@ -200,7 +203,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                .generate(&mut function_context, true, false)
+                .generate(&function_context, true, false)
                 .to_string()
             })
             .collect::<Vec<String>>()
@@ -297,7 +300,7 @@ impl MoveContract {
                                 expression: e,
                                 position: Default::default(),
                             }
-                            .generate(&mut function_context)
+                            .generate(&function_context)
                         })
                         .collect();
 
@@ -342,7 +345,7 @@ impl MoveContract {
                                     expression: (**expr).clone(),
                                     position: Default::default(),
                                 }
-                                .generate(&mut function_context),
+                                .generate(&function_context),
                             ),
                         },
                     ));
@@ -461,8 +464,6 @@ impl MoveContract {
         if !(statements.is_empty()) {
             function_context.is_constructor = false;
 
-            let shadow = "Quartz$self";
-
             let self_type = MoveType::move_type(
                 Type::type_from_identifier(self.contract_declaration.identifier.clone()),
                 Option::from(self.environment.clone()),
@@ -470,13 +471,13 @@ impl MoveContract {
             .generate(&function_context);
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: "this".to_string(),
+                identifier: Identifier::SELF.to_string(),
                 declaration_type: MoveIRType::MutableReference(Box::from(self_type.clone())),
             });
             function_context.emit(MoveIRStatement::Expression(emit));
 
             let emit = MoveIRExpression::VariableDeclaration(MoveIRVariableDeclaration {
-                identifier: shadow.to_string(),
+                identifier: MoveContract::SHADOW.to_string(),
                 declaration_type: self_type,
             });
 
@@ -524,7 +525,7 @@ impl MoveContract {
 
         let initialiser: String;
         let publisher: String;
-        parameters.push("account: &signer".to_string());
+        parameters.push(format!("account: {}", MovePreProcessor::SIGNER_TYPE));
         let parameters = parameters.join(", ");
 
         if !dict_names.is_empty() {
@@ -590,7 +591,7 @@ impl MoveContract {
 
     fn get_dict_code(
         &self,
-        mut function_context: &mut FunctionContext,
+        function_context: &FunctionContext,
         variable_declarations: &[VariableDeclaration],
     ) -> (Vec<String>, String, String, Vec<MoveIRStatement>) {
         let dict_resources: Vec<&VariableDeclaration> = variable_declarations
@@ -639,13 +640,13 @@ impl MoveContract {
                                 expression: elem.0.clone(),
                                 position: Default::default(),
                             }
-                            .generate(&mut function_context);
+                                .generate(function_context);
 
                             let rhs = MoveExpression {
                                 expression: elem.1.clone(),
                                 position: Default::default(),
                             }
-                            .generate(&mut function_context);
+                                .generate(&function_context);
 
                             let f_name = format!("Self._insert_{}", r_name);
                             let caller_argument = Identifier::generated("account");

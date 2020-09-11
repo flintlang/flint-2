@@ -1,12 +1,12 @@
 use crate::ast::expressions::Identifier;
 use crate::ast::{CallerProtection, FunctionDeclaration};
 use crate::ewasm::function_context::FunctionContext;
-use crate::ewasm::inkwell::types::{BasicType, BasicTypeEnum};
-use crate::ewasm::inkwell::values::{BasicValue, BasicValueEnum};
 use crate::ewasm::statements::LLVMStatement;
 use crate::ewasm::types::LLVMType;
 use crate::ewasm::utils::generate_caller_variable;
 use crate::ewasm::Codegen;
+use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::values::{BasicValue, BasicValueEnum};
 use std::collections::HashMap;
 
 pub struct LLVMFunction<'a> {
@@ -54,7 +54,7 @@ impl<'a> LLVMFunction<'a> {
                     .unwrap()
                     .as_pointer_value()
                     .as_basic_value_enum();
-                function_context.add_local("this", contract_global);
+                function_context.add_local(Identifier::SELF, contract_global);
             }
 
             if (!self.caller_protections.iter().any(|c| c.is_any())

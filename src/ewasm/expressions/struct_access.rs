@@ -1,9 +1,9 @@
 use super::call::LLVMFunctionCall;
-use super::inkwell::types::StructType;
-use super::inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
-use crate::ast::{BinOp, BinaryExpression, Expression, FunctionCall};
+use crate::ast::{BinOp, BinaryExpression, Expression, FunctionCall, Identifier};
 use crate::ewasm::codegen::Codegen;
 use crate::ewasm::function_context::FunctionContext;
+use inkwell::types::StructType;
+use inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
 
 pub struct LLVMStructAccess<'a> {
     pub expr: &'a Expression,
@@ -106,7 +106,7 @@ impl<'a> LLVMStructAccess<'a> {
 
     fn flatten_expr(&self, expr: &'a Expression) -> Vec<FieldOrFunction<'a>> {
         match expr {
-            Expression::SelfExpression => vec![FieldOrFunction::StructField("this")],
+            Expression::SelfExpression => vec![FieldOrFunction::StructField(Identifier::SELF)],
             Expression::Identifier(id) => vec![FieldOrFunction::StructField(id.token.as_str())],
             Expression::BinaryExpression(BinaryExpression {
                 lhs_expression,

@@ -1,5 +1,3 @@
-extern crate inkwell;
-
 use crate::ewasm::codegen::Codegen;
 use inkwell::attributes::{Attribute, AttributeLoc};
 use inkwell::module::Linkage;

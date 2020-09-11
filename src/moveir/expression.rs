@@ -4,7 +4,8 @@ use super::declaration::MoveVariableDeclaration;
 use super::function::FunctionContext;
 use super::identifier::MoveIdentifier;
 use super::ir::{
-    MoveIRExpression, MoveIRFunctionCall, MoveIRLiteral, MoveIROperation, MoveIRVector, MoveIRAssignment
+    MoveIRAssignment, MoveIRExpression, MoveIRFunctionCall, MoveIRLiteral, MoveIROperation,
+    MoveIRVector,
 };
 use super::literal::MoveLiteralToken;
 use super::property_access::MovePropertyAccess;
@@ -12,8 +13,8 @@ use super::r#type::MoveType;
 use super::runtime_function::MoveRuntimeFunction;
 use super::*;
 use crate::ast::{
-    mangle_dictionary, AttemptExpression, BinOp, BinaryExpression, CastExpression, Expression,
-    Identifier, InoutExpression, SubscriptExpression, Type,
+    mangle_dictionary, BinOp, BinaryExpression, CastExpression, Expression, Identifier,
+    InoutExpression, SubscriptExpression, Type,
 };
 use crate::moveir::identifier::MoveSelf;
 use crate::moveir::preprocessor::MovePreProcessor;
@@ -24,7 +25,7 @@ pub(crate) struct MoveExpression {
 }
 
 impl MoveExpression {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         match self.expression.clone() {
             Expression::Identifier(i) => MoveIdentifier {
                 identifier: i,
@@ -59,9 +60,7 @@ impl MoveExpression {
                 position: Default::default(),
             }
             .generate(function_context),
-            Expression::AttemptExpression(a) => {
-                MoveAttemptExpression { expression: a }.generate(function_context)
-            }
+            Expression::AttemptExpression(_) => panic!("Should have been removed in preprocessor"),
             Expression::Literal(l) => {
                 MoveIRExpression::Literal(MoveLiteralToken { token: l }.generate())
             }
@@ -122,7 +121,7 @@ struct MoveCastExpression {
 }
 
 impl MoveCastExpression {
-    pub fn generate(&self, mut function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let enclosing = self.expression.expression.enclosing_type();
         let enclosing = enclosing
             .as_ref()
@@ -142,7 +141,7 @@ impl MoveCastExpression {
             expression: (*self.expression.expression).clone(),
             position: Default::default(),
         }
-        .generate(&mut function_context);
+        .generate(function_context);
 
         if original_type_information.0 <= target_type_information.0 {
             return expression_code;
@@ -185,7 +184,7 @@ pub(crate) struct MoveSubscriptExpression {
 }
 
 impl MoveSubscriptExpression {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let rhs = self.rhs.clone();
         let rhs =
             rhs.unwrap_or_else(|| MoveIRExpression::Literal(MoveIRLiteral::Hex("0x0".to_string())));
@@ -215,20 +214,34 @@ impl MoveSubscriptExpression {
 
         if let MovePosition::Left = self.position.clone() {
             return match base_type {
-                Type::FixedSizedArrayType(a) => { 
-                    let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+                Type::FixedSizedArrayType(a) => {
+                    let elem_type = MoveType::move_type(
+                        *a.key_type,
+                        Some(function_context.environment.clone()),
+                    )
+                    .generate(function_context);
 
-                    MoveIRExpression::Assignment(MoveIRAssignment{
-                        identifier: format!("*Vector.borrow_mut<{}>({}, {})", elem_type, identifier_code, index),
-                        expression: Box::from(rhs)
+                    MoveIRExpression::Assignment(MoveIRAssignment {
+                        identifier: format!(
+                            "*Vector.borrow_mut<{}>({}, {})",
+                            elem_type, identifier_code, index
+                        ),
+                        expression: Box::from(rhs),
                     })
                 }
                 Type::ArrayType(a) => {
-                    let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+                    let elem_type = MoveType::move_type(
+                        *a.key_type,
+                        Some(function_context.environment.clone()),
+                    )
+                    .generate(function_context);
 
-                    MoveIRExpression::Assignment(MoveIRAssignment{
-                        identifier: format!("*Vector.borrow_mut<{}>({}, {})", elem_type, identifier_code, index),
-                        expression: Box::from(rhs)
+                    MoveIRExpression::Assignment(MoveIRAssignment {
+                        identifier: format!(
+                            "*Vector.borrow_mut<{}>({}, {})",
+                            elem_type, identifier_code, index
+                        ),
+                        expression: Box::from(rhs),
                     })
                 }
                 Type::DictionaryType(_) => {
@@ -259,16 +272,30 @@ impl MoveSubscriptExpression {
 
         match base_type {
             Type::FixedSizedArrayType(a) => {
-                let identifier_code = MoveIRExpression::Operation(MoveIROperation::Reference(Box::from(identifier_code)));
-                let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+                let identifier_code = MoveIRExpression::Operation(MoveIROperation::Reference(
+                    Box::from(identifier_code),
+                ));
+                let elem_type =
+                    MoveType::move_type(*a.key_type, Some(function_context.environment.clone()))
+                        .generate(function_context);
 
-                MoveIRExpression::Inline(format!("*Vector.borrow<{}>({}, {})", elem_type, identifier_code, index))
+                MoveIRExpression::Inline(format!(
+                    "*Vector.borrow<{}>({}, {})",
+                    elem_type, identifier_code, index
+                ))
             }
             Type::ArrayType(a) => {
-                let identifier_code = MoveIRExpression::Operation(MoveIROperation::Reference(Box::from(identifier_code)));
-                let elem_type = MoveType::move_type(*a.key_type, Some(function_context.environment.clone())).generate(function_context);
+                let identifier_code = MoveIRExpression::Operation(MoveIROperation::Reference(
+                    Box::from(identifier_code),
+                ));
+                let elem_type =
+                    MoveType::move_type(*a.key_type, Some(function_context.environment.clone()))
+                        .generate(function_context);
 
-                MoveIRExpression::Inline(format!("*Vector.borrow<{}>({}, {})", elem_type, identifier_code, index))
+                MoveIRExpression::Inline(format!(
+                    "*Vector.borrow<{}>({}, {})",
+                    elem_type, identifier_code, index
+                ))
             }
             Type::DictionaryType(_) => {
                 let f_name = format!(
@@ -285,43 +312,13 @@ impl MoveSubscriptExpression {
     }
 }
 
-struct MoveAttemptExpression {
-    pub expression: AttemptExpression,
-}
-
-impl MoveAttemptExpression {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
-        let _function_call = self.expression.function_call.clone();
-        let identifier =
-            "QuartzWrapper".to_owned() + &self.expression.function_call.identifier.token.clone();
-        let arguments: Vec<MoveIRExpression> = self
-            .expression
-            .function_call
-            .arguments
-            .clone()
-            .into_iter()
-            .map(|a| {
-                MoveExpression {
-                    expression: a.expression,
-                    position: Default::default(),
-                }
-                .generate(function_context)
-            })
-            .collect();
-        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
-            identifier,
-            arguments,
-        })
-    }
-}
-
 struct MoveInoutExpression {
     pub expression: InoutExpression,
     pub position: MovePosition,
 }
 
 impl MoveInoutExpression {
-    pub fn generate(&self, mut function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         let expression_type = function_context.environment.get_expression_type(
             &*self.expression.expression.clone(),
             &function_context.enclosing_type,
@@ -335,7 +332,7 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(&mut function_context);
+            .generate(function_context);
         }
 
         if let MovePosition::Accessed = self.position {
@@ -346,7 +343,7 @@ impl MoveInoutExpression {
                         expression: *self.expression.expression.clone(),
                         position: MovePosition::Left,
                     }
-                    .generate(&mut function_context),
+                    .generate(function_context),
                 )));
             }
         }
@@ -356,7 +353,7 @@ impl MoveInoutExpression {
                 expression: *self.expression.expression.clone(),
                 position: self.position.clone(),
             }
-            .generate(&mut function_context);
+            .generate(function_context);
         }
 
         let expression = self.expression.clone();
@@ -365,7 +362,7 @@ impl MoveInoutExpression {
                 expression: *expression.expression,
                 position: MovePosition::Inout,
             }
-            .generate(&mut function_context),
+            .generate(function_context),
         )))
     }
 }
@@ -376,7 +373,7 @@ struct MoveBinaryExpression {
 }
 
 impl MoveBinaryExpression {
-    pub fn generate(&self, function_context: &mut FunctionContext) -> MoveIRExpression {
+    pub fn generate(&self, function_context: &FunctionContext) -> MoveIRExpression {
         if let BinOp::Dot = self.expression.op {
             if let Expression::FunctionCall(f) = *self.expression.rhs_expression.clone() {
                 return MoveFunctionCall {
@@ -498,7 +495,7 @@ pub fn is_signer_type(expression: &Expression, function_context: &FunctionContex
         if let Some(identifier_type) = function_context.scope_context.type_for(&id.token) {
             return identifier_type
                 == Type::UserDefinedType(Identifier {
-                    token: "&signer".to_string(),
+                    token: MovePreProcessor::SIGNER_TYPE.to_string(),
                     enclosing_type: None,
                     line_info: Default::default(),
                 });
