@@ -91,7 +91,7 @@ The result of this is that at the moment, it is not clear if it is possible to d
 #### Wrapper Methods
 To allow calls into our Move contracts, we provide a wrapper method for each public function which takes in an address and borrows the resource published at that address, which is then passed into the inner function. In order to facilitate the minimum amount of runtime checking of type states and caller protections (which are only required for external calls), we also perform these checks inside the wrapper methods.
 
-#### Dictionaries
+#### Arrays and Dictionaries
 - Array values are accessed using the libra vector functions ```Vector.borrow()``` and ```Vector.borrow_mut()```, depending on whether the value should be mutated or not. There are also three runtime functions, ```Flint_array_insert()```, ```Flint_array_remove``` and ```Flint_array_length```, to allow elements to be inserted and removed from dynamic arrays, and to get the length of the array. 
 - In Move, each value in the dictionary is wrapped in a resource, and is stored at the address given by the key. This means that dictionaries are restricted to only having keys of type ```address```, but since dictionaries in Flint can have any key type, this should be implemented.
 
