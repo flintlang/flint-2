@@ -907,17 +907,25 @@ impl Visitor for MovePreProcessor {
                 || call.identifier.token.as_str() == FLINT_GLOBAL_ARRAY_LENGTH
             {
                 let array_argument = &call.arguments.first().unwrap().expression;
-                let type_id = if let Some(enclosing_type) = &call.identifier.enclosing_type.as_ref() {
+                let type_id = if let Some(enclosing_type) = &call.identifier.enclosing_type.as_ref()
+                {
                     enclosing_type
                 } else {
                     ""
                 };
 
-                let expr_type = ctx.environment.get_expression_type(&array_argument, type_id, &[], &[], &ctx.scope_context.as_ref().unwrap_or_default());
+                let expr_type = ctx.environment.get_expression_type(
+                    &array_argument,
+                    type_id,
+                    &[],
+                    &[],
+                    &ctx.scope_context.as_ref().unwrap_or_default(),
+                );
 
                 if let Type::InoutType(i) = expr_type {
                     if let Type::ArrayType(a) = *i.key_type {
-                        call.identifier.token = mangle_array_runtime_function(&call.identifier.token, &*a.key_type);
+                        call.identifier.token =
+                            mangle_array_runtime_function(&call.identifier.token, &*a.key_type);
                     }
                 }
             }
@@ -1453,6 +1461,6 @@ fn generate_move_type(elem_type: &Type) -> String {
         Type::ArrayType(a) => format!("vector<{}>", generate_move_type(&a.key_type)),
         Type::UserDefinedType(t) => t.token.clone(),
         Type::Bool => "bool".to_string(),
-        _ => unimplemented!()
+        _ => unimplemented!(),
     }
 }

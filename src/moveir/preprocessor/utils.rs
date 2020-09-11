@@ -642,8 +642,6 @@ pub fn pre_assign(
             }
         };
 
-        dbg!(declaration.clone());
-        dbg!(expression.clone());
         if struct_is_mutable_reference(&mut expression, &temp_identifier, ctx) {
             ctx.pre_statements
                 .push(Statement::Expression(Expression::BinaryExpression(
