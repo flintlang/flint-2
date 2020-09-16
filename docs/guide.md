@@ -130,7 +130,7 @@ Additionally, to run the testing libraries, install:
  * Libra 
   
 #### Install  
-Assuming you have all the prerequisites, you should be able to build flint by running  
+Assuming you have all the prerequisites, you should be able to build Flint by running  
   
 ```bash  
 git clone https://www.github.com/flintlang/flint-2.git
