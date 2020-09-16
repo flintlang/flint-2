@@ -74,7 +74,7 @@ impl MoveFunction {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
+                .generate(&function_context, false, false)
             })
             .collect();
         let parameters: Vec<String> = parameters
@@ -189,7 +189,7 @@ impl MoveFunction {
                     identifier: id,
                     position: Default::default(),
                 }
-                    .generate(&function_context, true, false);
+                .generate(&function_context, true, false);
                 function_context.emit(MoveIRStatement::Inline(format!("_ = {}", expression)));
             }
         }

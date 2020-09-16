@@ -190,7 +190,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
+                .generate(&function_context, false, false)
                 .to_string()
             })
             .collect();
@@ -203,7 +203,7 @@ impl MoveContract {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, true, false)
+                .generate(&function_context, true, false)
                 .to_string()
             })
             .collect::<Vec<String>>()
@@ -300,7 +300,7 @@ impl MoveContract {
                                 expression: e,
                                 position: Default::default(),
                             }
-                                .generate(&function_context)
+                            .generate(&function_context)
                         })
                         .collect();
 
@@ -345,7 +345,7 @@ impl MoveContract {
                                     expression: (**expr).clone(),
                                     position: Default::default(),
                                 }
-                                    .generate(&function_context),
+                                .generate(&function_context),
                             ),
                         },
                     ));

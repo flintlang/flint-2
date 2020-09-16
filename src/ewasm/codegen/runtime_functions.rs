@@ -23,7 +23,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let func_type = address_type.fn_type(&[], false);
 
-        let func_val = self.module.add_function(LLVMPreProcessor::CALLER_WRAPPER_NAME, func_type, None);
+        let func_val =
+            self.module
+                .add_function(LLVMPreProcessor::CALLER_WRAPPER_NAME, func_type, None);
 
         let bb = self.context.append_basic_block(func_val, "entry");
 
@@ -76,7 +78,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .context
             .i64_type()
             .fn_type(&[param_type, param_type], false);
-        let exp = self.module.add_function(Codegen::EXPONENTIATION_NAME, int_type, None);
+        let exp = self
+            .module
+            .add_function(Codegen::EXPONENTIATION_NAME, int_type, None);
         let bb = self.context.append_basic_block(exp, "entry");
         self.builder.position_at_end(bb);
 

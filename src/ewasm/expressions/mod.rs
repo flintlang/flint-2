@@ -437,7 +437,10 @@ impl<'a> LLVMBinaryExpression<'a> {
             }
             BinOp::Power => {
                 if lhs.is_int_value() && rhs.is_int_value() {
-                    let exp_func = codegen.module.get_function(Codegen::EXPONENTIATION_NAME).unwrap();
+                    let exp_func = codegen
+                        .module
+                        .get_function(Codegen::EXPONENTIATION_NAME)
+                        .unwrap();
 
                     codegen
                         .builder

@@ -180,7 +180,7 @@ pub fn generate(module: &Module, context: &mut Context) {
         let wasm = fs::read(Path::new(
             get_path(TEMPORARY_DIRECTORY_NAME, "wasm").as_str(),
         ))
-            .expect("Could not read wasm");
+        .expect("Could not read wasm");
         let mut as_wat = wasm2wat(wasm).expect("Could not convert wasm to wat");
 
         // Shift final module closing curly brace onto its own line so it is not removed when trimming exports
@@ -198,7 +198,7 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path(TEMPORARY_DIRECTORY_NAME, "wat").as_str()),
             &as_wat.as_bytes(),
         )
-            .expect("Could not create temporary wat file");
+        .expect("Could not create temporary wat file");
 
         let post_processed_wasm =
             wat2wasm(as_wat.as_bytes()).expect("Could not convert wat to wasm");
@@ -213,14 +213,14 @@ pub fn generate(module: &Module, context: &mut Context) {
             Path::new(get_path(TEMPORARY_DIRECTORY_NAME, "wat").as_str()),
             Path::new(get_path(OUTPUT_DIRECTORY_NAME, "wat").as_str()),
         )
-            .expect("Could not copy wat file from temporary dir to output dir");
+        .expect("Could not copy wat file from temporary dir to output dir");
 
         // TODO remove this for the final release, but for testing the LLVM, we need to be able to read the LLVM files
         fs::copy(
             Path::new(get_path(TEMPORARY_DIRECTORY_NAME, "ll").as_str()),
             Path::new(get_path(OUTPUT_DIRECTORY_NAME, "ll").as_str()),
         )
-            .expect("Could not copy ll file from temporary dir to output dir");
+        .expect("Could not copy ll file from temporary dir to output dir");
 
         // Delete all tmp files
         fs::remove_dir_all(tmp_path).expect("Could not remove temporary directory");

@@ -10,6 +10,9 @@ mod expr_type_check;
 
 pub(crate) const FLINT_GLOBAL: &str = "Flint_Global";
 pub(crate) const FLINT_GLOBAL_TRANSFER: &str = "Flint_transfer";
+pub(crate) const FLINT_GLOBAL_ARRAY_REMOVE: &str = "Flint_array_remove";
+pub(crate) const FLINT_GLOBAL_ARRAY_INSERT: &str = "Flint_array_insert";
+pub(crate) const FLINT_GLOBAL_ARRAY_LENGTH: &str = "Flint_array_length";
 const FLINT_RUNTIME_PREFIX: &str = "Flint_";
 
 #[derive(Debug, Default, Clone)]

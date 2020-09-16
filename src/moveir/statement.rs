@@ -116,7 +116,7 @@ impl MoveReturnStatement {
             expression,
             position: Default::default(),
         }
-            .generate(&function_context);
+        .generate(&function_context);
 
         let (cleanup, expression) =
             remove_moves(self.statement.cleanup.iter().cloned(), expression);
@@ -161,7 +161,7 @@ impl MoveEmitStatement {
                 function_call: self.statement.function_call.clone(),
                 module_name: "Self".to_string(),
             }
-                .generate(function_context)
+            .generate(function_context)
         ))
     }
 }

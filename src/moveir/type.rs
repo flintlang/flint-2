@@ -2,8 +2,8 @@ use super::function::FunctionContext;
 use super::ir::MoveIRType;
 use crate::ast::{FunctionCall, Identifier, Type};
 use crate::environment::Environment;
-use crate::target::libra;
 use crate::moveir::preprocessor::MovePreProcessor;
+use crate::target::libra;
 
 #[derive(Debug, Clone)]
 pub(crate) enum MoveType {

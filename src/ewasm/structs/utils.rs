@@ -73,7 +73,7 @@ pub fn add_initialiser_function_declaration(
             LLVMType {
                 ast_type: &param.type_assignment,
             }
-                .generate(codegen)
+            .generate(codegen)
         })
         .collect::<Vec<BasicTypeEnum>>();
 

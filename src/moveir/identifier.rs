@@ -68,6 +68,7 @@ impl MoveIdentifier {
             if identifier_type.is_currency_type(&libra::currency()) {
                 return ir_identifier;
             }
+
             if identifier_type.is_inout_type() && identifier_type.is_user_defined_type() {
                 if f_call {
                     return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(

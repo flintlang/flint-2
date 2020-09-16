@@ -195,7 +195,7 @@ impl MoveStructInitialiser {
                     identifier: p.identifier,
                     position: MovePosition::Left,
                 }
-                    .generate(&function_context, false, false)
+                .generate(&function_context, false, false)
             })
             .collect();
 
@@ -321,7 +321,7 @@ impl MoveStructInitialiser {
                                     expression: *expr,
                                     position: Default::default(),
                                 }
-                                    .generate(&function_context),
+                                .generate(&function_context),
                             ),
                         },
                     ));

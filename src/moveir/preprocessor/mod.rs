@@ -3,6 +3,10 @@ use crate::ast::Literal::BooleanLiteral;
 use crate::ast::*;
 use crate::context::*;
 use crate::environment::*;
+use crate::environment::{
+    FLINT_GLOBAL, FLINT_GLOBAL_ARRAY_INSERT, FLINT_GLOBAL_ARRAY_LENGTH, FLINT_GLOBAL_ARRAY_REMOVE,
+    FLINT_GLOBAL_TRANSFER,
+};
 use crate::moveir::preprocessor::utils::generate_caller_protections_predicate;
 use crate::type_checker::ExpressionChecker;
 use crate::utils::getters_and_setters::generate_and_add_getters_and_setters;
@@ -281,7 +285,7 @@ impl Visitor for MovePreProcessor {
         );
         declaration.mangled_identifier = Some(mangled_name);
 
-        if enclosing_identifier != crate::environment::FLINT_GLOBAL {
+        if enclosing_identifier != FLINT_GLOBAL {
             if let Some(asset_ctx) = &ctx.asset_context {
                 let asset_ctx_identifier = asset_ctx.identifier.clone();
                 let param_type = Type::UserDefinedType(asset_ctx_identifier);
@@ -770,30 +774,6 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
-    fn start_subscript_expression(
-        &mut self,
-        expr: &mut SubscriptExpression,
-        ctx: &mut Context,
-    ) -> VResult {
-        if let Some(function_context) = &mut ctx.function_declaration_context {
-            let base_type = ctx.environment.get_expression_type(
-                &Expression::Identifier(expr.base_expression.clone()),
-                &expr.base_expression.enclosing_type.as_ref().unwrap(),
-                &[],
-                &[],
-                &ctx.scope_context.as_ref().unwrap_or_default(),
-            );
-            if let Type::DictionaryType(_) = base_type {
-                function_context
-                    .declaration
-                    .tags
-                    .push(format!("_dictionary_{}", expr.base_expression.token));
-            }
-        }
-
-        Ok(())
-    }
-
     fn start_binary_expression(
         &mut self,
         bin_expr: &mut BinaryExpression,
@@ -864,9 +844,57 @@ impl Visitor for MovePreProcessor {
         Ok(())
     }
 
+    fn start_subscript_expression(
+        &mut self,
+        expr: &mut SubscriptExpression,
+        ctx: &mut Context,
+    ) -> VResult {
+        if let Some(function_context) = &mut ctx.function_declaration_context {
+            let base_type = ctx.environment.get_expression_type(
+                &Expression::Identifier(expr.base_expression.clone()),
+                &expr.base_expression.enclosing_type.as_ref().unwrap(),
+                &[],
+                &[],
+                &ctx.scope_context.as_ref().unwrap_or_default(),
+            );
+            if let Type::DictionaryType(_) = base_type {
+                function_context
+                    .declaration
+                    .tags
+                    .push(format!("_dictionary_{}", expr.base_expression.token));
+            } else if !ctx.is_lvalue {
+                let array_id = Identifier::generated(&expr.base_expression.token);
+                let array_dec = VariableDeclaration {
+                    declaration_token: Some("let".to_string()),
+                    identifier: array_id.clone(),
+                    variable_type: base_type,
+                    expression: Some(Box::from(Expression::Identifier(
+                        expr.base_expression.clone(),
+                    ))),
+                };
+
+                if let Some(function_ctx) = &mut ctx.function_declaration_context {
+                    function_ctx.local_variables.push(array_dec.clone());
+                }
+
+                ctx.pre_statements
+                    .push(Statement::Expression(Expression::VariableDeclaration(
+                        array_dec,
+                    )));
+
+                *expr = SubscriptExpression {
+                    base_expression: array_id,
+                    index_expression: expr.index_expression.clone(),
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn start_function_call(&mut self, call: &mut FunctionCall, ctx: &mut Context) -> VResult {
         if Environment::is_runtime_function_call(call) {
-            if crate::environment::FLINT_GLOBAL_TRANSFER == call.identifier.token.as_str() {
+            if FLINT_GLOBAL_TRANSFER == call.identifier.token.as_str() {
                 // This simply changes the first argument of this function call to be the signer
                 // type rather than the address, since as of yet we are unable to access signer types apart
                 // from the caller
@@ -874,7 +902,34 @@ impl Visitor for MovePreProcessor {
                 call.arguments[0].expression = Expression::Identifier(Identifier::generated(
                     MovePreProcessor::CALLER_PROTECTIONS_PARAM,
                 ));
+            } else if call.identifier.token.as_str() == FLINT_GLOBAL_ARRAY_REMOVE
+                || call.identifier.token.as_str() == FLINT_GLOBAL_ARRAY_INSERT
+                || call.identifier.token.as_str() == FLINT_GLOBAL_ARRAY_LENGTH
+            {
+                let array_argument = &call.arguments.first().unwrap().expression;
+                let type_id = if let Some(enclosing_type) = &call.identifier.enclosing_type.as_ref()
+                {
+                    enclosing_type
+                } else {
+                    ""
+                };
+
+                let expr_type = ctx.environment.get_expression_type(
+                    &array_argument,
+                    type_id,
+                    &[],
+                    &[],
+                    &ctx.scope_context.as_ref().unwrap_or_default(),
+                );
+
+                if let Type::InoutType(i) = expr_type {
+                    if let Type::ArrayType(a) = *i.key_type {
+                        call.identifier.token =
+                            mangle_array_runtime_function(&call.identifier.token, &*a.key_type);
+                    }
+                }
             }
+
             return Ok(());
         }
 
@@ -1173,6 +1228,11 @@ impl Visitor for MovePreProcessor {
                         &scope,
                     );
 
+                    if let Type::ArrayType(_) = expression_type {
+                        arg.expression = expression;
+                        return Ok(());
+                    }
+
                     if !expression_type.is_currency_type(&ctx.target.currency)
                         && !expression_type.is_external_resource(ctx.environment.clone())
                     {
@@ -1388,4 +1448,19 @@ fn get_mutable_reference(_t: &BinaryExpression, mut _ctx: &mut Context) -> Optio
     };
 
     None
+}
+
+fn mangle_array_runtime_function(runtime_function: &str, elem_type: &Type) -> String {
+    return format!("{}<{}>", runtime_function, generate_move_type(elem_type));
+}
+
+fn generate_move_type(elem_type: &Type) -> String {
+    match elem_type {
+        Type::Int => "u64".to_string(),
+        Type::Address => "address".to_string(),
+        Type::ArrayType(a) => format!("vector<{}>", generate_move_type(&a.key_type)),
+        Type::UserDefinedType(t) => t.token.clone(),
+        Type::Bool => "bool".to_string(),
+        _ => unimplemented!(),
+    }
 }

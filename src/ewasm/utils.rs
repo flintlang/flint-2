@@ -22,7 +22,10 @@ pub fn generate_caller_variable<'ctx>(
     let caller_address = codegen
         .builder
         .build_call(
-            codegen.module.get_function(LLVMPreProcessor::CALLER_WRAPPER_NAME).unwrap(),
+            codegen
+                .module
+                .get_function(LLVMPreProcessor::CALLER_WRAPPER_NAME)
+                .unwrap(),
             &[],
             "tmp_call",
         )

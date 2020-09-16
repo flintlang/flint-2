@@ -95,9 +95,9 @@ impl Visitor for SemanticAnalysis {
                 );
 
                 if let Type::FixedSizedArrayType(FixedSizedArrayType {
-                                                     key_type: lhs_type,
-                                                     size,
-                                                 }) = &declaration.variable_type
+                    key_type: lhs_type,
+                    size,
+                }) = &declaration.variable_type
                 {
                     if let Type::ArrayType(ArrayType { key_type: rhs_type }) = &source_type {
                         return if *lhs_type == *rhs_type {
@@ -162,7 +162,7 @@ impl Visitor for SemanticAnalysis {
                         .map(|state| state.identifier.token.clone())
                         .collect::<Vec<String>>()
                 )
-                    .as_str(),
+                .as_str(),
             ));
         }
 
@@ -663,7 +663,7 @@ impl Visitor for SemanticAnalysis {
                             return if scope.is_declared(token) {
                                 Ok(())
                             } else if let Some(contract) =
-                            &ctx.contract_behaviour_declaration_context
+                                &ctx.contract_behaviour_declaration_context
                             {
                                 if let Some(caller) = &contract.caller {
                                     if *token == caller.token {
@@ -704,7 +704,8 @@ impl Visitor for SemanticAnalysis {
         let start = range_expression.start_expression.clone();
         let end = range_expression.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {} else {
+        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
+        } else {
             return Err(Box::from(format!(
                 "Invalid Range Declaration: {:?}",
                 range_expression
@@ -722,9 +723,9 @@ impl Visitor for SemanticAnalysis {
         if context.enclosing_type_identifier().is_some()
             && !protection.is_any()
             && !context.environment.contains_caller_protection(
-            protection,
-            &context.enclosing_type_identifier().unwrap().token,
-        )
+                protection,
+                &context.enclosing_type_identifier().unwrap().token,
+            )
         {
             return Err(Box::from(format!(
                 "Undeclared caller protection {}",
@@ -793,9 +794,9 @@ impl Visitor for SemanticAnalysis {
                             *key_type
                         }
                         Type::DictionaryType(DictionaryType {
-                                                 key_type: _,
-                                                 value_type,
-                                             }) => *value_type,
+                            key_type: _,
+                            value_type,
+                        }) => *value_type,
                         _ => {
                             return Err(Box::from(format!(
                                 "Subscript expression on non-array type: {:?}",

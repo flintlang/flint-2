@@ -21,20 +21,6 @@ impl MoveRuntimeFunction {
         })
     }
 
-    pub fn append_to_array_int(vec: MoveIRExpression, value: MoveIRExpression) -> MoveIRExpression {
-        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
-            identifier: MoveRuntimeFunction::AppendToArrayInt.mangle_runtime(),
-            arguments: vec![vec, value],
-        })
-    }
-
-    pub fn get_from_array_int(vec: MoveIRExpression, value: MoveIRExpression) -> MoveIRExpression {
-        MoveIRExpression::FunctionCall(MoveIRFunctionCall {
-            identifier: MoveRuntimeFunction::GetFromArrayInt.mangle_runtime(),
-            arguments: vec![vec, value],
-        })
-    }
-
     pub fn power(first: MoveIRExpression, second: MoveIRExpression) -> MoveIRExpression {
         MoveIRExpression::FunctionCall(MoveIRFunctionCall {
             identifier: MoveRuntimeFunction::Power.mangle_runtime(),
@@ -100,6 +86,34 @@ impl MoveRuntimeFunction {
             assert(copy(new_balance_sender) == copy(old_balance_sender) - copy(amount), 77);
             assert(copy(new_balance_recipient) == copy(old_balance_recipient) + move(amount), 77);
 
+            return;
+        }
+
+        public Flint_array_remove<S: copyable>(nums: &mut vector<S>, i: u64) {
+            let result: S;
+            result = Vector.remove<S>(move(nums), move(i));
+            _ = move(result);
+            return;
+        }
+
+        public Flint_array_length<S: copyable>(nums: vector<S>): u64 {
+            let length: u64;
+            length = Vector.length<S>(&nums);
+            return move(length); 
+        }
+          
+        public Flint_array_insert<S: copyable>(nums: &mut vector<S>, i: u64, value: S) {
+            let length: u64;
+            let index: u64;
+            index = move(i);
+            Vector.push_back<S>(copy(nums), copy(value));
+            length = Self.Flint_array_length<S>(*copy(nums));
+            
+            while(copy(index) < copy(length) - 1) {
+                Vector.swap<S>(copy(nums), copy(index), copy(length) - 1);
+                index = copy(index) + 1;
+            }
+            
             return;
         }
         "
