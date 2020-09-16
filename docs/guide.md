@@ -6,7 +6,7 @@
   
 Although blockchain platforms, such as [Ethereum](https://www.ethereum.org/) and [Libra](https://libra.org), require smart contract programmers to ensure the correct behaviour of their program before deployment, they don't provide high level languages designed with safety in mind. Solidity and others do not tailor for blockchain's unique programming model and instead, mimic existing popular languages like JavaScript, Python, or C, without providing additional safety mechanisms.  
   
-Flint changes that, as a new programming language built for easily writing safe smart contracts. Flint is approachable to both experienced and new blockchain developers, and presents a variety of security features. Much of the language syntax is inspired by [the Swift language](https://swift.org/), making it more approachable than Solidity.  
+Flint changes that, as a new programming language built for easily writing safe smart contracts. Flint is approachable to both experienced and new blockchain developers, and presents a variety of security features. 
  
 For a quick start, please have a look at the [Installation](#installation) section first, followed by the [Example](#example) section.
 
@@ -130,7 +130,7 @@ Additionally, to run the testing libraries, install:
  * Libra 
   
 #### Install  
-Assuming you have all the prerequisites, you should be able to build flint by running  
+Assuming you have all the prerequisites, you should be able to build Flint by running  
   
 ```bash  
 git clone https://www.github.com/flintlang/flint-2.git
