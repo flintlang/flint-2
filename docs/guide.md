@@ -177,30 +177,31 @@ This section demonstrates the full workflow of writing a smart contract in Flint
   
 ### Creating a simple contract  
   
-The first step is to create a Flint source file. Our example smart contract will be a simple counter. It will have a state – the number of "hits". Its current value can be displayed by calling its `getValue` function. Its value can be increased by calling its `hit` function.  
+The first step is to create a Flint source file. Our example smart contract will be a simple counter. It will have a state – the number counted to. Its current value can be displayed by calling its `getValue` function. Its value can be increased by calling its `increment` function, and decreased by calling its 'decrement' function.  
   
 We create a file called `main.flint` and put the following code in it: 
  
-<!-- TODO pick a better example with money coming in -->
-```swift  
-// This is the declaration of the contract. In this simple example, it only  
-// includes the one state variable, `hits`.  
-contract Counter {  
- // `hits` will initially be `0` and it will be an integer variable (`Int`).
-    var hits: Int = 0
-}  
-  
-// These are the functions of the contract. The `:: (any)` indicates that  
-// these functions can be called by anyone on the Ethereum network.  
-Counter :: (any) {  
-    // This is the constructor, called when the contract is first created. There 
-    // is nothing we need to do here at this point, so it is empty. public init() {}  
-    // This function returns the current counter value. It takes no arguments, 
-    // but returns an `Int`. 
-    public func getValue() -> Int { return hits }
-    
-    public func hit(value: Libra) mutates (hits) { hits += 1 }
-}  
+````swift
+contract Counter {
+    var value: Int = 0
+}
+
+Counter :: (any) {
+    public init() {}
+
+    public func getValue() -> Int {
+        return value 
+    }
+
+    public func increment() mutates (value) {
+        value += 1
+    }
+
+    public func decrement() mutates (value) {
+        value -= 1
+    }
+}
+
 ````  
   
 ### Compiling `Counter`  
