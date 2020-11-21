@@ -39,7 +39,7 @@ impl<'a> LLVMFunction<'a> {
         let local_parameters = parameter_names
             .iter()
             .map(|name| name.to_string())
-            .zip(func_val.get_params().into_iter().map(|param| param))
+            .zip(func_val.get_params().into_iter())
             .collect::<HashMap<String, BasicValueEnum>>();
 
         let mut function_context = FunctionContext::new(func_val, local_parameters);

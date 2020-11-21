@@ -17,10 +17,7 @@ pub enum TopLevelDeclaration {
 impl TopLevelDeclaration {
     #[allow(dead_code)]
     pub fn is_contract_behaviour_declaration(&self) -> bool {
-        match self {
-            TopLevelDeclaration::ContractBehaviourDeclaration(_) => true,
-            _ => false,
-        }
+        matches!(self, TopLevelDeclaration::ContractBehaviourDeclaration(_))
     }
 }
 

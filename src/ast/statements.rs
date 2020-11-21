@@ -17,10 +17,7 @@ pub enum Statement {
 impl Statement {
     #[allow(dead_code)]
     pub fn is_expression(&self) -> bool {
-        match self {
-            Statement::Expression(_) => true,
-            _ => false,
-        }
+        matches!(self, Statement::Expression(_))
     }
 }
 

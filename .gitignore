@@ -1,6 +1,7 @@
 .idea/
 venv
 flint_config.json
+*~
 
 ### Rust ###
 tests/move_tests/tests/temp/

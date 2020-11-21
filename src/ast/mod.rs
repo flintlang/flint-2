@@ -413,17 +413,11 @@ pub fn is_redeclaration(identifier1: &Identifier, identifier2: &Identifier) -> b
 }
 
 pub fn is_return_or_become_statement(statement: &Statement) -> bool {
-    match statement {
-        Statement::ReturnStatement(_) | Statement::BecomeStatement(_) => true,
-        _ => false,
-    }
+    matches!(statement, Statement::ReturnStatement(_) | Statement::BecomeStatement(_))
 }
 
 pub fn is_literal(expression: &Expression) -> bool {
-    match expression {
-        Expression::Literal(_) => true,
-        _ => false,
-    }
+    matches!(expression, Expression::Literal(_))
 }
 
 #[allow(dead_code)]
