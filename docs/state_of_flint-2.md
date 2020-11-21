@@ -49,7 +49,9 @@ _Note that we're going to cover the necessary dependencies for someone working o
 
 - **rustc**: We were working with version 1.44.1, however any newer installation is likely to work.
 - **Libra**: Libra is known to update often without documentation, so there are likely to have been changes since writing this document that break parts of the Move target. The Move compiler currently works with the Libra version installed September 3rd 2020.
-- **LLVM**: The Rust Inkwell crate currently supports up to LLVM 10.0, and some earlier versions of LLVM do not support the WASM target, hence this compiler is only tested with LLVM 10.0. You will also need to install wasm-ld-10 and llc-10.
+- **LLVM**: The Rust Inkwell crate currently supports up to LLVM 10.0, and some earlier versions of LLVM do not support the WASM target, hence this compiler is only tested with LLVM 10.0.
+- **wasm-ld**: The linker used by the WASM backend. You will need to install wasm-ld-10, which can be done by installing the lld-10 package.
+- **llc**: The LLVM static compiler. You will need to install llc-10.
 - **python3**: In order to run the python script, you will need a python version >= 3.6.
 
 ### Testing
