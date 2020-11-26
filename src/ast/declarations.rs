@@ -14,13 +14,6 @@ pub enum TopLevelDeclaration {
     TraitDeclaration(TraitDeclaration),
 }
 
-impl TopLevelDeclaration {
-    #[allow(dead_code)]
-    pub fn is_contract_behaviour_declaration(&self) -> bool {
-        matches!(self, TopLevelDeclaration::ContractBehaviourDeclaration(_))
-    }
-}
-
 impl Visitable for TopLevelDeclaration {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_top_level_declaration(self, ctx)?;
@@ -53,7 +46,7 @@ impl ContractDeclaration {
     ) -> impl Iterator<Item = &VariableDeclaration> {
         self.contract_members.iter().filter_map(|c| match c {
             ContractMember::VariableDeclaration(v, _) => {
-                if v.variable_type.is_dictionary_type() {
+                if matches!(v.variable_type, Type::DictionaryType(_)) {
                     None
                 } else {
                     Some(v)
@@ -845,10 +838,7 @@ impl Parameter {
     }
 
     pub fn is_inout(&self) -> bool {
-        if self.type_assignment.is_inout_type() {
-            return true;
-        }
-        false
+        matches!(self.type_assignment, Type::InoutType(_))
     }
 }
 

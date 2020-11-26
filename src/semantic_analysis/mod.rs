@@ -399,12 +399,13 @@ impl Visitor for SemanticAnalysis {
             }
         }
 
-        let remaining = declaration
-            .body
-            .iter()
-            .skip_while(|s| !is_return_or_become_statement(s));
+        let remaining = declaration.body.iter().skip_while(
+            |s| !matches!(s, Statement::ReturnStatement(_) | Statement::BecomeStatement(_)),
+        );
 
-        let remaining_after_end = remaining.filter(|s| !is_return_or_become_statement(s));
+        let remaining_after_end = remaining.filter(
+            |s| !matches!(s, Statement::ReturnStatement(_) | Statement::BecomeStatement(_)),
+        );
         if remaining_after_end.count() > 0 {
             return Err(Box::from(format!(
                 "Statements after `return` in {}",
@@ -525,7 +526,7 @@ impl Visitor for SemanticAnalysis {
             context.scope_context.as_ref().unwrap_or_default(),
         );
 
-        if !expression_type.is_bool_type() {
+        if !matches!(expression_type, Type::Bool) {
             return Err(Box::from(format!(
                 "Invalid condition type in `if` statement on {}",
                 if_statement.condition.get_line_info()
@@ -704,7 +705,9 @@ impl Visitor for SemanticAnalysis {
         let start = range_expression.start_expression.clone();
         let end = range_expression.end_expression.clone();
 
-        if is_literal(start.as_ref()) && is_literal(end.as_ref()) {
+        if matches!(start.as_ref(), Expression::Literal(_))
+            && matches!(end.as_ref(), Expression::Literal(_))
+        {
         } else {
             return Err(Box::from(format!(
                 "Invalid Range Declaration: {:?}",

@@ -14,13 +14,6 @@ pub enum Statement {
     Assertion(Assertion),
 }
 
-impl Statement {
-    #[allow(dead_code)]
-    pub fn is_expression(&self) -> bool {
-        matches!(self, Statement::Expression(_))
-    }
-}
-
 impl Visitable for Statement {
     fn visit(&mut self, v: &mut dyn Visitor, ctx: &mut Context) -> VResult {
         v.start_statement(self, ctx)?;

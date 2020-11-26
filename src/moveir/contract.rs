@@ -88,7 +88,7 @@ impl MoveContract {
         let members = variable_declarations
             .clone()
             .into_iter()
-            .filter(|m| !m.variable_type.is_dictionary_type())
+            .filter(|m| !matches!(m.variable_type, Type::DictionaryType(_)))
             .map(|v| {
                 format!(
                     "{}",
@@ -596,7 +596,7 @@ impl MoveContract {
     ) -> (Vec<String>, String, String, Vec<MoveIRStatement>) {
         let dict_resources: Vec<&VariableDeclaration> = variable_declarations
             .iter()
-            .filter(|m| m.variable_type.is_dictionary_type())
+            .filter(|m| matches!(m.variable_type, Type::DictionaryType(_)))
             .collect();
 
         let dict_runtime = dict_resources.clone();

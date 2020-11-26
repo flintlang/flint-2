@@ -125,7 +125,7 @@ impl MoveCastExpression {
         let enclosing = self.expression.expression.enclosing_type();
         let enclosing = enclosing
             .as_ref()
-            .unwrap_or_else(|| &function_context.enclosing_type);
+            .unwrap_or(&function_context.enclosing_type);
         let original_type = function_context.environment.get_expression_type(
             &*self.expression.expression,
             enclosing,

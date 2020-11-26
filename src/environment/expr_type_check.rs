@@ -158,7 +158,7 @@ impl Environment {
             .identifier
             .enclosing_type
             .as_deref()
-            .unwrap_or_else(|| type_id);
+            .unwrap_or(type_id);
 
         self.get_expression_type(
             &Expression::FunctionCall(function_call.clone()),

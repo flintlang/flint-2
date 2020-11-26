@@ -412,14 +412,6 @@ pub fn is_redeclaration(identifier1: &Identifier, identifier2: &Identifier) -> b
     false
 }
 
-pub fn is_return_or_become_statement(statement: &Statement) -> bool {
-    matches!(statement, Statement::ReturnStatement(_) | Statement::BecomeStatement(_))
-}
-
-pub fn is_literal(expression: &Expression) -> bool {
-    matches!(expression, Expression::Literal(_))
-}
-
 #[allow(dead_code)]
 // TODO implement mangling
 pub fn mangle(string: &str) -> String {

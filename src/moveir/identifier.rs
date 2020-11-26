@@ -2,7 +2,7 @@ use super::function::FunctionContext;
 use super::ir::{MoveIRExpression, MoveIROperation, MoveIRTransfer};
 use super::property_access::MovePropertyAccess;
 use super::MovePosition;
-use crate::ast::{Expression, Identifier};
+use crate::ast::{Expression, Identifier, Type};
 use crate::target::libra;
 
 pub(crate) struct MoveIdentifier {
@@ -69,7 +69,9 @@ impl MoveIdentifier {
                 return ir_identifier;
             }
 
-            if identifier_type.is_inout_type() && identifier_type.is_user_defined_type() {
+            if matches!(identifier_type, Type::InoutType(_))
+                && matches!(identifier_type, Type::UserDefinedType(_))
+            {
                 if f_call {
                     return MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
                         ir_identifier,
@@ -131,7 +133,7 @@ impl MoveSelf {
             MoveIRExpression::Transfer(MoveIRTransfer::Move(Box::from(
                 MoveIRExpression::Identifier(self.name()),
             )))
-        } else if !function_context.self_type().is_inout_type() {
+        } else if !matches!(function_context.self_type(), Type::InoutType(_)) {
             MoveIRExpression::Identifier(self.name())
         } else if let MovePosition::Accessed = self.position {
             MoveIRExpression::Operation(MoveIROperation::Dereference(Box::from(

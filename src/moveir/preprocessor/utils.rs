@@ -410,7 +410,7 @@ pub fn expand_properties(expression: Expression, ctx: &mut Context, borrow: bool
         Expression::Identifier(i) => {
             if let Some(ref scope_context) = ctx.scope_context {
                 if let Some(identifier_type) = scope_context.type_for(&i.token) {
-                    if !identifier_type.is_inout_type() {
+                    if !matches!(identifier_type, Type::InoutType(_)) {
                         return pre_assign(expression, ctx, borrow, false);
                     }
                 }

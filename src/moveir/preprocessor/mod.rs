@@ -1144,7 +1144,7 @@ impl Visitor for MovePreProcessor {
                     ),
                 };
 
-                if !result_type.is_inout_type() {
+                if !matches!(result_type, Type::InoutType(_)) {
                     let inout = InoutExpression {
                         ampersand_token: "".to_string(),
                         expression: Box::new(expression.clone()),

@@ -38,10 +38,6 @@ impl Type {
         }
     }
 
-    pub fn is_dictionary_type(&self) -> bool {
-        matches!(self, Type::DictionaryType(_))
-    }
-
     pub fn is_currency_type(&self, currency: &Currency) -> bool {
         return matches!(
             self,
@@ -67,22 +63,6 @@ impl Type {
             Type::String => false,
             _ => true,
         }
-    }
-
-    pub fn is_address_type(&self) -> bool {
-        matches!(self, Type::Address)
-    }
-
-    pub fn is_bool_type(&self) -> bool {
-        matches!(self, Type::Bool)
-    }
-
-    pub fn is_inout_type(&self) -> bool {
-        matches!(self, Type::InoutType(_))
-    }
-
-    pub fn is_user_defined_type(&self) -> bool {
-        matches!(self, Type::UserDefinedType(_))
     }
 
     pub fn is_built_in_type(&self) -> bool {

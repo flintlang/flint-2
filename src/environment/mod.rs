@@ -207,24 +207,9 @@ impl Environment {
     pub fn declared_caller_protections(&self, type_id: &str) -> Vec<String> {
         let caller_protection_property = |p: &PropertyInformation| match p.property.get_type() {
             Type::Address => true,
-            Type::FixedSizedArrayType(f) => {
-                if f.key_type.is_address_type() {
-                    return true;
-                }
-                false
-            }
-            Type::ArrayType(a) => {
-                if a.key_type.is_address_type() {
-                    return true;
-                }
-                false
-            }
-            Type::DictionaryType(d) => {
-                if d.value_type.is_address_type() {
-                    return true;
-                }
-                false
-            }
+            Type::FixedSizedArrayType(f) => matches!(*f.key_type, Type::Address),
+            Type::ArrayType(a) => matches!(*a.key_type, Type::Address),
+            Type::DictionaryType(d) => matches!(*d.value_type, Type::Address),
             _ => false,
         };
         let caller_protection_function = |f: &FunctionInformation| {
@@ -233,10 +218,10 @@ impl Environment {
                 if let Some(parameter_type) = parameter_types.next() {
                     // There are no further parameter types
                     parameter_types.all(|_| false)
-                        && parameter_type.is_address_type()
-                        && result_type.is_bool_type()
+                        && matches!(parameter_type, Type::Address)
+                        && matches!(result_type, Type::Bool)
                 } else {
-                    result_type.is_address_type()
+                    matches!(result_type, Type::Address)
                 }
             } else {
                 false
